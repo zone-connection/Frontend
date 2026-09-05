@@ -43,6 +43,10 @@ export type Empreendimento = {
   oruloBuildingId?: number | null;
   oruloStatus?: string | null;
   oruloSyncedAt?: string | null;
+  matchTotal?: number;
+  matchMuitoCompativeis?: number;
+  matchInteressePrevio?: number;
+  matchComputedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   construtora: { id: string; nome: string; cor: string | null } | null;

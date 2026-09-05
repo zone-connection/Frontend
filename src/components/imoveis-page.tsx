@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -50,6 +51,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/lib/permissions";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
   Table,
@@ -145,8 +147,10 @@ import {
   Search,
   Users,
   Wallet,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchNotificacoes } from "@/lib/notificacoes-api";
 import { SOFT_BTN, SOFT_BTN_ACTIVE } from "@/lib/soft-btn";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
@@ -166,6 +170,26 @@ const IMOVEIS_GRADIENT_STYLE = BRAND_GRADIENT_STYLE;
 const IMOVEIS_TABLE_CHIP =
   "h-5 w-auto max-w-[8.5rem] min-w-0 shrink rounded-full border-transparent px-2 py-0 text-[10px] font-medium leading-5 shadow-none";
 const CLEAR_TH_BG = { backgroundColor: "transparent" } as const;
+
+const MATCH_MOTIVO_LABEL: Record<string, string> = {
+  localizacao: "Localização",
+  valor: "Faixa de preço",
+  quartos: "Quartos",
+  vagas: "Vagas",
+  tags: "Preferências",
+  interesse_previo: "Interesse prévio",
+};
+
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function whatsappHref(telefone: string) {
+  const digits = digitsOnly(telefone);
+  if (digits.length < 10) return null;
+  const withCountry = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${withCountry}`;
+}
 
 function ImoveisTableHead({
   className,
@@ -325,9 +349,11 @@ function formatPrevisao(iso: string | null | undefined) {
 export function ImoveisPage({
   embedded = false,
   proprietarioId,
+  openMatchesId,
 }: {
   embedded?: boolean;
   proprietarioId?: string;
+  openMatchesId?: string;
 } = {}) {
   const user = getSession();
   const isAdmin = user?.role === "admin";
@@ -337,6 +363,16 @@ export function ImoveisPage({
     isAdmin || user?.role === "gerente" || isAnalista || isTreinee;
   const canCreate = canManage;
   const canDelete = isAdmin || isAnalista || isTreinee;
+  const canOpenFunil = Boolean(
+    user &&
+      canAccessRoute(
+        user.role,
+        "/funil",
+        user.tenant?.modules ?? null,
+        user.tenant?.plano,
+        user.permissions,
+      ),
+  );
   const canCreateCatalog = canManage;
   const { catalog, addItem, updateItem, removeItem, colorByLabel } =
     useCatalog();
@@ -394,8 +430,16 @@ export function ImoveisPage({
   const [matchesOpen, setMatchesOpen] = useState(false);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [matchesTitle, setMatchesTitle] = useState("");
+  const [matchesItem, setMatchesItem] = useState<Empreendimento | null>(null);
   const [matchesResult, setMatchesResult] =
     useState<EmpreendimentoMatchesResult | null>(null);
+  const [matchesFilter, setMatchesFilter] = useState<
+    "todos" | "muito" | "interesse"
+  >("todos");
+  const [matchAlerts, setMatchAlerts] = useState<
+    { id: string; empreendimentoId: string | null; titulo: string; corpo: string }[]
+  >([]);
+  const openedMatchRef = useRef("");
   const [pdfOpen, setPdfOpen] = useState(false);
   const [pdfOrdem, setPdfOrdem] = useState<PdfOrdemImoveis>("alfabetica");
   const [pdfConstrutoraId, setPdfConstrutoraId] = useState("");
@@ -403,11 +447,29 @@ export function ImoveisPage({
 
   async function openMatches(item: Empreendimento) {
     setMatchesTitle(item.nome);
+    setMatchesItem(item);
+    setMatchesFilter("todos");
     setMatchesOpen(true);
     setMatchesLoading(true);
     setMatchesResult(null);
     try {
-      setMatchesResult(await fetchEmpreendimentoMatches(item.id));
+      const result = await fetchEmpreendimentoMatches(item.id);
+      setMatchesResult(result);
+      setItems((prev) =>
+        prev.map((row) =>
+          row.id === item.id
+            ? {
+                ...row,
+                matchTotal: result.total,
+                matchMuitoCompativeis: result.muitoCompativeis,
+                matchInteressePrevio: result.comInteressePrevio,
+              }
+            : row,
+        ),
+      );
+      setMatchAlerts((prev) =>
+        prev.filter((alert) => alert.empreendimentoId !== item.id),
+      );
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -419,6 +481,33 @@ export function ImoveisPage({
       setMatchesLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!openMatchesId || items.length === 0) return;
+    if (openedMatchRef.current === openMatchesId) return;
+    const item = items.find((row) => row.id === openMatchesId);
+    if (!item) return;
+    openedMatchRef.current = openMatchesId;
+    void openMatches(item);
+  }, [openMatchesId, items]);
+
+  useEffect(() => {
+    if (embedded) return;
+    void fetchNotificacoes()
+      .then((list) =>
+        setMatchAlerts(
+          list
+            .filter((n) => n.tipo === "imovel_compativel" && !n.lida)
+            .map((n) => ({
+              id: n.id,
+              empreendimentoId: n.empreendimentoId,
+              titulo: n.titulo,
+              corpo: n.corpo,
+            })),
+        ),
+      )
+      .catch(() => setMatchAlerts([]));
+  }, [embedded]);
 
   const loadCaptacaoImoveis = useCallback(async () => {
     if (embedded) {
@@ -1190,6 +1279,37 @@ export function ImoveisPage({
         />
       )}
 
+      {!embedded && matchAlerts.length > 0 ? (
+        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/8 px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">
+                {matchAlerts.length === 1
+                  ? "Há clientes compatíveis com um imóvel novo"
+                  : `${matchAlerts.length} imóveis com clientes compatíveis`}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {matchAlerts[0]?.corpo ??
+                  "Abra a lista para falar com os clientes mais compatíveis."}
+              </p>
+            </div>
+            {matchAlerts[0]?.empreendimentoId ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  const id = matchAlerts[0]?.empreendimentoId;
+                  const item = items.find((row) => row.id === id);
+                  if (item) void openMatches(item);
+                }}
+              >
+                Ver clientes agora
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className={FILTER_BAR_STACK}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
@@ -1609,12 +1729,22 @@ export function ImoveisPage({
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary"
+                          size="sm"
+                          className="relative h-7 gap-1 px-1.5 text-primary hover:bg-primary/10 hover:text-primary"
                           title="Clientes compatíveis"
                           onClick={() => void openMatches(item)}
                         >
                           <Users className="h-3.5 w-3.5" />
+                          <span className="hidden text-[11px] font-semibold sm:inline">
+                            {(item.matchTotal ?? 0) > 0
+                              ? `${item.matchTotal} clientes`
+                              : "Clientes"}
+                          </span>
+                          {(item.matchTotal ?? 0) > 0 ? (
+                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground sm:hidden">
+                              {item.matchTotal}
+                            </span>
+                          ) : null}
                         </Button>
                         {canManage ? (
                           <Button
@@ -1854,12 +1984,17 @@ export function ImoveisPage({
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                      size="sm"
+                      className="relative h-8 gap-1 px-2"
                       title="Clientes compatíveis"
                       onClick={() => void openMatches(item)}
                     >
                       <Users className="h-4 w-4" />
+                      <span className="text-[11px] font-semibold">
+                        {(item.matchTotal ?? 0) > 0
+                          ? `${item.matchTotal}`
+                          : ""}
+                      </span>
                     </Button>
                     {canManage && (
                       <Button
@@ -1894,6 +2029,24 @@ export function ImoveisPage({
                 ) : null}
               </CardHeader>
               <CardContent className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => void openMatches(item)}
+                  className="flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-left text-xs hover:bg-primary/12"
+                >
+                  <span className="font-medium text-primary">
+                    {(item.matchTotal ?? 0) > 0
+                      ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
+                      : "Ver clientes compatíveis"}
+                  </span>
+                  {(item.matchMuitoCompativeis ?? 0) > 0 ? (
+                    <span className="text-muted-foreground">
+                      {item.matchMuitoCompativeis} muito compatíveis
+                    </span>
+                  ) : (
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </button>
                 {showCampo("endereco") && item.endereco ? (
                   <p className="text-sm text-muted-foreground line-clamp-2">
                     {item.endereco}
@@ -2147,7 +2300,7 @@ export function ImoveisPage({
         onOpenChange={setMatchesOpen}
         icon={<Users className="w-5 h-5" />}
         title={`Clientes compatíveis — ${matchesTitle}`}
-        description="Matching por localização, valor, quartos, vagas, tags e interesse prévio."
+        description="Quem tem maior chance de interesse neste imóvel, para você abordar agora."
         footer={
           <FormDialogActions>
             <Button
@@ -2172,30 +2325,93 @@ export function ImoveisPage({
             </p>
           ) : (
             <div className="space-y-4">
+              {matchesItem ? (
+                <p className="rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  {[
+                    matchesItem.valorReferencia != null
+                      ? brl(matchesItem.valorReferencia)
+                      : null,
+                    matchesItem.quartos != null
+                      ? `${matchesItem.quartos} quartos`
+                      : null,
+                    matchesItem.vagas != null
+                      ? `${matchesItem.vagas} vagas`
+                      : null,
+                    empreendimentoLocalidadeNome(matchesItem) ||
+                      matchesItem.cidade,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
               <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border px-3 py-2 text-sm">
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-sm",
+                    matchesFilter === "todos" && "border-primary bg-primary/5",
+                  )}
+                  onClick={() => setMatchesFilter("todos")}
+                >
                   <div className="text-xs text-muted-foreground">Compatíveis</div>
                   <div className="text-lg font-semibold">{matchesResult.total}</div>
-                </div>
-                <div className="rounded-lg border px-3 py-2 text-sm">
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-sm",
+                    matchesFilter === "muito" && "border-primary bg-primary/5",
+                  )}
+                  onClick={() => setMatchesFilter("muito")}
+                >
                   <div className="text-xs text-muted-foreground">
                     Muito compatíveis
                   </div>
                   <div className="text-lg font-semibold">
                     {matchesResult.muitoCompativeis}
                   </div>
-                </div>
-                <div className="rounded-lg border px-3 py-2 text-sm">
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-sm",
+                    matchesFilter === "interesse" && "border-primary bg-primary/5",
+                  )}
+                  onClick={() => setMatchesFilter("interesse")}
+                >
                   <div className="text-xs text-muted-foreground">
-                    Interesse prévio
+                    Já viram imóvel semelhante
                   </div>
                   <div className="text-lg font-semibold">
                     {matchesResult.comInteressePrevio}
                   </div>
-                </div>
+                </button>
               </div>
               <div className="space-y-2">
-                {matchesResult.matches.map((match) => (
+                {matchesResult.matches
+                  .filter((match) => {
+                    if (matchesFilter === "muito")
+                      return match.nivel === "muito_compativel";
+                    if (matchesFilter === "interesse")
+                      return match.interessePrevio;
+                    return true;
+                  }).length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Nenhum cliente neste recorte. Veja a lista completa em
+                    Compatíveis.
+                  </p>
+                ) : null}
+                {matchesResult.matches
+                  .filter((match) => {
+                    if (matchesFilter === "muito")
+                      return match.nivel === "muito_compativel";
+                    if (matchesFilter === "interesse")
+                      return match.interessePrevio;
+                    return true;
+                  })
+                  .map((match) => {
+                    const wa = whatsappHref(match.lead.telefone);
+                    return (
                   <div
                     key={match.lead.id}
                     className={cn(
@@ -2211,6 +2427,9 @@ export function ImoveisPage({
                           {match.lead.bairro ? ` · ${match.lead.bairro}` : ""}
                           {match.lead.corretor
                             ? ` · ${match.lead.corretor.name}`
+                            : ""}
+                          {match.lead.orcamentoMax != null
+                            ? ` · até ${brl(match.lead.orcamentoMax)}`
                             : ""}
                         </div>
                       </div>
@@ -2230,7 +2449,7 @@ export function ImoveisPage({
                         </Badge>
                         {match.interessePrevio ? (
                           <Badge variant="outline" className="text-[10px]">
-                            Interesse prévio
+                            Já demonstrou interesse
                           </Badge>
                         ) : null}
                       </div>
@@ -2242,12 +2461,50 @@ export function ImoveisPage({
                           variant="outline"
                           className="text-[10px] font-normal"
                         >
-                          {motivo.replaceAll("_", " ")}
+                          {MATCH_MOTIVO_LABEL[motivo] ??
+                            motivo.replaceAll("_", " ")}
                         </Badge>
                       ))}
                     </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {wa ? (
+                        <Button type="button" size="sm" className="h-7" asChild>
+                          <a href={wa} target="_blank" rel="noreferrer">
+                            <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                            WhatsApp
+                          </a>
+                        </Button>
+                      ) : null}
+                      {canOpenFunil ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          asChild
+                        >
+                          <Link
+                            to="/funil"
+                            search={{ lead: match.lead.id }}
+                          >
+                            Abrir no funil
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          asChild
+                        >
+                          <Link to="/leads">Abrir em leads</Link>
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                ))}
+                    );
+                  })}
               </div>
             </div>
           )}

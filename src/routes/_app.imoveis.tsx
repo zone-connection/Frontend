@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ImoveisPage } from "@/components/imoveis-page";
 
-type Search = { proprietarioId?: string };
+type Search = { proprietarioId?: string; matches?: string };
 
 export const Route = createFileRoute("/_app/imoveis")({
   head: () => ({ meta: [{ title: "Imóveis — Zone Connection" }] }),
@@ -10,11 +10,15 @@ export const Route = createFileRoute("/_app/imoveis")({
       typeof search.proprietarioId === "string"
         ? search.proprietarioId
         : undefined,
+    matches:
+      typeof search.matches === "string" ? search.matches : undefined,
   }),
   component: ImoveisRoute,
 });
 
 function ImoveisRoute() {
-  const { proprietarioId } = Route.useSearch();
-  return <ImoveisPage proprietarioId={proprietarioId} />;
+  const { proprietarioId, matches } = Route.useSearch();
+  return (
+    <ImoveisPage proprietarioId={proprietarioId} openMatchesId={matches} />
+  );
 }

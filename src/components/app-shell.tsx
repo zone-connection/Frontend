@@ -596,7 +596,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
     if (n.tipo === "imovel_compativel") {
-      void navigate({ to: "/imoveis" });
+      void navigate({
+        to: "/imoveis",
+        search: n.empreendimentoId
+          ? { matches: n.empreendimentoId }
+          : undefined,
+      });
       return;
     }
     const canOpenFunil = Boolean(
