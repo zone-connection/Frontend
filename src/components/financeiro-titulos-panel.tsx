@@ -1502,33 +1502,32 @@ export function FinanceiroTitulosPanel({
         title={title}
         description={description}
         actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <HideFinanceValuesButton />
-              {canCreateFin ? (
-                <>
-              {canLancarComissao ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <HideFinanceValuesButton />
+            {canCreateFin ? (
+              <>
+                {canLancarComissao ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={SOFT_BTN}
+                    onClick={() => setComissaoDialogOpen(true)}
+                  >
+                    <Percent className="w-4 h-4 mr-1" />
+                    Lançar comissão
+                  </Button>
+                ) : null}
                 <Button
-                  type="button"
-                  variant="outline"
-                  className={SOFT_BTN}
-                  onClick={() => setComissaoDialogOpen(true)}
+                  onClick={openCreate}
+                  className={BRAND_GRADIENT_BTN}
+                  style={BRAND_GRADIENT_STYLE}
                 >
-                  <Percent className="w-4 h-4 mr-1" />
-                  Lançar comissão
+                  <Plus className="w-4 h-4 mr-1" />
+                  Novo título
                 </Button>
-              ) : null}
-              <Button
-                onClick={openCreate}
-                className={BRAND_GRADIENT_BTN}
-                style={BRAND_GRADIENT_STYLE}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Novo título
-              </Button>
-                </>
-              ) : null}
-            </div>
-          }
+              </>
+            ) : null}
+          </div>
         }
       />
 
