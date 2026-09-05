@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
+import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { FormDialogActions, FormDialogBody, FormDialogShell } from "@/components/form-dialog";
 import { TablePager } from "@/components/table-pager";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +40,7 @@ import {
 } from "@/lib/funcionarios-api";
 import { useTablePager } from "@/lib/use-table-pager";
 import { getSession } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import {
   Download,
   History,
@@ -145,6 +148,7 @@ function Page() {
   const [historico, setHistorico] = useState<ContrachequeHistorico[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [hideValues] = useHideFinanceiroValues();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -302,10 +306,13 @@ function Page() {
         title="Funcionários"
         description="Cadastre o salário uma vez. Ao baixar o contracheque, o PDF usa esses dados com a data de hoje."
         actions={
-          <Button type="button" onClick={openCreate}>
-            <Plus className="size-4" />
-            Novo funcionário
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <HideFinanceValuesButton />
+            <Button type="button" onClick={openCreate}>
+              <Plus className="size-4" />
+              Novo funcionário
+            </Button>
+          </div>
         }
       />
 
@@ -363,10 +370,20 @@ function Page() {
                     </TableCell>
                     <TableCell>{item.cargo}</TableCell>
                     <TableCell>{item.empresa}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell
+                      className={cn(
+                        "text-right tabular-nums",
+                        hideValues && "select-none blur-[8px]",
+                      )}
+                    >
                       {money(item.salarioBruto)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
+                    <TableCell
+                      className={cn(
+                        "text-right tabular-nums font-medium",
+                        hideValues && "select-none blur-[8px]",
+                      )}
+                    >
                       {money(item.salarioLiquido)}
                     </TableCell>
                     <TableCell>
@@ -613,7 +630,12 @@ function Page() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="tabular-nums font-medium">
+                    <div
+                      className={cn(
+                        "tabular-nums font-medium",
+                        hideValues && "select-none blur-[8px]",
+                      )}
+                    >
                       {money(row.salarioLiquido)}
                     </div>
                     {row.variacaoLiquido != null ? (

@@ -19,6 +19,7 @@ import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { fetchTitulos, fetchVisaoGeral } from "@/lib/financeiro-api";
 import { canFinanceiroAction } from "@/lib/permissions";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import {
   brl,
@@ -40,7 +41,6 @@ import {
   ChevronRight,
   CircleDashed,
   Eye,
-  EyeOff,
   Loader2,
   Percent,
   PieChart as PieChartIcon,
@@ -203,7 +203,7 @@ function ResponsiveChartShell({ children }: { children: ReactNode }) {
 function Page() {
   const navigate = useNavigate();
   const canCreateFin = canFinanceiroAction(getSession(), "create");
-  const [hideValues, setHideValues] = useHideFinanceiroValues();
+  const [hideValues] = useHideFinanceiroValues();
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState(EMPTY_KPIS);
   const [mesesResumo, setMesesResumo] = useState<MesResumo[]>([]);
@@ -441,21 +441,7 @@ function Page() {
         description={`Resumo de ${periodoAnoMes} — resultado, pendências e comissões a receber`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(hideValues ? SOFT_BTN_ACTIVE : SOFT_BTN)}
-              aria-pressed={hideValues}
-              title={hideValues ? "Mostrar valores" : "Ocultar valores"}
-              onClick={() => setHideValues(!hideValues)}
-            >
-              {hideValues ? (
-                <EyeOff className="w-4 h-4 mr-1" />
-              ) : (
-                <Eye className="w-4 h-4 mr-1" />
-              )}
-              {hideValues ? "Mostrar valores" : "Ocultar valores"}
-            </Button>
+            <HideFinanceValuesButton />
             {canCreateFin ? (
               <Button
                 type="button"

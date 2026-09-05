@@ -18,6 +18,8 @@ import {
 } from "@/components/agenda-board";
 import { FluxoCaixaBoard } from "@/components/fluxo-caixa-board";
 import { PageHeader } from "@/components/app-shell";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
+import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -227,6 +229,7 @@ function Page() {
       saldoProjetado: buckets.at(-1)?.saldoProjetado ?? 0,
     };
   }, [buckets]);
+  const [hideValues] = useHideFinanceiroValues();
 
   const chartData = useMemo(
     () => buckets.map((d) => ({ ...d, eixo: d.label })),
@@ -369,6 +372,7 @@ function Page() {
       <PageHeader
         title="Fluxo de caixa"
         description="Entradas e saídas realizadas e previstas. Comissão pendente entra pela data prevista, no valor bruto."
+        actions={<HideFinanceValuesButton />}
       />
 
       <div
@@ -474,24 +478,28 @@ function Page() {
           value={totais.entradasRealizadas}
           icon={ArrowUpRight}
           tone="blue-1"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saídas realizadas"
           value={totais.saidasRealizadas}
           icon={ArrowDownRight}
           tone="blue-2"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="A receber neste mês"
           value={totais.entradasPrevistas}
           icon={ArrowUpRight}
           tone="blue-3"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="A pagar neste mês"
           value={totais.saidasPrevistas}
           icon={ArrowDownRight}
           tone="blue-4"
+          blurValue={hideValues}
         />
       </section>
 

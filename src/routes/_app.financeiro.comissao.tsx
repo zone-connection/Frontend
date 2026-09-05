@@ -8,6 +8,8 @@ import {
 import { Banknote, CheckCircle2, Clock3, Eye, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
+import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -91,6 +93,7 @@ function Page() {
   const role = session?.role;
   const isFinanceTeam =
     role === "admin" || role === "super_admin" || role === "financeiro";
+  const [hideValues] = useHideFinanceiroValues();
   const canCreateFin = isFinanceTeam && canFinanceiroAction(session, "create");
   const canEditFin = isFinanceTeam && canFinanceiroAction(session, "edit");
   const canDeleteFin = isFinanceTeam && canFinanceiroAction(session, "delete");
@@ -276,12 +279,15 @@ function Page() {
             : "Acompanhe as comissões disponíveis para o seu perfil"
         }
         actions={
-          canCreateFin ? (
-            <Button type="button" onClick={openCreate}>
-              <Plus className="mr-1 size-4" />
-              Lançar comissão
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            <HideFinanceValuesButton />
+            {canCreateFin ? (
+              <Button type="button" onClick={openCreate}>
+                <Plus className="mr-1 size-4" />
+                Lançar comissão
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -291,24 +297,28 @@ function Page() {
           value={kpis.total}
           icon={Percent}
           tone="blue-1"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Pendentes"
           value={kpis.pending}
           icon={Clock3}
           tone="blue-2"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Liberadas"
           value={kpis.released}
           icon={Banknote}
           tone="blue-3"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Pagas"
           value={kpis.paid}
           icon={CheckCircle2}
           tone="blue-4"
+          blurValue={hideValues}
         />
       </section>
 

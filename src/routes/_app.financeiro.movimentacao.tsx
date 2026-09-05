@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
+import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { CategoriaSearchSelect } from "@/components/categoria-search-select";
@@ -187,6 +189,7 @@ function Page() {
   const canCreateFin = canFinanceiroAction(session, "create");
   const canEditFin = canFinanceiroAction(session, "edit");
   const canDeleteFin = canFinanceiroAction(session, "delete");
+  const [hideValues] = useHideFinanceiroValues();
   const parceiroLabel = isPlatform ? "Fornecedor" : "Parceiro";
   const [items, setItems] = useState<MovimentoFinanceiro[]>([]);
   const [parceiros, setParceiros] = useState<ParceiroFinanceiro[]>([]);
@@ -550,12 +553,15 @@ function Page() {
         title="Movimentação financeira"
         description="Lançamentos de entrada e saída"
         actions={
-          canCreateFin ? (
-            <Button type="button" onClick={openCreate}>
-              <Plus className="w-4 h-4 mr-1" />
-              Novo lançamento
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            <HideFinanceValuesButton />
+            {canCreateFin ? (
+              <Button type="button" onClick={openCreate}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo lançamento
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -565,18 +571,21 @@ function Page() {
           value={totais.entradas}
           icon={ArrowUpRight}
           tone="blue-1"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saídas filtradas"
           value={totais.saidas}
           icon={ArrowDownRight}
           tone="blue-2"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saldo do filtro"
           value={totais.saldo}
           icon={ArrowUpRight}
           tone="blue-3"
+          blurValue={hideValues}
         />
       </section>
 

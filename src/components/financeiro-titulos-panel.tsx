@@ -8,6 +8,8 @@ import {
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
+import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { ComissaoLancamentoDialog } from "@/components/comissao-lancamento-dialog";
@@ -485,6 +487,7 @@ export function FinanceiroTitulosPanel({
     isPlatformAdmin || session?.role === "admin";
   const isAssinaturaPlataforma = isPlatformAdmin && tipo === "receber";
   const [comoContrato, setComoContrato] = useState(false);
+  const [hideValues] = useHideFinanceiroValues();
   const canCreateFin = !readOnly && canFinanceiroAction(session, "create");
   const canEditFin = !readOnly && canFinanceiroAction(session, "edit");
   const canDeleteFin = !readOnly && canFinanceiroAction(session, "delete");
@@ -1499,8 +1502,10 @@ export function FinanceiroTitulosPanel({
         title={title}
         description={description}
         actions={
-          !canCreateFin ? undefined : (
             <div className="flex flex-wrap items-center gap-2">
+              <HideFinanceValuesButton />
+              {canCreateFin ? (
+                <>
               {canLancarComissao ? (
                 <Button
                   type="button"
@@ -1520,8 +1525,10 @@ export function FinanceiroTitulosPanel({
                 <Plus className="w-4 h-4 mr-1" />
                 Novo título
               </Button>
+                </>
+              ) : null}
             </div>
-          )
+          }
         }
       />
 
@@ -1533,18 +1540,21 @@ export function FinanceiroTitulosPanel({
           value={kpis.aberto}
           icon={Clock3}
           tone="blue-1"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Atrasado neste mês"
           value={kpis.atrasado}
           icon={AlertTriangle}
           tone="blue-2"
+          blurValue={hideValues}
         />
         <FinanceKpiCard
           label={tipo === "receber" ? "Recebido neste mês" : "Pago neste mês"}
           value={kpis.pago}
           icon={CheckCircle2}
           tone="blue-3"
+          blurValue={hideValues}
         />
       </section>
 
