@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -676,6 +677,7 @@ function ContratosPage() {
   const [selected, setSelected] = useState<ContratoTemplate | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
+  const openedFromQuery = useRef("");
   const [leadPrefill, setLeadPrefill] = useState<{
     nome: string;
     telefone: string;
@@ -751,12 +753,15 @@ function ContratosPage() {
 
   useEffect(() => {
     if (!modelo || !leadPrefill) return;
+    const key = `${leadId ?? ""}:${modelo}`;
+    if (openedFromQuery.current === key) return;
     const template = getContratoTemplate(modelo as ContratoTemplateId);
     if (!template || !canUseContratoTemplate(template.id)) return;
+    openedFromQuery.current = key;
     openTemplate(template);
     // openTemplate depende do lead já carregado
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelo, leadPrefill]);
+  }, [modelo, leadPrefill, leadId]);
 
   const requiredMissing = useMemo(() => {
     if (!selected) return [];

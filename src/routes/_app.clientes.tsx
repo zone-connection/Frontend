@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
@@ -59,7 +59,12 @@ import {
 } from "@/components/form-dialog";
 import { getSession } from "@/lib/auth";
 import { getAdminVerClientesCorretor } from "@/lib/clientes-nav-prefs";
-import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
+import {
+  canAccessRoute,
+  canViewTeamData,
+  isCorretorLike,
+} from "@/lib/permissions";
+import { contratoTemplatesForRole } from "@/lib/contratos-templates";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
   DEFAULT_TABLE_SORT,
@@ -208,8 +213,24 @@ function initials(nome: string) {
 }
 
 function Clientes() {
+  const navigate = useNavigate();
   const user = getSession();
   const canSeeTeam = user ? canViewTeamData(user.role) : false;
+  const canContratos = Boolean(
+    user &&
+      canAccessRoute(
+        user.role,
+        "/contratos",
+        user.tenant?.modules ?? null,
+        user.tenant?.plano,
+        user.permissions,
+      ),
+  );
+  const contratoModelos = useMemo(
+    () => contratoTemplatesForRole(user?.role),
+    [user?.role],
+  );
+  const [contratoCliente, setContratoCliente] = useState<Lead | null>(null);
   const isCorretor = !canSeeTeam;
   const isAdmin = user?.role === "admin";
   const isGerente = user?.role === "gerente";
@@ -870,6 +891,14 @@ function Clientes() {
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
+                      {canContratos ? (
+                        <DropdownMenuItem
+                          onClick={() => setContratoCliente(l)}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Contrato
+                        </DropdownMenuItem>
+                      ) : null}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
@@ -1380,6 +1409,56 @@ function Clientes() {
           </>
         )}
       </FormDialogShell>
+
+      <Dialog
+        open={Boolean(contratoCliente)}
+        onOpenChange={(open) => {
+          if (!open) setContratoCliente(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Contrato</DialogTitle>
+            <DialogDescription>
+              {contratoCliente
+                ? `Escolha o modelo. Os dados de ${contratoCliente.nome} entram no formulário.`
+                : "Escolha o modelo de contrato."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[60vh] gap-2 overflow-y-auto pr-1">
+            {contratoModelos.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="rounded-xl border px-3 py-2.5 text-left hover:border-primary/40 hover:bg-primary/5"
+                onClick={() => {
+                  if (!contratoCliente) return;
+                  const clienteId = contratoCliente.id;
+                  setContratoCliente(null);
+                  void navigate({
+                    to: "/contratos",
+                    search: { lead: clienteId, modelo: template.id },
+                  });
+                }}
+              >
+                <div className="text-sm font-semibold">{template.titulo}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {template.descricao}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setContratoCliente(null)}
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Excluir cliente da carteira → Perda de cliente (só corretor) */}
       <AlertDialog

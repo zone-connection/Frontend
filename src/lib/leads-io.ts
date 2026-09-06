@@ -73,8 +73,6 @@ const HEADER_ALIASES: Record<string, string> = {
   "id do lead": "skip",
   "lead id": "skip",
   codigo: "skip",
-  "n": "skip",
-  "no": "skip",
   cliente: "nome",
   ddd: "ddd",
   telefone: "telefone",

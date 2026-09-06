@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComercialFunilBoard } from "@/routes/_app.funil";
+import { ComercialFunilBoard, FunilEnterGate } from "@/routes/_app.funil";
 
 export const Route = createFileRoute("/_app/funil-clientes")({
   head: () => ({ meta: [{ title: "Funil de Clientes — Zone Connection" }] }),
@@ -7,5 +7,9 @@ export const Route = createFileRoute("/_app/funil-clientes")({
 });
 
 function FunilClientes() {
-  return <ComercialFunilBoard tipoFiltro="cliente" />;
+  return (
+    <FunilEnterGate>
+      <ComercialFunilBoard tipoFiltro="cliente" />
+    </FunilEnterGate>
+  );
 }

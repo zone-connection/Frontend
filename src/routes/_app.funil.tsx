@@ -150,7 +150,14 @@ import {
   Briefcase,
   LifeBuoy,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { FaWhatsapp } from "react-icons/fa";
@@ -191,6 +198,36 @@ const COLUMN_STEP_PX = 288 + 12;
 const FUNIL_GRADIENT_BTN =
   "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110";
 const FUNIL_GRADIENT_STYLE = BRAND_GRADIENT_STYLE;
+const FUNIL_ENTER_DELAY_MS = 2000;
+
+export function FunilEnterGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), FUNIL_ENTER_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="relative">
+      {!ready ? (
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium">Entrando no funil…</p>
+          <p className="text-xs">Aguarde um instante para carregar o quadro.</p>
+        </div>
+      ) : null}
+      <div
+        className={
+          ready ? undefined : "pointer-events-none invisible absolute h-0 w-0 overflow-hidden"
+        }
+        aria-hidden={!ready}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_app/funil")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -202,7 +239,11 @@ export const Route = createFileRoute("/_app/funil")({
 
 function Funil() {
   const { lead } = Route.useSearch();
-  return <ComercialFunilBoard tipoFiltro="lead" openLeadId={lead} />;
+  return (
+    <FunilEnterGate>
+      <ComercialFunilBoard tipoFiltro="lead" openLeadId={lead} />
+    </FunilEnterGate>
+  );
 }
 
 export type ComercialFunilTipoFiltro = "lead" | "cliente";
