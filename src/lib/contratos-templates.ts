@@ -669,3 +669,72 @@ export function emptyContratoForm(template: ContratoTemplate) {
   }
   return values;
 }
+
+export function contratoTemplatesForRole(role?: string | null) {
+  return CONTRATO_TEMPLATES.filter((template) => {
+    if (role === "super_admin") return isSaasContratoTemplate(template.id);
+    if (isSaasContratoTemplate(template.id)) return false;
+    if (role === "corretor" && template.id === "recibo-pagamento") return false;
+    return true;
+  });
+}
+
+type LeadContratoSource = {
+  nome: string;
+  telefone: string;
+  email: string;
+  cidade: string;
+  bairro: string;
+  estadoCivil?: string | null;
+  construtora?: { nome: string } | null;
+  empreendimento?: { nome: string; cidade?: string | null } | null;
+  prospeccao?: { endereco?: string | null } | null;
+};
+
+function todayIsoDate() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Preenche campos do contrato com o que já existe no lead. */
+export function applyLeadToContratoForm(
+  values: Record<string, string>,
+  lead: LeadContratoSource,
+): Record<string, string> {
+  const next = { ...values };
+  const nome = lead.nome.trim();
+  const telefone = lead.telefone.trim();
+  const email = lead.email.trim();
+  const cidade = lead.cidade.trim();
+  const endereco = [
+    lead.prospeccao?.endereco?.trim(),
+    lead.bairro.trim(),
+    lead.cidade.trim(),
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
+  const fill = (key: string, value: string) => {
+    if (!value || !(key in next)) return;
+    if (!next[key]?.trim()) next[key] = value;
+  };
+
+  fill("nome", nome);
+  fill("pagadorNome", nome);
+  fill("contratanteNome", nome);
+  fill("nomeProponente", nome);
+  fill("contratanteTel", telefone);
+  fill("contratanteEmail", email);
+  fill("cidade", cidade || lead.empreendimento?.cidade?.trim() || "");
+  fill("contratanteEndereco", endereco);
+  fill("endereco", endereco);
+  fill("estadoCivil", lead.estadoCivil?.trim() || "");
+  fill("construtora", lead.construtora?.nome?.trim() || "");
+  fill("empreendimento", lead.empreendimento?.nome?.trim() || "");
+  fill("proprietarioNome", lead.construtora?.nome?.trim() || "");
+  fill("data", todayIsoDate());
+  return next;
+}

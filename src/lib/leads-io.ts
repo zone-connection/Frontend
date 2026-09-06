@@ -69,7 +69,12 @@ const HEADER_ALIASES: Record<string, string> = {
   "nome do cliente": "nome",
   nome: "nome",
   name: "nome",
-  lead: "nome",
+  lead: "skip",
+  "id do lead": "skip",
+  "lead id": "skip",
+  codigo: "skip",
+  "n": "skip",
+  "no": "skip",
   cliente: "nome",
   ddd: "ddd",
   telefone: "telefone",
@@ -196,6 +201,41 @@ function stripTimePrefix(nome: string): string {
   return nome.replace(/^\d{1,2}:\d{2}\s+/, "").trim();
 }
 
+function isNumericLabel(value: string): boolean {
+  return /^\d{1,6}$/.test(value.trim());
+}
+
+function looksLikePersonName(value: string): boolean {
+  const nome = stripTimePrefix(value);
+  if (nome.length < 2) return false;
+  if (isNumericLabel(nome)) return false;
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(nome)) return false;
+  if (/@/.test(nome)) return false;
+  if (/\d{8,}/.test(nome.replace(/\D/g, ""))) return false;
+  return /[a-zA-ZÀ-ÿ]/.test(nome);
+}
+
+function pickBetterName(current: unknown, incoming: unknown): unknown {
+  const next = stripTimePrefix(String(incoming ?? "").trim());
+  const prev = stripTimePrefix(String(current ?? "").trim());
+  if (!next) return current;
+  if (!prev) return next;
+  if (looksLikePersonName(next) && !looksLikePersonName(prev)) return next;
+  if (!looksLikePersonName(next) && looksLikePersonName(prev)) return prev;
+  if (looksLikePersonName(next) && looksLikePersonName(prev) && next.length > prev.length) {
+    return next;
+  }
+  return current ?? next;
+}
+
+function findNameInRow(row: unknown[]): string {
+  for (const cell of row) {
+    const text = stripTimePrefix(String(cell ?? "").trim());
+    if (looksLikePersonName(text)) return text;
+  }
+  return "";
+}
+
 /** Junta DDD + telefone em um único número formatado. */
 function mergePhone(ddd: unknown, telefone: unknown): string {
   const fromCell = extractFirstPhone(telefone);
@@ -273,7 +313,9 @@ export function validateParsedImportLead(
     email,
   };
   delete next.error;
-  if (nome.length < 2) next.error = "Nome inválido";
+  if (nome.length < 2 || isNumericLabel(nome) || !looksLikePersonName(nome)) {
+    next.error = "Nome inválido";
+  }
   else if (!isValidPhone(telefone)) next.error = "Telefone inválido";
   else   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     next.error = "E-mail inválido";
@@ -350,16 +392,29 @@ function rowsFromMatrix(
     if (hasHeaders) {
       mapped.forEach((key, idx) => {
         if (!key) return;
-        cells[key] = row[idx];
+        if (key === "nome") {
+          cells.nome = pickBetterName(cells.nome, row[idx]);
+          return;
+        }
+        if (cells[key] == null || String(cells[key] ?? "").trim() === "") {
+          cells[key] = row[idx];
+        }
       });
     } else {
       // Formato unificado sem cabeçalho:
       // Nome | Telefone | Email | Localidade de interesse | Origem
-      cells.nome = row[0];
+      cells.nome = looksLikePersonName(String(row[0] ?? ""))
+        ? row[0]
+        : findNameInRow(row) || row[0];
       cells.telefone = row[1];
       cells.email = row[2];
       cells.cidade = row[3];
       cells.origem = row[4];
+    }
+
+    if (!looksLikePersonName(String(cells.nome ?? ""))) {
+      const found = findNameInRow(row);
+      if (found) cells.nome = found;
     }
 
     // Fallback: achar telefone em qualquer célula

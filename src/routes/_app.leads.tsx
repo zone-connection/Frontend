@@ -100,6 +100,8 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/lib/permissions";
+import { contratoTemplatesForRole } from "@/lib/contratos-templates";
 import {
   canViewTeamData,
   canWriteTriagem as roleCanWriteTriagem,
@@ -436,6 +438,21 @@ function LeadsPage() {
   const isAdmin = user?.role === "admin";
   const isGerente = user?.role === "gerente";
   const isPlatformAdmin = user?.role === "super_admin";
+  const canContratos = Boolean(
+    user &&
+      canAccessRoute(
+        user.role,
+        "/contratos",
+        user.tenant?.modules ?? null,
+        user.tenant?.plano,
+        user.permissions,
+      ),
+  );
+  const contratoModelos = useMemo(
+    () => contratoTemplatesForRole(user?.role),
+    [user?.role],
+  );
+  const [contratoLead, setContratoLead] = useState<Lead | null>(null);
   const showTeamColumns = !isCorretor && !isPlatformAdmin;
   const leadTableColSpan = showTeamColumns ? 12 : 10;
   /** Só admin/analista filtram entre várias equipes. Gerente não filtra por outras. */
@@ -2691,6 +2708,56 @@ function LeadsPage() {
         onCreated={(leadId) => afterAtividadeCreated(leadId)}
       />
 
+      <Dialog
+        open={Boolean(contratoLead)}
+        onOpenChange={(open) => {
+          if (!open) setContratoLead(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Contrato</DialogTitle>
+            <DialogDescription>
+              {contratoLead
+                ? `Escolha o modelo. Os dados de ${contratoLead.nome} entram no formulário.`
+                : "Escolha o modelo de contrato."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[60vh] gap-2 overflow-y-auto pr-1">
+            {contratoModelos.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="rounded-xl border px-3 py-2.5 text-left hover:border-primary/40 hover:bg-primary/5"
+                onClick={() => {
+                  if (!contratoLead) return;
+                  const leadId = contratoLead.id;
+                  setContratoLead(null);
+                  void navigate({
+                    to: "/contratos",
+                    search: { lead: leadId, modelo: template.id },
+                  });
+                }}
+              >
+                <div className="text-sm font-semibold">{template.titulo}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {template.descricao}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setContratoLead(null)}
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={!!deleteLead}
         onOpenChange={(o) => {
@@ -3491,6 +3558,13 @@ function LeadsPage() {
                               <MessageCircle className="w-4 h-4 mr-2 text-emerald-600" />{" "}
                               WhatsApp
                             </DropdownMenuItem>
+                            {canContratos ? (
+                              <DropdownMenuItem
+                                onClick={() => setContratoLead(l)}
+                              >
+                                <FileText className="w-4 h-4 mr-2" /> Contrato
+                              </DropdownMenuItem>
+                            ) : null}
                             {isPlatformAdmin ? (
                               <DropdownMenuItem
                                 disabled={

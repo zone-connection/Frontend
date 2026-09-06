@@ -19,12 +19,16 @@ import { Label } from "@/components/ui/label";
 import { downloadContratoPdf, resolveContratoBrandHex } from "@/lib/contratos-pdf";
 import {
   CONTRATO_TEMPLATES,
+  applyLeadToContratoForm,
+  contratoTemplatesForRole,
   emptyContratoForm,
+  getContratoTemplate,
   isSaasContratoTemplate,
   type ContratoField,
   type ContratoTemplate,
   type ContratoTemplateId,
 } from "@/lib/contratos-templates";
+import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import { formatPhone } from "@/lib/phone";
 import { maskMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { reaisPorExtenso } from "@/lib/valor-extenso";
@@ -235,8 +239,14 @@ const INTERMEDIACAO_SECTIONS = [
 
 type IntermediacaoSectionId = (typeof INTERMEDIACAO_SECTIONS)[number]["id"];
 
+type ContratosSearch = { lead?: string; modelo?: string };
+
 export const Route = createFileRoute("/_app/contratos")({
   head: () => ({ meta: [{ title: "Contratos — Zone Connection" }] }),
+  validateSearch: (search: Record<string, unknown>): ContratosSearch => ({
+    lead: typeof search.lead === "string" ? search.lead : undefined,
+    modelo: typeof search.modelo === "string" ? search.modelo : undefined,
+  }),
   component: ContratosPage,
 });
 
@@ -659,17 +669,29 @@ function ContratoPreview({
 }
 
 function ContratosPage() {
+  const { lead: leadId, modelo } = Route.useSearch();
   const { logoUrl, tenant } = useTenantTheme();
   const isSolo = getSession()?.tenant?.plano === "solo";
   const [logoColor, setLogoColor] = useState<string | null>(null);
   const [selected, setSelected] = useState<ContratoTemplate | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
+  const [leadPrefill, setLeadPrefill] = useState<{
+    nome: string;
+    telefone: string;
+    email: string;
+    cidade: string;
+    bairro: string;
+    estadoCivil?: string | null;
+    construtora?: { nome: string } | null;
+    empreendimento?: { nome: string; cidade?: string | null } | null;
+    prospeccao?: { endereco?: string | null } | null;
+  } | null>(null);
   const [intermediacaoSection, setIntermediacaoSection] =
     useState<IntermediacaoSectionId>("contratante");
 
   const templatesVisiveis = useMemo(
-    () => CONTRATO_TEMPLATES.filter((t) => canUseContratoTemplate(t.id)),
+    () => contratoTemplatesForRole(getSession()?.role),
     [],
   );
 
@@ -698,10 +720,43 @@ function ContratosPage() {
       toast.error("Seu perfil não tem acesso a este modelo.");
       return;
     }
+    const base = prefillFromTenant(template, tenant);
     setSelected(template);
-    setForm(prefillFromTenant(template, tenant));
+    setForm(leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base);
     setIntermediacaoSection("contratante");
   };
+
+  useEffect(() => {
+    if (!leadId) {
+      setLeadPrefill(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchLeadById(leadId)
+      .then((api) => {
+        if (cancelled) return;
+        const lead = mapApiLead(api);
+        setLeadPrefill(lead);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLeadPrefill(null);
+          toast.error("Não foi possível carregar o lead para o contrato.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId]);
+
+  useEffect(() => {
+    if (!modelo || !leadPrefill) return;
+    const template = getContratoTemplate(modelo as ContratoTemplateId);
+    if (!template || !canUseContratoTemplate(template.id)) return;
+    openTemplate(template);
+    // openTemplate depende do lead já carregado
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelo, leadPrefill]);
 
   const requiredMissing = useMemo(() => {
     if (!selected) return [];
@@ -759,6 +814,15 @@ function ContratosPage() {
             : "Escolha o modelo por categoria, preencha os dados e baixe o PDF."
         }
       />
+
+      {leadPrefill ? (
+        <div className="rounded-xl border border-primary/25 bg-primary/8 px-4 py-3 text-sm">
+          Preenchendo contrato para{" "}
+          <span className="font-semibold">{leadPrefill.nome}</span>
+          {leadPrefill.telefone ? ` · ${leadPrefill.telefone}` : ""}.
+          Escolha o modelo — os dados do lead entram automaticamente.
+        </div>
+      ) : null}
 
       <div className="space-y-5">
         {gruposVisiveis.map((group) => (
