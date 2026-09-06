@@ -126,8 +126,8 @@ export function ConfigModulosOperacaoPanel() {
       await router.invalidate();
       toast.success(
         checked
-          ? "Você passa a ver os clientes dos corretores na lista e no funil."
-          : "A lista e o funil voltam a mostrar só a sua carteira de clientes.",
+          ? "Você passa a ver os clientes dos corretores na lista, no Funil geral e no Funil de Clientes."
+          : "A lista e os funis voltam a mostrar só a sua carteira de clientes.",
       );
     } catch (err) {
       setAdminVerClientes(!checked);
@@ -218,7 +218,8 @@ export function ConfigModulosOperacaoPanel() {
                 </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Quando ativo, o administrador vê a própria carteira e a dos
-                  corretores em Clientes e no Funil de Clientes.
+                  corretores em Clientes, no Funil de Clientes e também no Funil
+                  geral. Os cards de cliente ficam identificados.
                 </p>
               </div>
             </CardHeader>
@@ -227,7 +228,8 @@ export function ConfigModulosOperacaoPanel() {
                 <p className="text-sm font-medium">Mostrar carteiras</p>
                 <p className="text-xs text-muted-foreground">
                   Só o admin do tenant. Corretores continuam vendo só os
-                  próprios clientes.
+                  próprios clientes, e o Funil geral dos demais usuários não
+                  mistura carteira de cliente.
                 </p>
               </div>
               <Switch

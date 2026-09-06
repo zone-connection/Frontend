@@ -226,8 +226,7 @@ export function ComercialFunilBoard({
   const isPlatformAdmin = user?.role === "super_admin";
   const isGerente = user?.role === "gerente";
   const isManager = canSeeTeam;
-  const adminVeClientesCorretor =
-    isClientesFunil && getAdminVerClientesCorretor();
+  const adminVeClientesCorretor = getAdminVerClientesCorretor();
   /** Solo e Super Admin não usam filtros de equipe/corretor. */
   const showTeamFilters =
     !isSolo &&
@@ -346,7 +345,18 @@ export function ComercialFunilBoard({
   }, [assignees, equipes, isGerente, user]);
 
   const leads = useMemo(() => {
-    let list = allLeads.filter((l) => l.tipo === tipoFiltro);
+    let list = allLeads.filter((l) => {
+      if (l.tipo === tipoFiltro) return true;
+      // Admin com a opção ligada: clientes dos corretores também no funil geral.
+      if (
+        !isClientesFunil &&
+        adminVeClientesCorretor &&
+        l.tipo === "cliente"
+      ) {
+        return true;
+      }
+      return false;
+    });
 
     // Clientes = carteira pessoal, salvo admin com opção de ver corretores.
     if (isClientesFunil && user && !adminVeClientesCorretor) {
@@ -1126,7 +1136,9 @@ export function ComercialFunilBoard({
                   ? "Funil da sua equipe — seus leads e os da equipe, inclusive os em atraso."
                   : isPlatformAdmin
                     ? "Funil da plataforma — arraste os cards para mover entre etapas."
-                    : "Funil da imobiliária — todos os leads de captação, inclusive os em atraso."
+                    : adminVeClientesCorretor
+                      ? "Funil da imobiliária — leads de captação e clientes dos corretores."
+                      : "Funil da imobiliária — todos os leads de captação, inclusive os em atraso."
         }
         actionsClassName="lg:max-w-none"
         actions={
