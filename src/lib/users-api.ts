@@ -100,6 +100,10 @@ export type ApiUser = {
   dataNascimento: string | null;
   cargo: string | null;
   creci: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   creciStatus?: CreciProcessoStatus | null;
   cor: string | null;
   role: Role;
@@ -129,6 +133,10 @@ export type CreateUserInput = {
   dataNascimento?: string | null;
   cargo?: string;
   creci?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   creciStatus?: CreciProcessoStatus;
   cor?: string | null;
   role: Role;
@@ -148,6 +156,10 @@ export type UpdateUserInput = {
   dataNascimento?: string | null;
   cargo?: string | null;
   creci?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   creciStatus?: CreciProcessoStatus;
   cor?: string | null;
   role?: Role;

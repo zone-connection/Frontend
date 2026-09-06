@@ -685,6 +685,20 @@ function ContratosPage() {
     cidade: string;
     bairro: string;
     estadoCivil?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+    corretorPerfil?: {
+      name: string;
+      email?: string | null;
+      phone?: string | null;
+      creci?: string | null;
+      cpf?: string | null;
+      rg?: string | null;
+      endereco?: string | null;
+      cep?: string | null;
+    } | null;
     construtora?: { nome: string } | null;
     empreendimento?: { nome: string; cidade?: string | null } | null;
     prospeccao?: { endereco?: string | null } | null;

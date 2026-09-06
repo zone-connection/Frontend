@@ -686,9 +686,23 @@ type LeadContratoSource = {
   cidade: string;
   bairro: string;
   estadoCivil?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   construtora?: { nome: string } | null;
   empreendimento?: { nome: string; cidade?: string | null } | null;
   prospeccao?: { endereco?: string | null } | null;
+  corretorPerfil?: {
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    creci?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+  } | null;
 };
 
 function todayIsoDate() {
@@ -709,13 +723,19 @@ export function applyLeadToContratoForm(
   const telefone = lead.telefone.trim();
   const email = lead.email.trim();
   const cidade = lead.cidade.trim();
-  const endereco = [
+  const enderecoLead = lead.endereco?.trim() || "";
+  const enderecoFallback = [
     lead.prospeccao?.endereco?.trim(),
     lead.bairro.trim(),
     lead.cidade.trim(),
   ]
     .filter(Boolean)
     .join(" — ");
+  const endereco = enderecoLead || enderecoFallback;
+  const corretor = lead.corretorPerfil;
+  const cpf = lead.cpf?.trim() || "";
+  const rg = lead.rg?.trim() || "";
+  const cep = lead.cep?.trim() || "";
 
   const fill = (key: string, value: string) => {
     if (!value || !(key in next)) return;
@@ -732,9 +752,28 @@ export function applyLeadToContratoForm(
   fill("contratanteEndereco", endereco);
   fill("endereco", endereco);
   fill("estadoCivil", lead.estadoCivil?.trim() || "");
+  fill("cpf", cpf);
+  fill("cpfProponente", cpf);
+  fill("contratanteCpf", cpf);
+  fill("pagadorCpf", cpf);
+  fill("rg", rg);
+  fill("contratanteRg", rg);
+  fill("cep", cep);
+  fill("contratanteCep", cep);
   fill("construtora", lead.construtora?.nome?.trim() || "");
   fill("empreendimento", lead.empreendimento?.nome?.trim() || "");
   fill("proprietarioNome", lead.construtora?.nome?.trim() || "");
+  if (corretor) {
+    fill("representanteLegal", corretor.name.trim());
+    fill("corretorNome", corretor.name.trim());
+    fill("corretorEmail", corretor.email?.trim() || "");
+    fill("corretorTel", corretor.phone?.trim() || "");
+    fill("corretorCreci", corretor.creci?.trim() || "");
+    fill("corretorCpf", corretor.cpf?.trim() || "");
+    fill("corretorRg", corretor.rg?.trim() || "");
+    fill("corretorEndereco", corretor.endereco?.trim() || "");
+    fill("corretorCep", corretor.cep?.trim() || "");
+  }
   fill("data", todayIsoDate());
   return next;
 }

@@ -45,6 +45,21 @@ export interface Lead {
   tipoRenda: string | null;
   /** Estado civil do cliente (opcional). */
   estadoCivil: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
+  corretorPerfil?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    creci?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+  } | null;
   /** Orçamento máximo para imóvel (opcional). */
   orcamentoMax: number | null;
   /** Mínimo de quartos desejado (opcional). */

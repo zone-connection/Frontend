@@ -30,13 +30,27 @@ export interface ApiLead {
   renda: number | null;
   tipoRenda: string | null;
   estadoCivil: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   orcamentoMax: number | null;
   quartosMin: number | null;
   vagasMin: number | null;
   prospeccao?: LeadProspeccao | null;
   tags: string[];
   corretorId: string | null;
-  corretor: { id: string; name: string } | null;
+  corretor: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    creci?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+  } | null;
   equipeId?: string | null;
   equipe?: { id: string; name: string } | null;
   construtoraId?: string | null;
@@ -87,6 +101,10 @@ export type CreateLeadInput = {
   renda?: number | null;
   tipoRenda?: string | null;
   estadoCivil?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  endereco?: string | null;
+  cep?: string | null;
   orcamentoMax?: number | null;
   quartosMin?: number | null;
   vagasMin?: number | null;
@@ -133,6 +151,23 @@ export function mapApiLead(api: ApiLead): Lead {
     renda: api.renda ?? null,
     tipoRenda: api.tipoRenda ?? null,
     estadoCivil: api.estadoCivil ?? null,
+    cpf: api.cpf ?? null,
+    rg: api.rg ?? null,
+    endereco: api.endereco ?? null,
+    cep: api.cep ?? null,
+    corretorPerfil: api.corretor
+      ? {
+          id: api.corretor.id,
+          name: api.corretor.name,
+          email: api.corretor.email ?? null,
+          phone: api.corretor.phone ?? null,
+          creci: api.corretor.creci ?? null,
+          cpf: api.corretor.cpf ?? null,
+          rg: api.corretor.rg ?? null,
+          endereco: api.corretor.endereco ?? null,
+          cep: api.corretor.cep ?? null,
+        }
+      : null,
     orcamentoMax: api.orcamentoMax ?? null,
     quartosMin: api.quartosMin ?? null,
     vagasMin: api.vagasMin ?? null,

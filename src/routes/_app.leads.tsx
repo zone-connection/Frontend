@@ -142,6 +142,7 @@ import type { LeadProspeccao } from "@/lib/lead-prospeccao";
 import { compactProspeccao, PROSPECCAO_SIM_NAO } from "@/lib/lead-prospeccao";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ContatoContratoFields } from "@/components/contato-contrato-fields";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -242,6 +243,10 @@ type FormState = {
   tipoRenda: string;
   /** Estado civil do cliente (opcional). */
   estadoCivil: string;
+  cpf: string;
+  rg: string;
+  endereco: string;
+  cep: string;
   /** Orçamento máximo para imóvel (opcional). */
   orcamentoMax: string;
   /** Mínimo de quartos desejado. */
@@ -356,6 +361,10 @@ const emptyForm = (origemDefault = ""): FormState => ({
   renda: "",
   tipoRenda: "",
   estadoCivil: "",
+  cpf: "",
+  rg: "",
+  endereco: "",
+  cep: "",
   orcamentoMax: "",
   quartosMin: "",
   vagasMin: "",
@@ -392,6 +401,10 @@ function leadToForm(lead: Lead): FormState {
     renda: lead.renda != null ? formatMoneyInput(lead.renda) : "",
     tipoRenda: lead.tipoRenda ?? "",
     estadoCivil: lead.estadoCivil ?? "",
+    cpf: lead.cpf ?? "",
+    rg: lead.rg ?? "",
+    endereco: lead.endereco ?? "",
+    cep: lead.cep ?? "",
     orcamentoMax:
       lead.orcamentoMax != null ? formatMoneyInput(lead.orcamentoMax) : "",
     quartosMin: lead.quartosMin != null ? String(lead.quartosMin) : "",
@@ -1119,6 +1132,10 @@ function LeadsPage() {
           renda: rendaNum,
           tipoRenda: form.tipoRenda.trim() || null,
           estadoCivil: form.estadoCivil.trim() || null,
+          cpf: form.cpf.trim() || null,
+          rg: form.rg.trim() || null,
+          endereco: form.endereco.trim() || null,
+          cep: form.cep.trim() || null,
           orcamentoMax,
           quartosMin: Number.isFinite(quartosMin) ? quartosMin : null,
           vagasMin: Number.isFinite(vagasMin) ? vagasMin : null,
@@ -1150,6 +1167,10 @@ function LeadsPage() {
         ...(form.estadoCivil.trim()
           ? { estadoCivil: form.estadoCivil.trim() }
           : {}),
+        ...(form.cpf.trim() ? { cpf: form.cpf.trim() } : {}),
+        ...(form.rg.trim() ? { rg: form.rg.trim() } : {}),
+        ...(form.endereco.trim() ? { endereco: form.endereco.trim() } : {}),
+        ...(form.cep.trim() ? { cep: form.cep.trim() } : {}),
         ...(orcamentoMax != null ? { orcamentoMax } : {}),
         ...(Number.isFinite(quartosMin) && quartosMin != null
           ? { quartosMin }
@@ -2333,6 +2354,25 @@ function LeadsPage() {
                   className="h-10 bg-background"
                 />
               </div>
+            </FormSection>
+
+            <FormSection
+              icon={<FileText className="w-3.5 h-3.5 text-primary" />}
+              title="Para contratos"
+              description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
+            >
+              <ContatoContratoFields
+                idPrefix="lead"
+                values={{
+                  cpf: form.cpf,
+                  rg: form.rg,
+                  endereco: form.endereco,
+                  cep: form.cep,
+                }}
+                onChange={(patch) =>
+                  setForm((prev) => ({ ...prev, ...patch }))
+                }
+              />
             </FormSection>
 
             <FormSection

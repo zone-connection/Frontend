@@ -49,6 +49,7 @@ import {
   FormSection,
   DetailField,
 } from "@/components/form-dialog";
+import { ContatoContratoFields } from "@/components/contato-contrato-fields";
 import { CorPicker } from "@/components/cor-picker";
 import { FlowTrack } from "@/components/flow-bar";
 import {
@@ -71,6 +72,7 @@ import {
   CalendarDays,
   Users,
   IdCard,
+  FileText,
 } from "lucide-react";
 import { getSession, type Role, type UserStatus } from "@/lib/auth";
 import {
@@ -195,6 +197,10 @@ type FormState = {
   cargo: string;
   creciStatus: CreciProcessoStatus;
   creci: string;
+  cpf: string;
+  rg: string;
+  endereco: string;
+  cep: string;
   cor: string;
   role: Role;
   status: UserStatus;
@@ -213,6 +219,10 @@ const emptyForm = (): FormState => ({
   cargo: "",
   creciStatus: "nao_iniciado",
   creci: "",
+  cpf: "",
+  rg: "",
+  endereco: "",
+  cep: "",
   cor: "",
   role: "corretor",
   status: "ativo",
@@ -243,6 +253,10 @@ function userToForm(u: ApiUser): FormState {
     cargo: u.cargo ?? "",
     creciStatus: normalizeCreciStatus(u.creciStatus, u.creci),
     creci: u.creci ?? "",
+    cpf: u.cpf ?? "",
+    rg: u.rg ?? "",
+    endereco: u.endereco ?? "",
+    cep: u.cep ?? "",
     cor: u.cor ?? "",
     role: u.role,
     status: u.status,
@@ -682,6 +696,10 @@ function Usuarios() {
           dataNascimento: form.dataNascimento || null,
           cargo: cargo || undefined,
           creci: creci || undefined,
+          cpf: form.cpf.trim() || undefined,
+          rg: form.rg.trim() || undefined,
+          endereco: form.endereco.trim() || undefined,
+          cep: form.cep.trim() || undefined,
           creciStatus,
           cor: cor || undefined,
           role: form.role,
@@ -714,6 +732,10 @@ function Usuarios() {
           dataNascimento: form.dataNascimento || null,
           cargo: cargo || null,
           creci: creci || null,
+          cpf: form.cpf.trim() || null,
+          rg: form.rg.trim() || null,
+          endereco: form.endereco.trim() || null,
+          cep: form.cep.trim() || null,
           creciStatus,
           cor: cor || null,
           role: form.role,
@@ -1305,6 +1327,24 @@ function Usuarios() {
                 value={form.cor}
                 onChange={(hex) => setField("cor", hex)}
                 previewLabel={form.name}
+              />
+            </FormSection>
+            <FormSection
+              icon={<FileText className="w-3.5 h-3.5 text-primary" />}
+              title="Para contratos"
+              description="Opcional. CPF, RG e endereço do corretor entram no contrato quando existirem."
+            >
+              <ContatoContratoFields
+                idPrefix="usr"
+                values={{
+                  cpf: form.cpf,
+                  rg: form.rg,
+                  endereco: form.endereco,
+                  cep: form.cep,
+                }}
+                onChange={(patch) =>
+                  setForm((prev) => ({ ...prev, ...patch }))
+                }
               />
             </FormSection>
             <FormSection

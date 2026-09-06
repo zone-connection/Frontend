@@ -659,6 +659,10 @@ export function LeadDetalheDialog({
                       />
                       <InfoRow label="Tipo de renda" value={lead.tipoRenda} />
                       <InfoRow label="Estado civil" value={lead.estadoCivil} />
+                      <InfoRow label="CPF" value={lead.cpf} />
+                      <InfoRow label="RG" value={lead.rg} />
+                      <InfoRow label="Endereço" value={lead.endereco} />
+                      <InfoRow label="CEP" value={lead.cep} />
                       <InfoRow label="Interesse" value={lead.interesse} />
                     </InfoCard>
                   )}

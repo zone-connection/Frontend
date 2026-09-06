@@ -126,6 +126,7 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import { toast } from "sonner";
+import { ContatoContratoFields } from "@/components/contato-contrato-fields";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
@@ -155,6 +156,10 @@ type FormState = {
   tags: string[];
   /** YYYY-MM-DD — cadastro retroativo. */
   createdAt: string;
+  cpf: string;
+  rg: string;
+  endereco: string;
+  cep: string;
 };
 
 type FormMode = "create" | "edit";
@@ -179,6 +184,10 @@ function emptyForm(corretorDefault: string, origemDefault = ""): FormState {
     corretor: corretorDefault,
     tags: [],
     createdAt: todayInput(),
+    cpf: "",
+    rg: "",
+    endereco: "",
+    cep: "",
   };
 }
 
@@ -199,6 +208,10 @@ function leadToForm(lead: Lead): FormState {
     corretor: lead.corretor,
     tags: [...lead.tags],
     createdAt: lead.createdAt?.slice(0, 10) || todayInput(),
+    cpf: lead.cpf ?? "",
+    rg: lead.rg ?? "",
+    endereco: lead.endereco ?? "",
+    cep: lead.cep ?? "",
   };
 }
 
@@ -433,6 +446,10 @@ function Clientes() {
           tags: form.tags,
           ...(corretorId ? { corretorId } : {}),
           ...(form.createdAt ? { createdAt: form.createdAt } : {}),
+          ...(form.cpf.trim() ? { cpf: form.cpf.trim() } : {}),
+          ...(form.rg.trim() ? { rg: form.rg.trim() } : {}),
+          ...(form.endereco.trim() ? { endereco: form.endereco.trim() } : {}),
+          ...(form.cep.trim() ? { cep: form.cep.trim() } : {}),
         });
         setFormOpen(false);
         toast.success(`Cliente "${nome}" cadastrado.`);
@@ -452,6 +469,10 @@ function Clientes() {
           tags: form.tags,
           ...(corretorId ? { corretorId } : {}),
           ...(form.createdAt ? { createdAt: form.createdAt } : {}),
+          cpf: form.cpf.trim() || null,
+          rg: form.rg.trim() || null,
+          endereco: form.endereco.trim() || null,
+          cep: form.cep.trim() || null,
         });
         setFormOpen(false);
         toast.success("Cliente atualizado.");
@@ -1099,6 +1120,25 @@ function Clientes() {
                   />
                 </div>
               </div>
+            </FormSection>
+
+            <FormSection
+              icon={<FileText className="w-3.5 h-3.5 text-primary" />}
+              title="Para contratos"
+              description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
+            >
+              <ContatoContratoFields
+                idPrefix="cli"
+                values={{
+                  cpf: form.cpf,
+                  rg: form.rg,
+                  endereco: form.endereco,
+                  cep: form.cep,
+                }}
+                onChange={(patch) =>
+                  setForm((f) => ({ ...f, ...patch }))
+                }
+              />
             </FormSection>
 
             <FormSection

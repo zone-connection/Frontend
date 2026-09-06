@@ -15,6 +15,12 @@ export function digitsOnly(value: string, max = 14): string {
  * Até 11 dígitos: 000.000.000-00
  * Acima: 00.000.000/0000-00
  */
+export function formatCep(value: string): string {
+  const d = digitsOnly(value, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
 export function formatCpfCnpj(value: string): string {
   const d = digitsOnly(value, 14);
   if (d.length <= 11) {
