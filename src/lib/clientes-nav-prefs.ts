@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 const KEY_PREFIX = "clientes.hideFromSidebar";
 export const CLIENTES_NAV_EVENT = "clientes-nav-pref";
 export const ADMIN_VER_CLIENTES_CORRETOR_KEY = "adminVerClientesCorretor";
+export const GERENTE_VER_LEADS_GERAIS_KEY = "gerenteVerLeadsGerais";
 
 function storageKey() {
   const session = getSession();
@@ -61,4 +62,10 @@ export function getAdminVerClientesCorretor(): boolean {
   const session = getSession();
   if (session?.role !== "admin") return false;
   return session.tenant?.modules?.[ADMIN_VER_CLIENTES_CORRETOR_KEY] === true;
+}
+
+/** Admin ligou: gerentes veem outras equipes e o pool geral. */
+export function getGerenteVerLeadsGerais(): boolean {
+  const session = getSession();
+  return session?.tenant?.modules?.[GERENTE_VER_LEADS_GERAIS_KEY] === true;
 }

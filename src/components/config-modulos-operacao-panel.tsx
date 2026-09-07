@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, Eye, Home, KeyRound, Landmark } from "lucide-react";
+import { Building2, Eye, Home, KeyRound, Landmark, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ export function ConfigModulosOperacaoPanel() {
   const { refresh: refreshLeads } = useLeads();
   const [ops, setOps] = useState<TenantOperationModules | null>(null);
   const [adminVerClientes, setAdminVerClientes] = useState(false);
+  const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -69,6 +70,7 @@ export function ConfigModulosOperacaoPanel() {
       const data = await fetchTenantOperationModules();
       setOps(data.operations);
       setAdminVerClientes(data.adminVerClientesCorretor === true);
+      setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -104,6 +106,37 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar a operação.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleGerenteVerLeadsGerais(checked: boolean) {
+    if (!isAdmin) return;
+    setGerenteVerLeadsGerais(checked);
+    setSavingKey("gerenteVerLeadsGerais");
+    try {
+      const data = await updateTenantOperationModules({
+        gerenteVerLeadsGerais: checked,
+      });
+      setOps(data.operations);
+      setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      await refreshLeads({ silent: true });
+      await router.invalidate();
+      toast.success(
+        checked
+          ? "Gerentes passam a ver os leads das outras equipes e os leads gerais."
+          : "Gerentes voltam a ver só a própria equipe, sem o pool geral.",
+      );
+    } catch (err) {
+      setGerenteVerLeadsGerais(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar a visibilidade dos gerentes.",
       );
     } finally {
       setSavingKey(null);
@@ -239,6 +272,42 @@ export function ConfigModulosOperacaoPanel() {
                   void toggleAdminVerClientes(checked)
                 }
                 aria-label="Ver clientes dos corretores"
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin && !isSolo ? (
+          <Card>
+            <CardHeader className="flex-row items-start gap-3 space-y-0">
+              <div className="rounded-lg border bg-muted/40 p-2">
+                <Users className="h-5 w-5 text-brand-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base">
+                  Gerentes veem leads gerais e de outras equipes
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Quando ativo, cada gerente vê os leads das outras equipes e o
+                  pool geral. Desligado, o gerente fica só na própria equipe —
+                  sem leads gerais e sem as carteiras dos outros gerentes.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Compartilhar entre gerentes</p>
+                <p className="text-xs text-muted-foreground">
+                  Só o admin controla. Corretores continuam vendo apenas a
+                  própria carteira.
+                </p>
+              </div>
+              <Switch
+                checked={gerenteVerLeadsGerais}
+                disabled={savingKey === "gerenteVerLeadsGerais"}
+                onCheckedChange={(checked) =>
+                  void toggleGerenteVerLeadsGerais(checked)
+                }
+                aria-label="Gerentes veem leads gerais e de outras equipes"
               />
             </CardContent>
           </Card>

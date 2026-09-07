@@ -100,6 +100,7 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import { getSession } from "@/lib/auth";
+import { getGerenteVerLeadsGerais } from "@/lib/clientes-nav-prefs";
 import { canAccessRoute } from "@/lib/permissions";
 import { contratoTemplatesForRole } from "@/lib/contratos-templates";
 import {
@@ -450,6 +451,7 @@ function LeadsPage() {
   const canDistribuir = user?.role === "admin" || user?.role === "gerente";
   const isAdmin = user?.role === "admin";
   const isGerente = user?.role === "gerente";
+  const gerenteVerLeadsGerais = isGerente && getGerenteVerLeadsGerais();
   const isPlatformAdmin = user?.role === "super_admin";
   const canContratos = Boolean(
     user &&
@@ -1095,9 +1097,21 @@ function LeadsPage() {
         form.corretorId !== "__none__";
 
       if (!form.equipeId && !hasCorretor && !wantsPool) {
-        // Cadastro sem gerente e sem corretor.
-        equipeId = null;
-        corretorId = null;
+        if (isGerente && !gerenteVerLeadsGerais) {
+          const poolEquipe =
+            equipesAtivas.find((e) => e.gerenteId === user?.id)?.id ?? "";
+          if (!poolEquipe) {
+            toast.error(
+              "Selecione a sua equipe. Sem a opção do admin, o gerente não acessa o pool geral.",
+            );
+            return;
+          }
+          equipeId = poolEquipe;
+          corretorId = null;
+        } else {
+          equipeId = null;
+          corretorId = null;
+        }
       } else if (wantsPool) {
         const poolEquipe =
           form.equipeId ||
@@ -2339,8 +2353,9 @@ function LeadsPage() {
               </div>
               {(isAdmin || isGerente) && (
                 <p className="text-[11px] text-muted-foreground">
-                  Sem equipe = pool do admin. Admin e gerentes podem distribuir
-                  depois para qualquer equipe ou corretor.
+                  {isGerente && !gerenteVerLeadsGerais
+                    ? "Sem a opção do admin, o gerente só opera a própria equipe — sem o pool geral."
+                    : "Sem equipe = pool do admin. Admin e gerentes podem distribuir depois para qualquer equipe ou corretor."}
                 </p>
               )}
               <div className="space-y-1.5">
