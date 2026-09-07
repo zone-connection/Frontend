@@ -89,8 +89,16 @@ import {
   type TableSort,
 } from "@/lib/table-sort";
 import { useLeads } from "@/lib/leads-store";
-import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
+import { CorPicker } from "@/components/cor-picker";
 import {
+  CONSTRUTORA_CORES_PRESET,
+  construtoraBadgeStyle,
+  createConstrutora,
+  fetchConstrutoras,
+  type Construtora,
+} from "@/lib/construtoras-api";
+import {
+  createEmpreendimento,
   fetchEmpreendimentos,
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
@@ -147,6 +155,8 @@ import {
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
 import {
+  Building,
+  Building2,
   Check,
   CheckCircle2,
   ChevronsUpDown,
@@ -691,6 +701,11 @@ function Page() {
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
   const isGerente = user?.role === "gerente";
+  const canQuickCreateEmpreendimento =
+    user?.role === "admin" ||
+    user?.role === "gerente" ||
+    user?.role === "analista" ||
+    user?.role === "treinee";
   const { logoUrl, tenant } = useTenantTheme();
   const pdfBrand = useMemo<PropostaPdfBrand>(
     () => ({
@@ -743,6 +758,16 @@ function Page() {
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [qrTarget, setQrTarget] = useState<Proposta | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickSaving, setQuickSaving] = useState(false);
+  const [quickNome, setQuickNome] = useState("");
+  const [quickContato, setQuickContato] = useState("");
+  const [quickCor, setQuickCor] = useState("");
+  const [empOpen, setEmpOpen] = useState(false);
+  const [empSaving, setEmpSaving] = useState(false);
+  const [empNome, setEmpNome] = useState("");
+  const [empCidade, setEmpCidade] = useState("");
+  const [empCor, setEmpCor] = useState("");
 
   const corretorOptions = useMemo(() => {
     let list = assignees.filter((a) => !a.role || isCorretorLike(a.role));
@@ -805,6 +830,96 @@ function Page() {
       setLoading(false);
     }
   }, [isManager]);
+
+  const loadLookups = useCallback(async () => {
+    const [cons, emps] = await Promise.all([
+      fetchConstrutoras().catch(() => [] as Construtora[]),
+      fetchEmpreendimentos().catch(() => [] as Empreendimento[]),
+    ]);
+    setConstrutoras(cons);
+    setEmpreendimentos(emps);
+  }, []);
+
+  async function handleQuickCreate(e: FormEvent) {
+    e.preventDefault();
+    if (!canQuickCreateEmpreendimento) return;
+    if (quickNome.trim().length < 2) {
+      toast.error("Informe o nome da construtora.");
+      return;
+    }
+    if (quickContato.trim() && !isValidPhone(quickContato)) {
+      toast.error(PHONE_INVALID_MESSAGE);
+      return;
+    }
+    setQuickSaving(true);
+    try {
+      const created = await createConstrutora({
+        nome: quickNome.trim(),
+        contato: quickContato.trim() || undefined,
+        cor: quickCor.trim() || undefined,
+      });
+      await loadLookups();
+      setForm((f) => ({
+        ...f,
+        construtoraId: created.id,
+        empreendimentoId: "",
+      }));
+      setQuickOpen(false);
+      setQuickNome("");
+      setQuickContato("");
+      setQuickCor("");
+      toast.success("Construtora criada.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível criar.",
+      );
+    } finally {
+      setQuickSaving(false);
+    }
+  }
+
+  function openQuickEmpreendimento() {
+    if (!form.construtoraId) {
+      toast.error(
+        "Selecione a construtora antes de cadastrar um empreendimento.",
+      );
+      return;
+    }
+    setEmpNome("");
+    setEmpCidade("");
+    setEmpCor("");
+    setEmpOpen(true);
+  }
+
+  async function handleQuickCreateEmpreendimento(e: FormEvent) {
+    e.preventDefault();
+    if (!form.construtoraId) return;
+    if (empNome.trim().length < 2) {
+      toast.error("Informe o nome do empreendimento.");
+      return;
+    }
+    setEmpSaving(true);
+    try {
+      const created = await createEmpreendimento({
+        nome: empNome.trim(),
+        construtoraId: form.construtoraId,
+        cidade: empCidade.trim() || undefined,
+        cor: empCor.trim() || undefined,
+      });
+      await loadLookups();
+      setForm((f) => ({ ...f, empreendimentoId: created.id }));
+      setEmpOpen(false);
+      toast.success("Empreendimento cadastrado e selecionado.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível cadastrar o empreendimento.",
+      );
+    } finally {
+      setEmpSaving(false);
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -2403,7 +2518,19 @@ function Page() {
               <FormSection title="Imóvel">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Construtora</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Construtora</Label>
+                      {canQuickCreateEmpreendimento && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0 text-xs"
+                          onClick={() => setQuickOpen(true)}
+                        >
+                          + Nova construtora
+                        </Button>
+                      )}
+                    </div>
                     <Select
                       value={form.construtoraId || "__none__"}
                       onValueChange={(v) =>
@@ -2428,7 +2555,19 @@ function Page() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Empreendimento</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Empreendimento</Label>
+                      {canQuickCreateEmpreendimento && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0 text-xs"
+                          onClick={openQuickEmpreendimento}
+                        >
+                          + Novo empreendimento
+                        </Button>
+                      )}
+                    </div>
                     <Select
                       value={form.empreendimentoId || "__none__"}
                       onValueChange={(v) =>
@@ -2662,6 +2801,150 @@ function Page() {
             <PropostaFormPreview form={form} total={formTotal} />
           </div>
         </FormDialogBody>
+      </FormDialogShell>
+
+      <FormDialogShell
+        open={quickOpen}
+        onOpenChange={setQuickOpen}
+        icon={<Building className="w-5 h-5" />}
+        title="Nova construtora"
+      >
+        <form
+          onSubmit={handleQuickCreate}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          <FormDialogBody>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="propostaQuickNome">Nome *</Label>
+                <Input
+                  id="propostaQuickNome"
+                  value={quickNome}
+                  onChange={(e) => setQuickNome(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="propostaQuickContato">Contato</Label>
+                <Input
+                  id="propostaQuickContato"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder={PHONE_PLACEHOLDER}
+                  value={quickContato}
+                  onChange={(e) => setQuickContato(formatPhone(e.target.value))}
+                  maxLength={15}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="propostaQuickCor">Cor do nome</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="propostaQuickCor"
+                    type="color"
+                    value={quickCor || "#3b82f6"}
+                    onChange={(e) => setQuickCor(e.target.value)}
+                    className="h-10 w-14 cursor-pointer p-1"
+                  />
+                  <Input
+                    value={quickCor}
+                    onChange={(e) => setQuickCor(e.target.value)}
+                    placeholder="#3b82f6"
+                    maxLength={7}
+                    className="max-w-35 font-mono text-sm"
+                  />
+                  {quickNome.trim() && quickCor ? (
+                    <Badge
+                      variant="secondary"
+                      className="border-transparent"
+                      style={construtoraBadgeStyle(quickCor)}
+                    >
+                      {quickNome.trim()}
+                    </Badge>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {CONSTRUTORA_CORES_PRESET.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      title={hex}
+                      className="h-6 w-6 rounded-md border border-border"
+                      style={{ backgroundColor: hex }}
+                      onClick={() => setQuickCor(hex)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setQuickOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={quickSaving}>
+              {quickSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Criar
+            </Button>
+          </FormDialogActions>
+        </form>
+      </FormDialogShell>
+
+      <FormDialogShell
+        open={empOpen}
+        onOpenChange={setEmpOpen}
+        icon={<Building2 className="w-5 h-5" />}
+        title="Novo empreendimento"
+      >
+        <form
+          onSubmit={handleQuickCreateEmpreendimento}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          <FormDialogBody>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="propostaEmpNome">Nome *</Label>
+                <Input
+                  id="propostaEmpNome"
+                  value={empNome}
+                  onChange={(e) => setEmpNome(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="propostaEmpCidade">Cidade</Label>
+                <Input
+                  id="propostaEmpCidade"
+                  value={empCidade}
+                  onChange={(e) => setEmpCidade(e.target.value)}
+                />
+              </div>
+              <CorPicker
+                id="propostaEmpCor"
+                value={empCor}
+                onChange={setEmpCor}
+                previewLabel={empNome}
+              />
+            </div>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEmpOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={empSaving}>
+              {empSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Criar
+            </Button>
+          </FormDialogActions>
+        </form>
       </FormDialogShell>
 
       <AlertDialog
