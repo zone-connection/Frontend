@@ -677,8 +677,10 @@ function LeadsPage() {
     (!isCorretor && distribuicaoFilter !== "all") ||
     paradosFilter;
 
-  const isLeadChegou = (l: Lead) => !l.corretorId && !l.equipeId;
-  const isLeadDistribuido = (l: Lead) => Boolean(l.corretorId || l.equipeId);
+  const isLeadChegou = (l: Lead) =>
+    !l.corretorId && (isGerente ? true : !l.equipeId);
+  const isLeadDistribuido = (l: Lead) =>
+    isGerente ? Boolean(l.corretorId) : Boolean(l.corretorId || l.equipeId);
 
   const extraFiltersActive =
     prioridadeFilter !== "all" ||
@@ -809,7 +811,7 @@ function LeadsPage() {
       if (isLeadCarteiraPropria(l, user?.id)) meus += 1;
     }
     return { chegaram, distribuidos, meus, todos: leads.length };
-  }, [leads, user?.id]);
+  }, [leads, user?.id, isGerente]);
 
   const kpiCounts = useMemo(() => {
     let alta = 0;
