@@ -59,7 +59,13 @@ export const Route = createFileRoute("/_app/treinamento")({
   component: TreinamentoPage,
 });
 
-const MANAGE_ROLES = new Set(["admin", "gerente", "analista", "treinee"]);
+const MANAGE_ROLES = new Set([
+  "super_admin",
+  "admin",
+  "gerente",
+  "analista",
+  "treinee",
+]);
 const MAX_DEPTH = 4;
 
 function secaoMatches(secao: TreinamentoSecao, query: string): boolean {

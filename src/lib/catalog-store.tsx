@@ -53,10 +53,16 @@ const LEGACY_PAPEL_BY_SLUG: Record<string, FunilEtapaPapel> = {
 
 function resolvePapel(
   item: CatalogItem,
+  siblings: CatalogItem[] = [],
 ): FunilEtapaPapel | null {
   if (item.papel) return item.papel;
   const slug = item.slug ?? "";
-  return LEGACY_PAPEL_BY_SLUG[slug] ?? null;
+  const legacy = LEGACY_PAPEL_BY_SLUG[slug] ?? null;
+  if (!legacy) return null;
+  if (siblings.some((s) => s.id !== item.id && s.papel === legacy)) {
+    return null;
+  }
+  return legacy;
 }
 
 type CatalogContextValue = {
@@ -138,7 +144,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         id: item.slug ?? item.id,
         name: item.label,
         color: normalizeCatalogColor(item.color),
-        papel: resolvePapel(item),
+        papel: resolvePapel(item, catalog.funil_etapa),
       })),
     [catalog.funil_etapa],
   );

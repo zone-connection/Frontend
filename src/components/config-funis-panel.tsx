@@ -142,13 +142,23 @@ function funilNoFiltro(funil: Funil, filtro: FiltroFunil): boolean {
   return tipo === filtro;
 }
 
-function resolveEtapaPapel(etapa: FunilEtapa): FunilEtapaPapel | null {
+function resolveEtapaPapel(
+  etapa: Pick<FunilEtapa, "id" | "slug" | "papel">,
+  siblings: Array<Pick<FunilEtapa, "id" | "papel">> = [],
+): FunilEtapaPapel | null {
   if (etapa.papel) return etapa.papel;
-  if (etapa.slug === "novo") return "inicial";
-  if (etapa.slug === "em-analise") return "analise";
-  if (etapa.slug === "ganho-venda") return "venda";
-  if (etapa.slug === "perdido") return "perdido";
-  return null;
+  const legacyBySlug: Record<string, FunilEtapaPapel> = {
+    novo: "inicial",
+    "em-analise": "analise",
+    "ganho-venda": "venda",
+    perdido: "perdido",
+  };
+  const legacy = legacyBySlug[etapa.slug] ?? null;
+  if (!legacy) return null;
+  if (siblings.some((s) => s.id !== etapa.id && s.papel === legacy)) {
+    return null;
+  }
+  return legacy;
 }
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -541,7 +551,8 @@ export function ConfigFunisPanel() {
     setEtapaEdit(etapa);
     setEtapaLabel(etapa.label);
     setEtapaColor(normalizeCatalogColor(etapa.color));
-    setEtapaPapel(resolveEtapaPapel(etapa) ?? "");
+    // Usa o papel gravado (não o fallback por slug), para a edição refletir o banco.
+    setEtapaPapel(etapa.papel ?? "");
     setEtapaPrazoValor(etapa.prazoValor ? String(etapa.prazoValor) : "");
     setEtapaPrazoUnidade(etapa.prazoUnidade ?? "horas");
     setEtapaAlertaPercent(String(etapa.alertaAntecedenciaPercent ?? 20));
@@ -1010,7 +1021,7 @@ export function ConfigFunisPanel() {
                 ) : null}
                 <div className="space-y-1.5">
                   {activeEtapas.map((s) => {
-                    const papel = resolveEtapaPapel(s);
+                    const papel = resolveEtapaPapel(s, activeEtapas);
                     const isInitial = papel === "inicial";
                     const color = s.color || DEFAULT_CATALOG_COLOR;
                     return (
@@ -1254,7 +1265,8 @@ export function ConfigFunisPanel() {
                 </select>
                 <p className="text-xs text-muted-foreground">
                   Análise envia à fila do analista; Venda conta na conversão;
-                  Perdido dispara exclusão operacional.
+                  Perdido dispara exclusão operacional. Para tirar o papel
+                  Inicial de uma etapa, atribua Inicial a outra antes.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">

@@ -187,6 +187,7 @@ const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
   { to: "/funil", label: "Funil", icon: Kanban },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/metas", label: "Metas", icon: Target },
+  { to: "/treinamento", label: "Treinamento", icon: GraduationCap },
 ];
 
 /** Fechamento da plataforma (super_admin) — sem Documentação nem Propostas. */
