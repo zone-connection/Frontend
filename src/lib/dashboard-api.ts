@@ -87,7 +87,7 @@ export type DashboardAdmin = {
     paga: DashboardMetric;
     vendas: DashboardMetric;
     vgv: DashboardMetric;
-    papel: "gerente" | "admin";
+    papel: "gerente" | "admin" | "corretor";
   };
   atencao: {
     semDono: number;

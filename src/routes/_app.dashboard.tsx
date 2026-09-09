@@ -386,15 +386,11 @@ function Page() {
       ),
   );
 
-  if (isCorretorLike(user?.role) && !dashboardLiberado) {
+  if (isCorretorLike(user?.role)) {
     return <DashboardCorretorView />;
   }
 
-  if (
-    user?.role === "admin" ||
-    user?.role === "gerente" ||
-    dashboardLiberado
-  ) {
+  if (user?.role === "admin" || user?.role === "gerente" || dashboardLiberado) {
     return <DashboardAdminView />;
   }
 
@@ -421,7 +417,6 @@ function DashboardAdminView() {
   const [origemFilter, setOrigemFilter] = useState("all");
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
-  const isGerente = user?.role === "gerente";
   const isPlatformAdmin = user?.role === "super_admin";
   const isSolo = user?.tenant?.plano === "solo";
 
@@ -742,31 +737,41 @@ function DashboardAdminView() {
         <PagePanel
           inset="muted"
           guia="dashboard-comissao"
-          title={isGerente ? "Sua comissão do mês" : "Comissões do mês"}
+          title={
+            summary.comissao.papel === "admin"
+              ? "Comissões do mês"
+              : "Sua comissão do mês"
+          }
           description={
-            isGerente
-              ? `Valor a receber nas vendas de ${mesLabel} (sua fatia de gerente).`
-              : `Comissão líquida lançada nas vendas de ${mesLabel}.`
+            summary.comissao.papel === "admin"
+              ? `Comissão líquida lançada nas vendas de ${mesLabel}.`
+              : summary.comissao.papel === "gerente"
+                ? `Valor a receber nas vendas de ${mesLabel} (sua fatia de gerente).`
+                : `Quanto você recebe nas vendas de ${mesLabel}.`
           }
           action={<PanelLink to="/financeiro/comissao">Ver comissões</PanelLink>}
         >
           <div className="grid grid-cols-2 gap-3">
             <FinanceKpiCard
-              label={isGerente ? "A receber" : "Total líquido"}
+              label={
+                summary.comissao.papel === "admin"
+                  ? "Total líquido"
+                  : "A receber"
+              }
               value={
-                isGerente
-                  ? summary.comissao.aReceber.valor
-                  : summary.comissao.total.valor
+                summary.comissao.papel === "admin"
+                  ? summary.comissao.total.valor
+                  : summary.comissao.aReceber.valor
               }
               evolucaoPct={
-                isGerente
-                  ? summary.comissao.aReceber.evolucaoPct
-                  : summary.comissao.total.evolucaoPct
+                summary.comissao.papel === "admin"
+                  ? summary.comissao.total.evolucaoPct
+                  : summary.comissao.aReceber.evolucaoPct
               }
               valorMesAnterior={
-                isGerente
-                  ? summary.comissao.aReceber.valorMesAnterior
-                  : summary.comissao.total.valorMesAnterior
+                summary.comissao.papel === "admin"
+                  ? summary.comissao.total.valorMesAnterior
+                  : summary.comissao.aReceber.valorMesAnterior
               }
               icon={Percent}
               tone="violet"
