@@ -93,6 +93,7 @@ function Page() {
   const role = session?.role;
   const isFinanceTeam =
     role === "admin" || role === "super_admin" || role === "financeiro";
+  const isCorretorViewer = isCorretorLike(role);
   const [hideValues] = useHideFinanceiroValues();
   const canCreateFin = isFinanceTeam && canFinanceiroAction(session, "create");
   const canEditFin = isFinanceTeam && canFinanceiroAction(session, "edit");
@@ -632,111 +633,148 @@ function Page() {
               </div>
             </FormSection>
 
-            <FormSection title="Percentuais">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <DetailField
-                  label={isSolo ? "Comissão" : "Imobiliária"}
-                  value={`${numberValue(detail.percentualImobiliaria).toLocaleString("pt-BR")}%`}
-                />
-                <DetailField
-                  label="Tributos"
-                  value={`${numberValue(detail.percentualTributos).toLocaleString("pt-BR")}%`}
-                />
-                <DetailField
-                  label={isSolo ? "Uso pessoal" : "Corretor"}
-                  value={`${numberValue(detail.percentualCorretor).toLocaleString("pt-BR")}%`}
-                />
-                {!isSolo ? (
-                  <DetailField
-                    label="Gerente"
-                    value={`${numberValue(detail.percentualGerente).toLocaleString("pt-BR")}%`}
-                  />
-                ) : null}
-                <DetailField
-                  label="Caixa"
-                  value={`${numberValue(detail.percentualCaixa).toLocaleString("pt-BR")}%`}
-                />
-                {!isSolo ? (
-                  <DetailField
-                    label="Sócios"
-                    value={`${numberValue(detail.percentualSocios).toLocaleString("pt-BR")}%`}
-                  />
-                ) : null}
-              </div>
-            </FormSection>
-
-            <FormSection title="Valores calculados" className="bg-muted/20">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <DetailField
-                  label="Comissão bruta"
-                  value={brl(numberValue(detail.comissaoBruta))}
-                />
-                <DetailField
-                  label="Tributos"
-                  value={brl(numberValue(detail.valorTributos))}
-                />
-                <DetailField
-                  label="Comissão líquida"
-                  value={
-                    <span className="font-semibold text-primary">
-                      {brl(numberValue(detail.comissaoLiquida))}
-                    </span>
-                  }
-                />
-                <DetailField
-                  label={isSolo ? "Uso pessoal" : "Corretor"}
-                  value={brl(numberValue(detail.valorCorretor))}
-                />
-                {!isSolo ? (
-                  <DetailField
-                    label="Gerente"
-                    value={brl(numberValue(detail.valorGerente))}
-                  />
-                ) : null}
-                <DetailField
-                  label="Caixa"
-                  value={brl(numberValue(detail.valorCaixa))}
-                />
-                {!isSolo ? (
-                  <DetailField
-                    label="Sócios"
-                    value={brl(numberValue(detail.valorSocios))}
-                  />
-                ) : null}
-              </div>
-            </FormSection>
-
-            {numberValue(detail.valorPremiacao) > 0 && (
-              <FormSection title="Premiação">
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <DetailField
-                    label="Valor total"
-                    value={brl(numberValue(detail.valorPremiacao))}
-                  />
-                  <DetailField
-                    label={isSolo ? "Uso pessoal" : "Corretor"}
-                    value={`${brl(numberValue(detail.valorPremiacaoCorretor))} (${numberValue(detail.percentualPremiacaoCorretor).toLocaleString("pt-BR")}%)`}
-                  />
-                  <DetailField
-                    label={isSolo ? "Tributos" : "Imposto"}
-                    value={`${brl(numberValue(detail.valorPremiacaoImposto))} (${numberValue(detail.percentualPremiacaoImposto).toLocaleString("pt-BR")}%)`}
-                  />
-                  <DetailField
-                    label={isSolo ? "Caixa" : "Imobiliária"}
-                    value={`${brl(numberValue(detail.valorPremiacaoImobiliaria))} (${numberValue(detail.percentualPremiacaoImobiliaria).toLocaleString("pt-BR")}%)`}
-                  />
-                  {!isSolo ? (
+            {isCorretorViewer ? (
+              <>
+                <FormSection title="Sua comissão" className="bg-muted/20">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <DetailField
-                      label="Gerente"
-                      value={`${brl(numberValue(detail.valorPremiacaoGerente))} (${numberValue(detail.percentualPremiacaoGerente).toLocaleString("pt-BR")}%)`}
+                      label="Participação"
+                      value={`${numberValue(detail.percentualCorretor).toLocaleString("pt-BR")}%`}
                     />
-                  ) : null}
-                  <DetailField
-                    label="Valor restante"
-                    value={brl(numberValue(detail.valorPremiacaoRestante))}
-                  />
-                </div>
-              </FormSection>
+                    <DetailField
+                      label="Valor a receber"
+                      value={
+                        <span className="font-semibold text-primary">
+                          {brl(numberValue(detail.valorCorretor))}
+                        </span>
+                      }
+                    />
+                  </div>
+                </FormSection>
+                {numberValue(detail.valorPremiacaoCorretor) > 0 && (
+                  <FormSection title="Sua premiação">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <DetailField
+                        label="Participação"
+                        value={`${numberValue(detail.percentualPremiacaoCorretor).toLocaleString("pt-BR")}%`}
+                      />
+                      <DetailField
+                        label="Valor"
+                        value={brl(numberValue(detail.valorPremiacaoCorretor))}
+                      />
+                    </div>
+                  </FormSection>
+                )}
+              </>
+            ) : (
+              <>
+                <FormSection title="Percentuais">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <DetailField
+                      label={isSolo ? "Comissão" : "Imobiliária"}
+                      value={`${numberValue(detail.percentualImobiliaria).toLocaleString("pt-BR")}%`}
+                    />
+                    <DetailField
+                      label="Tributos"
+                      value={`${numberValue(detail.percentualTributos).toLocaleString("pt-BR")}%`}
+                    />
+                    <DetailField
+                      label={isSolo ? "Uso pessoal" : "Corretor"}
+                      value={`${numberValue(detail.percentualCorretor).toLocaleString("pt-BR")}%`}
+                    />
+                    {!isSolo ? (
+                      <DetailField
+                        label="Gerente"
+                        value={`${numberValue(detail.percentualGerente).toLocaleString("pt-BR")}%`}
+                      />
+                    ) : null}
+                    <DetailField
+                      label="Caixa"
+                      value={`${numberValue(detail.percentualCaixa).toLocaleString("pt-BR")}%`}
+                    />
+                    {!isSolo ? (
+                      <DetailField
+                        label="Sócios"
+                        value={`${numberValue(detail.percentualSocios).toLocaleString("pt-BR")}%`}
+                      />
+                    ) : null}
+                  </div>
+                </FormSection>
+
+                <FormSection title="Valores calculados" className="bg-muted/20">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <DetailField
+                      label="Comissão bruta"
+                      value={brl(numberValue(detail.comissaoBruta))}
+                    />
+                    <DetailField
+                      label="Tributos"
+                      value={brl(numberValue(detail.valorTributos))}
+                    />
+                    <DetailField
+                      label="Comissão líquida"
+                      value={
+                        <span className="font-semibold text-primary">
+                          {brl(numberValue(detail.comissaoLiquida))}
+                        </span>
+                      }
+                    />
+                    <DetailField
+                      label={isSolo ? "Uso pessoal" : "Corretor"}
+                      value={brl(numberValue(detail.valorCorretor))}
+                    />
+                    {!isSolo ? (
+                      <DetailField
+                        label="Gerente"
+                        value={brl(numberValue(detail.valorGerente))}
+                      />
+                    ) : null}
+                    <DetailField
+                      label="Caixa"
+                      value={brl(numberValue(detail.valorCaixa))}
+                    />
+                    {!isSolo ? (
+                      <DetailField
+                        label="Sócios"
+                        value={brl(numberValue(detail.valorSocios))}
+                      />
+                    ) : null}
+                  </div>
+                </FormSection>
+
+                {numberValue(detail.valorPremiacao) > 0 && (
+                  <FormSection title="Premiação">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <DetailField
+                        label="Valor total"
+                        value={brl(numberValue(detail.valorPremiacao))}
+                      />
+                      <DetailField
+                        label={isSolo ? "Uso pessoal" : "Corretor"}
+                        value={`${brl(numberValue(detail.valorPremiacaoCorretor))} (${numberValue(detail.percentualPremiacaoCorretor).toLocaleString("pt-BR")}%)`}
+                      />
+                      <DetailField
+                        label={isSolo ? "Tributos" : "Imposto"}
+                        value={`${brl(numberValue(detail.valorPremiacaoImposto))} (${numberValue(detail.percentualPremiacaoImposto).toLocaleString("pt-BR")}%)`}
+                      />
+                      <DetailField
+                        label={isSolo ? "Caixa" : "Imobiliária"}
+                        value={`${brl(numberValue(detail.valorPremiacaoImobiliaria))} (${numberValue(detail.percentualPremiacaoImobiliaria).toLocaleString("pt-BR")}%)`}
+                      />
+                      {!isSolo ? (
+                        <DetailField
+                          label="Gerente"
+                          value={`${brl(numberValue(detail.valorPremiacaoGerente))} (${numberValue(detail.percentualPremiacaoGerente).toLocaleString("pt-BR")}%)`}
+                        />
+                      ) : null}
+                      <DetailField
+                        label="Valor restante"
+                        value={brl(numberValue(detail.valorPremiacaoRestante))}
+                      />
+                    </div>
+                  </FormSection>
+                )}
+              </>
             )}
           </FormDialogBody>
         )}
