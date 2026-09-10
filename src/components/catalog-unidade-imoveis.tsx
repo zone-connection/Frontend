@@ -356,7 +356,7 @@ export function CatalogUnidadeImoveis({
           Nenhum imóvel de captação neste recorte.
         </p>
       ) : vista === "tabela" ? (
-        <div className="overflow-x-auto rounded-xl border">
+        <div className="overflow-x-auto overflow-y-hidden rounded-xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-muted-foreground">

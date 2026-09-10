@@ -88,7 +88,7 @@ function money(n: number) {
 
 function ResponsiveChartShell({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
+    <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
       {children}
     </div>
   );
@@ -596,7 +596,7 @@ function Page() {
             corretor(es)
           </p>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="overflow-x-auto overflow-y-hidden">
           {corretoresFiltrados.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">
               Nenhum corretor para os filtros.
@@ -639,7 +639,7 @@ function Page() {
               Conversão por gerente / equipe
             </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="overflow-x-auto overflow-y-hidden">
             {ranking.gerentes.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">
                 Nenhuma equipe com gerente cadastrada.

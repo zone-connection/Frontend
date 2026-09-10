@@ -3350,7 +3350,7 @@ function LeadsPage() {
 
       <Card className="min-w-0 overflow-hidden">
         <Table
-          containerClassName="overflow-x-auto overscroll-x-contain touch-pan-x"
+          containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
           className="w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:px-2.5 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle"
         >
           <TableHeader>
@@ -3680,7 +3680,7 @@ function LeadsPage() {
                   Município, Bairro/Região, Endereço, Telefone/WhatsApp, redes,
                   atuação, módulos, CRM, produto, fit, prioridade e fonte.
                 </p>
-                <div className="rounded-md border overflow-x-auto">
+                <div className="rounded-md border overflow-x-auto overflow-y-hidden">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted/60 text-left">
@@ -3708,7 +3708,7 @@ function LeadsPage() {
             ) : (
             <div>
               <p className="font-medium mb-1.5">Colunas (nessa ordem)</p>
-              <div className="rounded-md border overflow-x-auto">
+              <div className="rounded-md border overflow-x-auto overflow-y-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/60 text-left">

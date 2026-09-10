@@ -550,7 +550,7 @@ function AnalisePage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-x-auto rounded-lg border border-border/60">
+            <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-border/60">
               <table className="w-full min-w-xl text-sm">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/30 text-left text-xs text-muted-foreground">

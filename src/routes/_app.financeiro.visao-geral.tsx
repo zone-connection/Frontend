@@ -194,7 +194,7 @@ function tituloToPipeline(titulo: TituloFinanceiro): DespesaPipelineItem {
 
 function ResponsiveChartShell({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
+    <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
       {children}
     </div>
   );

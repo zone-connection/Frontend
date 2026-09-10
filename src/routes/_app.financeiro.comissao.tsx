@@ -356,7 +356,7 @@ function Page() {
       />
 
       <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <Table className="[&_th]:px-4 [&_td]:px-4">
             <TableHeader>
               <TableRow>

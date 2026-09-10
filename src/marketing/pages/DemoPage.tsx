@@ -369,7 +369,7 @@ function FunnelView() {
 function LeadsView() {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-border bg-surface-muted/80 text-xs tracking-wide text-text-muted uppercase">
             <tr>

@@ -194,7 +194,7 @@ export function SolutionSection() {
           </p>
         </div>
 
-        <div className="w-full overflow-x-auto rounded-2xl border border-border bg-white p-2 shadow-sm sm:p-3 lg:p-5">
+        <div className="w-full overflow-x-auto overflow-y-hidden rounded-2xl border border-border bg-white p-2 shadow-sm sm:p-3 lg:p-5">
           <div className="flex min-w-[min(100%,320px)] justify-center px-1 sm:min-w-0 sm:px-4 lg:px-6 xl:px-10">
             <SolutionFlow reducedMotion={!!reducedMotion} />
           </div>

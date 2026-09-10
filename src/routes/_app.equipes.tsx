@@ -490,7 +490,7 @@ function EquipesPage() {
         </div>
       ) : (
         <div className="min-w-0 space-y-3">
-          <div className="min-w-0 overflow-x-auto rounded-2xl border border-border/80 bg-card">
+          <div className="min-w-0 overflow-x-auto overflow-y-hidden rounded-2xl border border-border/80 bg-card">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="border-b border-border/60 bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>

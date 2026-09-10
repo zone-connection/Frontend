@@ -10,7 +10,7 @@ const Table = React.forwardRef<
 >(({ className, containerClassName, ...props }, ref) => (
   <div
     className={cn(
-      "relative w-full overflow-auto rounded-[inherit]",
+      "relative w-full overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-[inherit]",
       containerClassName,
     )}
   >

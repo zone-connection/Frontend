@@ -258,7 +258,7 @@ function TimeGridBoard({
     pxPerHour;
 
   return (
-    <div className="relative overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] rounded-3xl border bg-card shadow-sm">
+    <div className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border bg-card shadow-sm">
       {loading ? (
         <div className="absolute inset-0 z-20 bg-background/50 flex items-center justify-center text-sm text-muted-foreground">
           Carregando…
@@ -536,7 +536,7 @@ function MonthBoard({
   }, [items]);
 
   return (
-    <div className="relative overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] rounded-3xl border bg-card shadow-sm">
+    <div className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border bg-card shadow-sm">
       {loading ? (
         <div className="absolute inset-0 z-20 bg-background/50 flex items-center justify-center text-sm text-muted-foreground">
           Carregando…

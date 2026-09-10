@@ -1428,7 +1428,7 @@ function ConstrutorasPage() {
                   <p className="text-sm">Nenhuma venda nesta construtora.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <ConstrutoraVendasTable items={vendas} detailed />
                 </div>
               )}
@@ -1500,7 +1500,7 @@ function ConstrutorasPage() {
                     : "Nenhuma cidade cadastrada."}
                 </p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <Table className="min-w-max [&_th]:px-3 [&_td]:px-3">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">

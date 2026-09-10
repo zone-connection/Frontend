@@ -129,7 +129,7 @@ function monthInputValue(date: Date) {
 
 function ResponsiveChartShell({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
+    <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
       {children}
     </div>
   );
@@ -744,7 +744,7 @@ function Page() {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
+        <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
           <Table>
             <TableHeader>
               <TableRow>

@@ -86,7 +86,7 @@ export function FunnelBarChart({
   }
   const height = Math.max(260, data.length * 44);
   return (
-    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
+    <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
       <ChartContainer
         config={chartConfig}
         className={cn("aspect-auto! w-full min-w-120")}

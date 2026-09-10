@@ -701,7 +701,7 @@ function VendasPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <Table className="[&_th]:px-4 [&_td]:px-4">
                 <TableHeader>
                   <TableRow>

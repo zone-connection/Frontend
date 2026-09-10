@@ -2598,7 +2598,7 @@ function DocumentacaoPage() {
           ) : (
             <>
             <Table
-              containerClassName="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]"
+              containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
               className="w-full min-w-340 table-fixed text-xs [&_th]:h-9 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:overflow-hidden [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle"
             >
               <TableHeader>
@@ -3642,7 +3642,7 @@ function DocumentacaoPage() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium mb-1.5">Colunas do modelo</p>
-              <div className="rounded-md border overflow-x-auto">
+              <div className="rounded-md border overflow-x-auto overflow-y-hidden">
                 <table className="w-full text-[11px]">
                   <thead>
                     <tr className="bg-muted/60 text-left">

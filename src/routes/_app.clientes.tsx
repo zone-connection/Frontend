@@ -1605,7 +1605,7 @@ function Clientes() {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-medium mb-1.5">Colunas (nessa ordem)</p>
-              <div className="rounded-md border overflow-x-auto">
+              <div className="rounded-md border overflow-x-auto overflow-y-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/60 text-left">

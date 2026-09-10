@@ -1038,7 +1038,7 @@ function DashboardAdminView() {
             </p>
           ) : (
             <>
-              <div className="-mx-1 overflow-x-auto overscroll-x-contain touch-pan-x">
+              <div className="-mx-1 overflow-x-auto overflow-y-hidden overscroll-x-contain">
                 <table className="w-full min-w-140 text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">

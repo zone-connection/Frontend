@@ -988,7 +988,7 @@ function Usuarios() {
 
       <Card className="min-w-0 overflow-hidden">
         <Table
-          containerClassName="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]"
+          containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
           className="w-full min-w-7xl table-fixed [&_th]:px-3 [&_td]:overflow-hidden [&_td]:px-3 [&_th]:whitespace-nowrap"
         >
           <TableHeader>
