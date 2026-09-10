@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { formatCep, formatCpfCnpj } from "@/lib/utils";
+import { formatCep, formatCpfCnpj, formatRg } from "@/lib/utils";
 
 export type ContatoContratoValues = {
   cpf: string;
@@ -46,10 +46,10 @@ export function ContatoContratoFields({ idPrefix, values, onChange }: Props) {
         <Input
           id={`${idPrefix}-rg`}
           value={values.rg}
-          onChange={(e) => onChange({ rg: e.target.value })}
-          placeholder="Opcional"
+          onChange={(e) => onChange({ rg: formatRg(e.target.value) })}
+          placeholder="00.000.000-0"
           className="h-10 bg-background"
-          maxLength={20}
+          maxLength={12}
         />
       </div>
       <div className="space-y-1.5 sm:col-span-2">

@@ -2618,7 +2618,11 @@ function DocumentacaoPage() {
               </TableHeader>
               <TableBody>
                 {docsPager.pageItems.map((doc) => (
-                  <TableRow key={doc.id}>
+                  <TableRow
+                    key={doc.id}
+                    className="cursor-pointer hover:bg-muted/40"
+                    onClick={() => openView(doc)}
+                  >
                     <TableCell>
                       <div
                         className="table-person-name truncate text-[13.5px]"
@@ -2730,7 +2734,7 @@ function DocumentacaoPage() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

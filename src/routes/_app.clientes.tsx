@@ -115,7 +115,7 @@ import {
   FileSpreadsheet,
   FileText,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, userFacingError } from "@/lib/utils";
 import {
   FILTER_BAR_SHELL,
   FILTER_CONTROL,
@@ -479,9 +479,7 @@ function Clientes() {
       }
     } catch (err) {
       toast.error(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível salvar o cliente.",
+        userFacingError(err, "Não foi possível salvar o cliente."),
       );
     }
   }

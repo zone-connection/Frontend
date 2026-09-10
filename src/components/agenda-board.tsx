@@ -271,14 +271,14 @@ function TimeGridBoard({
           gridTemplateColumns: `${isDayView ? 72 : 56}px repeat(${days.length}, minmax(9rem, 1fr))`,
         }}
       >
-        <div className="sticky top-0 z-10 border-b bg-gradient-to-b from-primary/8 to-card" />
+        <div className="sticky top-0 z-10 border-b bg-linear-to-b from-primary/8 to-card" />
         {days.map((day) => {
           const isToday = sameDay(day, today);
           return (
             <div
               key={toDateInput(day)}
               className={cn(
-                "sticky top-0 z-10 border-b border-l bg-gradient-to-b to-card px-2 py-2.5 text-center",
+                "sticky top-0 z-10 border-b border-l bg-linear-to-b to-card px-2 py-2.5 text-center",
                 isToday ? "from-primary/18" : "from-primary/8",
               )}
             >
@@ -544,7 +544,7 @@ function MonthBoard({
       ) : null}
 
       <div className="min-w-200">
-        <div className="grid grid-cols-7 border-b bg-gradient-to-b from-primary/8 to-muted/20">
+        <div className="grid grid-cols-7 border-b bg-linear-to-b from-primary/8 to-muted/20">
           {weekdays.map((w) => (
             <div
               key={w}

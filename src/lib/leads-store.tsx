@@ -33,6 +33,7 @@ import {
   prependLostClienteToCache,
   invalidateLostClientesCache,
 } from "@/lib/lost-clientes-cache";
+import { createTempId } from "@/lib/utils";
 
 const LEGACY_STORAGE_KEY = "crm_mock_leads";
 
@@ -138,7 +139,7 @@ function buildOptimisticLead(
       : null) ?? (session ? assignees.find((a) => a.id === session.id) : null);
 
   return {
-    id: `temp-${crypto.randomUUID()}`,
+    id: createTempId(),
     tipo: input.tipo === "cliente" ? "cliente" : "lead",
     nome: input.nome,
     telefone: input.telefone,

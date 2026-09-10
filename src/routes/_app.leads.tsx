@@ -142,7 +142,7 @@ import { isPlaceholderEmail } from "@/lib/email";
 import type { LeadProspeccao } from "@/lib/lead-prospeccao";
 import { compactProspeccao, PROSPECCAO_SIM_NAO } from "@/lib/lead-prospeccao";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, userFacingError } from "@/lib/utils";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
 import {
   FormDialogActions,
@@ -1203,9 +1203,7 @@ function LeadsPage() {
       setOpen(false);
       toast.success(`Lead ${nome} criado com sucesso.`);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Não foi possível salvar o lead.",
-      );
+      toast.error(userFacingError(err, "Não foi possível salvar o lead."));
     }
   }
 
@@ -3419,10 +3417,14 @@ function LeadsPage() {
                 return (
                   <TableRow
                     key={l.id}
-                    className="group hover:bg-muted/40"
+                    className="group cursor-pointer hover:bg-muted/40"
+                    onClick={() => setDetailLead(l)}
                     data-state={selectedIds.has(l.id) ? "selected" : undefined}
                   >
-                    <TableCell className="pr-0">
+                    <TableCell
+                      className="pr-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Checkbox
                         checked={selectedIds.has(l.id)}
                         onCheckedChange={(v) =>
@@ -3558,7 +3560,10 @@ function LeadsPage() {
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {l.updatedAt}
                     </TableCell>
-                    <TableCell className="sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted">
+                    <TableCell
+                      className="sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex justify-end gap-0.5">
                         <Button
                           type="button"

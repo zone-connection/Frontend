@@ -217,7 +217,7 @@ function MotivosDonut({
   const total = items.reduce((sum, item) => sum + item.valor, 0);
   if (total === 0) {
     return (
-      <div className="mx-auto flex size-36 items-center justify-center rounded-full border-[10px] border-muted px-3 text-center text-[11px] leading-snug text-muted-foreground">
+      <div className="mx-auto flex size-36 items-center justify-center rounded-full border-10 border-muted px-3 text-center text-[11px] leading-snug text-muted-foreground">
         Nenhum lead perdido neste mês
       </div>
     );

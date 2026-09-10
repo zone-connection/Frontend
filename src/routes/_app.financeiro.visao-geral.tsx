@@ -465,7 +465,7 @@ function Page() {
           value={String(ano)}
           onValueChange={(value) => setAno(Number(value))}
         >
-          <SelectTrigger className={cn("w-full sm:w-[140px]", FILTER_CONTROL)}>
+          <SelectTrigger className={cn("w-full sm:w-35", FILTER_CONTROL)}>
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
           <SelectContent>
@@ -482,7 +482,7 @@ function Page() {
             setMes(value === "todos" ? "todos" : Number(value))
           }
         >
-          <SelectTrigger className={cn("w-full sm:w-[180px]", FILTER_CONTROL)}>
+          <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
           <SelectContent>
@@ -636,7 +636,7 @@ function Page() {
                           },
                         ];
                         return (
-                          <div className="grid min-w-[11rem] gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                          <div className="grid min-w-44 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
                             <div className="font-medium">{row.mes}</div>
                             {series.map((item) => (
                               <div
@@ -1072,7 +1072,7 @@ function DespesaPipelineColumn({
     >
       <div
         className={cn(
-          "flex items-center gap-2.5 border-b border-border/50 bg-gradient-to-r via-background/80 to-transparent px-3 py-2.5",
+          "flex items-center gap-2.5 border-b border-border/50 bg-linear-to-r via-background/80 to-transparent px-3 py-2.5",
           visual.head,
         )}
       >

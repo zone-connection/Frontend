@@ -1,7 +1,10 @@
+import { formatRg } from "@/lib/utils";
+
 export type ContratoFieldType =
   | "text"
   | "cpf"
   | "cnpj"
+  | "rg"
   | "phone"
   | "date"
   | "money"
@@ -158,9 +161,9 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
       {
         key: "rg",
         label: "RG",
-        type: "text",
+        type: "rg",
         required: true,
-        placeholder: "0000000",
+        placeholder: "00.000.000-0",
       },
       { key: "cpf", label: "CPF", type: "cpf", required: true },
       {
@@ -357,8 +360,9 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
       {
         key: "contratanteRg",
         label: "Contratante — RG",
-        type: "text",
+        type: "rg",
         required: false,
+        placeholder: "00.000.000-0",
       },
       {
         key: "contratanteTel",
@@ -756,8 +760,8 @@ export function applyLeadToContratoForm(
   fill("cpfProponente", cpf);
   fill("contratanteCpf", cpf);
   fill("pagadorCpf", cpf);
-  fill("rg", rg);
-  fill("contratanteRg", rg);
+  fill("rg", formatRg(rg));
+  fill("contratanteRg", formatRg(rg));
   fill("cep", cep);
   fill("contratanteCep", cep);
   fill("construtora", lead.construtora?.nome?.trim() || "");
@@ -770,7 +774,7 @@ export function applyLeadToContratoForm(
     fill("corretorTel", corretor.phone?.trim() || "");
     fill("corretorCreci", corretor.creci?.trim() || "");
     fill("corretorCpf", corretor.cpf?.trim() || "");
-    fill("corretorRg", corretor.rg?.trim() || "");
+    fill("corretorRg", formatRg(corretor.rg?.trim() || ""));
     fill("corretorEndereco", corretor.endereco?.trim() || "");
     fill("corretorCep", corretor.cep?.trim() || "");
   }

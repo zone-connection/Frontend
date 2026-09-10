@@ -394,10 +394,14 @@ function LeadsPerdidos() {
               pager.pageItems.map((l) => (
                 <TableRow
                   key={l.id}
-                  className="hover:bg-muted/40"
+                  className="cursor-pointer hover:bg-muted/40"
+                  onClick={() => setDetail(l)}
                   data-state={selectedIds.has(l.id) ? "selected" : undefined}
                 >
-                  <TableCell className="pr-0">
+                  <TableCell
+                    className="pr-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selectedIds.has(l.id)}
                       onCheckedChange={(v) => toggleSelectOne(l.id, v === true)}
@@ -435,7 +439,10 @@ function LeadsPerdidos() {
                   <TableCell className="text-xs text-muted-foreground">
                     {l.perdidoAt}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"

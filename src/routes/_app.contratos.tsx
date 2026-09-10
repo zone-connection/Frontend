@@ -33,7 +33,7 @@ import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import { formatPhone } from "@/lib/phone";
 import { maskMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { reaisPorExtenso } from "@/lib/valor-extenso";
-import { formatCpfCnpj, cn } from "@/lib/utils";
+import { formatCpfCnpj, formatRg, cn } from "@/lib/utils";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { getSession, type TenantBranding } from "@/lib/auth";
 import {
@@ -255,6 +255,7 @@ function maskField(field: ContratoField, raw: string) {
   if (field.type === "cpf" || field.type === "cnpj") {
     return formatCpfCnpj(raw);
   }
+  if (field.type === "rg") return formatRg(raw);
   if (field.type === "phone") return formatPhone(raw);
   if (field.type === "money") return maskMoneyInput(raw);
   return raw;
@@ -849,7 +850,7 @@ function ContratosPage() {
             key={group.id}
             className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
           >
-            <div className="border-b border-border/40 bg-gradient-to-r from-primary/[0.09] via-primary/[0.03] to-transparent px-4 py-3.5 sm:px-5">
+            <div className="border-b border-border/40 bg-linear-to-r from-primary/9 via-primary/3 to-transparent px-4 py-3.5 sm:px-5">
               <h2 className="text-base font-semibold tracking-tight text-module-title">
                 {group.title}
               </h2>
@@ -868,7 +869,7 @@ function ContratosPage() {
                     onClick={() => openTemplate(template)}
                     className={cn(
                       "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
-                      "hover:border-primary/35 hover:bg-primary/[0.04] hover:shadow-md",
+                      "hover:border-primary/35 hover:bg-primary/4 hover:shadow-md",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     )}
                   >
@@ -1058,6 +1059,7 @@ function ContratosPage() {
                               inputMode={
                                 field.type === "cpf" ||
                                 field.type === "cnpj" ||
+                                field.type === "rg" ||
                                 field.type === "phone" ||
                                 field.type === "money"
                                   ? "numeric"
