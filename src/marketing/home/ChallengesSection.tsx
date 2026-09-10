@@ -1,46 +1,92 @@
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AppWindow,
   ArrowRight,
-  Banknote,
-  Cloud,
-  Code2,
-  FileSearch,
-  Layers,
+  Clock3,
+  EyeOff,
+  FolderKanban,
   LayoutTemplate,
   MessageSquareText,
   Network,
+  UserRoundX,
 } from "lucide-react";
 import { getWhatsAppUrl } from "@/lib/env";
+import { cn } from "@/lib/utils";
 import { PRODUCT_ROUTES } from "./routes";
 import { ScrollReveal } from "./ScrollReveal";
 
 const CHALLENGES = [
   {
-    icon: FileSearch,
-    text: "Não conseguir acompanhar todos os atendimentos da sua imobiliária",
+    icon: FolderKanban,
+    title: "Desorganização crônica",
+    text: "Leads, visitas e documentos espalhados em WhatsApp, planilhas e cadernos.",
+    tone: "bg-teal-600",
   },
   {
-    icon: Code2,
-    text: "Corretor não utilizar o sistema imobiliário",
+    icon: UserRoundX,
+    title: "Cliente perdido",
+    text: "O lead esfria sem follow-up. A concorrência chega primeiro e fecha.",
+    tone: "bg-blue-600",
   },
   {
-    icon: Layers,
-    text: "Perder tempo construindo e analisando planilhas de vendas e locação",
+    icon: Clock3,
+    title: "Atrasos e retrabalho",
+    text: "Contrato refeito, proposta atrasada. O dia vira correção.",
+    tone: "bg-violet-600",
+  },
+  {
+    icon: EyeOff,
+    title: "Cegueira financeira",
+    text: "Sem visão de comissões, repasses e caixa. O problema aparece tarde.",
+    tone: "bg-cyan-600",
   },
   {
     icon: AppWindow,
-    text: "Utilizar sistemas diferentes para conseguir gerenciar a sua imobiliária e o seu desempenho",
-  },
-  {
-    icon: Cloud,
-    text: "Falta de integrações no software de gestão imobiliária",
-  },
-  {
-    icon: Banknote,
-    text: "Dar baixa de pagamentos e repasses manualmente, emissão de nota fiscal e envio de relatórios — é tanta tarefa feita à mão?",
+    title: "Vários sistemas",
+    text: "CRM, planilha, WhatsApp e agenda em ferramentas que não conversam.",
+    tone: "bg-[var(--kpi-seq-2,#079ED4)]",
   },
 ] as const;
+
+const LEFT_CHALLENGES = CHALLENGES.slice(0, 3);
+const RIGHT_CHALLENGES = CHALLENGES.slice(3);
+
+function ChallengeCard({
+  icon: Icon,
+  title,
+  text,
+  tone,
+}: {
+  icon: (typeof CHALLENGES)[number]["icon"];
+  title: string;
+  text: string;
+  tone: string;
+}) {
+  return (
+    <article className="overflow-hidden rounded-xl border border-border/60 bg-white shadow-sm">
+      <div className={cn("h-1.5 w-full", tone)} aria-hidden />
+      <div className="flex items-start gap-3 p-3.5 sm:p-4">
+        <div
+          className={cn(
+            "grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm sm:h-11 sm:w-11",
+            tone,
+          )}
+        >
+          <Icon size={18} strokeWidth={2} aria-hidden />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-brand-dark sm:text-[0.95rem]">
+            {title}
+          </h3>
+          <p className="mt-0.5 text-sm leading-relaxed text-text-muted">
+            {text}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 const PRODUCTS = [
   {
@@ -48,66 +94,140 @@ const PRODUCTS = [
     text: "Uma plataforma completa para gestão de imobiliárias.",
     href: PRODUCT_ROUTES.crm,
     icon: Network,
+    image: "/marketing/product-crm.svg",
+    imageAlt: "Painel e funil do CRM imobiliário",
   },
   {
     title: "IA para WhatsApp",
     text: "Uma Inteligência Artificial integrada ao WhatsApp que conversa com clientes e se conecta ao CRM para automatizar atendimentos.",
     href: PRODUCT_ROUTES.whatsappAi,
     icon: MessageSquareText,
+    image: "/marketing/product-whatsapp.svg",
+    imageAlt: "Assistente de IA conversando no WhatsApp",
   },
   {
     title: "Sites e Landing Pages",
     text: "Desenvolvimento de sites para imobiliárias e landing pages profissionais para corretores captarem mais clientes.",
     href: PRODUCT_ROUTES.sites,
     icon: LayoutTemplate,
+    image: "/marketing/product-sites.svg",
+    imageAlt: "Montagem de site e landing page para imobiliária",
   },
 ] as const;
 
 const linkClass =
   "mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand-accent transition-all hover:gap-2.5 hover:text-brand-dark";
 
+function ProductLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  if (href === PRODUCT_ROUTES.crm) {
+    return (
+      <Link to="/produtos/crm-imobiliario" className={linkClass}>
+        {children}
+      </Link>
+    );
+  }
+  if (href === PRODUCT_ROUTES.whatsappAi) {
+    return (
+      <Link to="/produtos/ia-whatsapp" className={linkClass}>
+        {children}
+      </Link>
+    );
+  }
+  if (href === PRODUCT_ROUTES.sites) {
+    return (
+      <Link to="/produtos/sites-institucionais" className={linkClass}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} className={linkClass}>
+      {children}
+    </a>
+  );
+}
+
 export function ChallengesSection() {
   return (
     <section
       id="desafios"
-      className="px-6 py-16 lg:px-12 lg:py-24"
+      className="bg-white px-6 py-16 lg:px-12 lg:py-24"
       aria-labelledby="challenges-title"
     >
-      <div className="mx-auto max-w-6xl">
-        <ScrollReveal>
-          <h2
-            id="challenges-title"
-            className="mx-auto max-w-3xl text-center text-2xl font-bold tracking-tight text-brand-dark sm:text-3xl lg:text-[2.15rem] lg:leading-tight"
-          >
-            Você se identifica com algum desses desafios?
-          </h2>
-        </ScrollReveal>
-
-        <div className="mt-12 grid gap-10 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-12 lg:mt-16 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-14">
-          {CHALLENGES.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <ScrollReveal key={item.text} delay={index * 0.05}>
-                <article className="mx-auto flex max-w-xs flex-col items-center text-center">
-                  <div className="mb-4 grid h-14 w-14 place-items-center text-brand-accent">
-                    <Icon size={40} strokeWidth={1.5} aria-hidden />
-                  </div>
-                  <p className="text-sm leading-relaxed text-text-muted sm:text-[0.95rem] sm:leading-[1.65]">
-                    {item.text}
-                  </p>
-                </article>
+      <div className="mx-auto max-w-7xl">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)_minmax(0,1fr)] lg:gap-8 xl:gap-10">
+          <div className="order-2 flex flex-col gap-3 lg:order-1">
+            {LEFT_CHALLENGES.map((item, index) => (
+              <ScrollReveal key={item.title} delay={index * 0.04}>
+                <ChallengeCard {...item} />
               </ScrollReveal>
-            );
-          })}
+            ))}
+          </div>
+
+          <ScrollReveal className="order-1 lg:order-2">
+            <div className="mx-auto max-w-md text-center lg:max-w-none">
+              <h2
+                id="challenges-title"
+                className="text-2xl font-semibold tracking-tight text-brand-dark sm:text-3xl lg:text-[1.85rem] lg:leading-tight"
+              >
+                O que trava a operação?
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-text-muted sm:text-[0.95rem]">
+                Se algum desses desafios é o seu dia a dia, a rotina está
+                espalhada demais.
+              </p>
+              <div className="relative mt-6">
+                <div
+                  className="pointer-events-none absolute top-1/2 left-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-accent/15 blur-3xl sm:h-64 sm:w-64"
+                  aria-hidden
+                />
+                <img
+                  src="/marketing/overwhelmed-cuate.svg"
+                  alt="Pessoa sobrecarregada com papéis, telas e tarefas da operação"
+                  className="relative z-10 mx-auto w-full"
+                  width={500}
+                  height={500}
+                />
+              </div>
+            </div>
+          </ScrollReveal>
+
+          <div className="order-3 flex flex-col gap-3 lg:justify-center">
+            {RIGHT_CHALLENGES.map((item, index) => (
+              <ScrollReveal key={item.title} delay={0.08 + index * 0.04}>
+                <ChallengeCard {...item} />
+              </ScrollReveal>
+            ))}
+          </div>
         </div>
 
         <ScrollReveal delay={0.12}>
-          <div className="mx-auto mt-16 max-w-3xl text-center lg:mt-20">
-            <p className="text-lg font-medium leading-relaxed text-brand-dark sm:text-xl sm:leading-relaxed">
+          <div
+            className="relative mt-2 w-full overflow-hidden rounded-3xl px-6 py-10 text-center shadow-[0_20px_50px_-20px_rgba(5,54,71,0.45)] sm:px-10 sm:py-12 lg:px-16"
+            style={{
+              background:
+                "linear-gradient(145deg, #034055 0%, #053647 55%, #01232e 100%)",
+            }}
+          >
+            <div
+              className="pointer-events-none absolute top-[-60%] left-1/2 h-[130%] w-3/5 -translate-x-1/2 rounded-full"
+              aria-hidden
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, rgba(7,158,212,0.28) 0%, transparent 68%)",
+              }}
+            />
+            <p className="relative text-lg font-semibold leading-relaxed text-white sm:text-xl lg:text-[1.35rem]">
               Tudo isso deixa sua imobiliária lenta, burocrática e atolada de
               tarefas manuais que poderiam ser automatizadas.
             </p>
-            <p className="mt-4 text-base text-text-muted sm:text-lg">
+            <p className="relative mt-3 text-base font-medium text-brand-accent sm:text-lg">
               Por isso desenvolvemos essas soluções:
             </p>
           </div>
@@ -128,33 +248,22 @@ export function ChallengesSection() {
                   <h3 className="mb-3 text-lg font-semibold text-brand-dark">
                     {product.title}
                   </h3>
-                  <p className="flex-1 text-[0.975rem] leading-relaxed text-text-muted">
+                  <p className="text-[0.975rem] leading-relaxed text-text-muted">
                     {product.text}
                   </p>
-                  {product.href === PRODUCT_ROUTES.crm ? (
-                    <Link to="/produtos/crm-imobiliario" className={linkClass}>
-                      Saiba mais
-                      <ArrowRight size={16} strokeWidth={1.75} />
-                    </Link>
-                  ) : product.href === PRODUCT_ROUTES.whatsappAi ? (
-                    <Link to="/produtos/ia-whatsapp" className={linkClass}>
-                      Saiba mais
-                      <ArrowRight size={16} strokeWidth={1.75} />
-                    </Link>
-                  ) : product.href === PRODUCT_ROUTES.sites ? (
-                    <Link
-                      to="/produtos/sites-institucionais"
-                      className={linkClass}
-                    >
-                      Saiba mais
-                      <ArrowRight size={16} strokeWidth={1.75} />
-                    </Link>
-                  ) : (
-                    <a href={product.href} className={linkClass}>
-                      Saiba mais
-                      <ArrowRight size={16} strokeWidth={1.75} />
-                    </a>
-                  )}
+                  <div className="mt-5 flex flex-1 items-end justify-center">
+                    <img
+                      src={product.image}
+                      alt={product.imageAlt}
+                      className="h-36 w-full max-w-56 object-contain sm:h-40"
+                      width={280}
+                      height={160}
+                    />
+                  </div>
+                  <ProductLink href={product.href}>
+                    Saiba mais
+                    <ArrowRight size={16} strokeWidth={1.75} />
+                  </ProductLink>
                 </article>
               </ScrollReveal>
             );

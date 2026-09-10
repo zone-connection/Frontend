@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Check } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { ArrowRight, Check } from "lucide-react";
 import { getWhatsAppUrl } from "@/lib/env";
+import { HeroDecor } from "./HeroDecor";
 import { HOME_ANCHORS } from "./routes";
 import { HeroShowcase } from "./HeroShowcase";
 
@@ -12,46 +12,49 @@ const HIGHLIGHTS = [
   "Site e landing page no ecossistema",
 ] as const;
 
-const STATS = [
-  { value: "1", label: "plataforma para a operação" },
-  { value: "3", label: "soluções conectadas" },
-  { value: "0", label: "planilha paralela no dia a dia" },
-] as const;
-
 export function HeroSection() {
   const reducedMotion = useReducedMotion();
 
   return (
     <section
-      className="px-6 pt-10 pb-12 lg:px-12 lg:pt-16 lg:pb-20"
+      className="bg-white px-1 pt-3 pb-5 sm:px-2"
       aria-labelledby="home-hero-title"
     >
-      <div className="mx-auto max-w-7xl">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <div className="relative mx-auto max-w-368 overflow-hidden rounded-4xl bg-[#d6eef6] px-6 py-10 sm:px-10 lg:px-16 lg:py-16">
+        <HeroDecor />
+        <div className="relative z-10 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
           <motion.div
-            className="flex max-w-xl flex-col"
+            className="order-2 lg:order-1"
+            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.7,
+              delay: 0.12,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            <HeroShowcase />
+          </motion.div>
+
+          <motion.div
+            className="order-1 flex max-w-xl flex-col lg:order-2"
             initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <p className="mb-4 inline-flex items-center gap-2 text-sm font-medium tracking-wide text-text-muted uppercase">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-brand-accent"
-                aria-hidden
-              />
+            <p className="mb-3 text-xs font-semibold tracking-[0.18em] text-brand-dark uppercase">
               Zone Connection
             </p>
             <h1
               id="home-hero-title"
-              className="text-3xl font-semibold leading-tight tracking-tight text-brand-dark sm:text-4xl lg:text-[2.85rem] lg:leading-[1.12]"
+              className="text-3xl font-semibold leading-tight tracking-tight text-brand-dark sm:text-4xl lg:text-[2.65rem] lg:leading-[1.15]"
             >
-              Tecnologia feita para a rotina da{" "}
-              <span className="text-gradient-brand">imobiliária</span>.
+              Sua imobiliária mais organizada, automatizada e conectada em um só
+              lugar.
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-text-muted sm:text-lg">
-              CRM, atendimento no WhatsApp e presença digital no mesmo
-              ecossistema — para leads, contratos, financeiro e equipe
-              trabalharem juntos.
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-dark/70 sm:text-lg">
+              Centralize CRM, WhatsApp, equipe, vendas e financeiro em uma única
+              plataforma e deixe sua operação mais inteligente.
             </p>
 
             <ul className="mt-7 grid gap-2.5 sm:grid-cols-2">
@@ -61,7 +64,7 @@ export function HeroSection() {
                   className="flex items-start gap-2 text-sm leading-snug text-brand-dark"
                 >
                   <span
-                    className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-accent/15 text-brand-accent"
+                    className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-accent/20 text-brand-accent"
                     aria-hidden
                   >
                     <Check size={12} strokeWidth={3} />
@@ -73,50 +76,25 @@ export function HeroSection() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <a
+                href={HOME_ANCHORS.ecosystem}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-accent px-8 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-px hover:bg-brand-accent/90 sm:text-base"
+              >
+                Conheça as soluções
+                <ArrowRight size={16} strokeWidth={2} />
+              </a>
+              <a
                 href={getWhatsAppUrl(
-                  "Olá! Quero conhecer as soluções da Zone Connection.",
+                  "Olá! Quero agendar uma demonstração da Zone Connection.",
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-full bg-brand-dark px-8 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-px hover:bg-brand-dark/90 sm:text-base"
+                className="inline-flex items-center justify-center rounded-full bg-white/80 px-8 py-3 text-sm font-semibold text-brand-dark shadow-sm ring-1 ring-brand-dark/8 transition-all hover:-translate-y-px hover:bg-white sm:text-base"
               >
-                Comece agora
-              </a>
-              <Link
-                to="/demonstracao"
-                className="inline-flex items-center justify-center rounded-full border border-brand-dark/20 bg-white px-8 py-3.5 text-sm font-semibold text-brand-dark shadow-sm transition-all hover:-translate-y-px hover:border-brand-dark/40 sm:text-base"
-              >
-                Ver demonstração
-              </Link>
-              <a
-                href={HOME_ANCHORS.ecosystem}
-                className="inline-flex items-center justify-center px-2 text-sm font-medium text-brand-accent transition-colors hover:text-brand-dark"
-              >
-                Conheça as soluções
+                Agendar demonstração
               </a>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <HeroShowcase />
           </motion.div>
         </div>
-
-        <dl className="mt-14 grid gap-6 border-t border-border/80 pt-10 sm:grid-cols-3">
-          {STATS.map((stat) => (
-            <div key={stat.label} className="text-center sm:text-left">
-              <dt className="sr-only">{stat.label}</dt>
-              <dd className="text-3xl font-semibold tracking-tight text-brand-dark sm:text-4xl">
-                {stat.value}
-              </dd>
-              <p className="mt-1 text-sm text-text-muted">{stat.label}</p>
-            </div>
-          ))}
-        </dl>
       </div>
     </section>
   );

@@ -20,23 +20,7 @@ import { IMAGE_UPLOAD_ACCEPT } from "@/lib/empreendimentos-api";
 import { userCanInformarCreci } from "@/lib/users-api";
 import { ConfigCreciPanel } from "@/components/config-creci-panel";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
-import {
-  ASIDE_COLORS,
-  BACKGROUND_COLORS,
-  DEFAULT_APPEARANCE,
-  GRADIENT_COLORS,
-  PRIMARY_COLORS,
-  getAppearanceColor,
-  getAppearanceGradient,
-  getAppearancePrefs,
-  getAsideActiveColor,
-  setAppearancePrefs,
-  resetAppearance,
-  type AppearanceColor,
-  type AppearancePrefs,
-  type AppearanceSlot,
-} from "@/lib/appearance";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/perfil")({
@@ -89,153 +73,6 @@ const ROLE_LABEL: Record<string, string> = {
   assistente: "Assistente",
 };
 
-function ColorSwatches({
-  label,
-  description,
-  colors,
-  selectedId,
-  onSelect,
-}: {
-  label: string;
-  description: string;
-  colors: AppearanceColor[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-muted-foreground">{description}</div>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        {colors.map((color) => {
-          const selected = color.id === selectedId;
-          return (
-            <button
-              key={color.id}
-              type="button"
-              onClick={() => onSelect(color.id)}
-              className={cn(
-                "group flex cursor-pointer flex-col items-center gap-1.5 rounded-lg p-1.5 transition-colors",
-                "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                selected && "bg-muted",
-              )}
-              aria-pressed={selected}
-              title={color.name}
-            >
-              <span
-                className={cn(
-                  "h-9 w-9 rounded-full border-2 shadow-sm transition-transform group-hover:scale-105",
-                  selected ? "border-foreground ring-2 ring-foreground/20" : "border-border",
-                )}
-                style={
-                  color.gradient
-                    ? { backgroundImage: color.gradient }
-                    : { backgroundColor: color.value }
-                }
-              />
-              <span className="max-w-20 text-center text-[11px] leading-tight text-muted-foreground">
-                {color.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AppearancePreview({ prefs }: { prefs: AppearancePrefs }) {
-  const aside = getAppearanceColor("aside", prefs.asideId).value;
-  const primary = getAppearanceColor("primary", prefs.primaryId).value;
-  const background = getAppearanceColor("background", prefs.backgroundId).value;
-  const gradient = getAppearanceGradient(prefs.gradientId);
-  const asideActive = getAsideActiveColor(prefs);
-  const darkBg = background === "#0b0f14";
-  const contentFg = darkBg ? "#f8fafc" : "#053647";
-  const mutedBar = darkBg ? "#1c2430" : "#e2e8f0";
-
-  return (
-    <div className="mx-auto w-full max-w-70 space-y-2 text-center">
-      <div className="text-sm font-medium">Pré-visualização</div>
-      <div
-        className="overflow-hidden rounded-xl border shadow-sm text-left"
-        style={{ backgroundColor: background }}
-      >
-        <div className="flex h-40 sm:h-44">
-          {/* Mini aside */}
-          <div
-            className="flex w-18 shrink-0 flex-col gap-2 p-2.5 sm:w-24"
-            style={{ backgroundColor: aside }}
-          >
-            <div
-              className="h-2 w-10 rounded-sm opacity-90 sm:w-14"
-              style={{ backgroundColor: "rgba(255,255,255,0.85)" }}
-            />
-            <div className="mt-1 space-y-1.5">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "h-2 rounded-sm",
-                    i === 2 ? "w-full" : "w-[85%]",
-                  )}
-                  style={
-                    i === 2
-                      ? { backgroundColor: asideActive }
-                      : { backgroundColor: "rgba(255,255,255,0.22)" }
-                  }
-                />
-              ))}
-            </div>
-            <div className="mt-auto h-5 w-5 rounded-full bg-white/25" />
-          </div>
-
-          {/* Conteúdo */}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div
-              className="flex items-center justify-between border-b px-3 py-2"
-              style={{ borderColor: mutedBar }}
-            >
-              <div
-                className="h-2 w-20 rounded-sm sm:w-28"
-                style={{ backgroundColor: mutedBar }}
-              />
-              <div
-                className="h-6 rounded-full px-2.5 text-[10px] font-semibold leading-6 text-white shadow-sm"
-                style={{ backgroundImage: gradient.css }}
-              >
-                Ação
-              </div>
-            </div>
-            <div className="flex flex-1 flex-col gap-2 p-3">
-              <div
-                className="h-2.5 w-1/2 rounded-sm"
-                style={{ backgroundColor: contentFg, opacity: 0.35 }}
-              />
-              <div
-                className="h-2 w-3/4 rounded-sm"
-                style={{ backgroundColor: mutedBar }}
-              />
-              <div
-                className="mt-1 flex-1 rounded-lg border"
-                style={{
-                  borderColor: mutedBar,
-                  backgroundColor: darkBg ? "#141a22" : "#ffffff",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Aside, cor principal, degradê do botão e fundo da área de conteúdo.
-      </p>
-    </div>
-  );
-}
-
 function Perfil() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [darkMode, setDarkMode] = useState(false);
@@ -246,42 +83,14 @@ function Perfil() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [appearance, setAppearance] =
-    useState<AppearancePrefs>(DEFAULT_APPEARANCE);
 
   useEffect(() => {
     const sync = () => setUser(getSession());
     sync();
     setDarkMode(getTheme() === "dark");
-    setAppearance(getAppearancePrefs());
     window.addEventListener("crm-session-updated", sync);
     return () => window.removeEventListener("crm-session-updated", sync);
   }, []);
-
-  function updateAppearance(slot: AppearanceSlot, id: string) {
-    const next: AppearancePrefs = {
-      ...appearance,
-      ...(slot === "aside"
-        ? { asideId: id }
-        : slot === "primary"
-          ? { primaryId: id }
-          : slot === "background"
-            ? { backgroundId: id }
-            : { gradientId: id }),
-    };
-    setAppearance(next);
-    setAppearancePrefs(next);
-    if (slot === "background") {
-      setDarkMode(id === "escuro");
-    }
-  }
-
-  function handleResetAppearance() {
-    resetAppearance();
-    setAppearance(DEFAULT_APPEARANCE);
-    setDarkMode(false);
-    toast.success("Tema padrão restaurado");
-  }
 
   const initials =
     user?.name
@@ -360,7 +169,6 @@ function Perfil() {
     const theme: Theme = checked ? "dark" : "light";
     setDarkMode(checked);
     setTheme(theme);
-    setAppearance(getAppearancePrefs());
     toast.success(checked ? "Modo escuro ativado" : "Modo claro ativado");
   }
 
@@ -522,51 +330,12 @@ function Perfil() {
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
             <CardTitle className="text-base">Aparência</CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleResetAppearance}
-            >
-              Voltar ao tema padrão
-            </Button>
+            <Badge variant="secondary">Em desenvolvimento</Badge>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-              <div className="space-y-6">
-                <ColorSwatches
-                  label="Cor do aside"
-                  description="Menu lateral do painel"
-                  colors={ASIDE_COLORS}
-                  selectedId={appearance.asideId}
-                  onSelect={(id) => updateAppearance("aside", id)}
-                />
-                <ColorSwatches
-                  label="Cor principal"
-                  description="Botões, links, destaques e navegação ativa do aside"
-                  colors={PRIMARY_COLORS}
-                  selectedId={appearance.primaryId}
-                  onSelect={(id) => updateAppearance("primary", id)}
-                />
-                <ColorSwatches
-                  label="Degradê"
-                  description="Degradê dos botões e CTAs"
-                  colors={GRADIENT_COLORS}
-                  selectedId={appearance.gradientId}
-                  onSelect={(id) => updateAppearance("gradient", id)}
-                />
-                <ColorSwatches
-                  label="Cor de fundo"
-                  description="Fundo geral da área de conteúdo"
-                  colors={BACKGROUND_COLORS}
-                  selectedId={appearance.backgroundId}
-                  onSelect={(id) => updateAppearance("background", id)}
-                />
-              </div>
-              <div className="flex min-h-full items-center justify-center self-stretch">
-                <AppearancePreview prefs={appearance} />
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              A personalização de cores do painel estará disponível em breve.
+            </p>
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">

@@ -23,7 +23,7 @@ export function TimelineSection() {
   return (
     <section
       id="como-trabalhamos"
-      className="px-6 py-20 lg:px-12 lg:py-28"
+      className="bg-surface-muted px-6 py-20 lg:px-12 lg:py-28"
       aria-labelledby="timeline-title"
     >
       <div className="mx-auto max-w-7xl">

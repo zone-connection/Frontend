@@ -5,15 +5,13 @@ import { ChallengesSection } from "@/marketing/home/ChallengesSection";
 import { CTASection } from "@/marketing/home/CTASection";
 import { FeatureHighlights } from "@/marketing/home/FeatureHighlights";
 import { HeroSection } from "@/marketing/home/HeroSection";
-import { HomeBackground } from "@/marketing/home/HomeBackground";
 import { TimelineSection } from "@/marketing/home/TimelineSection";
 import { organizationJsonLd, websiteJsonLd } from "@/marketing/seo";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen text-brand-dark">
+    <div className="min-h-screen bg-white text-brand-dark">
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
-      <HomeBackground />
       <MarketingNav />
       <main className="relative z-0">
         <HeroSection />
