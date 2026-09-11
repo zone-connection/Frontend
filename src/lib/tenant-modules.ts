@@ -203,7 +203,7 @@ export const PLANO_MAX_USUARIOS: Record<TenantPlano, number> = {
   solo: 2,
   bronze: 5,
   prata: 15,
-  ouro: 30,
+  ouro: 35,
 };
 
 export const PLANO_LABELS: Record<TenantPlano, string> = {

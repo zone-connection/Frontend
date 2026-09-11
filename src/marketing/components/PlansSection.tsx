@@ -53,7 +53,7 @@ const PLANS: Plan[] = [
       "Propostas, documentação e contratos",
       "Metas pessoais",
       "Comissão, contas a receber/pagar e fluxo de caixa",
-      "Usuário extra: R$ 15,00 por usuário/mês",
+      "Usuário adicional: R$ 10,00 por usuário/mês",
     ],
   },
   {
@@ -62,8 +62,8 @@ const PLANS: Plan[] = [
     name: "Bronze",
     audience: "Ideal para pequenas imobiliárias",
     users: "Até 5 usuários",
-    setupFee: "R$ 449,99",
-    monthlyFee: "R$ 299,99/mês",
+    setupFee: "R$ 259,99",
+    monthlyFee: "R$ 279,99/mês",
     setupFeeOld: "R$ 790,00",
     monthlyFeeOld: "R$ 497,00",
     theme: {
@@ -76,7 +76,7 @@ const PLANS: Plan[] = [
       "CRM básico",
       "Cadastro de imóveis",
       "Agenda personalizada",
-      "Usuário adicional: R$ 15,00 por usuário/mês",
+      "Usuário adicional: R$ 10,00 por usuário/mês",
     ],
   },
   {
@@ -85,8 +85,8 @@ const PLANS: Plan[] = [
     name: "Prata",
     audience: "Financeiro ou Administrativo",
     users: "Até 15 usuários",
-    setupFee: "R$ 899,99",
-    monthlyFee: "R$ 499,99/mês",
+    setupFee: "R$ 459,99",
+    monthlyFee: "R$ 489,99/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 997,00",
     theme: {
@@ -97,7 +97,7 @@ const PLANS: Plan[] = [
     },
     features: [
       "Tudo do plano Bronze",
-      "Usuário adicional: R$ 25,00 por usuário/mês",
+      "Usuário adicional: R$ 10,00 por usuário/mês",
       "Escolha uma das opções abaixo",
     ],
     options: [
@@ -128,9 +128,9 @@ const PLANS: Plan[] = [
     medal: "🥇",
     name: "Ouro",
     audience: "Financeiro e Administrativo juntos",
-    users: "Até 30 usuários",
-    setupFee: "R$ 899,99",
-    monthlyFee: "R$ 749,99/mês",
+    users: "Até 35 usuários",
+    setupFee: "R$ 569,99",
+    monthlyFee: "R$ 699,99/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 1.649,00",
     theme: {
@@ -146,7 +146,7 @@ const PLANS: Plan[] = [
       "Sistema Financeiro e Administrativo juntos",
       "Gerenciamento e alertas de documentações",
       "Relatórios avançados",
-      "Usuário adicional: R$ 35,00 por usuário/mês",
+      "Usuário adicional: R$ 10,00 por usuário/mês",
     ],
   },
 ];
@@ -182,7 +182,7 @@ function PlanPriceCard({
   return (
     <div
       className={cn(
-        "flex min-h-[4.75rem] flex-col justify-center gap-1 overflow-visible rounded-xl border px-3 py-3",
+        "flex min-h-19 flex-col justify-center gap-1 overflow-visible rounded-xl border px-3 py-3",
         className,
       )}
     >

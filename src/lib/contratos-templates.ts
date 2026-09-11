@@ -131,7 +131,7 @@ const SAAS_CONTRATO_TEMPLATES: ContratoTemplate[] = [
     id: "saas-ouro",
     titulo: "Licença SaaS — Plano Ouro",
     descricao:
-      "Contrato de licença de uso com CRM, financeiro, administrativo e até 30 usuários.",
+      "Contrato de licença de uso com CRM, financeiro, administrativo e até 35 usuários.",
     fields: SAAS_CONTRATO_FIELDS,
   },
   {

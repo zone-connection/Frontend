@@ -920,7 +920,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         href: "/usuarios",
         who: "Admin cria. Gerente pode ver/gerar senha temporária da equipe, conforme permissão.",
         summary:
-          "Contas e papéis: admin, gerente, corretor, analista, treinee e financeiro. O plano limita quantidade (Solo 1, Bronze 5, Prata 15, Ouro 30).",
+          "Contas e papéis: admin, gerente, corretor, analista, treinee e financeiro. O plano limita quantidade (Solo 1, Bronze 5, Prata 15, Ouro 35).",
         actions: [
           {
             title: "Criar usuário",
