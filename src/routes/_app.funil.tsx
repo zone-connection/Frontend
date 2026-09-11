@@ -55,6 +55,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { getAdminVerClientesCorretor } from "@/lib/clientes-nav-prefs";
 import {
+  canReassignLead as roleCanReassignLead,
   canViewTeamData,
   canWriteTriagem as roleCanWriteTriagem,
   isCorretorLike,
@@ -74,6 +75,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
+import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import {
   ANALISE_STATUS_LABEL,
@@ -143,6 +145,7 @@ import {
   ChevronRight,
   CalendarClock,
   ClipboardList,
+  UserRoundCog,
   Loader2,
   Plus,
   Check,
@@ -223,6 +226,7 @@ export function ComercialFunilBoard({
   const { isModuleEnabled } = useTenantTheme();
   const canAgenda = isModuleEnabled("agenda");
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const canReassign = roleCanReassignLead(user?.role) && !isSolo;
   const isPlatformAdmin = user?.role === "super_admin";
   const isGerente = user?.role === "gerente";
   const isManager = canSeeTeam;
@@ -473,6 +477,7 @@ export function ComercialFunilBoard({
   const [dragging, setDragging] = useState<string | null>(null);
   const [activeDropStage, setActiveDropStage] = useState<StageId | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
+  const [reassignLead, setReassignLead] = useState<Lead | null>(null);
   const didDrag = useRef(false);
   const dismissedOpenLeadId = useRef<string | null>(null);
 
@@ -1568,21 +1573,45 @@ export function ComercialFunilBoard({
                       </div>
                     </div>
                     <div className="mt-2 flex w-full flex-col gap-1.5">
-                      <button
-                        type="button"
-                        className="flex h-7 w-full items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openTriagemFromCard(l);
-                        }}
+                      <div
+                        className={cn(
+                          "flex w-full gap-1.5",
+                          canReassign ? "flex-row" : "flex-col",
+                        )}
                       >
-                        <ClipboardList
-                          className="h-3 w-3 text-primary"
-                          aria-hidden
-                        />
-                        Triagem
-                      </button>
+                        <button
+                          type="button"
+                          className="flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTriagemFromCard(l);
+                          }}
+                        >
+                          <ClipboardList
+                            className="h-3 w-3 text-primary"
+                            aria-hidden
+                          />
+                          Triagem
+                        </button>
+                        {canReassign ? (
+                          <button
+                            type="button"
+                            className="flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReassignLead(l);
+                            }}
+                          >
+                            <UserRoundCog
+                              className="h-3 w-3 text-primary"
+                              aria-hidden
+                            />
+                            Reatribuir
+                          </button>
+                        ) : null}
+                      </div>
                       <LeadFunilAlerta
                         lead={l}
                         onUpdated={(next) => {
@@ -1591,6 +1620,9 @@ export function ComercialFunilBoard({
                             cur && cur.id === next.id ? next : cur,
                           );
                           setTriagemLead((cur) =>
+                            cur && cur.id === next.id ? next : cur,
+                          );
+                          setReassignLead((cur) =>
                             cur && cur.id === next.id ? next : cur,
                           );
                         }}
@@ -1741,6 +1773,21 @@ export function ComercialFunilBoard({
                     Registrar histórico
                   </Button>
                 ) : null}
+                {canReassign ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:col-span-2"
+                    onClick={() => {
+                      const lead = detailLead;
+                      setDetailLead(null);
+                      setReassignLead(lead);
+                    }}
+                  >
+                    <UserRoundCog className="mr-1 h-4 w-4" />
+                    Reatribuir
+                  </Button>
+                ) : null}
                 {canWriteTriagem &&
                 canAgenda &&
                 detailLead.monitoramento?.visual !== "vermelho" ? (
@@ -1788,6 +1835,19 @@ export function ComercialFunilBoard({
             </div>
           ) : null
         }
+      />
+
+      <LeadReatribuirDialog
+        lead={reassignLead}
+        open={!!reassignLead}
+        onOpenChange={(o) => {
+          if (!o) setReassignLead(null);
+        }}
+        onReassigned={(next) => {
+          applyLead(next);
+          setDetailLead((cur) => (cur && cur.id === next.id ? next : cur));
+          setTriagemLead((cur) => (cur && cur.id === next.id ? next : cur));
+        }}
       />
 
       <AlertDialog

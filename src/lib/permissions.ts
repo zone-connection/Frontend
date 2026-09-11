@@ -407,6 +407,11 @@ export function isCorretorLike(role: string | null | undefined): boolean {
   return role === "corretor" || role === "treinee";
 }
 
+/** Admin da imobiliária e gerente podem trocar o corretor do lead. */
+export function canReassignLead(role: string | null | undefined): boolean {
+  return role === "admin" || role === "gerente";
+}
+
 /** Quem pode registrar relatos e editar o próprio texto na triagem. */
 export function canWriteTriagem(role: string | null | undefined): boolean {
   return (
