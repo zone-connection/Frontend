@@ -46,6 +46,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -78,6 +86,8 @@ import {
   Briefcase,
   UserCheck,
   Users,
+  LayoutGrid,
+  LayoutList,
   Flame,
   Building2,
   Globe,
@@ -95,7 +105,8 @@ import {
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
 import {
   catalogColorBadgeClass,
-  catalogColorBadgeStyle,
+  catalogColorMatchingTextClass,
+  catalogColorTintBadgeStyle,
   DEFAULT_CATALOG_COLOR,
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
@@ -119,7 +130,12 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
-import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates } from "@/lib/leads-api";
+import {
+  importLeads,
+  fetchLeadById,
+  mapApiLead,
+  checkImportDuplicates,
+} from "@/lib/leads-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -151,6 +167,7 @@ import {
   FormSection,
 } from "@/components/form-dialog";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
+import { LeadMobileCard } from "@/components/lead-mobile-card";
 import {
   LeadAtividadeDialog,
   type LeadAtividadePrompt,
@@ -164,6 +181,9 @@ import {
   FILTER_CONTROL,
   FILTER_LABEL,
   FILTER_SEARCH_ICON,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
 } from "@/lib/filter-bar";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
@@ -173,6 +193,20 @@ import {
 } from "@/lib/money-input";
 
 type DistribuicaoFilter = "all" | "chegaram" | "distribuidos" | "meus";
+type LeadsVista = "cards" | "tabela";
+
+const LEADS_VISTA_KEY = "leads.vista";
+
+function getLeadsVista(): LeadsVista {
+  try {
+    const stored = localStorage.getItem(LEADS_VISTA_KEY);
+    if (stored === "cards" || stored === "tabela") return stored;
+    if (window.matchMedia("(max-width: 767px)").matches) return "cards";
+  } catch {
+    /* ignore */
+  }
+  return "tabela";
+}
 
 type LeadsSearch = {
   distribuicao?: DistribuicaoFilter;
@@ -378,12 +412,7 @@ const emptyForm = (origemDefault = ""): FormState => ({
 type FormMode = "create" | "edit";
 
 type PlatformLeadTab =
-  | "empresa"
-  | "localizacao"
-  | "digital"
-  | "operacao"
-  | "fit"
-  | "funil";
+  "empresa" | "localizacao" | "digital" | "operacao" | "fit" | "funil";
 
 function leadToForm(lead: Lead): FormState {
   const temp =
@@ -455,13 +484,13 @@ function LeadsPage() {
   const isPlatformAdmin = user?.role === "super_admin";
   const canContratos = Boolean(
     user &&
-      canAccessRoute(
-        user.role,
-        "/contratos",
-        user.tenant?.modules ?? null,
-        user.tenant?.plano,
-        user.permissions,
-      ),
+    canAccessRoute(
+      user.role,
+      "/contratos",
+      user.tenant?.modules ?? null,
+      user.tenant?.plano,
+      user.permissions,
+    ),
   );
   const contratoModelos = useMemo(
     () => contratoTemplatesForRole(user?.role),
@@ -565,6 +594,17 @@ function LeadsPage() {
   const [tipoRendaFilter, setTipoRendaFilter] = useState<string>("all");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [showExtraFilters, setShowExtraFilters] = useState(false);
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
+  const [vista, setVistaState] = useState<LeadsVista>(() => getLeadsVista());
+
+  function setVista(next: LeadsVista) {
+    setVistaState(next);
+    try {
+      localStorage.setItem(LEADS_VISTA_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }
   const routeSearch = Route.useSearch();
   /** Separação pool (chegaram) × já atribuídos a equipe/corretor. */
   const [distribuicaoFilter, setDistribuicaoFilter] =
@@ -686,6 +726,16 @@ function LeadsPage() {
     prioridadeFilter !== "all" ||
     tipoRendaFilter !== "all" ||
     origemFilter !== "all";
+
+  const panelFilterCount = [
+    stageFilter !== "all",
+    corretorFilter !== "all",
+    canFilterEquipe && equipeFilter !== "all",
+    prioridadeFilter !== "all",
+    tipoRendaFilter !== "all",
+    origemFilter !== "all",
+    sort !== DEFAULT_TABLE_SORT,
+  ].filter(Boolean).length;
 
   // Filtra no cliente sobre a lista já carregada no store — evita round-trip
   // ao Postgres remoto a cada mudança de filtro.
@@ -960,6 +1010,18 @@ function LeadsPage() {
     return "—";
   }
 
+  function leadStageInfo(lead: Lead) {
+    const stage = funnelStages.find((s) => s.id === lead.stage) ?? {
+      id: lead.stage,
+      name: lead.stage,
+      color: DEFAULT_CATALOG_COLOR,
+      papel: null,
+    };
+    const isNovoStage =
+      stage.papel === "inicial" || stage.id === "novo" || lead.stage === "novo";
+    return { stage, isNovoStage };
+  }
+
   function openCreate() {
     setFormMode("create");
     setEditingId(null);
@@ -992,10 +1054,7 @@ function LeadsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function setProspeccao(
-    key: keyof FormState["prospeccao"],
-    value: string,
-  ) {
+  function setProspeccao(key: keyof FormState["prospeccao"], value: string) {
     setForm((prev) => ({
       ...prev,
       prospeccao: { ...prev.prospeccao, [key]: value },
@@ -1063,8 +1122,7 @@ function LeadsPage() {
     }
 
     const rendaParsed = parseOptionalMoneyInput(String(form.renda));
-    const rendaNum =
-      rendaParsed != null ? Math.round(rendaParsed) : null;
+    const rendaNum = rendaParsed != null ? Math.round(rendaParsed) : null;
     const orcamentoParsed = parseOptionalMoneyInput(String(form.orcamentoMax));
     const orcamentoMax =
       orcamentoParsed != null ? Math.round(orcamentoParsed) : null;
@@ -1366,13 +1424,16 @@ function LeadsPage() {
 
   function patchImportRow(
     index: number,
-    patch: Partial<Pick<ParsedImportLead, "nome" | "telefone" | "email" | "cidade" | "origem">>,
+    patch: Partial<
+      Pick<
+        ParsedImportLead,
+        "nome" | "telefone" | "email" | "cidade" | "origem"
+      >
+    >,
   ) {
     setImportRows((prev) =>
       applyImportConflictErrors(
-        prev.map((row, i) =>
-          i === index ? { ...row, ...patch } : row,
-        ),
+        prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
         importExisting,
         "lead",
       ),
@@ -1398,15 +1459,15 @@ function LeadsPage() {
         batch.map((r) => {
           const prospeccao = compactProspeccao(r.prospeccao);
           return {
-          nome: r.nome,
-          telefone: r.telefone,
-          email: r.email || undefined,
-          origem: r.origem || origemOptions[0] || "Importação",
-          interesse: r.interesse,
-          cidade: r.cidade || undefined,
-          bairro: r.bairro || undefined,
-          prioridade: r.prioridade,
-          renda: r.renda,
+            nome: r.nome,
+            telefone: r.telefone,
+            email: r.email || undefined,
+            origem: r.origem || origemOptions[0] || "Importação",
+            interesse: r.interesse,
+            cidade: r.cidade || undefined,
+            bairro: r.bairro || undefined,
+            prioridade: r.prioridade,
+            renda: r.renda,
             ...(prospeccao ? { prospeccao } : {}),
           };
         }),
@@ -1503,45 +1564,45 @@ function LeadsPage() {
                 </Button>
               )}
               {canExportLeads ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={filteredLeads.length === 0}
-                    className={SOFT_BTN}
-                    data-guia="leads-exportar"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Exportar
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() =>
-                      exportLeadsToExcel(
-                        filteredLeads,
-                        `leads-${new Date().toISOString().slice(0, 10)}.xlsx`,
-                      )
-                    }
-                  >
-                    <FileSpreadsheet className="w-4 h-4 mr-2" />
-                    Excel (.xlsx)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      exportLeadsToPdf(
-                        filteredLeads,
-                        `leads-${new Date().toISOString().slice(0, 10)}.pdf`,
-                        user?.tenant?.name?.trim() || "Imobiliária",
-                      )
-                    }
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    PDF
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={filteredLeads.length === 0}
+                      className={SOFT_BTN}
+                      data-guia="leads-exportar"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Exportar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() =>
+                        exportLeadsToExcel(
+                          filteredLeads,
+                          `leads-${new Date().toISOString().slice(0, 10)}.xlsx`,
+                        )
+                      }
+                    >
+                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      Excel (.xlsx)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        exportLeadsToPdf(
+                          filteredLeads,
+                          `leads-${new Date().toISOString().slice(0, 10)}.pdf`,
+                          user?.tenant?.name?.trim() || "Imobiliária",
+                        )
+                      }
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : null}
               {selectedCount > 0 && canDeleteLeads && (
                 <Button
@@ -1602,11 +1663,13 @@ function LeadsPage() {
               : "Atualize os dados do contato no funil."
             : isPlatformAdmin
               ? "Preencha cada seção: empresa, localização, digital, operação e fit."
-            : "Preencha os dados para adicionar o contato ao funil."
+              : "Preencha os dados para adicionar o contato ao funil."
         }
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <FormDialogBody className={isPlatformAdmin ? "bg-muted/40" : undefined}>
+          <FormDialogBody
+            className={isPlatformAdmin ? "bg-muted/40" : undefined}
+          >
             {isPlatformAdmin ? (
               <>
                 <Tabs
@@ -1660,17 +1723,546 @@ function LeadsPage() {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="empresa" className="mt-4">
+                    <FormSection
+                      icon={<Building2 className="w-3.5 h-3.5 text-primary" />}
+                      title="Empresa"
+                      description="Identificação e contato de quem decide."
+                    >
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-nome"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Empresa{" "}
+                          <span className="text-destructive" aria-hidden="true">
+                            *
+                          </span>
+                        </Label>
+                        <Input
+                          id="lead-nome"
+                          value={form.nome}
+                          onChange={(e) => setField("nome", e.target.value)}
+                          placeholder="Ex.: Âncora Imobiliária"
+                          className="h-10 bg-background"
+                          autoFocus
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-telefone"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Telefone / WhatsApp{" "}
+                            <span
+                              className="text-destructive"
+                              aria-hidden="true"
+                            >
+                              *
+                            </span>
+                          </Label>
+                          <Input
+                            id="lead-telefone"
+                            type="tel"
+                            inputMode="numeric"
+                            autoComplete="tel"
+                            value={form.telefone}
+                            onChange={(e) =>
+                              setField("telefone", formatPhone(e.target.value))
+                            }
+                            placeholder={PHONE_PLACEHOLDER}
+                            className="h-10 bg-background"
+                            maxLength={15}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-email"
+                            className="text-xs text-muted-foreground"
+                          >
+                            E-mail{" "}
+                            <span className="font-normal">(opcional)</span>
+                          </Label>
+                          <Input
+                            id="lead-email"
+                            type="email"
+                            value={form.email}
+                            onChange={(e) => setField("email", e.target.value)}
+                            placeholder="email@exemplo.com"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Quem abordar
+                          </Label>
+                          <Input
+                            value={form.prospeccao.quemAbordar}
+                            onChange={(e) =>
+                              setProspeccao("quemAbordar", e.target.value)
+                            }
+                            placeholder="Dono, gestor comercial, diretor…"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Responsável interno
+                          </Label>
+                          <div className="h-10 px-3 rounded-md border bg-muted/40 text-sm flex items-center text-muted-foreground">
+                            {user?.name ?? "—"}
+                          </div>
+                        </div>
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+
+                  <TabsContent value="localizacao" className="mt-4">
+                    <FormSection
+                      icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
+                      title="Localização"
+                      description="Onde a operação está."
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-cidade"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Município
+                          </Label>
+                          <Input
+                            id="lead-cidade"
+                            value={form.cidade}
+                            onChange={(e) => setField("cidade", e.target.value)}
+                            placeholder="Ex.: Recife"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-bairro"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Bairro / Região
+                          </Label>
+                          <Input
+                            id="lead-bairro"
+                            value={form.bairro}
+                            onChange={(e) => setField("bairro", e.target.value)}
+                            placeholder="Ex.: Boa Viagem"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-endereco"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Endereço
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="lead-endereco"
+                            value={form.prospeccao.endereco}
+                            onChange={(e) =>
+                              setProspeccao("endereco", e.target.value)
+                            }
+                            placeholder="Rua, número, sala"
+                            className="h-10 bg-background"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 shrink-0"
+                            disabled={
+                              !googleMapsSearchUrl(
+                                form.prospeccao.endereco,
+                                form.bairro,
+                                form.cidade,
+                              )
+                            }
+                            title="Abrir no Google Maps"
+                            onClick={() => {
+                              const url = googleMapsSearchUrl(
+                                form.prospeccao.endereco,
+                                form.bairro,
+                                form.cidade,
+                              );
+                              if (url) {
+                                window.open(
+                                  url,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                              }
+                            }}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-1.5" />
+                            Maps
+                          </Button>
+                        </div>
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+
+                  <TabsContent value="digital" className="mt-4">
+                    <FormSection
+                      icon={<Globe className="w-3.5 h-3.5 text-primary" />}
+                      title="Presença digital"
+                      description="Canais públicos para abordagem."
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <Label className="text-xs text-muted-foreground">
+                            Site
+                          </Label>
+                          <Input
+                            value={form.prospeccao.site}
+                            onChange={(e) =>
+                              setProspeccao("site", e.target.value)
+                            }
+                            placeholder="https://"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Instagram
+                          </Label>
+                          <Input
+                            value={form.prospeccao.instagram}
+                            onChange={(e) =>
+                              setProspeccao("instagram", e.target.value)
+                            }
+                            placeholder="https://instagram.com/..."
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            LinkedIn
+                          </Label>
+                          <Input
+                            value={form.prospeccao.linkedin}
+                            onChange={(e) =>
+                              setProspeccao("linkedin", e.target.value)
+                            }
+                            placeholder="https://linkedin.com/company/..."
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+
+                  <TabsContent value="operacao" className="mt-4">
+                    <FormSection
+                      icon={<Link2 className="w-3.5 h-3.5 text-primary" />}
+                      title="Operação"
+                      description="O que a empresa vende e qual stack usa hoje."
+                    >
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Atuação / Serviços
+                        </Label>
+                        <Input
+                          value={form.prospeccao.atuacao}
+                          onChange={(e) =>
+                            setProspeccao("atuacao", e.target.value)
+                          }
+                          placeholder="Venda, locação, lançamentos…"
+                          className="h-10 bg-background"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(
+                          [
+                            ["lancamentos", "Lançamentos"],
+                            ["usados", "Usados"],
+                            ["locacao", "Locação"],
+                            ["administracao", "Administração"],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <div key={key} className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">
+                              {label}
+                            </Label>
+                            <Select
+                              value={form.prospeccao[key] || "__none__"}
+                              onValueChange={(v) =>
+                                setProspeccao(key, v === "__none__" ? "" : v)
+                              }
+                            >
+                              <SelectTrigger className="h-10 bg-background">
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">—</SelectItem>
+                                {PROSPECCAO_SIM_NAO.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            CRM identificado
+                          </Label>
+                          <Input
+                            value={form.prospeccao.crmIdentificado}
+                            onChange={(e) =>
+                              setProspeccao("crmIdentificado", e.target.value)
+                            }
+                            placeholder="Kenlo, Vista, nenhum…"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Tecnologia identificada
+                          </Label>
+                          <Input
+                            value={form.prospeccao.tecnologia}
+                            onChange={(e) =>
+                              setProspeccao("tecnologia", e.target.value)
+                            }
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+
+                  <TabsContent value="fit" className="mt-4">
+                    <FormSection
+                      icon={<Target className="w-3.5 h-3.5 text-primary" />}
+                      title="Fit comercial"
+                      description="Produto Zone e o quanto a conta vale a abordagem."
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Produto indicado
+                          </Label>
+                          <Input
+                            value={form.prospeccao.produtoIndicado}
+                            onChange={(e) =>
+                              setProspeccao("produtoIndicado", e.target.value)
+                            }
+                            placeholder="CRM + IA SDR + Landing"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Fit (0–10)
+                          </Label>
+                          <Input
+                            inputMode="decimal"
+                            value={form.prospeccao.fit}
+                            onChange={(e) =>
+                              setProspeccao("fit", e.target.value)
+                            }
+                            placeholder="8.5"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Sinais para prospecção
+                        </Label>
+                        <Textarea
+                          value={form.prospeccao.sinais}
+                          onChange={(e) =>
+                            setProspeccao("sinais", e.target.value)
+                          }
+                          placeholder="Volume de leads, equipe, presença digital…"
+                          className="min-h-20 bg-background"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Motivo do fit
+                        </Label>
+                        <Textarea
+                          value={form.prospeccao.motivoFit}
+                          onChange={(e) =>
+                            setProspeccao("motivoFit", e.target.value)
+                          }
+                          placeholder="Por que esta conta entra agora."
+                          className="min-h-20 bg-background"
+                        />
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+
+                  <TabsContent value="funil" className="mt-4">
+                    <FormSection
+                      icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
+                      title="Qualificação no funil"
+                      description="Prioridade da abordagem e origem da pesquisa."
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Origem / fonte
+                          </Label>
+                          <Select
+                            value={form.origem || "__none__"}
+                            onValueChange={(v) =>
+                              setField("origem", v === "__none__" ? "" : v)
+                            }
+                          >
+                            <SelectTrigger className="h-10 bg-background">
+                              <SelectValue placeholder="Selecione a origem" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">
+                                Sem origem
+                              </SelectItem>
+                              {origemOptions.map((o) => (
+                                <SelectItem key={o} value={o}>
+                                  {o}
+                                </SelectItem>
+                              ))}
+                              {formMode === "edit" &&
+                                form.origem &&
+                                !origemOptions.includes(form.origem) && (
+                                  <SelectItem value={form.origem}>
+                                    {form.origem}
+                                  </SelectItem>
+                                )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            Data de cadastro
+                          </Label>
+                          <Input
+                            type="date"
+                            value={form.createdAt}
+                            onChange={(e) =>
+                              setField("createdAt", e.target.value)
+                            }
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Prioridade
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            {
+                              value: "Alta" as const,
+                              active:
+                                "border-red-300 bg-red-100 text-red-800 shadow-sm ring-1 ring-red-200/80",
+                              idle: "hover:border-red-200 hover:bg-red-50 hover:text-red-700",
+                            },
+                            {
+                              value: "Média" as const,
+                              active:
+                                "border-amber-300 bg-amber-100 text-amber-900 shadow-sm ring-1 ring-amber-200/80",
+                              idle: "hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800",
+                            },
+                            {
+                              value: "Baixa" as const,
+                              active:
+                                "border-sky-300 bg-sky-100 text-sky-800 shadow-sm ring-1 ring-sky-200/80",
+                              idle: "hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setField("prioridade", opt.value)}
+                              className={cn(
+                                "h-10 rounded-lg border text-sm font-medium transition-colors",
+                                form.prioridade === opt.value
+                                  ? opt.active
+                                  : cn(
+                                      "bg-background text-muted-foreground",
+                                      opt.idle,
+                                    ),
+                              )}
+                            >
+                              {opt.value}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Temperatura
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            {
+                              value: "Quente" as const,
+                              active:
+                                "border-orange-300 bg-orange-100 text-orange-900 shadow-sm ring-1 ring-orange-200/80",
+                              idle: "hover:border-orange-200 hover:bg-orange-50 hover:text-orange-800",
+                            },
+                            {
+                              value: "Morno" as const,
+                              active:
+                                "border-yellow-300 bg-yellow-100 text-yellow-900 shadow-sm ring-1 ring-yellow-200/80",
+                              idle: "hover:border-yellow-200 hover:bg-yellow-50 hover:text-yellow-800",
+                            },
+                            {
+                              value: "Frio" as const,
+                              active:
+                                "border-cyan-300 bg-cyan-100 text-cyan-900 shadow-sm ring-1 ring-cyan-200/80",
+                              idle: "hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-800",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setField("temperatura", opt.value)}
+                              className={cn(
+                                "h-10 rounded-lg border text-sm font-medium transition-colors",
+                                form.temperatura === opt.value
+                                  ? opt.active
+                                  : cn(
+                                      "bg-background text-muted-foreground",
+                                      opt.idle,
+                                    ),
+                              )}
+                            >
+                              {opt.value}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </FormSection>
+                  </TabsContent>
+                </Tabs>
+              </>
+            ) : (
+              <>
                 <FormSection
-                  icon={<Building2 className="w-3.5 h-3.5 text-primary" />}
-                  title="Empresa"
-                  description="Identificação e contato de quem decide."
+                  icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+                  title="Contato"
                 >
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="lead-nome"
                       className="text-xs text-muted-foreground"
                     >
-                      Empresa{" "}
+                      {isPlatformAdmin ? "Empresa" : "Nome completo"}{" "}
                       <span className="text-destructive" aria-hidden="true">
                         *
                       </span>
@@ -1679,7 +2271,11 @@ function LeadsPage() {
                       id="lead-nome"
                       value={form.nome}
                       onChange={(e) => setField("nome", e.target.value)}
-                      placeholder="Ex.: Âncora Imobiliária"
+                      placeholder={
+                        isPlatformAdmin
+                          ? "Ex.: Âncora Imobiliária"
+                          : "Ex.: João Pereira"
+                      }
                       className="h-10 bg-background"
                       autoFocus
                       required
@@ -1691,7 +2287,7 @@ function LeadsPage() {
                         htmlFor="lead-telefone"
                         className="text-xs text-muted-foreground"
                       >
-                        Telefone / WhatsApp{" "}
+                        Telefone{" "}
                         <span className="text-destructive" aria-hidden="true">
                           *
                         </span>
@@ -1716,8 +2312,7 @@ function LeadsPage() {
                         htmlFor="lead-email"
                         className="text-xs text-muted-foreground"
                       >
-                        E-mail{" "}
-                        <span className="font-normal">(opcional)</span>
+                        E-mail <span className="font-normal">(opcional)</span>
                       </Label>
                       <Input
                         id="lead-email"
@@ -1728,320 +2323,11 @@ function LeadsPage() {
                         className="h-10 bg-background"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Quem abordar
-                      </Label>
-                      <Input
-                        value={form.prospeccao.quemAbordar}
-                        onChange={(e) =>
-                          setProspeccao("quemAbordar", e.target.value)
-                        }
-                        placeholder="Dono, gestor comercial, diretor…"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Responsável interno
-                      </Label>
-                      <div className="h-10 px-3 rounded-md border bg-muted/40 text-sm flex items-center text-muted-foreground">
-                        {user?.name ?? "—"}
-                      </div>
-                    </div>
-                  </div>
-                </FormSection>
-                  </TabsContent>
-
-                  <TabsContent value="localizacao" className="mt-4">
-                <FormSection
-                  icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
-                  title="Localização"
-                  description="Onde a operação está."
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="lead-cidade"
-                        className="text-xs text-muted-foreground"
-                      >
-                        Município
-                      </Label>
-                      <Input
-                        id="lead-cidade"
-                        value={form.cidade}
-                        onChange={(e) => setField("cidade", e.target.value)}
-                        placeholder="Ex.: Recife"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="lead-bairro"
-                        className="text-xs text-muted-foreground"
-                      >
-                        Bairro / Região
-                      </Label>
-                      <Input
-                        id="lead-bairro"
-                        value={form.bairro}
-                        onChange={(e) => setField("bairro", e.target.value)}
-                        placeholder="Ex.: Boa Viagem"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="lead-endereco"
-                      className="text-xs text-muted-foreground"
-                    >
-                      Endereço
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="lead-endereco"
-                        value={form.prospeccao.endereco}
-                        onChange={(e) =>
-                          setProspeccao("endereco", e.target.value)
-                        }
-                        placeholder="Rua, número, sala"
-                        className="h-10 bg-background"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-10 shrink-0"
-                        disabled={
-                          !googleMapsSearchUrl(
-                            form.prospeccao.endereco,
-                            form.bairro,
-                            form.cidade,
-                          )
-                        }
-                        title="Abrir no Google Maps"
-                        onClick={() => {
-                          const url = googleMapsSearchUrl(
-                            form.prospeccao.endereco,
-                            form.bairro,
-                            form.cidade,
-                          );
-                          if (url) {
-                            window.open(url, "_blank", "noopener,noreferrer");
-                          }
-                        }}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1.5" />
-                        Maps
-                      </Button>
-                    </div>
-                  </div>
-                </FormSection>
-                  </TabsContent>
-
-                  <TabsContent value="digital" className="mt-4">
-                <FormSection
-                  icon={<Globe className="w-3.5 h-3.5 text-primary" />}
-                  title="Presença digital"
-                  description="Canais públicos para abordagem."
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Site
-                      </Label>
-                      <Input
-                        value={form.prospeccao.site}
-                        onChange={(e) => setProspeccao("site", e.target.value)}
-                        placeholder="https://"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Instagram
-                      </Label>
-                      <Input
-                        value={form.prospeccao.instagram}
-                        onChange={(e) =>
-                          setProspeccao("instagram", e.target.value)
-                        }
-                        placeholder="https://instagram.com/..."
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        LinkedIn
-                      </Label>
-                      <Input
-                        value={form.prospeccao.linkedin}
-                        onChange={(e) =>
-                          setProspeccao("linkedin", e.target.value)
-                        }
-                        placeholder="https://linkedin.com/company/..."
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                  </div>
-                </FormSection>
-                  </TabsContent>
-
-                  <TabsContent value="operacao" className="mt-4">
-                <FormSection
-                  icon={<Link2 className="w-3.5 h-3.5 text-primary" />}
-                  title="Operação"
-                  description="O que a empresa vende e qual stack usa hoje."
-                >
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Atuação / Serviços
-                    </Label>
-                    <Input
-                      value={form.prospeccao.atuacao}
-                      onChange={(e) =>
-                        setProspeccao("atuacao", e.target.value)
-                      }
-                      placeholder="Venda, locação, lançamentos…"
-                      className="h-10 bg-background"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(
-                      [
-                        ["lancamentos", "Lançamentos"],
-                        ["usados", "Usados"],
-                        ["locacao", "Locação"],
-                        ["administracao", "Administração"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <div key={key} className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
-                          {label}
-                        </Label>
-                        <Select
-                          value={form.prospeccao[key] || "__none__"}
-                          onValueChange={(v) =>
-                            setProspeccao(key, v === "__none__" ? "" : v)
-                          }
-                        >
-                          <SelectTrigger className="h-10 bg-background">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">—</SelectItem>
-                            {PROSPECCAO_SIM_NAO.map((opt) => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">
-                        CRM identificado
-                      </Label>
-                      <Input
-                        value={form.prospeccao.crmIdentificado}
-                        onChange={(e) =>
-                          setProspeccao("crmIdentificado", e.target.value)
-                        }
-                        placeholder="Kenlo, Vista, nenhum…"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Tecnologia identificada
-                      </Label>
-                      <Input
-                        value={form.prospeccao.tecnologia}
-                        onChange={(e) =>
-                          setProspeccao("tecnologia", e.target.value)
-                        }
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                  </div>
-                </FormSection>
-                  </TabsContent>
-
-                  <TabsContent value="fit" className="mt-4">
-                <FormSection
-                  icon={<Target className="w-3.5 h-3.5 text-primary" />}
-                  title="Fit comercial"
-                  description="Produto Zone e o quanto a conta vale a abordagem."
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Produto indicado
-                      </Label>
-                      <Input
-                        value={form.prospeccao.produtoIndicado}
-                        onChange={(e) =>
-                          setProspeccao("produtoIndicado", e.target.value)
-                        }
-                        placeholder="CRM + IA SDR + Landing"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Fit (0–10)
-                      </Label>
-                      <Input
-                        inputMode="decimal"
-                        value={form.prospeccao.fit}
-                        onChange={(e) => setProspeccao("fit", e.target.value)}
-                        placeholder="8.5"
-                        className="h-10 bg-background"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Sinais para prospecção
-                    </Label>
-                    <Textarea
-                      value={form.prospeccao.sinais}
-                      onChange={(e) =>
-                        setProspeccao("sinais", e.target.value)
-                      }
-                      placeholder="Volume de leads, equipe, presença digital…"
-                      className="min-h-20 bg-background"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Motivo do fit
-                    </Label>
-                    <Textarea
-                      value={form.prospeccao.motivoFit}
-                      onChange={(e) =>
-                        setProspeccao("motivoFit", e.target.value)
-                      }
-                      placeholder="Por que esta conta entra agora."
-                      className="min-h-20 bg-background"
-                    />
-                  </div>
-                </FormSection>
-                  </TabsContent>
-
-                  <TabsContent value="funil" className="mt-4">
-                <FormSection
-                  icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
-                  title="Qualificação no funil"
-                  description="Prioridade da abordagem e origem da pesquisa."
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Origem / fonte
+                        Origem <span className="font-normal">(opcional)</span>
                       </Label>
                       <Select
                         value={form.origem || "__none__"}
@@ -2069,18 +2355,286 @@ function LeadsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Data de cadastro
-                      </Label>
-                      <Input
-                        type="date"
-                        value={form.createdAt}
-                        onChange={(e) => setField("createdAt", e.target.value)}
-                        className="h-10 bg-background"
-                      />
-                    </div>
+                    {(isAdmin || isGerente) && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Equipe / gerente{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <Select
+                          value={form.equipeId || "__none__"}
+                          onValueChange={(v) => {
+                            const equipeId = v === "__none__" ? "" : v;
+                            setForm((prev) => ({
+                              ...prev,
+                              equipeId,
+                              corretorId: "",
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="h-10 bg-background">
+                            <SelectValue placeholder="Sem equipe (pool admin)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">
+                              Sem equipe (pool admin)
+                            </SelectItem>
+                            {equipesAtivas.map((eq) => (
+                              <SelectItem key={eq.id} value={eq.id}>
+                                {eq.gerente.name}
+                                {eq.name ? ` · ${eq.name}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {!isCorretor ? (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Corretor{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <Select
+                          value={form.corretorId || "__none__"}
+                          onValueChange={(v) =>
+                            setField("corretorId", v === "__none__" ? "" : v)
+                          }
+                        >
+                          <SelectTrigger className="h-10 bg-background">
+                            <SelectValue placeholder="Sem corretor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">
+                              Sem corretor
+                            </SelectItem>
+                            {form.equipeId && (
+                              <SelectItem value="__pool__">
+                                Pool da equipe (sem corretor)
+                              </SelectItem>
+                            )}
+                            {formCorretorOptions.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Responsável
+                        </Label>
+                        <div className="h-10 px-3 rounded-md border bg-muted/40 text-sm flex items-center text-muted-foreground">
+                          {user?.name ?? "—"}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  {(isAdmin || isGerente) && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {isGerente && !gerenteVerLeadsGerais
+                        ? "Sem a opção do admin, o gerente só opera a própria equipe — sem o pool geral."
+                        : "Sem equipe = pool do admin. Admin e gerentes podem distribuir depois para qualquer equipe ou corretor."}
+                    </p>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      Data de cadastro
+                    </Label>
+                    <Input
+                      type="date"
+                      value={form.createdAt}
+                      onChange={(e) => setField("createdAt", e.target.value)}
+                      className="h-10 bg-background"
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={<FileText className="w-3.5 h-3.5 text-primary" />}
+                  title="Para contratos"
+                  description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
+                >
+                  <ContatoContratoFields
+                    idPrefix="lead"
+                    values={{
+                      cpf: form.cpf,
+                      rg: form.rg,
+                      endereco: form.endereco,
+                      cep: form.cep,
+                    }}
+                    onChange={(patch) =>
+                      setForm((prev) => ({ ...prev, ...patch }))
+                    }
+                  />
+                </FormSection>
+
+                <FormSection
+                  icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
+                  title="Renda"
+                >
+                  {isPlatformAdmin ? null : (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-renda"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Renda mensal{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">
+                            R$
+                          </span>
+                          <Input
+                            id="lead-renda"
+                            inputMode="numeric"
+                            value={form.renda}
+                            onChange={(e) =>
+                              setField("renda", maskMoneyInput(e.target.value))
+                            }
+                            placeholder="0,00"
+                            className="h-10 bg-background pl-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-tipo-renda"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Tipo de renda{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <Select
+                          value={form.tipoRenda || "__none__"}
+                          onValueChange={(v) =>
+                            setField("tipoRenda", v === "__none__" ? "" : v)
+                          }
+                        >
+                          <SelectTrigger id="lead-tipo-renda" className="h-10">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            {TIPO_RENDA_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-estado-civil"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Estado civil{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <Select
+                          value={form.estadoCivil || "__none__"}
+                          onValueChange={(v) =>
+                            setField("estadoCivil", v === "__none__" ? "" : v)
+                          }
+                        >
+                          <SelectTrigger
+                            id="lead-estado-civil"
+                            className="h-10"
+                          >
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            <SelectItem value="Solteiro">Solteiro</SelectItem>
+                            <SelectItem value="Casado">Casado</SelectItem>
+                            <SelectItem value="Divorciado">
+                              Divorciado
+                            </SelectItem>
+                            <SelectItem value="Viúvo">Viúvo</SelectItem>
+                            <SelectItem value="União estável">
+                              União estável
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label
+                          htmlFor="lead-orcamento"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Orçamento máx.{" "}
+                          <span className="font-normal">(opcional)</span>
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">
+                            R$
+                          </span>
+                          <Input
+                            id="lead-orcamento"
+                            inputMode="numeric"
+                            value={form.orcamentoMax}
+                            onChange={(e) =>
+                              setField(
+                                "orcamentoMax",
+                                maskMoneyInput(e.target.value),
+                              )
+                            }
+                            placeholder="0,00"
+                            className="h-10 bg-background pl-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-quartos-min"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Quartos mín.
+                          </Label>
+                          <Input
+                            id="lead-quartos-min"
+                            inputMode="numeric"
+                            value={form.quartosMin}
+                            onChange={(e) =>
+                              setField(
+                                "quartosMin",
+                                e.target.value.replace(/\D/g, ""),
+                              )
+                            }
+                            placeholder="Ex.: 3"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="lead-vagas-min"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Vagas mín.
+                          </Label>
+                          <Input
+                            id="lead-vagas-min"
+                            inputMode="numeric"
+                            value={form.vagasMin}
+                            onChange={(e) =>
+                              setField(
+                                "vagasMin",
+                                e.target.value.replace(/\D/g, ""),
+                              )
+                            }
+                            placeholder="Ex.: 2"
+                            className="h-10 bg-background"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">
                       Prioridade
@@ -2170,491 +2724,44 @@ function LeadsPage() {
                     </div>
                   </div>
                 </FormSection>
-                  </TabsContent>
-                </Tabs>
-              </>
-            ) : (
-              <>
-            <FormSection
-              icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-              title="Contato"
-            >
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-nome"
-                  className="text-xs text-muted-foreground"
+
+                <FormSection
+                  icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
+                  title="Localização"
                 >
-                  {isPlatformAdmin ? "Empresa" : "Nome completo"}{" "}
-                  <span className="text-destructive" aria-hidden="true">
-                    *
-                  </span>
-                </Label>
-                <Input
-                  id="lead-nome"
-                  value={form.nome}
-                  onChange={(e) => setField("nome", e.target.value)}
-                  placeholder={
-                    isPlatformAdmin
-                      ? "Ex.: Âncora Imobiliária"
-                      : "Ex.: João Pereira"
-                  }
-                  className="h-10 bg-background"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-telefone"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Telefone{" "}
-                    <span className="text-destructive" aria-hidden="true">
-                      *
-                    </span>
-                  </Label>
-                  <Input
-                    id="lead-telefone"
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    value={form.telefone}
-                    onChange={(e) =>
-                      setField("telefone", formatPhone(e.target.value))
-                    }
-                    placeholder={PHONE_PLACEHOLDER}
-                    className="h-10 bg-background"
-                    maxLength={15}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-email"
-                    className="text-xs text-muted-foreground"
-                  >
-                    E-mail <span className="font-normal">(opcional)</span>
-                  </Label>
-                  <Input
-                    id="lead-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setField("email", e.target.value)}
-                    placeholder="email@exemplo.com"
-                    className="h-10 bg-background"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">
-                    Origem <span className="font-normal">(opcional)</span>
-                  </Label>
-                  <Select
-                    value={form.origem || "__none__"}
-                    onValueChange={(v) =>
-                      setField("origem", v === "__none__" ? "" : v)
-                    }
-                  >
-                    <SelectTrigger className="h-10 bg-background">
-                      <SelectValue placeholder="Selecione a origem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Sem origem</SelectItem>
-                      {origemOptions.map((o) => (
-                        <SelectItem key={o} value={o}>
-                          {o}
-                        </SelectItem>
-                      ))}
-                      {formMode === "edit" &&
-                        form.origem &&
-                        !origemOptions.includes(form.origem) && (
-                          <SelectItem value={form.origem}>
-                            {form.origem}
-                          </SelectItem>
-                        )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {(isAdmin || isGerente) && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Equipe / gerente{" "}
-                      <span className="font-normal">(opcional)</span>
-                    </Label>
-                    <Select
-                      value={form.equipeId || "__none__"}
-                      onValueChange={(v) => {
-                        const equipeId = v === "__none__" ? "" : v;
-                        setForm((prev) => ({
-                          ...prev,
-                          equipeId,
-                          corretorId: "",
-                        }));
-                      }}
-                    >
-                      <SelectTrigger className="h-10 bg-background">
-                        <SelectValue placeholder="Sem equipe (pool admin)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">
-                          Sem equipe (pool admin)
-                        </SelectItem>
-                        {equipesAtivas.map((eq) => (
-                          <SelectItem key={eq.id} value={eq.id}>
-                            {eq.gerente.name}
-                            {eq.name ? ` · ${eq.name}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {!isCorretor ? (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Corretor <span className="font-normal">(opcional)</span>
-                    </Label>
-                    <Select
-                      value={form.corretorId || "__none__"}
-                      onValueChange={(v) =>
-                        setField("corretorId", v === "__none__" ? "" : v)
-                      }
-                    >
-                      <SelectTrigger className="h-10 bg-background">
-                        <SelectValue placeholder="Sem corretor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Sem corretor</SelectItem>
-                        {form.equipeId && (
-                          <SelectItem value="__pool__">
-                            Pool da equipe (sem corretor)
-                          </SelectItem>
-                        )}
-                        {formCorretorOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Responsável
-                    </Label>
-                    <div className="h-10 px-3 rounded-md border bg-muted/40 text-sm flex items-center text-muted-foreground">
-                      {user?.name ?? "—"}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="lead-cidade"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Cidade
+                      </Label>
+                      <Input
+                        id="lead-cidade"
+                        value={form.cidade}
+                        onChange={(e) => setField("cidade", e.target.value)}
+                        placeholder="Ex.: Recife"
+                        className="h-10 bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="lead-bairro"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Bairro
+                      </Label>
+                      <Input
+                        id="lead-bairro"
+                        value={form.bairro}
+                        onChange={(e) => setField("bairro", e.target.value)}
+                        placeholder="Ex.: Boa Viagem"
+                        className="h-10 bg-background"
+                      />
                     </div>
                   </div>
-                )}
-              </div>
-              {(isAdmin || isGerente) && (
-                <p className="text-[11px] text-muted-foreground">
-                  {isGerente && !gerenteVerLeadsGerais
-                    ? "Sem a opção do admin, o gerente só opera a própria equipe — sem o pool geral."
-                    : "Sem equipe = pool do admin. Admin e gerentes podem distribuir depois para qualquer equipe ou corretor."}
-                </p>
-              )}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Data de cadastro
-                </Label>
-                <Input
-                  type="date"
-                  value={form.createdAt}
-                  onChange={(e) => setField("createdAt", e.target.value)}
-                  className="h-10 bg-background"
-                />
-              </div>
-            </FormSection>
-
-            <FormSection
-              icon={<FileText className="w-3.5 h-3.5 text-primary" />}
-              title="Para contratos"
-              description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
-            >
-              <ContatoContratoFields
-                idPrefix="lead"
-                values={{
-                  cpf: form.cpf,
-                  rg: form.rg,
-                  endereco: form.endereco,
-                  cep: form.cep,
-                }}
-                onChange={(patch) =>
-                  setForm((prev) => ({ ...prev, ...patch }))
-                }
-              />
-            </FormSection>
-
-            <FormSection
-              icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
-              title="Renda"
-            >
-              {isPlatformAdmin ? null : (
-              <>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-renda"
-                  className="text-xs text-muted-foreground"
-                >
-                  Renda mensal <span className="font-normal">(opcional)</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">
-                    R$
-                  </span>
-                  <Input
-                    id="lead-renda"
-                    inputMode="numeric"
-                    value={form.renda}
-                    onChange={(e) =>
-                      setField("renda", maskMoneyInput(e.target.value))
-                    }
-                    placeholder="0,00"
-                    className="h-10 bg-background pl-9"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-tipo-renda"
-                  className="text-xs text-muted-foreground"
-                >
-                  Tipo de renda <span className="font-normal">(opcional)</span>
-                </Label>
-                <Select
-                  value={form.tipoRenda || "__none__"}
-                  onValueChange={(v) =>
-                    setField("tipoRenda", v === "__none__" ? "" : v)
-                  }
-                >
-                  <SelectTrigger id="lead-tipo-renda" className="h-10">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    {TIPO_RENDA_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-estado-civil"
-                  className="text-xs text-muted-foreground"
-                >
-                  Estado civil <span className="font-normal">(opcional)</span>
-                </Label>
-                <Select
-                  value={form.estadoCivil || "__none__"}
-                  onValueChange={(v) =>
-                    setField("estadoCivil", v === "__none__" ? "" : v)
-                  }
-                >
-                  <SelectTrigger id="lead-estado-civil" className="h-10">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    <SelectItem value="Solteiro">Solteiro</SelectItem>
-                    <SelectItem value="Casado">Casado</SelectItem>
-                    <SelectItem value="Divorciado">Divorciado</SelectItem>
-                    <SelectItem value="Viúvo">Viúvo</SelectItem>
-                    <SelectItem value="União estável">União estável</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-orcamento"
-                  className="text-xs text-muted-foreground"
-                >
-                  Orçamento máx. <span className="font-normal">(opcional)</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">
-                    R$
-                  </span>
-                  <Input
-                    id="lead-orcamento"
-                    inputMode="numeric"
-                    value={form.orcamentoMax}
-                    onChange={(e) =>
-                      setField("orcamentoMax", maskMoneyInput(e.target.value))
-                    }
-                    placeholder="0,00"
-                    className="h-10 bg-background pl-9"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-quartos-min"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Quartos mín.
-                  </Label>
-                  <Input
-                    id="lead-quartos-min"
-                    inputMode="numeric"
-                    value={form.quartosMin}
-                    onChange={(e) =>
-                      setField("quartosMin", e.target.value.replace(/\D/g, ""))
-                    }
-                    placeholder="Ex.: 3"
-                    className="h-10 bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-vagas-min"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Vagas mín.
-                  </Label>
-                  <Input
-                    id="lead-vagas-min"
-                    inputMode="numeric"
-                    value={form.vagasMin}
-                    onChange={(e) =>
-                      setField("vagasMin", e.target.value.replace(/\D/g, ""))
-                    }
-                    placeholder="Ex.: 2"
-                    className="h-10 bg-background"
-                  />
-                </div>
-              </div>
-              </>
-              )}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Prioridade
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    {
-                      value: "Alta" as const,
-                      active:
-                        "border-red-300 bg-red-100 text-red-800 shadow-sm ring-1 ring-red-200/80",
-                      idle: "hover:border-red-200 hover:bg-red-50 hover:text-red-700",
-                    },
-                    {
-                      value: "Média" as const,
-                      active:
-                        "border-amber-300 bg-amber-100 text-amber-900 shadow-sm ring-1 ring-amber-200/80",
-                      idle: "hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800",
-                    },
-                    {
-                      value: "Baixa" as const,
-                      active:
-                        "border-sky-300 bg-sky-100 text-sky-800 shadow-sm ring-1 ring-sky-200/80",
-                      idle: "hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700",
-                    },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setField("prioridade", opt.value)}
-                      className={cn(
-                        "h-10 rounded-lg border text-sm font-medium transition-colors",
-                        form.prioridade === opt.value
-                          ? opt.active
-                          : cn("bg-background text-muted-foreground", opt.idle),
-                      )}
-                    >
-                      {opt.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Temperatura
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    {
-                      value: "Quente" as const,
-                      active:
-                        "border-orange-300 bg-orange-100 text-orange-900 shadow-sm ring-1 ring-orange-200/80",
-                      idle: "hover:border-orange-200 hover:bg-orange-50 hover:text-orange-800",
-                    },
-                    {
-                      value: "Morno" as const,
-                      active:
-                        "border-yellow-300 bg-yellow-100 text-yellow-900 shadow-sm ring-1 ring-yellow-200/80",
-                      idle: "hover:border-yellow-200 hover:bg-yellow-50 hover:text-yellow-800",
-                    },
-                    {
-                      value: "Frio" as const,
-                      active:
-                        "border-cyan-300 bg-cyan-100 text-cyan-900 shadow-sm ring-1 ring-cyan-200/80",
-                      idle: "hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-800",
-                    },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setField("temperatura", opt.value)}
-                      className={cn(
-                        "h-10 rounded-lg border text-sm font-medium transition-colors",
-                        form.temperatura === opt.value
-                          ? opt.active
-                          : cn("bg-background text-muted-foreground", opt.idle),
-                      )}
-                    >
-                      {opt.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </FormSection>
-
-            <FormSection
-              icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
-              title="Localização"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-cidade"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Cidade
-                  </Label>
-                  <Input
-                    id="lead-cidade"
-                    value={form.cidade}
-                    onChange={(e) => setField("cidade", e.target.value)}
-                    placeholder="Ex.: Recife"
-                    className="h-10 bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-bairro"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Bairro
-                  </Label>
-                  <Input
-                    id="lead-bairro"
-                    value={form.bairro}
-                    onChange={(e) => setField("bairro", e.target.value)}
-                    placeholder="Ex.: Boa Viagem"
-                    className="h-10 bg-background"
-                  />
-                </div>
-              </div>
-            </FormSection>
+                </FormSection>
               </>
             )}
           </FormDialogBody>
@@ -2664,7 +2771,8 @@ function LeadsPage() {
               formMode === "edit" ? (
                 "As alterações são salvas no banco."
               ) : isPlatformAdmin ? (
-                <>A empresa entra na etapa{" "}
+                <>
+                  A empresa entra na etapa{" "}
                   <span className="font-medium text-foreground">
                     {defaultStageName}
                   </span>
@@ -3081,8 +3189,53 @@ function LeadsPage() {
         )}
       </div>
 
-      <div className={cn("mb-4", FILTER_BAR_SURFACE)}>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className={cn("mb-4", FILTER_BAR_SURFACE, "max-md:p-2.5")}>
+        <div className="flex items-center gap-2 md:hidden">
+          <div className="relative min-w-0 flex-1">
+            <Search className={FILTER_SEARCH_ICON} />
+            <Input
+              placeholder="Buscar lead..."
+              className={cn("h-10 rounded-xl pl-9", FILTER_CONTROL)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              SOFT_BTN,
+              "relative h-10 shrink-0 px-3",
+              panelFilterCount > 0 && "border-primary/40",
+            )}
+            onClick={() => setFiltersSheetOpen(true)}
+          >
+            <Filter className="h-4 w-4" />
+            <span className="ml-1">Filtros</span>
+            {panelFilterCount > 0 ? (
+              <Badge
+                className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px]"
+                variant="secondary"
+              >
+                {panelFilterCount}
+              </Badge>
+            ) : null}
+          </Button>
+          {panelFilterCount > 0 || search ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(FILTER_CLEAR_BTN, "h-10 w-10 shrink-0")}
+              onClick={clearFilters}
+              title="Limpar filtros"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="hidden flex-wrap items-center gap-2 md:flex">
           <div className="relative flex-1 min-w-55">
             <Search className={FILTER_SEARCH_ICON} />
             <Input
@@ -3199,7 +3352,7 @@ function LeadsPage() {
             </Button>
           )}
           {showExtraFilters && (
-            <div className="flex flex-wrap gap-2 w-full pt-2 border-t border-border/60 mt-1">
+            <div className="mt-1 flex w-full flex-wrap gap-2 border-t border-border/60 pt-2">
               <div className="space-y-1">
                 <Label className={FILTER_LABEL}>Prioridade</Label>
                 <Select
@@ -3257,9 +3410,177 @@ function LeadsPage() {
         </div>
       </div>
 
+      <Sheet open={filtersSheetOpen} onOpenChange={setFiltersSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[85vh] flex-col gap-0 rounded-t-2xl p-0 md:hidden"
+        >
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12 text-left">
+            <SheetTitle>Filtros</SheetTitle>
+            <SheetDescription>
+              Ordenação e recortes da lista de leads.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+            <div className="space-y-1.5">
+              <Label className={FILTER_LABEL}>Ordenar</Label>
+              <TableSortSelect
+                value={sort}
+                onChange={setSort}
+                className={cn("w-full", FILTER_CONTROL)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className={FILTER_LABEL}>Etapa</Label>
+              <Select value={stageFilter} onValueChange={setStageFilter}>
+                <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                  <SelectValue placeholder="Etapa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas etapas</SelectItem>
+                  {funnelStages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {canFilterEquipe ? (
+              <div className="space-y-1.5">
+                <Label className={FILTER_LABEL}>Equipe</Label>
+                <Select value={equipeFilter} onValueChange={setEquipeFilter}>
+                  <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                    <SelectValue placeholder="Equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas equipes</SelectItem>
+                    <SelectItem value="none">Sem equipe</SelectItem>
+                    {equipes.map((eq) => (
+                      <SelectItem key={eq.id} value={eq.id}>
+                        {eq.name}
+                        {eq.leadsCount != null ? ` (${eq.leadsCount})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            {showTeamColumns ? (
+              <div className="space-y-1.5">
+                <Label className={FILTER_LABEL}>Corretor</Label>
+                <Select
+                  value={corretorFilter}
+                  onValueChange={setCorretorFilter}
+                >
+                  <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                    <SelectValue placeholder="Corretor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos corretores</SelectItem>
+                    {leadsAtivosPorCorretor
+                      .filter(
+                        (r) =>
+                          r.id === "__none__" || r.id === "__equipe_pool__",
+                      )
+                      .map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name} ({r.count})
+                        </SelectItem>
+                      ))}
+                    {corretorFilterOptions.map((a) => {
+                      const count =
+                        leadsAtivosPorCorretor.find((r) => r.id === a.id)
+                          ?.count ?? 0;
+                      return (
+                        <SelectItem key={a.id} value={a.id}>
+                          {isGerente && a.id === user?.id
+                            ? `${a.name} (eu)`
+                            : a.name}{" "}
+                          ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <Label className={FILTER_LABEL}>Prioridade</Label>
+              <Select
+                value={prioridadeFilter}
+                onValueChange={setPrioridadeFilter}
+              >
+                <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="Alta">Alta</SelectItem>
+                  <SelectItem value="Média">Média</SelectItem>
+                  <SelectItem value="Baixa">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className={FILTER_LABEL}>Tipo de renda</Label>
+              <Select
+                value={tipoRendaFilter}
+                onValueChange={setTipoRendaFilter}
+              >
+                <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {TIPO_RENDA_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className={FILTER_LABEL}>Origem</Label>
+              <Select value={origemFilter} onValueChange={setOrigemFilter}>
+                <SelectTrigger className={cn("h-10 w-full", FILTER_CONTROL)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {origemOptions.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <SheetFooter className="flex-row gap-2 border-t border-border px-5 py-3">
+            <Button
+              type="button"
+              variant="ghost"
+              className={FILTER_CLEAR_BTN}
+              onClick={clearFilters}
+            >
+              Limpar
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setFiltersSheetOpen(false)}
+            >
+              Ver resultados
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       {showTeamColumns && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border/60 bg-card p-1">
+        <div className="mb-4 flex flex-wrap items-center gap-2 max-md:-mx-1">
+          <div className="flex max-w-full overflow-x-auto rounded-lg border border-border/60 bg-card p-1">
             {(
               [
                 {
@@ -3308,7 +3629,7 @@ function LeadsPage() {
                     if (opt.id === "meus") setCorretorFilter("all");
                   }}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+                    "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                     selected
                       ? "border-0 bg-transparent text-white shadow-sm"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -3332,7 +3653,7 @@ function LeadsPage() {
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="hidden text-xs text-muted-foreground md:block">
             {paradosFilter
               ? `Somente leads sem atualização há ${DIAS_PARADO} dias ou mais.`
               : distribuicaoFilter === "chegaram"
@@ -3346,14 +3667,55 @@ function LeadsPage() {
         </div>
       )}
 
-      <Card className="min-w-0 overflow-hidden">
-        <Table
-          containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
-          className="w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:px-2.5 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle"
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8 pr-0">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-muted-foreground">
+          Visualização
+        </span>
+        <div className={FILTER_VISTA_WRAP}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              FILTER_VISTA_BTN,
+              vista === "cards" && FILTER_VISTA_BTN_ACTIVE,
+            )}
+            title="Ver cards"
+            onClick={() => setVista("cards")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="ml-1.5">Cards</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              FILTER_VISTA_BTN,
+              vista === "tabela" && FILTER_VISTA_BTN_ACTIVE,
+            )}
+            title="Ver tabela"
+            onClick={() => setVista("tabela")}
+          >
+            <LayoutList className="h-4 w-4" />
+            <span className="ml-1.5">Tabela</span>
+          </Button>
+        </div>
+      </div>
+
+      {vista === "cards" && (
+        <div className="space-y-2.5">
+          {loading ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              Carregando leads...
+            </Card>
+          ) : filteredLeads.length === 0 ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              Nenhum lead encontrado com esses filtros.
+            </Card>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 px-0.5">
                 <Checkbox
                   checked={
                     allSelected ? true : someSelected ? "indeterminate" : false
@@ -3362,309 +3724,398 @@ function LeadsPage() {
                   aria-label="Selecionar todos os leads"
                   disabled={filteredLeads.length === 0 || bulkDeleting}
                 />
-              </TableHead>
-              <TableHead className="w-[16%]">{isPlatformAdmin ? "Empresa" : "Lead"}</TableHead>
-              <TableHead className="w-32">Origem</TableHead>
-              <TableHead className="w-22 pr-4 text-center!">
-                {isPlatformAdmin ? "Produto" : "Tipo de renda"}
-              </TableHead>
-              <TableHead className="w-36">Etapa</TableHead>
-              {showTeamColumns && <TableHead className="w-28">Equipe</TableHead>}
-              {showTeamColumns && (
-                <TableHead className="w-[14%]">Corretor</TableHead>
-              )}
-              <TableHead className="w-[7%]">{isPlatformAdmin ? "Fit" : "Renda"}</TableHead>
-              <TableHead className="w-[8%]">{isPlatformAdmin ? "Município" : "Estado civil"}</TableHead>
-              <TableHead className="w-19">Prioridade</TableHead>
-              <TableHead className="w-28">Atualizado</TableHead>
-              <TableHead className="sticky right-0 z-20 w-16 text-right">
-                Ações
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+                <span className="text-xs text-muted-foreground">
+                  Selecionar todos
+                </span>
+              </div>
+              <div className="grid gap-2.5 md:grid-cols-2">
+                {leadsPager.pageItems.map((l) => {
+                  const { stage, isNovoStage } = leadStageInfo(l);
+                  return (
+                    <LeadMobileCard
+                      key={l.id}
+                      lead={l}
+                      selected={selectedIds.has(l.id)}
+                      onToggleSelect={(checked) =>
+                        toggleSelectOne(l.id, checked)
+                      }
+                      onOpen={() => setDetailLead(l)}
+                      selectDisabled={bulkDeleting}
+                      showMeuLead={
+                        isGerente && isLeadCarteiraPropria(l, user?.id)
+                      }
+                      stageName={stage.name}
+                      stageColor={stage.color}
+                      isNovoStage={isNovoStage}
+                      showTeam={showTeamColumns}
+                      equipe={equipeLabel(l)}
+                      isPlatformAdmin={isPlatformAdmin}
+                      canContratos={canContratos}
+                      canMaps={Boolean(
+                        googleMapsSearchUrl(
+                          l.prospeccao?.endereco,
+                          l.bairro,
+                          l.cidade,
+                        ),
+                      )}
+                      onEdit={() => openEdit(l)}
+                      onWhatsApp={() => openLeadWhatsApp(l.telefone)}
+                      onCopyPhone={() => void copyLeadPhone(l.telefone)}
+                      onMaps={() => openLeadMaps(l)}
+                      onContrato={() => setContratoLead(l)}
+                      onDelete={() => setDeleteLead(l)}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
+          {!loading && filteredLeads.length > 0 ? (
+            <Card>
+              <TablePager
+                page={leadsPager.page}
+                totalPages={leadsPager.totalPages}
+                total={leadsPager.total}
+                onPageChange={leadsPager.setPage}
+              />
+            </Card>
+          ) : null}
+        </div>
+      )}
+      {vista === "tabela" && (
+        <Card className="min-w-0 overflow-hidden">
+          <Table
+            containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
+            className="w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:px-2.5 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle"
+          >
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={leadTableColSpan}
-                  className="h-24 text-center text-sm text-muted-foreground"
-                >
-                  Carregando leads...
-                </TableCell>
+                <TableHead className="w-8 pr-0">
+                  <Checkbox
+                    checked={
+                      allSelected
+                        ? true
+                        : someSelected
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={(v) => toggleSelectAll(v === true)}
+                    aria-label="Selecionar todos os leads"
+                    disabled={filteredLeads.length === 0 || bulkDeleting}
+                  />
+                </TableHead>
+                <TableHead className="w-[16%]">
+                  {isPlatformAdmin ? "Empresa" : "Lead"}
+                </TableHead>
+                <TableHead className="w-32">Origem</TableHead>
+                <TableHead className="w-22 pr-4 text-center!">
+                  {isPlatformAdmin ? "Produto" : "Tipo de renda"}
+                </TableHead>
+                <TableHead className="w-36">Etapa</TableHead>
+                {showTeamColumns && (
+                  <TableHead className="w-28">Equipe</TableHead>
+                )}
+                {showTeamColumns && (
+                  <TableHead className="w-[14%]">Corretor</TableHead>
+                )}
+                <TableHead className="w-[7%]">
+                  {isPlatformAdmin ? "Fit" : "Renda"}
+                </TableHead>
+                <TableHead className="w-[8%]">
+                  {isPlatformAdmin ? "Município" : "Estado civil"}
+                </TableHead>
+                <TableHead className="w-19">Prioridade</TableHead>
+                <TableHead className="w-28">Atualizado</TableHead>
+                <TableHead className="sticky right-0 z-20 w-16 text-right">
+                  Ações
+                </TableHead>
               </TableRow>
-            ) : filteredLeads.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={leadTableColSpan}
-                  className="h-24 text-center text-sm text-muted-foreground"
-                >
-                  Nenhum lead encontrado com esses filtros.
-                </TableCell>
-              </TableRow>
-            ) : (
-              leadsPager.pageItems.map((l) => {
-                const stage = funnelStages.find((s) => s.id === l.stage) ?? {
-                  id: l.stage,
-                  name: l.stage,
-                  color: DEFAULT_CATALOG_COLOR,
-                  papel: null,
-                };
-                const isNovoStage =
-                  stage.papel === "inicial" ||
-                  stage.id === "novo" ||
-                  l.stage === "novo";
-                const equipe = equipeLabel(l);
-                return (
-                  <TableRow
-                    key={l.id}
-                    className="group cursor-pointer hover:bg-muted/40"
-                    onClick={() => setDetailLead(l)}
-                    data-state={selectedIds.has(l.id) ? "selected" : undefined}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={leadTableColSpan}
+                    className="h-24 text-center text-sm text-muted-foreground"
                   >
-                    <TableCell
-                      className="pr-0"
-                      onClick={(e) => e.stopPropagation()}
+                    Carregando leads...
+                  </TableCell>
+                </TableRow>
+              ) : filteredLeads.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={leadTableColSpan}
+                    className="h-24 text-center text-sm text-muted-foreground"
+                  >
+                    Nenhum lead encontrado com esses filtros.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                leadsPager.pageItems.map((l) => {
+                  const { stage, isNovoStage } = leadStageInfo(l);
+                  const equipe = equipeLabel(l);
+                  return (
+                    <TableRow
+                      key={l.id}
+                      className="group cursor-pointer hover:bg-muted/40"
+                      onClick={() => setDetailLead(l)}
+                      data-state={
+                        selectedIds.has(l.id) ? "selected" : undefined
+                      }
                     >
-                      <Checkbox
-                        checked={selectedIds.has(l.id)}
-                        onCheckedChange={(v) =>
-                          toggleSelectOne(l.id, v === true)
-                        }
-                        aria-label={`Selecionar ${l.nome}`}
-                        disabled={bulkDeleting}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="avatar-fallback-brand text-[9px]">
-                            {l.nome
-                              .split(" ")
-                              .map((n) => n[0])
-                              .slice(0, 2)
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <div className="table-person-name truncate text-sm leading-snug">
-                              {l.nome}
+                      <TableCell
+                        className="pr-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedIds.has(l.id)}
+                          onCheckedChange={(v) =>
+                            toggleSelectOne(l.id, v === true)
+                          }
+                          aria-label={`Selecionar ${l.nome}`}
+                          disabled={bulkDeleting}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="avatar-fallback-brand text-[9px]">
+                              {l.nome
+                                .split(" ")
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <div className="table-person-name truncate text-sm leading-snug">
+                                {l.nome}
+                              </div>
+                              {isGerente &&
+                                isLeadCarteiraPropria(l, user?.id) && (
+                                  <MeuLeadBadge />
+                                )}
                             </div>
-                            {isGerente &&
-                              isLeadCarteiraPropria(l, user?.id) && (
-                                <MeuLeadBadge />
-                              )}
-                          </div>
-                          <div className="truncate text-[10px] text-muted-foreground">
-                            {l.telefone}
+                            <div className="truncate text-[10px] text-muted-foreground">
+                              {l.telefone}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="overflow-visible">
-                      {l.origem ? (
+                      </TableCell>
+                      <TableCell className="overflow-visible">
+                        {l.origem ? (
+                          <Badge
+                            className={cn(
+                              catalogColorBadgeClass(
+                                colorByLabel("origem", l.origem),
+                              ),
+                              catalogColorMatchingTextClass(
+                                colorByLabel("origem", l.origem),
+                              ),
+                              "w-23 justify-center text-center",
+                            )}
+                            style={catalogColorTintBadgeStyle(
+                              colorByLabel("origem", l.origem),
+                            )}
+                            title={l.origem}
+                          >
+                            {l.origem}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="truncate pr-4 text-center!">
+                        {isPlatformAdmin
+                          ? l.prospeccao?.produtoIndicado || (
+                              <span className="text-muted-foreground">—</span>
+                            )
+                          : l.tipoRenda || (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                      </TableCell>
+                      <TableCell>
                         <Badge
                           className={cn(
-                            catalogColorBadgeClass(
-                              colorByLabel("origem", l.origem),
-                            ),
+                            catalogColorBadgeClass(stage.color),
+                            !isNovoStage &&
+                              catalogColorMatchingTextClass(stage.color),
+                            "w-28 justify-center",
+                            isNovoStage && "badge-novo-glow text-brand-dark",
+                          )}
+                          style={
+                            isNovoStage
+                              ? undefined
+                              : catalogColorTintBadgeStyle(stage.color)
+                          }
+                          title={stage.name}
+                        >
+                          {stage.name}
+                        </Badge>
+                      </TableCell>
+                      {showTeamColumns && (
+                        <TableCell className="truncate">
+                          {equipe === "—" ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            equipe
+                          )}
+                        </TableCell>
+                      )}
+                      {showTeamColumns && (
+                        <TableCell className="table-person-name truncate text-sm leading-snug">
+                          {l.corretor || (
+                            <span className="text-[11px] font-normal text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell className="truncate font-medium tabular-nums">
+                        {isPlatformAdmin ? (
+                          l.prospeccao?.fit != null ? (
+                            l.prospeccao.fit
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )
+                        ) : l.renda != null ? (
+                          brl(l.renda)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {isPlatformAdmin
+                          ? l.cidade || (
+                              <span className="text-muted-foreground">—</span>
+                            )
+                          : l.estadoCivil || (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        <Badge
+                          className={cn(
+                            prioridadeBadgeClass(l.prioridade),
                             "w-auto max-w-full",
                           )}
-                          style={catalogColorBadgeStyle(
-                            colorByLabel("origem", l.origem),
-                          )}
-                          title={l.origem}
                         >
-                          {l.origem}
+                          {l.prioridade}
                         </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="truncate pr-4 text-center!">
-                      {isPlatformAdmin
-                        ? l.prospeccao?.produtoIndicado || (
-                            <span className="text-muted-foreground">—</span>
-                          )
-                        : l.tipoRenda || (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          catalogColorBadgeClass(stage.color),
-                          "w-28 justify-center",
-                          isNovoStage && "badge-novo-glow",
-                        )}
-                        style={
-                          isNovoStage
-                            ? undefined
-                            : catalogColorBadgeStyle(stage.color)
-                        }
-                        title={stage.name}
-                      >
-                        {stage.name}
-                      </Badge>
-                    </TableCell>
-                    {showTeamColumns && (
-                      <TableCell className="truncate">
-                        {equipe === "—" ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          equipe
-                        )}
                       </TableCell>
-                    )}
-                    {showTeamColumns && (
-                      <TableCell className="table-person-name truncate text-sm leading-snug">
-                        {l.corretor || (
-                          <span className="text-[11px] font-normal text-muted-foreground">
-                            —
-                          </span>
-                        )}
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {l.updatedAt}
                       </TableCell>
-                    )}
-                    <TableCell className="truncate font-medium tabular-nums">
-                      {isPlatformAdmin ? (
-                        l.prospeccao?.fit != null ? (
-                          l.prospeccao.fit
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )
-                      ) : l.renda != null ? (
-                        brl(l.renda)
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="truncate">
-                      {isPlatformAdmin
-                        ? l.cidade || (
-                            <span className="text-muted-foreground">—</span>
-                          )
-                        : l.estadoCivil || (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="truncate">
-                      <Badge
-                        className={cn(
-                          prioridadeBadgeClass(l.prioridade),
-                          "w-auto max-w-full",
-                        )}
+                      <TableCell
+                        className="sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {l.prioridade}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">
-                      {l.updatedAt}
-                    </TableCell>
-                    <TableCell
-                      className="sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex justify-end gap-0.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          title="Copiar telefone"
-                          disabled={!phoneDigits(l.telefone)}
-                          onClick={() => void copyLeadPhone(l.telefone)}
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </Button>
-                        {isPlatformAdmin ? (
+                        <div className="flex justify-end gap-0.5">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            title="Abrir no Google Maps"
-                            disabled={
-                              !googleMapsSearchUrl(
-                                l.prospeccao?.endereco,
-                                l.bairro,
-                                l.cidade,
-                              )
-                            }
-                            onClick={() => openLeadMaps(l)}
+                            title="Copiar telefone"
+                            disabled={!phoneDigits(l.telefone)}
+                            onClick={() => void copyLeadPhone(l.telefone)}
                           >
-                            <MapPin className="w-3.5 h-3.5" />
+                            <Copy className="w-3.5 h-3.5" />
                           </Button>
-                        ) : null}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          {isPlatformAdmin ? (
                             <Button
+                              type="button"
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
-                              title="Mais opções"
+                              title="Abrir no Google Maps"
+                              disabled={
+                                !googleMapsSearchUrl(
+                                  l.prospeccao?.endereco,
+                                  l.bairro,
+                                  l.cidade,
+                                )
+                              }
+                              onClick={() => openLeadMaps(l)}
                             >
-                              <MoreHorizontal className="w-3.5 h-3.5" />
+                              <MapPin className="w-3.5 h-3.5" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => setDetailLead(l)}>
-                              <Eye className="w-4 h-4 mr-2" /> Ver detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEdit(l)}>
-                              <Pencil className="w-4 h-4 mr-2" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={phoneDigits(l.telefone).length < 10}
-                              onClick={() => openLeadWhatsApp(l.telefone)}
-                            >
-                              <MessageCircle className="w-4 h-4 mr-2 text-emerald-600" />{" "}
-                              WhatsApp
-                            </DropdownMenuItem>
-                            {canContratos ? (
-                              <DropdownMenuItem
-                                onClick={() => setContratoLead(l)}
+                          ) : null}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                title="Mais opções"
                               >
-                                <FileText className="w-4 h-4 mr-2" /> Contrato
-                              </DropdownMenuItem>
-                            ) : null}
-                            {isPlatformAdmin ? (
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem
-                                disabled={
-                                  !googleMapsSearchUrl(
-                                    l.prospeccao?.endereco,
-                                    l.bairro,
-                                    l.cidade,
-                                  )
-                                }
-                                onClick={() => openLeadMaps(l)}
+                                onClick={() => setDetailLead(l)}
                               >
-                                <MapPin className="w-4 h-4 mr-2" /> Google Maps
+                                <Eye className="w-4 h-4 mr-2" /> Ver detalhes
                               </DropdownMenuItem>
-                            ) : null}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteLead(l)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-        <TablePager
-          page={leadsPager.page}
-          totalPages={leadsPager.totalPages}
-          total={leadsPager.total}
-          onPageChange={leadsPager.setPage}
-        />
-      </Card>
+                              <DropdownMenuItem onClick={() => openEdit(l)}>
+                                <Pencil className="w-4 h-4 mr-2" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={phoneDigits(l.telefone).length < 10}
+                                onClick={() => openLeadWhatsApp(l.telefone)}
+                              >
+                                <MessageCircle className="w-4 h-4 mr-2 text-emerald-600" />{" "}
+                                WhatsApp
+                              </DropdownMenuItem>
+                              {canContratos ? (
+                                <DropdownMenuItem
+                                  onClick={() => setContratoLead(l)}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" /> Contrato
+                                </DropdownMenuItem>
+                              ) : null}
+                              {isPlatformAdmin ? (
+                                <DropdownMenuItem
+                                  disabled={
+                                    !googleMapsSearchUrl(
+                                      l.prospeccao?.endereco,
+                                      l.bairro,
+                                      l.cidade,
+                                    )
+                                  }
+                                  onClick={() => openLeadMaps(l)}
+                                >
+                                  <MapPin className="w-4 h-4 mr-2" /> Google
+                                  Maps
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeleteLead(l)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+          <TablePager
+            page={leadsPager.page}
+            totalPages={leadsPager.totalPages}
+            total={leadsPager.total}
+            onPageChange={leadsPager.setPage}
+          />
+        </Card>
+      )}
 
       <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
         <DialogContent className="max-w-lg">
@@ -3711,31 +4162,33 @@ function LeadsPage() {
                 </div>
               </div>
             ) : (
-            <div>
-              <p className="font-medium mb-1.5">Colunas (nessa ordem)</p>
-              <div className="rounded-md border overflow-x-auto overflow-y-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted/60 text-left">
-                      <th className="p-2 font-medium">Nome</th>
-                      <th className="p-2 font-medium">Telefone</th>
-                      <th className="p-2 font-medium">Email</th>
-                      <th className="p-2 font-medium">Localidade de interesse</th>
-                      <th className="p-2 font-medium">Origem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t text-muted-foreground">
-                      <td className="p-2">Maria Silva</td>
-                      <td className="p-2 tabular-nums">(81) 98888-7777</td>
-                      <td className="p-2">maria@email.com</td>
-                      <td className="p-2">Recife</td>
-                      <td className="p-2">WhatsApp</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div>
+                <p className="font-medium mb-1.5">Colunas (nessa ordem)</p>
+                <div className="rounded-md border overflow-x-auto overflow-y-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/60 text-left">
+                        <th className="p-2 font-medium">Nome</th>
+                        <th className="p-2 font-medium">Telefone</th>
+                        <th className="p-2 font-medium">Email</th>
+                        <th className="p-2 font-medium">
+                          Localidade de interesse
+                        </th>
+                        <th className="p-2 font-medium">Origem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t text-muted-foreground">
+                        <td className="p-2">Maria Silva</td>
+                        <td className="p-2 tabular-nums">(81) 98888-7777</td>
+                        <td className="p-2">maria@email.com</td>
+                        <td className="p-2">Recife</td>
+                        <td className="p-2">WhatsApp</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
             )}
 
             <div>
@@ -3749,31 +4202,29 @@ function LeadsPage() {
                   obrigatórios
                 </li>
                 <li>
-                  Telefone já com DDD, ex.: (81) 98888-7777 ou 81 98888-7777.
-                  Se houver mais de um número na célula, usa o primeiro.
+                  Telefone já com DDD, ex.: (81) 98888-7777 ou 81 98888-7777. Se
+                  houver mais de um número na célula, usa o primeiro.
                 </li>
                 {isPlatformAdmin ? (
                   <li>
-                    As demais colunas (endereço, redes, fit, produto, fonte)
-                    são opcionais e entram na ficha de prospecção.
+                    As demais colunas (endereço, redes, fit, produto, fonte) são
+                    opcionais e entram na ficha de prospecção.
                   </li>
                 ) : (
-                <li>
-                  Email, Localidade de interesse e Origem são opcionais
-                </li>
+                  <li>Email, Localidade de interesse e Origem são opcionais</li>
                 )}
                 <li>Uma linha = um lead</li>
               </ul>
             </div>
 
             {isPlatformAdmin ? null : (
-            <div>
-              <p className="font-medium mb-1.5">Não incluir</p>
-              <p className="text-muted-foreground">
-                Hora da captura, DDD em coluna separada, mensagem de captura,
-                etapa, corretor ou prioridade.
-              </p>
-            </div>
+              <div>
+                <p className="font-medium mb-1.5">Não incluir</p>
+                <p className="text-muted-foreground">
+                  Hora da captura, DDD em coluna separada, mensagem de captura,
+                  etapa, corretor ou prioridade.
+                </p>
+              </div>
             )}
           </div>
 

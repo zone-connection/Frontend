@@ -237,6 +237,62 @@ const CATALOG_BG_SURFACE_HOVER: Record<string, string> = {
   "bg-sky-500": "hover:bg-sky-50 dark:hover:bg-sky-950/40",
 };
 
+/** Texto mais escuro da mesma família — destaque sobre o degradê suave. */
+const CATALOG_BG_TO_INK_TEXT: Record<string, string> = {
+  "bg-slate-500": "text-slate-900 dark:text-slate-100",
+  "bg-blue-500": "text-blue-950 dark:text-blue-100",
+  "bg-indigo-500": "text-indigo-950 dark:text-indigo-100",
+  "bg-violet-500": "text-violet-950 dark:text-violet-100",
+  "bg-purple-500": "text-purple-950 dark:text-purple-100",
+  "bg-fuchsia-500": "text-fuchsia-950 dark:text-fuchsia-100",
+  "bg-pink-500": "text-pink-950 dark:text-pink-100",
+  "bg-rose-500": "text-rose-950 dark:text-rose-100",
+  "bg-red-500": "text-red-950 dark:text-red-100",
+  "bg-orange-500": "text-orange-950 dark:text-orange-100",
+  "bg-amber-500": "text-amber-950 dark:text-amber-100",
+  "bg-yellow-400": "text-yellow-950 dark:text-yellow-100",
+  "bg-lime-500": "text-lime-950 dark:text-lime-100",
+  "bg-green-500": "text-green-950 dark:text-green-100",
+  "bg-emerald-500": "text-emerald-950 dark:text-emerald-100",
+  "bg-teal-500": "text-teal-950 dark:text-teal-100",
+  "bg-cyan-500": "text-cyan-950 dark:text-cyan-100",
+  "bg-sky-500": "text-sky-950 dark:text-sky-100",
+};
+
+/**
+ * Texto na família da cor do catálogo, para ler sobre fundo claro da badge.
+ */
+export function catalogColorMatchingTextClass(
+  color: string | null | undefined,
+): string {
+  const normalized = normalizeCatalogColor(color);
+  if (isHexColor(normalized)) {
+    return hexLuminance(normalized) > 0.45
+      ? "text-gray-950 dark:text-gray-50"
+      : "text-white";
+  }
+  return CATALOG_BG_TO_INK_TEXT[catalogColorSwatch(normalized)] ?? "text-foreground";
+}
+
+/** Fundo em degradê suave (claro → médio), para o texto colorido contrastar. */
+export function catalogColorTintBadgeStyle(
+  color: string | null | undefined,
+): { backgroundImage: string; color?: string } {
+  const normalized = normalizeCatalogColor(color);
+  if (isHexColor(normalized)) {
+    const ink =
+      hexLuminance(normalized) > 0.35 ? mixHex(normalized, 0, 0.52) : normalized;
+    return {
+      backgroundImage: `linear-gradient(135deg, ${mixHex(normalized, 0.58)} 0%, ${mixHex(normalized, 0.36)} 48%, ${mixHex(normalized, 0.16)} 100%)`,
+      color: ink,
+    };
+  }
+  const stops = catalogGradientStops(normalized);
+  return {
+    backgroundImage: `linear-gradient(135deg, ${mixHex(stops.a, 0.22)} 0%, ${mixHex(stops.b, 0.4)} 46%, ${mixHex(stops.b, 0.18)} 100%)`,
+  };
+}
+
 /**
  * Classes de badge de catálogo: texto da cor, fundo via degradê em
  * `catalogColorBadgeStyle` (evita o hover sólido padrão do Badge).
