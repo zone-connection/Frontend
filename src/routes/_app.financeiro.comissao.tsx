@@ -78,12 +78,28 @@ export const Route = createFileRoute("/_app/financeiro/comissao")({
   component: Page,
 });
 
-const STATUS_OPTIONS = [
-  { value: "todos", label: "Todos os status" },
+const STATUS_OPTIONS: { value: ComissaoStatus; label: string }[] = [
   { value: "pendente", label: "Pendente" },
   { value: "liberada", label: "Liberada" },
   { value: "paga", label: "Paga" },
 ];
+
+type RecebimentoFiltro = "todos" | "nao_recebidas" | "recebidas";
+
+const RECEBIMENTO_OPTIONS: { value: RecebimentoFiltro; label: string }[] = [
+  { value: "todos", label: "Todas" },
+  { value: "nao_recebidas", label: "Não recebidas" },
+  { value: "recebidas", label: "Recebidas" },
+];
+
+function matchesRecebimento(
+  status: ComissaoStatus,
+  filtro: RecebimentoFiltro,
+) {
+  if (filtro === "recebidas") return status === "paga";
+  if (filtro === "nao_recebidas") return status !== "paga";
+  return true;
+}
 
 function Page() {
   const { id: comissaoIdFromUrl } = Route.useSearch();
@@ -114,7 +130,7 @@ function Page() {
   const [search, setSearch] = useState("");
   // Padrão "tudo": vendas de meses anteriores (jun/jul) não somem no filtro.
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("tudo");
-  const [status, setStatus] = useState("todos");
+  const [recebimento, setRecebimento] = useState<RecebimentoFiltro>("todos");
   const [equipe, setEquipe] = useState("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -175,7 +191,7 @@ function Page() {
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return items.filter((item) => {
-      if (status !== "todos" && item.status !== status) return false;
+      if (!matchesRecebimento(item.status, recebimento)) return false;
       if (equipe !== "todos" && relationName(item.equipe) !== equipe)
         return false;
       // Mês atual considera data da venda OU data do lançamento da comissão.
@@ -192,8 +208,11 @@ function Page() {
         .map((value) => relationName(value, "").toLowerCase())
         .some((value) => value.includes(query));
     });
-  }, [items, search, periodo, status, equipe]);
-  const pager = useTablePager(rows, `${search}|${periodo}|${status}|${equipe}`);
+  }, [items, search, periodo, recebimento, equipe]);
+  const pager = useTablePager(
+    rows,
+    `${search}|${periodo}|${recebimento}|${equipe}`,
+  );
 
   const kpis = useMemo(() => {
     const sum = (state?: ComissaoStatus) =>
@@ -267,7 +286,10 @@ function Page() {
   }
 
   const hasActive = Boolean(
-    search || periodo !== "tudo" || status !== "todos" || equipe !== "todos",
+    search ||
+      periodo !== "tudo" ||
+      recebimento !== "todos" ||
+      equipe !== "todos",
   );
 
   return (
@@ -292,9 +314,38 @@ function Page() {
         }
       />
 
+      <div
+        className="mb-4 inline-flex rounded-full border bg-muted/40 p-1"
+        role="group"
+        aria-label="Separar comissões recebidas e não recebidas"
+      >
+        {RECEBIMENTO_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setRecebimento(option.value)}
+            aria-pressed={recebimento === option.value}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              recebimento === option.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <section className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <FinanceKpiCard
-          label={commissionValueLabel}
+          label={
+            recebimento === "nao_recebidas"
+              ? "Não recebidas"
+              : recebimento === "recebidas"
+                ? "Recebidas"
+                : commissionValueLabel
+          }
           value={kpis.total}
           icon={Percent}
           tone="blue-1"
@@ -329,9 +380,6 @@ function Page() {
         searchPlaceholder="Buscar corretor, cliente, empreendimento…"
         periodo={periodo}
         onPeriodoChange={setPeriodo}
-        tipo={status}
-        onTipoChange={setStatus}
-        tipoOptions={STATUS_OPTIONS}
         extra={
           <Select value={equipe} onValueChange={setEquipe}>
             <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
@@ -350,7 +398,7 @@ function Page() {
         onClear={() => {
           setSearch("");
           setPeriodo("tudo");
-          setStatus("todos");
+          setRecebimento("todos");
           setEquipe("todos");
         }}
       />
@@ -399,7 +447,7 @@ function Page() {
                           size="sm"
                           onClick={() => {
                             setPeriodo("tudo");
-                            setStatus("todos");
+                            setRecebimento("todos");
                             setEquipe("todos");
                             setSearch("");
                           }}
@@ -462,7 +510,7 @@ function Page() {
                             </Badge>
                           </SelectTrigger>
                           <SelectContent>
-                            {STATUS_OPTIONS.slice(1).map((option) => (
+                            {STATUS_OPTIONS.map((option) => (
                               <SelectItem
                                 key={option.value}
                                 value={option.value}
@@ -542,7 +590,7 @@ function Page() {
           upsert(item);
           if (created) {
             setPeriodo("tudo");
-            setStatus("todos");
+            setRecebimento("todos");
             setEquipe("todos");
             setSearch("");
             void load();
