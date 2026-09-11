@@ -62,7 +62,7 @@ const PLANS: Plan[] = [
     name: "Bronze",
     audience: "Ideal para pequenas imobiliárias",
     users: "Até 5 usuários",
-    setupFee: "R$ 259,99",
+    setupFee: "R$ 249,99",
     monthlyFee: "R$ 279,99/mês",
     setupFeeOld: "R$ 790,00",
     monthlyFeeOld: "R$ 497,00",
