@@ -15,7 +15,7 @@ export function triagemHerdadaHint(
     return "Este lead veio de retrabalho. A triagem do corretor anterior continua abaixo.";
   }
   if (origem === "caca_lead") {
-    return "Este lead foi pego no Caça-lead. A triagem anterior continua abaixo.";
+    return "Este lead foi reatribuído (Caça-lead). A triagem anterior continua abaixo.";
   }
   return null;
 }

@@ -25,6 +25,7 @@ import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -519,6 +520,7 @@ export function LeadDetalheDialog({
                         </Badge>
                       )}
                     {showMeuLeadBadge && <MeuLeadBadge />}
+                    <LeadOrigemLiberacaoBadge lead={lead} />
                   </div>
                 </div>
               </div>

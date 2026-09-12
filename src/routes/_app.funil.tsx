@@ -75,6 +75,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
+import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import {
@@ -152,7 +153,6 @@ import {
   ChevronsUpDown,
   Briefcase,
   LifeBuoy,
-  Repeat,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -1484,15 +1484,7 @@ export function ComercialFunilBoard({
                             isLeadCarteiraPropria(l, user?.id) && (
                               <MeuLeadBadge />
                             )}
-                          {l.origemAtrasoLiberacao === "retrabalho" && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0 h-5 border-amber-500/50 bg-amber-500/15 text-amber-800 dark:text-amber-200"
-                            >
-                              <Repeat className="mr-0.5 h-2.5 w-2.5" />
-                              Retrabalho
-                            </Badge>
-                          )}
+                          <LeadOrigemLiberacaoBadge lead={l} compact />
                           {l.tipo === "cliente" && (
                             <Badge
                               variant="outline"

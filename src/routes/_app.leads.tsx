@@ -134,6 +134,7 @@ import {
   type ImportExistingIndex,
   type ParsedImportLead,
 } from "@/lib/leads-io";
+import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LeadsDistribuirDialog } from "@/components/leads-distribuir-dialog";
 import {
@@ -3531,14 +3532,7 @@ function LeadsPage() {
                               isLeadCarteiraPropria(l, user?.id) && (
                                 <MeuLeadBadge />
                               )}
-                            {l.origemAtrasoLiberacao === "retrabalho" ? (
-                              <Badge
-                                variant="outline"
-                                className="h-5 shrink-0 px-1.5 text-[10px] font-semibold border-amber-500/50 bg-amber-500/15 text-amber-900 dark:text-amber-200"
-                              >
-                                Retrabalho
-                              </Badge>
-                            ) : null}
+                            <LeadOrigemLiberacaoBadge lead={l} />
                           </div>
                           <div className="truncate text-[10px] text-muted-foreground">
                             {l.telefone}

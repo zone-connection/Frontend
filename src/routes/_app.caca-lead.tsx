@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { Badge } from "@/components/ui/badge";
+import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -172,14 +173,7 @@ function CacaLeadPage() {
                       <Phone className="size-3" />
                       {lead.telefone}
                     </div>
-                    {lead.origemAtrasoLiberacao === "retrabalho" ? (
-                      <Badge
-                        variant="outline"
-                        className="mt-1 h-5 border-amber-500/50 bg-amber-500/15 px-1.5 text-[10px] text-amber-900 dark:text-amber-200"
-                      >
-                        Retrabalho
-                      </Badge>
-                    ) : null}
+                    <LeadOrigemLiberacaoBadge lead={lead} className="mt-1" />
                   </TableCell>
                   <TableCell>{lead.corretor && lead.corretor !== "—" ? lead.corretor : "Sem corretor"}</TableCell>
                   <TableCell>{lead.origem || "—"}</TableCell>
@@ -235,6 +229,7 @@ function CacaLeadPage() {
           page={pager.page}
           totalPages={pager.totalPages}
           total={pager.total}
+          pageSize={pager.pageSize}
           onPageChange={pager.setPage}
         />
       </div>
@@ -294,10 +289,8 @@ function CacaLeadPage() {
         onReassigned={(next) => {
           applyLead(next);
           void refresh({ silent: true });
-          setItems((current) =>
-            current.map((item) => (item.id === next.id ? next : item)),
-          );
-          setDetail((cur) => (cur && cur.id === next.id ? next : cur));
+          setItems((current) => current.filter((item) => item.id !== next.id));
+          setDetail(null);
         }}
       />
     </div>
