@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/tooltip";
 import { ApiError } from "@/lib/api";
 import { useCatalog } from "@/lib/catalog-store";
-import { useLeads } from "@/lib/leads-store";
 import {
   CATALOG_COLORS,
   DEFAULT_CATALOG_COLOR,
@@ -69,20 +68,7 @@ import {
   type FunilEtapaPapel,
   type FunilTipo,
 } from "@/lib/funis-api";
-import {
-  Check,
-  Clock,
-  Crosshair,
-  GripVertical,
-  Loader2,
-  ListRestart,
-  LifeBuoy,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Tags,
-  Trash2,
-} from "lucide-react";
+import { Check, GripVertical, Loader2, ListRestart, LifeBuoy, MoreHorizontal, Pencil, Plus, Tags, Trash2, Workflow } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,10 +81,10 @@ import {
   PRAZO_UNIDADE_OPTIONS,
   type PrazoUnidade,
 } from "@/lib/lead-monitoramento";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "@tanstack/react-router";
 import { getSession } from "@/lib/auth";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 
@@ -258,7 +244,6 @@ function moveEtapaById(
 
 export function ConfigFunisPanel() {
   const { refresh: refreshCatalog, applyFunnelEtapas } = useCatalog();
-  const { refresh: refreshLeads } = useLeads();
   const [funis, setFunis] = useState<Funil[]>([]);
   const [tipoFiltro, setTipoFiltro] = useState<FiltroFunil>("comercial");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -284,15 +269,6 @@ export function ConfigFunisPanel() {
   const [etapaPrazoUnidade, setEtapaPrazoUnidade] =
     useState<PrazoUnidade>("horas");
   const [etapaAlertaPercent, setEtapaAlertaPercent] = useState("20");
-  const [inatividadeValor, setInatividadeValor] = useState("48");
-  const [inatividadeUnidade, setInatividadeUnidade] =
-    useState<PrazoUnidade>("horas");
-  const [atrasoAtiva, setAtrasoAtiva] = useState(false);
-  const [atrasoDestino, setAtrasoDestino] = useState<
-    "caca_lead" | "retrabalho"
-  >("retrabalho");
-  const [atrasoValor, setAtrasoValor] = useState("24");
-  const [atrasoUnidade, setAtrasoUnidade] = useState<PrazoUnidade>("horas");
 
   const [deleteFunilId, setDeleteFunilId] = useState<string | null>(null);
   const [deleteEtapa, setDeleteEtapa] = useState<FunilEtapa | null>(null);
@@ -315,24 +291,6 @@ export function ConfigFunisPanel() {
     tipoFiltro === "sem_tipo"
       ? []
       : funis.filter((f) => !funilNoFiltro(f, tipoFiltro));
-
-  useEffect(() => {
-    if (!selected) return;
-    setInatividadeValor(String(selected.inatividadeValor ?? 48));
-    setInatividadeUnidade(selected.inatividadeUnidade ?? "horas");
-    setAtrasoAtiva(selected.atrasoLiberacaoAtiva === true);
-    setAtrasoDestino(selected.atrasoLiberacaoDestino ?? "retrabalho");
-    setAtrasoValor(String(selected.atrasoLiberacaoValor ?? 24));
-    setAtrasoUnidade(selected.atrasoLiberacaoUnidade ?? "horas");
-  }, [
-    selected?.id,
-    selected?.inatividadeValor,
-    selected?.inatividadeUnidade,
-    selected?.atrasoLiberacaoAtiva,
-    selected?.atrasoLiberacaoDestino,
-    selected?.atrasoLiberacaoValor,
-    selected?.atrasoLiberacaoUnidade,
-  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -477,57 +435,6 @@ export function ConfigFunisPanel() {
       await afterMutation(updated);
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível renomear."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveAtrasoLiberacao() {
-    if (!selected) return;
-    const valor = Number(atrasoValor);
-    if (!Number.isInteger(valor) || valor < 0) {
-      toast.error("Informe o tempo depois do atraso.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const updated = await updateFunil(selected.id, {
-        atrasoLiberacaoAtiva: atrasoAtiva,
-        atrasoLiberacaoDestino: atrasoDestino,
-        atrasoLiberacaoValor: valor,
-        atrasoLiberacaoUnidade: atrasoUnidade,
-      });
-      toast.success("Automação de atraso atualizada.");
-      await afterMutation(updated);
-    } catch (err) {
-      toast.error(
-        errorMessage(err, "Não foi possível salvar a automação de atraso."),
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveInatividade() {
-    if (!selected) return;
-    const valor = Number(inatividadeValor);
-    if (!Number.isInteger(valor) || valor < 1) {
-      toast.error("Informe um período de inatividade válido.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const updated = await updateFunil(selected.id, {
-        inatividadeValor: valor,
-        inatividadeUnidade,
-      });
-      toast.success("Alerta de inatividade atualizado.");
-      await afterMutation(updated);
-      await refreshLeads({ silent: true });
-    } catch (err) {
-      toast.error(
-        errorMessage(err, "Não foi possível salvar o período de inatividade."),
-      );
     } finally {
       setSaving(false);
     }
@@ -1000,138 +907,20 @@ export function ConfigFunisPanel() {
                     O kanban de vendas usa apenas o tipo Comercial.
                   </p>
                 </div>
-                <div className="rounded-xl border bg-muted/20 p-3">
+                <Link
+                  to="/configuracoes"
+                  search={{ secao: "operacao", item: "automacoes" }}
+                  className="rounded-xl border bg-muted/20 p-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
                   <div className="mb-2 flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-primary" />
-                    <p className="text-xs font-medium">Alerta de inatividade</p>
+                    <Workflow className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs font-medium">Automações</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      aria-label="Período de inatividade"
-                      className="h-9 w-20"
-                      value={inatividadeValor}
-                      onChange={(e) => setInatividadeValor(e.target.value)}
-                    />
-                    <select
-                      aria-label="Unidade do período"
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={inatividadeUnidade}
-                      onChange={(e) =>
-                        setInatividadeUnidade(e.target.value as PrazoUnidade)
-                      }
-                    >
-                      {PRAZO_UNIDADE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={saving}
-                      onClick={() => void handleSaveInatividade()}
-                    >
-                      Salvar
-                    </Button>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                    Sem movimento neste período, o card ganha borda vermelha.
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    Inatividade, prazos das etapas e liberação após atraso
+                    ficam juntos em Automações.
                   </p>
-                </div>
-                {funilTipoOf(selected) === "comercial" ? (
-                  <div className="rounded-xl border bg-muted/20 p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Crosshair className="h-3.5 w-3.5 text-primary" />
-                        <p className="text-xs font-medium">
-                          Automação após atraso
-                        </p>
-                      </div>
-                      <Switch
-                        checked={atrasoAtiva}
-                        onCheckedChange={setAtrasoAtiva}
-                        aria-label="Ativar automação após atraso"
-                      />
-                    </div>
-                    <p className="mb-3 text-[11px] leading-snug text-muted-foreground">
-                      Depois que o lead entrar em atraso, o sistema tira o
-                      corretor e envia para o destino escolhido.
-                    </p>
-                    <div className="mb-3 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAtrasoDestino("caca_lead")}
-                        className={cn(
-                          "rounded-lg border px-2 py-2 text-left text-xs font-medium transition-colors",
-                          atrasoDestino === "caca_lead"
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        Caça-lead
-                        <span className="mt-0.5 block font-normal leading-snug">
-                          Todos os corretores veem e podem pegar.
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAtrasoDestino("retrabalho")}
-                        className={cn(
-                          "rounded-lg border px-2 py-2 text-left text-xs font-medium transition-colors",
-                          atrasoDestino === "retrabalho"
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        Retrabalho
-                        <span className="mt-0.5 block font-normal leading-snug">
-                          Volta para Leads, pronto para redistribuir.
-                        </span>
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        aria-label="Tempo depois do atraso"
-                        className="h-9 w-20"
-                        value={atrasoValor}
-                        onChange={(e) => setAtrasoValor(e.target.value)}
-                      />
-                      <select
-                        aria-label="Unidade do tempo após atraso"
-                        className="h-9 rounded-md border bg-background px-2 text-sm"
-                        value={atrasoUnidade}
-                        onChange={(e) =>
-                          setAtrasoUnidade(e.target.value as PrazoUnidade)
-                        }
-                      >
-                        {PRAZO_UNIDADE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={saving}
-                        onClick={() => void handleSaveAtrasoLiberacao()}
-                      >
-                        Salvar
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                      Tempo contado a partir do momento em que o lead fica
-                      atrasado. Zero = desvincula na hora.
-                    </p>
-                  </div>
-                ) : null}
+                </Link>
               </div>
             ) : null}
 

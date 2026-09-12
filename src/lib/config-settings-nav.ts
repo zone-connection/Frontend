@@ -11,6 +11,7 @@ export const CONFIG_ITEMS = [
   "usuario-extra",
   "modulos",
   "funil",
+  "automacoes",
   "metas",
   "financeiro",
   "listas",
@@ -137,10 +138,14 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
     operacaoItems.push(
       { id: "modulos", label: "Módulos" },
       { id: "funil", label: "Funis" },
+      { id: "automacoes", label: "Automações" },
       { id: "financeiro", label: "Financeiro" },
     );
   } else if (flags.showFunil) {
-    operacaoItems.push({ id: "funil", label: "Funis" });
+    operacaoItems.push(
+      { id: "funil", label: "Funis" },
+      { id: "automacoes", label: "Automações" },
+    );
   }
   if (flags.showMetas) {
     operacaoItems.push({ id: "metas", label: "Metas" });
@@ -150,8 +155,8 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
       id: "operacao",
       label: "Operação",
       description: flags.showOps
-        ? "Módulos, funis e preferências da operação."
-        : "Funis da operação comercial.",
+        ? "Módulos, funis, automações e preferências da operação."
+        : "Funis e automações da operação comercial.",
       icon: Layers,
       items: operacaoItems,
     });

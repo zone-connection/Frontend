@@ -58,6 +58,7 @@ import { LayoutGrid, LayoutList, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConfigFunisPanel } from "@/components/config-funis-panel";
+import { ConfigAutomacoesPanel } from "@/components/config-automacoes-panel";
 import { ConfigModulosOperacaoPanel } from "@/components/config-modulos-operacao-panel";
 import { ConfigEmpresaPanel } from "@/components/config-empresa-panel";
 import { ConfigCreciPanel } from "@/components/config-creci-panel";
@@ -603,7 +604,7 @@ function Config() {
     <div>
       <PageHeader
         title="Configurações"
-        description="Conta, operação e catálogos agrupados por módulo."
+        description="Conta, operação, automações e catálogos agrupados por módulo."
       />
 
       {error && (
@@ -655,6 +656,8 @@ function Config() {
         {selection.item === "empresa" ? <ConfigEmpresaPanel /> : null}
 
         {selection.item === "funil" ? <ConfigFunisPanel /> : null}
+
+        {selection.item === "automacoes" ? <ConfigAutomacoesPanel /> : null}
 
         {selection.item === "modulos" ? <ConfigModulosOperacaoPanel /> : null}
 
