@@ -198,7 +198,11 @@ export function HistoryTimeline({
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border bg-card p-3.5 space-y-2.5 shadow-sm">
+                <div className={cn(
+                  "rounded-xl border bg-card p-3.5 space-y-2.5 shadow-sm",
+                  (ev.origem === "retrabalho" || ev.origem === "caca_lead") &&
+                    "border-amber-400/50 bg-amber-50/70 dark:bg-amber-950/20",
+                )}>
                   <div className="flex items-start gap-2.5">
                     <Avatar className="h-8 w-8 shrink-0">
                       <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
@@ -229,7 +233,13 @@ export function HistoryTimeline({
                           </Badge>
                         )}
                         <Badge variant="outline" className="text-[10px]">
-                          {ev.origem === "funil" ? "Funil" : "Manual"}
+                          {ev.origem === "funil"
+                            ? "Funil"
+                            : ev.origem === "retrabalho"
+                              ? "Retrabalho"
+                              : ev.origem === "caca_lead"
+                                ? "Caça-lead"
+                                : "Manual"}
                         </Badge>
                         {ev.editedAt ? (
                           <Badge

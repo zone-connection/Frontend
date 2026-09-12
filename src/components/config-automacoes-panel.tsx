@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ApiError } from "@/lib/api";
+import { notifyAtrasoLiberacaoNav } from "@/lib/atraso-liberacao-nav";
 import { getSession } from "@/lib/auth";
 import {
   fetchFunis,
@@ -198,6 +198,7 @@ export function ConfigAutomacoesPanel() {
         atrasoLiberacaoUnidade: atrasoUnidade,
       });
       applyFunil(updated);
+      notifyAtrasoLiberacaoNav(updated);
       toast.success("Automação de atraso atualizada.");
     } catch (err) {
       toast.error(
@@ -368,8 +369,9 @@ export function ConfigAutomacoesPanel() {
                       Liberação após atraso
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Retrabalho desvincula o corretor para redistribuir. O
-                      Caça-lead só lista atrasados — o lead permanece no funil.
+                      Retrabalho desvincula o corretor e deixa o lead no funil
+                      e em Leads, destacado. Com Retrabalho ligado, o Caça-lead
+                      some do menu. Só gerente e admin veem e reatribuem.
                     </p>
                   </div>
                 </div>
@@ -413,7 +415,7 @@ export function ConfigAutomacoesPanel() {
                   >
                     Retrabalho
                     <span className="mt-0.5 block font-normal leading-snug">
-                      Volta para Leads, pronto para redistribuir.
+                      Fica no funil e em Leads, destacado. Caça-lead some do menu.
                     </span>
                   </button>
                 </div>

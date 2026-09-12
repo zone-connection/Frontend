@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Crosshair, Loader2, Phone, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
+import { TablePager } from "@/components/table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import {
 } from "@/lib/leads-api";
 import { useLeads } from "@/lib/leads-store";
 import { phoneDigits } from "@/lib/phone";
+import { useTablePager } from "@/lib/use-table-pager";
+import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/caca-lead")({
@@ -35,6 +38,8 @@ export const Route = createFileRoute("/_app/caca-lead")({
 
 function CacaLeadPage() {
   const user = getSession();
+  const navigate = useNavigate();
+  const hideCacaLead = useHideCacaLeadNav();
   const { applyLead, refresh } = useLeads();
   const canPegar =
     user?.role === "admin" ||
@@ -64,6 +69,12 @@ function CacaLeadPage() {
   }, []);
 
   useEffect(() => {
+    if (hideCacaLead) {
+      void navigate({ to: "/leads", replace: true });
+    }
+  }, [hideCacaLead, navigate]);
+
+  useEffect(() => {
     void load();
   }, [load]);
 
@@ -78,6 +89,7 @@ function CacaLeadPage() {
       return hay.includes(q) || phoneOk;
     });
   }, [items, search]);
+  const pager = useTablePager(rows, search);
 
   async function handlePegar(lead: Lead) {
     setPegandoId(lead.id);
@@ -141,7 +153,7 @@ function CacaLeadPage() {
                   <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
-            ) : rows.length === 0 ? (
+            ) : pager.total === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -153,7 +165,7 @@ function CacaLeadPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((lead) => (
+              pager.pageItems.map((lead) => (
                 <TableRow
                   key={lead.id}
                   className="cursor-pointer hover:bg-muted/40"
@@ -200,11 +212,18 @@ function CacaLeadPage() {
             )}
           </TableBody>
         </Table>
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          onPageChange={pager.setPage}
+        />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {rows.length} lead(s) disponíveis
-        {user?.name ? ` · logado como ${user.name}` : ""}.
-      </p>
+      {user?.name ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Logado como {user.name}.
+        </p>
+      ) : null}
 
       <LeadDetalheDialog
         lead={detail}

@@ -50,6 +50,7 @@ import {
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
+import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { useTenantTheme } from "@/lib/tenant-theme";
@@ -373,6 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { brandName, logoUrl, modules } = useTenantTheme();
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
+  const hideCacaLeadFromSidebar = useHideCacaLeadNav();
   const plano = user?.tenant?.plano ?? null;
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     operacao: true,
@@ -744,6 +746,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 );
                 return children.length ? { ...item, children } : null;
               }
+              if (item.to === "/caca-lead" && hideCacaLeadFromSidebar) {
+                return null;
+              }
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;
               }
@@ -767,7 +772,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar]);
+  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadFromSidebar]);
 
   useEffect(() => {
     const active = navSections.find((section) =>

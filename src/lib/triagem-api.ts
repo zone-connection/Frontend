@@ -1,7 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import type { ContatoTipo, StageId } from "@/lib/crm-types";
 
-export type TriagemOrigem = "funil" | "manual";
+export type TriagemOrigem = "funil" | "manual" | "retrabalho" | "caca_lead";
 
 export interface TriagemContact {
   id: string;
@@ -16,6 +16,8 @@ export interface TriagemContact {
   bairro: string;
   corretorId: string | null;
   corretor: { id: string; name: string } | null;
+  origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
+  triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   updatedAt: string;
 }
 
@@ -46,6 +48,8 @@ export interface TriagemHistoryResponse {
     stage: StageId;
     corretorId: string | null;
     corretor: { id: string; name: string } | null;
+    origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
+    triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   };
   events: TriagemEvent[];
 }

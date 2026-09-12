@@ -78,6 +78,7 @@ import {
   Repeat,
   Briefcase,
   UserCheck,
+  UserRoundCog,
   Users,
   Flame,
   Building2,
@@ -107,6 +108,8 @@ import { contratoTemplatesForRole } from "@/lib/contratos-templates";
 import {
   canViewTeamData,
   canWriteTriagem as roleCanWriteTriagem,
+  canReassignLead,
+  canSeeRetrabalhoLead,
   isCorretorLike,
 } from "@/lib/permissions";
 import { canUserAction } from "@/lib/user-permissions";
@@ -131,6 +134,7 @@ import {
   type ImportExistingIndex,
   type ParsedImportLead,
 } from "@/lib/leads-io";
+import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LeadsDistribuirDialog } from "@/components/leads-distribuir-dialog";
 import {
   formatPhone,
@@ -451,6 +455,7 @@ function LeadsPage() {
   const { isModuleEnabled } = useTenantTheme();
   const canAgenda = isModuleEnabled("agenda");
   const canDistribuir = user?.role === "admin" || user?.role === "gerente";
+  const canReassign = canReassignLead(user?.role);
   const isAdmin = user?.role === "admin";
   const isGerente = user?.role === "gerente";
   const gerenteVerLeadsGerais = isGerente && getGerenteVerLeadsGerais();
@@ -551,6 +556,7 @@ function LeadsPage() {
   const [bulkMotivo, setBulkMotivo] = useState("");
   const [bulkMotivoOutro, setBulkMotivoOutro] = useState("");
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
+  const [reassignLead, setReassignLead] = useState<Lead | null>(null);
   const [atividadePrompt, setAtividadePrompt] =
     useState<LeadAtividadePrompt | null>(null);
 
@@ -696,7 +702,10 @@ function LeadsPage() {
   // Filtra no cliente sobre a lista já carregada no store — evita round-trip
   // ao Postgres remoto a cada mudança de filtro.
   const filteredLeads = useMemo(() => {
-    if (!filtersActive) return leads;
+    const scoped = canSeeRetrabalhoLead(user?.role)
+      ? leads
+      : leads.filter((l) => !isLeadRetrabalho(l));
+    if (!filtersActive) return scoped;
     const q = debouncedSearch.toLowerCase();
     const qDigits = phoneDigits(debouncedSearch);
     const equipeMembros =
@@ -711,7 +720,7 @@ function LeadsPage() {
       equipeFilter === "none"
         ? new Set(equipes.flatMap((e) => e.membros.map((m) => m.id)))
         : null;
-    return leads.filter((l) => {
+    return scoped.filter((l) => {
       if (q) {
         const hay = `${l.nome} ${l.email} ${l.telefone}`.toLowerCase();
         const phoneOk =
@@ -784,6 +793,7 @@ function LeadsPage() {
     isGerente,
     canFilterEquipe,
     user?.id,
+    user?.role,
   ]);
 
   const sortedLeads = useMemo(
@@ -2737,6 +2747,21 @@ function LeadsPage() {
         footer={
           detailLead ? (
             <FormDialogActions>
+              {canReassign ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                  onClick={() => {
+                    const lead = detailLead;
+                    setDetailLead(null);
+                    setReassignLead(lead);
+                  }}
+                >
+                  <UserRoundCog className="w-4 h-4" />
+                  Reatribuir
+                </Button>
+              ) : null}
               {canWriteTriagem &&
               canAgenda &&
               detailLead.monitoramento?.visual !== "vermelho" ? (
@@ -2999,7 +3024,7 @@ function LeadsPage() {
                 label="Retrabalho"
                 value={kpiCounts.retrabalho}
                 icon={Repeat}
-                tone="blue-3"
+                tone="orange"
                 format="number"
                 className={cn(
                   distribuicaoFilter === "retrabalho" && "shadow-md",
@@ -3384,7 +3409,7 @@ function LeadsPage() {
               : distribuicaoFilter === "chegaram"
                 ? "Leads no pool, ainda sem equipe nem corretor."
                 : distribuicaoFilter === "retrabalho"
-                  ? "Leads desvinculados por atraso, prontos para redistribuir."
+                  ? "Leads em retrabalho no funil — só gerente e admin veem e reatribuem."
                   : distribuicaoFilter === "distribuidos"
                   ? "Leads já atribuídos a uma equipe ou corretor."
                   : distribuicaoFilter === "meus"
@@ -3465,7 +3490,11 @@ function LeadsPage() {
                 return (
                   <TableRow
                     key={l.id}
-                    className="group cursor-pointer hover:bg-muted/40"
+                    className={cn(
+                      "group cursor-pointer hover:bg-muted/40",
+                      isLeadRetrabalho(l) &&
+                        "bg-amber-50/90 hover:bg-amber-100/80 dark:bg-amber-950/25 dark:hover:bg-amber-950/40",
+                    )}
                     onClick={() => setDetailLead(l)}
                     data-state={selectedIds.has(l.id) ? "selected" : undefined}
                   >
@@ -3505,7 +3534,7 @@ function LeadsPage() {
                             {l.origemAtrasoLiberacao === "retrabalho" ? (
                               <Badge
                                 variant="outline"
-                                className="h-5 px-1.5 text-[10px] border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                                className="h-5 shrink-0 px-1.5 text-[10px] font-semibold border-amber-500/50 bg-amber-500/15 text-amber-900 dark:text-amber-200"
                               >
                                 Retrabalho
                               </Badge>
@@ -3617,10 +3646,26 @@ function LeadsPage() {
                       {l.updatedAt}
                     </TableCell>
                     <TableCell
-                      className="sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted"
+                      className={cn(
+                        "sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted",
+                        isLeadRetrabalho(l) &&
+                          "bg-amber-50/90 group-hover:bg-amber-100/80 dark:bg-amber-950/25 dark:group-hover:bg-amber-950/40",
+                      )}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-end gap-0.5">
+                        {canReassign ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            title="Reatribuir"
+                            onClick={() => setReassignLead(l)}
+                          >
+                            <UserRoundCog className="w-3.5 h-3.5" />
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           variant="ghost"
@@ -4125,6 +4170,17 @@ function LeadsPage() {
           onDone={() => void refresh()}
         />
       )}
+      <LeadReatribuirDialog
+        lead={reassignLead}
+        open={!!reassignLead}
+        onOpenChange={(open) => {
+          if (!open) setReassignLead(null);
+        }}
+        onReassigned={(next) => {
+          applyLead(next);
+          setDetailLead((cur) => (cur && cur.id === next.id ? next : cur));
+        }}
+      />
     </div>
   );
 }

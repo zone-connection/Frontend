@@ -435,17 +435,26 @@ export function canWriteTriagem(role: string | null | undefined): boolean {
  * Quem vê o lead no funil / monitoramento de atraso:
  * - admin: todos do tenant
  * - gerente: carteira própria + corretores da equipe + pool da equipe
- * - corretor/treinee: somente os próprios
+ * - corretor/treinee: somente os próprios, nunca retrabalho
+ * - retrabalho: só admin e gerente (permanece no funil)
  */
+export function canSeeRetrabalhoLead(role: string | null | undefined): boolean {
+  return role === "admin" || role === "gerente" || role === "super_admin";
+}
+
 export function isLeadInAtrasoScope(
   user: Pick<AuthUser, "id" | "name" | "role">,
   lead: {
     corretorId?: string | null;
     equipeId?: string | null;
     corretor?: string | null;
+    origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
   },
   team?: { memberIds: Set<string>; equipeIds: Set<string> },
 ): boolean {
+  if (lead.origemAtrasoLiberacao === "retrabalho") {
+    return canSeeRetrabalhoLead(user.role);
+  }
   if (
     user.role === "admin" ||
     user.role === "super_admin" ||

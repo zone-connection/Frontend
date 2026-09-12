@@ -34,6 +34,8 @@ export interface Lead {
   /** Liberado por automação de atraso. */
   origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
   atrasoLiberadoAt?: string | null;
+  /** Destaque na triagem após herdar o lead (caça-lead / retrabalho). */
+  triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   /** Nome da equipe para exibição. */
   equipe?: string | null;
   construtoraId?: string | null;

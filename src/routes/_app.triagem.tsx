@@ -42,6 +42,10 @@ import {
 } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
+import {
+  triagemHerdadaHint,
+  triagemHerdadaLabel,
+} from "@/lib/triagem-herdada";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   HistoryTimeline,
@@ -58,6 +62,7 @@ import {
   Users,
   FileText,
   Loader2,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -93,6 +98,8 @@ function leadToContact(l: Lead): TriagemContact {
     bairro: l.bairro,
     corretorId: l.corretorId ?? null,
     corretor: l.corretorId ? { id: l.corretorId, name: l.corretor } : null,
+    origemAtrasoLiberacao: l.origemAtrasoLiberacao ?? null,
+    triagemOrigemHerdada: l.triagemOrigemHerdada ?? null,
     updatedAt: l.updatedAt,
   };
 }
@@ -117,20 +124,44 @@ function ContactButton({
   stageName: string;
   onClick: () => void;
 }) {
+  const herdada = triagemHerdadaLabel(
+    contact.triagemOrigemHerdada ?? contact.origemAtrasoLiberacao,
+  );
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left rounded-lg border p-3 transition-colors ${
-        active ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50"
-      }`}
+      className={cn(
+        "w-full text-left rounded-lg border p-3 transition-colors",
+        active ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50",
+        herdada &&
+          !active &&
+          "border-amber-400/60 bg-amber-50/80 dark:bg-amber-950/20",
+      )}
     >
-      <div className="text-sm font-medium truncate">{contact.nome}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-medium truncate">{contact.nome}</div>
+        {herdada ? (
+          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200">
+            <Repeat className="h-2.5 w-2.5" />
+            {herdada}
+          </span>
+        ) : null}
+      </div>
       <div className="text-xs text-muted-foreground mt-0.5 truncate">
         {contact.telefone} · {stageName}
       </div>
     </button>
   );
+}
+
+function sortTriagemContacts(list: TriagemContact[]) {
+  return [...list].sort((a, b) => {
+    const ha = a.triagemOrigemHerdada || a.origemAtrasoLiberacao ? 0 : 1;
+    const hb = b.triagemOrigemHerdada || b.origemAtrasoLiberacao ? 0 : 1;
+    if (ha !== hb) return ha - hb;
+    return 0;
+  });
 }
 
 function useStageLabel() {
@@ -195,9 +226,11 @@ function CorretorTriagem() {
 
   const filteredLeads = useMemo(
     () =>
-      stageFilter === "__all__"
-        ? leads
-        : leads.filter((c) => c.stage === stageFilter),
+      sortTriagemContacts(
+        stageFilter === "__all__"
+          ? leads
+          : leads.filter((c) => c.stage === stageFilter),
+      ),
     [leads, stageFilter],
   );
   const filteredClientes = useMemo(
@@ -464,6 +497,24 @@ function CorretorTriagem() {
                   {selectedContact.tipo === "cliente" ? "Cliente" : "Lead"} ·{" "}
                   {stageName(selectedContact.stage)}
                 </div>
+                {triagemHerdadaHint(
+                  selectedContact.triagemOrigemHerdada ??
+                    selectedContact.origemAtrasoLiberacao,
+                ) ? (
+                  <div className="mt-2 rounded-lg border border-amber-400/50 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+                    <span className="font-semibold">
+                      {triagemHerdadaLabel(
+                        selectedContact.triagemOrigemHerdada ??
+                          selectedContact.origemAtrasoLiberacao,
+                      )}
+                      .{" "}
+                    </span>
+                    {triagemHerdadaHint(
+                      selectedContact.triagemOrigemHerdada ??
+                        selectedContact.origemAtrasoLiberacao,
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               <div className="shrink-0 space-y-2 rounded-xl border bg-muted/20 p-3">
@@ -753,9 +804,11 @@ function ManagerTriagem() {
 
   const filteredLeads = useMemo(
     () =>
-      stageFilter === "__all__"
-        ? leads
-        : leads.filter((l) => l.stage === stageFilter),
+      sortTriagemContacts(
+        stageFilter === "__all__"
+          ? leads
+          : leads.filter((l) => l.stage === stageFilter),
+      ),
     [leads, stageFilter],
   );
 
@@ -1038,6 +1091,24 @@ function ManagerTriagem() {
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   Lead · {stageName(selectedLead.stage)}
                 </div>
+                {triagemHerdadaHint(
+                  selectedLead.triagemOrigemHerdada ??
+                    selectedLead.origemAtrasoLiberacao,
+                ) ? (
+                  <div className="mt-2 rounded-lg border border-amber-400/50 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+                    <span className="font-semibold">
+                      {triagemHerdadaLabel(
+                        selectedLead.triagemOrigemHerdada ??
+                          selectedLead.origemAtrasoLiberacao,
+                      )}
+                      .{" "}
+                    </span>
+                    {triagemHerdadaHint(
+                      selectedLead.triagemOrigemHerdada ??
+                        selectedLead.origemAtrasoLiberacao,
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               {canWrite && (
