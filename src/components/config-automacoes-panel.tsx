@@ -370,8 +370,8 @@ export function ConfigAutomacoesPanel() {
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Retrabalho desvincula o corretor e deixa o lead no funil
-                      e em Leads, destacado. Com Retrabalho ligado, o Caça-lead
-                      some do menu. Só gerente e admin veem e reatribuem.
+                      e em Leads, destacado. O Caça-lead continua listando os
+                      atrasados para pegar, sem tirar do kanban.
                     </p>
                   </div>
                 </div>
@@ -415,7 +415,7 @@ export function ConfigAutomacoesPanel() {
                   >
                     Retrabalho
                     <span className="mt-0.5 block font-normal leading-snug">
-                      Fica no funil e em Leads, destacado. Caça-lead some do menu.
+                      Fica no funil e em Leads, destacado. O Caça-lead lista para pegar.
                     </span>
                   </button>
                 </div>

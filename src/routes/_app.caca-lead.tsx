@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Crosshair, Loader2, Phone, Search } from "lucide-react";
+import { Crosshair, Loader2, Phone, Search, UserRoundCog } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
+import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { brl, type Lead } from "@/lib/crm-types";
@@ -27,8 +28,8 @@ import {
 } from "@/lib/leads-api";
 import { useLeads } from "@/lib/leads-store";
 import { phoneDigits } from "@/lib/phone";
+import { canReassignLead } from "@/lib/permissions";
 import { useTablePager } from "@/lib/use-table-pager";
-import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/caca-lead")({
@@ -38,19 +39,19 @@ export const Route = createFileRoute("/_app/caca-lead")({
 
 function CacaLeadPage() {
   const user = getSession();
-  const navigate = useNavigate();
-  const hideCacaLead = useHideCacaLeadNav();
   const { applyLead, refresh } = useLeads();
   const canPegar =
     user?.role === "admin" ||
     user?.role === "gerente" ||
     user?.role === "corretor" ||
     user?.role === "treinee";
+  const canReassign = canReassignLead(user?.role);
   const [items, setItems] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [pegandoId, setPegandoId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Lead | null>(null);
+  const [reassignLead, setReassignLead] = useState<Lead | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,12 +68,6 @@ function CacaLeadPage() {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (hideCacaLead) {
-      void navigate({ to: "/leads", replace: true });
-    }
-  }, [hideCacaLead, navigate]);
 
   useEffect(() => {
     void load();
@@ -118,7 +113,7 @@ function CacaLeadPage() {
     <div>
       <PageHeader
         title="Caça-lead"
-        description="Leads em atraso no funil. Continuam na carteira e no kanban; corretor, gerente e admin podem pegar."
+        description="Lista os leads em atraso do funil, sem tirar da carteira nem do kanban. Corretor pode pegar; gerente e admin também reatribuem."
       />
 
       <div className="relative mb-4 max-w-sm">
@@ -142,7 +137,7 @@ function CacaLeadPage() {
               <TableHead className="text-right">Renda</TableHead>
               <TableHead>Etapa</TableHead>
               <TableHead className="text-right">
-                {canPegar ? "Ação" : ""}
+                {canPegar || canReassign ? "Ação" : ""}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -177,6 +172,14 @@ function CacaLeadPage() {
                       <Phone className="size-3" />
                       {lead.telefone}
                     </div>
+                    {lead.origemAtrasoLiberacao === "retrabalho" ? (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 h-5 border-amber-500/50 bg-amber-500/15 px-1.5 text-[10px] text-amber-900 dark:text-amber-200"
+                      >
+                        Retrabalho
+                      </Badge>
+                    ) : null}
                   </TableCell>
                   <TableCell>{lead.corretor && lead.corretor !== "—" ? lead.corretor : "Sem corretor"}</TableCell>
                   <TableCell>{lead.origem || "—"}</TableCell>
@@ -188,11 +191,26 @@ function CacaLeadPage() {
                     <Badge variant="outline">{lead.stage}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    <div className="flex justify-end gap-1.5">
+                    {canReassign ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReassignLead(lead);
+                        }}
+                      >
+                        <UserRoundCog className="size-4" />
+                        Reatribuir
+                      </Button>
+                    ) : null}
                     {canPegar ? (
                     <Button
                       type="button"
                       size="sm"
-                      disabled={pegandoId === lead.id}
+                      disabled={pegandoId === lead.id || lead.corretorId === user?.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         void handlePegar(lead);
@@ -206,6 +224,7 @@ function CacaLeadPage() {
                       Pegar
                     </Button>
                     ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -233,19 +252,53 @@ function CacaLeadPage() {
         }}
         showCorretor={true}
         footer={
-          canPegar && detail ? (
-            <div className="border-t px-4 py-3 sm:px-6">
-              <Button
-                type="button"
-                className="w-full"
-                disabled={pegandoId === detail.id}
-                onClick={() => void handlePegar(detail)}
-              >
-                {pegandoId === detail.id ? "Pegando…" : "Pegar este lead"}
-              </Button>
+          detail && (canPegar || canReassign) ? (
+            <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:px-6">
+              {canReassign ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    const lead = detail;
+                    setDetail(null);
+                    setReassignLead(lead);
+                  }}
+                >
+                  <UserRoundCog className="size-4" />
+                  Reatribuir
+                </Button>
+              ) : null}
+              {canPegar ? (
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={
+                    pegandoId === detail.id || detail.corretorId === user?.id
+                  }
+                  onClick={() => void handlePegar(detail)}
+                >
+                  {pegandoId === detail.id ? "Pegando…" : "Pegar este lead"}
+                </Button>
+              ) : null}
             </div>
           ) : null
         }
+      />
+      <LeadReatribuirDialog
+        lead={reassignLead}
+        open={!!reassignLead}
+        onOpenChange={(open) => {
+          if (!open) setReassignLead(null);
+        }}
+        onReassigned={(next) => {
+          applyLead(next);
+          void refresh({ silent: true });
+          setItems((current) =>
+            current.map((item) => (item.id === next.id ? next : item)),
+          );
+          setDetail((cur) => (cur && cur.id === next.id ? next : cur));
+        }}
       />
     </div>
   );
