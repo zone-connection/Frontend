@@ -106,7 +106,7 @@ function CacaLeadPage() {
     <div>
       <PageHeader
         title="Caça-lead"
-        description="Leads liberados após atraso. Qualquer usuário da imobiliária pode ver; corretor, gerente e admin podem pegar para a própria carteira."
+        description="Leads em atraso no funil. Continuam na carteira e no kanban; corretor, gerente e admin podem pegar."
       />
 
       <div className="relative mb-4 max-w-sm">
@@ -124,30 +124,31 @@ function CacaLeadPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Lead</TableHead>
+              <TableHead>Corretor</TableHead>
               <TableHead>Origem</TableHead>
               <TableHead>Cidade</TableHead>
               <TableHead className="text-right">Renda</TableHead>
               <TableHead>Etapa</TableHead>
-                  <TableHead className="text-right">
-                    {canPegar ? "Ação" : ""}
-                  </TableHead>
+              <TableHead className="text-right">
+                {canPegar ? "Ação" : ""}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
+                <TableCell colSpan={7} className="py-10 text-center">
                   <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-10 text-center text-sm text-muted-foreground"
                 >
                   {items.length === 0
-                    ? "Nenhum lead no Caça-lead agora."
+                    ? "Nenhum lead em atraso agora."
                     : "Nenhum lead neste filtro."}
                 </TableCell>
               </TableRow>
@@ -165,6 +166,7 @@ function CacaLeadPage() {
                       {lead.telefone}
                     </div>
                   </TableCell>
+                  <TableCell>{lead.corretor && lead.corretor !== "—" ? lead.corretor : "Sem corretor"}</TableCell>
                   <TableCell>{lead.origem || "—"}</TableCell>
                   <TableCell>{lead.cidade || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -210,7 +212,7 @@ function CacaLeadPage() {
         onOpenChange={(open) => {
           if (!open) setDetail(null);
         }}
-        showCorretor={false}
+        showCorretor={true}
         footer={
           canPegar && detail ? (
             <div className="border-t px-4 py-3 sm:px-6">

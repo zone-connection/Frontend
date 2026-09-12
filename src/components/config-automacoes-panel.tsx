@@ -368,8 +368,8 @@ export function ConfigAutomacoesPanel() {
                       Liberação após atraso
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Depois que o lead entra em atraso, o sistema tira o
-                      corretor e envia para Caça-lead ou Retrabalho.
+                      Retrabalho desvincula o corretor para redistribuir. O
+                      Caça-lead só lista atrasados — o lead permanece no funil.
                     </p>
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export function ConfigAutomacoesPanel() {
                   >
                     Caça-lead
                     <span className="mt-0.5 block font-normal leading-snug">
-                      Todos os corretores veem e podem pegar.
+                      Não tira do funil. A tela lista quem está atrasado.
                     </span>
                   </button>
                   <button
