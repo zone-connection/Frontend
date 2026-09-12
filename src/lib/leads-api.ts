@@ -76,6 +76,8 @@ export interface ApiLead {
   motivoPerda?: string | null;
   perdidoPorId?: string | null;
   perdidoPor?: { id: string; name: string } | null;
+  origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
+  atrasoLiberadoAt?: string | null;
   createdAt: string;
   updatedAt: string;
   monitoramento?: LeadMonitoramento | null;
@@ -142,6 +144,8 @@ export function mapApiLead(api: ApiLead): Lead {
     corretorId: api.corretorId,
     equipeId: api.equipeId ?? null,
     equipe: api.equipe?.name ?? null,
+    origemAtrasoLiberacao: api.origemAtrasoLiberacao ?? null,
+    atrasoLiberadoAt: api.atrasoLiberadoAt ?? null,
     construtoraId: api.construtoraId ?? null,
     construtora: api.construtora ?? null,
     empreendimentoId: api.empreendimentoId ?? null,
@@ -198,6 +202,14 @@ export type LeadAssignee = {
 /** Usuários ativos para o select de corretor (admin/gerente: equipe; corretor: só ele). */
 export async function fetchLeadAssignees(): Promise<LeadAssignee[]> {
   return apiFetch<LeadAssignee[]>("/leads/assignees");
+}
+
+export async function fetchCacaLeads(): Promise<ApiLead[]> {
+  return apiFetch<ApiLead[]>("/leads/caca-lead");
+}
+
+export async function pegarCacaLead(id: string): Promise<ApiLead> {
+  return apiFetch<ApiLead>(`/leads/${id}/pegar`, { method: "POST" });
 }
 
 export async function fetchLeadById(id: string): Promise<ApiLead> {

@@ -58,6 +58,10 @@ export type Funil = {
   ativo: boolean;
   inatividadeValor: number;
   inatividadeUnidade: "minutos" | "horas" | "dias";
+  atrasoLiberacaoAtiva?: boolean;
+  atrasoLiberacaoDestino?: "caca_lead" | "retrabalho";
+  atrasoLiberacaoValor?: number;
+  atrasoLiberacaoUnidade?: "minutos" | "horas" | "dias";
   createdAt: string;
   updatedAt: string;
   etapas: FunilEtapa[];
@@ -121,6 +125,10 @@ export async function updateFunil(
     tipo?: FunilTipo;
     inatividadeValor?: number;
     inatividadeUnidade?: "minutos" | "horas" | "dias";
+    atrasoLiberacaoAtiva?: boolean;
+    atrasoLiberacaoDestino?: "caca_lead" | "retrabalho";
+    atrasoLiberacaoValor?: number;
+    atrasoLiberacaoUnidade?: "minutos" | "horas" | "dias";
   },
 ): Promise<Funil> {
   return apiFetch<Funil>(`/funis/${id}`, { method: "PATCH", body: input });

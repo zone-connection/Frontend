@@ -5,6 +5,7 @@ import {
   Store,
   Users,
   Kanban,
+  Crosshair,
   Calendar,
   Building2,
   UserCircle2,
@@ -262,6 +263,7 @@ const NAV_SECTIONS: {
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/leads", label: "Leads", icon: Users },
+      { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
       { to: "/funil", label: "Funil", icon: Kanban },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
       { to: "/agenda", label: "Agenda", icon: Calendar },

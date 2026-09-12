@@ -75,6 +75,7 @@ import {
   Loader2,
   Share2,
   Inbox,
+  Repeat,
   Briefcase,
   UserCheck,
   Users,
@@ -172,7 +173,7 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 
-type DistribuicaoFilter = "all" | "chegaram" | "distribuidos" | "meus";
+type DistribuicaoFilter = "all" | "chegaram" | "retrabalho" | "distribuidos" | "meus";
 
 type LeadsSearch = {
   distribuicao?: DistribuicaoFilter;
@@ -210,6 +211,7 @@ export const Route = createFileRoute("/_app/leads")({
     const d = search.distribuicao;
     if (
       d === "chegaram" ||
+      d === "retrabalho" ||
       d === "distribuidos" ||
       d === "all" ||
       d === "meus"
@@ -677,8 +679,12 @@ function LeadsPage() {
     (!isCorretor && distribuicaoFilter !== "all") ||
     paradosFilter;
 
+  const isLeadRetrabalho = (l: Lead) =>
+    l.origemAtrasoLiberacao === "retrabalho";
   const isLeadChegou = (l: Lead) =>
-    !l.corretorId && (isGerente ? true : !l.equipeId);
+    !isLeadRetrabalho(l) &&
+    !l.corretorId &&
+    (isGerente ? true : !l.equipeId);
   const isLeadDistribuido = (l: Lead) =>
     isGerente ? Boolean(l.corretorId) : Boolean(l.corretorId || l.equipeId);
 
@@ -739,6 +745,12 @@ function LeadsPage() {
         return false;
       if (origemFilter !== "all" && l.origem !== origemFilter) return false;
       if (!isCorretor && distribuicaoFilter === "chegaram" && !isLeadChegou(l))
+        return false;
+      if (
+        !isCorretor &&
+        distribuicaoFilter === "retrabalho" &&
+        !isLeadRetrabalho(l)
+      )
         return false;
       if (
         !isCorretor &&
@@ -803,14 +815,16 @@ function LeadsPage() {
 
   const distribuicaoCounts = useMemo(() => {
     let chegaram = 0;
+    let retrabalho = 0;
     let distribuidos = 0;
     let meus = 0;
     for (const l of leads) {
-      if (isLeadChegou(l)) chegaram += 1;
+      if (isLeadRetrabalho(l)) retrabalho += 1;
+      else if (isLeadChegou(l)) chegaram += 1;
       else if (isLeadDistribuido(l)) distribuidos += 1;
       if (isLeadCarteiraPropria(l, user?.id)) meus += 1;
     }
-    return { chegaram, distribuidos, meus, todos: leads.length };
+    return { chegaram, retrabalho, distribuidos, meus, todos: leads.length };
   }, [leads, user?.id, isGerente]);
 
   const kpiCounts = useMemo(() => {
@@ -826,6 +840,7 @@ function LeadsPage() {
       alta,
       novos,
       chegaram: distribuicaoCounts.chegaram,
+      retrabalho: distribuicaoCounts.retrabalho,
       distribuidos: distribuicaoCounts.distribuidos,
       meus: distribuicaoCounts.meus,
     };
@@ -2910,8 +2925,8 @@ function LeadsPage() {
           isPlatformAdmin
             ? "lg:grid-cols-2"
             : isGerente
-              ? "lg:grid-cols-5"
-              : "lg:grid-cols-4",
+              ? "lg:grid-cols-6"
+              : "lg:grid-cols-5",
         )}
       >
         <button
@@ -2964,6 +2979,31 @@ function LeadsPage() {
                 tone="blue-2"
                 format="number"
                 className={cn(distribuicaoFilter === "chegaram" && "shadow-md")}
+              />
+            </button>
+            <button
+              type="button"
+              className="min-w-0 cursor-pointer text-left"
+              onClick={() => {
+                setDistribuicaoFilter("retrabalho");
+                setPrioridadeFilter("all");
+                setParadosFilter(false);
+                void navigate({
+                  to: "/leads",
+                  search: { distribuicao: "retrabalho" },
+                  replace: true,
+                });
+              }}
+            >
+              <FinanceKpiCard
+                label="Retrabalho"
+                value={kpiCounts.retrabalho}
+                icon={Repeat}
+                tone="blue-3"
+                format="number"
+                className={cn(
+                  distribuicaoFilter === "retrabalho" && "shadow-md",
+                )}
               />
             </button>
             <button
@@ -3275,6 +3315,12 @@ function LeadsPage() {
                   icon: Inbox,
                 },
                 {
+                  id: "retrabalho" as const,
+                  label: "Retrabalho",
+                  count: distribuicaoCounts.retrabalho,
+                  icon: Repeat,
+                },
+                {
                   id: "distribuidos" as const,
                   label: "Distribuídos",
                   count: distribuicaoCounts.distribuidos,
@@ -3337,7 +3383,9 @@ function LeadsPage() {
               ? `Somente leads sem atualização há ${DIAS_PARADO} dias ou mais.`
               : distribuicaoFilter === "chegaram"
                 ? "Leads no pool, ainda sem equipe nem corretor."
-                : distribuicaoFilter === "distribuidos"
+                : distribuicaoFilter === "retrabalho"
+                  ? "Leads desvinculados por atraso, prontos para redistribuir."
+                  : distribuicaoFilter === "distribuidos"
                   ? "Leads já atribuídos a uma equipe ou corretor."
                   : distribuicaoFilter === "meus"
                     ? "Somente leads da sua carteira, não os da equipe."
@@ -3454,6 +3502,14 @@ function LeadsPage() {
                               isLeadCarteiraPropria(l, user?.id) && (
                                 <MeuLeadBadge />
                               )}
+                            {l.origemAtrasoLiberacao === "retrabalho" ? (
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-1.5 text-[10px] border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                              >
+                                Retrabalho
+                              </Badge>
+                            ) : null}
                           </div>
                           <div className="truncate text-[10px] text-muted-foreground">
                             {l.telefone}

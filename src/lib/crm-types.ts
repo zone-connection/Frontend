@@ -31,6 +31,9 @@ export interface Lead {
   corretorId?: string | null;
   /** UUID da equipe (pool ou herdada). */
   equipeId?: string | null;
+  /** Liberado por automação de atraso. */
+  origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
+  atrasoLiberadoAt?: string | null;
   /** Nome da equipe para exibição. */
   equipe?: string | null;
   construtoraId?: string | null;

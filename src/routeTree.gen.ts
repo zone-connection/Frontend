@@ -36,6 +36,7 @@ import { Route as AppGuiaSistemaRouteImport } from './routes/_app.guia-sistema'
 import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
+import { Route as AppCacaLeadRouteImport } from './routes/_app.caca-lead'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
@@ -226,6 +227,11 @@ const AppImoveisUsadosRoute = AppImoveisUsadosRouteImport.update({
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCacaLeadRoute = AppCacaLeadRouteImport.update({
+  id: '/caca-lead',
+  path: '/caca-lead',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
@@ -557,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
+  '/caca-lead': typeof AppCacaLeadRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
   '/perfil': typeof AppPerfilRoute
@@ -641,6 +648,7 @@ export interface FileRoutesByTo {
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
+  '/caca-lead': typeof AppCacaLeadRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
   '/perfil': typeof AppPerfilRoute
@@ -723,6 +731,7 @@ export interface FileRoutesById {
   '/_app/imoveis': typeof AppImoveisRoute
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/_app/leads': typeof AppLeadsRoute
+  '/_app/caca-lead': typeof AppCacaLeadRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/_app/metas': typeof AppMetasRoute
   '/_app/perfil': typeof AppPerfilRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/imoveis'
     | '/imoveis-usados'
     | '/leads'
+    | '/caca-lead'
     | '/leads-perdidos'
     | '/metas'
     | '/perfil'
@@ -894,6 +904,7 @@ export interface FileRouteTypes {
     | '/imoveis'
     | '/imoveis-usados'
     | '/leads'
+    | '/caca-lead'
     | '/leads-perdidos'
     | '/metas'
     | '/perfil'
@@ -975,6 +986,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis'
     | '/_app/imoveis-usados'
     | '/_app/leads'
+    | '/_app/caca-lead'
     | '/_app/leads-perdidos'
     | '/_app/metas'
     | '/_app/perfil'
@@ -1236,6 +1248,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/leads'
       preLoaderRoute: typeof AppLeadsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/caca-lead': {
+      id: '/_app/caca-lead'
+      path: '/caca-lead'
+      fullPath: '/caca-lead'
+      preLoaderRoute: typeof AppCacaLeadRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/leads-perdidos': {
@@ -1793,6 +1812,7 @@ interface AppRouteChildren {
   AppImoveisRoute: typeof AppImoveisRoute
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRoute
+  AppCacaLeadRoute: typeof AppCacaLeadRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
   AppMetasRoute: typeof AppMetasRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -1829,6 +1849,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImoveisRoute: AppImoveisRoute,
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
   AppLeadsRoute: AppLeadsRoute,
+  AppCacaLeadRoute: AppCacaLeadRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
   AppMetasRoute: AppMetasRoute,
   AppPerfilRoute: AppPerfilRoute,

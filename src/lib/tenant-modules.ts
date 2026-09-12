@@ -116,6 +116,7 @@ export const ALL_TENANT_MODULE_KEYS: TenantModuleKey[] =
 export const ROUTE_MODULE_KEY: Record<string, TenantModuleKey> = {
   "/dashboard": "dashboard",
   "/leads": "leads",
+  "/caca-lead": "leads",
   "/atrasos": "leads",
   "/funil": "funil",
   "/funil-clientes": "clientes",
