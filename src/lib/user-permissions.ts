@@ -15,7 +15,7 @@ export const PERMISSION_GROUPS = [
 
 export const PERMISSION_MODULES = [
   { key: "dashboard", label: "Dashboard", routes: ["/dashboard"], group: "operacao" },
-  { key: "leads", label: "Leads", routes: ["/leads", "/caca-lead"], group: "operacao" },
+  { key: "leads", label: "Leads", routes: ["/leads"], group: "operacao" },
   { key: "funil", label: "Funil", routes: ["/funil"], group: "operacao" },
   { key: "triagem", label: "Triagem", routes: ["/triagem"], group: "operacao" },
   { key: "agenda", label: "Agenda", routes: ["/agenda"], group: "operacao" },
@@ -266,6 +266,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   analista: [
+    "/caca-lead",
     "/resultado",
     "/documentacao",
     "/contratos",
@@ -277,6 +278,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   financeiro: [
+    "/caca-lead",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
     "/financeiro/movimentacao",
@@ -308,12 +310,13 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/configuracoes",
     "/perfil",
   ],
-  assistente: ["/perfil"],
+  assistente: ["/perfil", "/caca-lead"],
 };
 
 const GERENTE_BRONZE_ROUTES = [
   "/dashboard",
   "/leads",
+  "/caca-lead",
   "/funil",
   "/agenda",
   "/imoveis",

@@ -126,6 +126,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   analista: [
+    "/caca-lead",
     "/resultado",
     "/documentacao",
     "/contratos",
@@ -138,6 +139,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   financeiro: [
+    "/caca-lead",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
     "/financeiro/movimentacao",
@@ -170,13 +172,14 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/configuracoes",
     "/perfil",
   ],
-  assistente: ["/perfil"],
+  assistente: ["/perfil", "/caca-lead"],
 };
 
 /** No Bronze o gerente acessa só o CRM operacional. */
 const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/dashboard",
   "/leads",
+  "/caca-lead",
   "/funil",
   "/agenda",
   "/imoveis",
@@ -204,6 +207,7 @@ export function canAccessRoute(
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
   if (path === "/perfil") return true;
+  if (path === "/caca-lead") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;
   if (!isSoloPathAllowed(path, plano ?? null)) return false;

@@ -36,6 +36,11 @@ export const Route = createFileRoute("/_app/caca-lead")({
 function CacaLeadPage() {
   const user = getSession();
   const { applyLead, refresh } = useLeads();
+  const canPegar =
+    user?.role === "admin" ||
+    user?.role === "gerente" ||
+    user?.role === "corretor" ||
+    user?.role === "treinee";
   const [items, setItems] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -101,7 +106,7 @@ function CacaLeadPage() {
     <div>
       <PageHeader
         title="Caça-lead"
-        description="Leads liberados após atraso. Qualquer corretor pode ver e pegar para a própria carteira."
+        description="Leads liberados após atraso. Qualquer usuário da imobiliária pode ver; corretor, gerente e admin podem pegar para a própria carteira."
       />
 
       <div className="relative mb-4 max-w-sm">
@@ -123,7 +128,9 @@ function CacaLeadPage() {
               <TableHead>Cidade</TableHead>
               <TableHead className="text-right">Renda</TableHead>
               <TableHead>Etapa</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
+                  <TableHead className="text-right">
+                    {canPegar ? "Ação" : ""}
+                  </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,6 +174,7 @@ function CacaLeadPage() {
                     <Badge variant="outline">{lead.stage}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    {canPegar ? (
                     <Button
                       type="button"
                       size="sm"
@@ -183,6 +191,7 @@ function CacaLeadPage() {
                       )}
                       Pegar
                     </Button>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))
@@ -203,7 +212,7 @@ function CacaLeadPage() {
         }}
         showCorretor={false}
         footer={
-          detail ? (
+          canPegar && detail ? (
             <div className="border-t px-4 py-3 sm:px-6">
               <Button
                 type="button"
