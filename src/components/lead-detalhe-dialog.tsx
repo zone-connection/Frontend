@@ -1,23 +1,31 @@
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   AlarmClockOff,
+  BarChart3,
   Briefcase,
   CalendarClock,
+  ChevronDown,
+  ChevronRight,
   ClipboardCheck,
-  Building2,
   Clock,
-  Copy,
-  ExternalLink,
+  FileText,
+  Flag,
   Globe,
   Hourglass,
-  Link2,
   Mail,
-  MapPin,
+  Pencil,
   Phone,
-  Tag,
-  Target,
+  StickyNote,
   Timer,
   TriangleAlert,
+  User,
   UserRound,
   Wallet,
 } from "lucide-react";
@@ -34,11 +42,19 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  HistoryTimeline,
+  formatTriagemWhen,
+  useTriagemHistory,
+} from "@/components/triagem-history-timeline";
 import {
   ANALISE_STATUS_LABEL,
   analiseBadgeClass,
   shouldShowAnaliseStatus,
 } from "@/lib/analise-status";
+import { ApiError } from "@/lib/api";
 import { docStatus1BadgeClass } from "@/lib/documentacao-status";
 import {
   catalogColorBadgeClass,
@@ -46,22 +62,32 @@ import {
 } from "@/lib/catalog-colors";
 import { useCatalog } from "@/lib/catalog-store";
 import { brl, type Lead } from "@/lib/crm-types";
-import { hasProspeccao } from "@/lib/lead-prospeccao";
 import { displayEmail } from "@/lib/email";
 import { getWhatsAppUrl } from "@/lib/env";
+import {
+  compactProspeccao,
+  hasProspeccao,
+  type LeadProspeccao,
+} from "@/lib/lead-prospeccao";
 import {
   formatDateTimePt,
   formatPrazoUnidade,
   MOTIVO_SEM_MOVIMENTACAO_LABEL,
   type ProblemaMonitoramento,
 } from "@/lib/lead-monitoramento";
-import { phoneDigits } from "@/lib/phone";
+import { mapApiLead, updateLeadApi, type UpdateLeadInput } from "@/lib/leads-api";
+import {
+  formatMoneyInput,
+  maskMoneyInput,
+  parseOptionalMoneyInput,
+} from "@/lib/money-input";
+import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 const PRIORIDADE_AVATAR: Record<Lead["prioridade"], string> = {
-  Alta: "from-rose-400 to-rose-600 text-white ring-rose-500/25",
-  Média: "from-amber-300 to-amber-500 text-amber-950 ring-amber-500/25",
-  Baixa: "from-sky-400 to-sky-600 text-white ring-sky-500/25",
+  Alta: "from-rose-400 to-rose-600 text-white",
+  Média: "from-amber-300 to-amber-500 text-amber-950",
+  Baixa: "from-sky-400 to-sky-600 text-white",
 };
 
 const PROBLEMA_ICON: Record<ProblemaMonitoramento["tipo"], LucideIcon> = {
@@ -71,7 +97,25 @@ const PROBLEMA_ICON: Record<ProblemaMonitoramento["tipo"], LucideIcon> = {
   prazo_proximo: Hourglass,
 };
 
-const CHIP = "h-6 w-auto max-w-full rounded-full px-2.5 py-0 text-[11px]";
+const TIPO_RENDA_OPTIONS = [
+  "CLT",
+  "Autônomo",
+  "Empresário",
+  "Funcionário público",
+  "Aposentado",
+  "Renda mista",
+  "Outros",
+];
+
+const ESTADO_CIVIL_OPTIONS = [
+  "Solteiro",
+  "Casado",
+  "Divorciado",
+  "Viúvo",
+  "União estável",
+];
+
+const PRIORIDADE_OPTIONS: Lead["prioridade"][] = ["Alta", "Média", "Baixa"];
 
 function initials(nome: string) {
   return nome
@@ -82,96 +126,145 @@ function initials(nome: string) {
     .join("");
 }
 
-function InfoCard({
-  icon: Icon,
-  title,
-  children,
-  className,
-}: {
-  icon: LucideIcon;
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={cn("rounded-xl border bg-card p-3.5 shadow-sm", className)}
-    >
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-3.5 w-3.5" />
-        </span>
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </h3>
-      </div>
-      <div className="mt-2 divide-y divide-border/50">{children}</div>
-    </section>
-  );
+function errorMessage(err: unknown, fallback: string) {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
-function InfoRow({
-  label,
+type FieldKind = "text" | "phone" | "money" | "select";
+
+function EditableValue({
   value,
-  action,
+  display,
+  kind = "text",
+  options,
+  placeholder = "—",
+  disabled,
+  className,
+  onSave,
 }: {
-  label: string;
-  value: ReactNode;
-  action?: ReactNode;
+  value: string;
+  display?: ReactNode;
+  kind?: FieldKind;
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  onSave: (next: string) => Promise<void>;
 }) {
-  const empty =
-    value === null || value === undefined || value === "" || value === "—";
-  return (
-    <div className="flex items-center gap-2 py-2">
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] text-muted-foreground">{label}</p>
-        <div
-          className={cn(
-            "text-sm break-words",
-            empty ? "text-muted-foreground" : "font-medium",
-          )}
-        >
-          {empty ? "—" : value}
-        </div>
-      </div>
-      {action}
-    </div>
-  );
-}
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
 
-/** Ação de contato: vira link quando há dado, senão fica desabilitada. */
-function LinkAcao({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string | null;
-  icon: LucideIcon;
-  label: string;
-}) {
-  const conteudo = (
-    <>
-      <Icon className="mr-1.5 h-3.5 w-3.5" />
-      {label}
-    </>
-  );
-  if (!href) {
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  async function commit(next = draft) {
+    const trimmed = next.trim();
+    if (trimmed === value.trim()) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(trimmed);
+      setEditing(false);
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível salvar."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function onKey(e: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void commit();
+    }
+    if (e.key === "Escape") {
+      setDraft(value);
+      setEditing(false);
+    }
+  }
+
+  if (disabled) {
     return (
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-8"
-        disabled
-      >
-        {conteudo}
-      </Button>
+      <span className={cn("text-sm", !value && "text-muted-foreground", className)}>
+        {(display ?? value) || "—"}
+      </span>
     );
   }
+
+  if (editing) {
+    if (kind === "select" && options) {
+      return (
+        <select
+          ref={inputRef as RefObject<HTMLSelectElement>}
+          className="h-8 w-full rounded-md border bg-background px-2 text-sm"
+          value={draft}
+          disabled={saving}
+          onChange={(e) => {
+            const next = e.target.value;
+            setDraft(next);
+            void commit(next);
+          }}
+          onBlur={() => {
+            if (!saving) setEditing(false);
+          }}
+          onKeyDown={onKey}
+        >
+          <option value="">—</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <Input
+        ref={inputRef as RefObject<HTMLInputElement>}
+        className="h-8 rounded-md px-2"
+        value={draft}
+        disabled={saving}
+        onChange={(e) =>
+          setDraft(
+            kind === "phone"
+              ? formatPhone(e.target.value)
+              : kind === "money"
+                ? maskMoneyInput(e.target.value)
+                : e.target.value,
+          )
+        }
+        onBlur={() => void commit()}
+        onKeyDown={onKey}
+      />
+    );
+  }
+
+  const empty = !value;
   return (
-    <Button asChild size="sm" variant="outline" className="h-8">
-      <a href={href}>{conteudo}</a>
-    </Button>
+    <button
+      type="button"
+      className={cn(
+        "group/field -mx-1 flex w-full min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/70",
+        empty && "text-muted-foreground",
+      )}
+      onClick={() => setEditing(true)}
+    >
+      <span className={cn("min-w-0 flex-1 truncate text-sm", !empty && "font-medium", className)}>
+        {empty ? placeholder : (display ?? value)}
+      </span>
+      <Pencil className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 group-hover/field:opacity-100" />
+    </button>
   );
 }
 
@@ -186,6 +279,7 @@ function MonitoramentoCard({
   onAddAtividade?: () => void;
   children?: ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
   const mon = lead.monitoramento;
   if (!mon || mon.problemas.length === 0) return null;
 
@@ -193,640 +287,840 @@ function MonitoramentoCard({
   const tempo = isRed
     ? (mon.tempoAtrasoLabel ?? mon.tempoSemMovimentacaoLabel)
     : (mon.tempoRestanteLabel ?? mon.permanenciaLabel);
-
-  const fatos: { label: string; value: string }[] = [
-    { label: "Entrada na etapa", value: formatDateTimePt(mon.stageEnteredAt) },
-    {
-      label: "Última movimentação",
-      value: formatDateTimePt(mon.lastMovementAt),
-    },
-    {
-      label: "Prazo da etapa",
-      value: mon.prazoConfigurado
-        ? formatPrazoUnidade(
-            mon.prazoConfigurado.valor,
-            mon.prazoConfigurado.unidade,
-          ) + (mon.prazoAdiado ? " · adiado" : "")
-        : "Sem prazo",
-    },
-    {
-      label: "Alerta de inatividade",
-      value: mon.inatividadeConfig
-        ? formatPrazoUnidade(
-            mon.inatividadeConfig.valor,
-            mon.inatividadeConfig.unidade,
-          )
-        : (inatividadeFallback ?? "—"),
-    },
-  ];
+  const principal = mon.problemas[0];
 
   return (
     <section
       className={cn(
         "overflow-hidden rounded-xl border",
-        isRed ? "border-rose-500/30" : "border-orange-400/30",
+        isRed ? "border-rose-200 bg-rose-50/80 dark:border-rose-500/25 dark:bg-rose-500/10" : "border-amber-200 bg-amber-50/80 dark:border-amber-500/25 dark:bg-amber-500/10",
       )}
     >
-      <div
-        className={cn(
-          "flex items-center gap-2.5 px-3.5 py-2.5",
-          isRed
-            ? "bg-gradient-to-r from-rose-500/15 via-rose-500/8 to-transparent"
-            : "bg-gradient-to-r from-orange-400/18 via-amber-400/10 to-transparent",
-        )}
+      <button
+        type="button"
+        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+        onClick={() => setOpen((v) => !v)}
       >
-        <span
+        <TriangleAlert
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            isRed
-              ? "bg-rose-500/15 text-rose-600 dark:text-rose-300"
-              : "bg-orange-500/15 text-orange-600 dark:text-orange-300",
+            "h-4 w-4 shrink-0",
+            isRed ? "text-rose-600" : "text-amber-600",
           )}
-        >
-          <TriangleAlert className="h-4 w-4" />
-        </span>
+        />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">
-            {isRed ? "Precisa de atenção agora" : "Prazo próximo do vencimento"}
+          <p className="text-sm font-medium">
+            {isRed ? "Precisa de atenção" : "Prazo próximo"}
           </p>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {mon.problemas.map((problema) => problema.titulo).join(" · ")}
+          <p className="truncate text-xs text-muted-foreground">
+            {principal?.titulo}
+            {tempo ? ` · ${tempo}` : ""}
           </p>
         </div>
-        {tempo && (
-          <span
-            className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-              isRed
-                ? "bg-rose-500/15 text-rose-600 dark:text-rose-300"
-                : "bg-orange-500/15 text-orange-600 dark:text-orange-300",
-            )}
-          >
-            {tempo}
-          </span>
-        )}
-      </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
 
-      <div className="space-y-2.5 bg-card p-3">
-        <div className="space-y-2">
+      {open ? (
+        <div className="space-y-2 border-t border-black/5 px-3.5 py-3 dark:border-white/10">
           {mon.problemas.map((problema) => {
             const Icon = PROBLEMA_ICON[problema.tipo];
             return (
-              <div
-                key={problema.tipo}
-                className="flex items-start gap-2 rounded-lg bg-muted/50 p-2.5"
-              >
+              <div key={problema.tipo} className="flex gap-2 text-xs">
                 <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold">{problema.titulo}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {problema.detalhe}
-                  </p>
-                  {problema.motivos && problema.motivos.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {problema.motivos.map((motivo) => (
-                        <span
-                          key={motivo}
-                          className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-border/70"
-                        >
-                          {MOTIVO_SEM_MOVIMENTACAO_LABEL[motivo]}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                <div>
+                  <p className="font-medium">{problema.titulo}</p>
+                  <p className="text-muted-foreground">{problema.detalhe}</p>
+                  {problema.motivos?.length ? (
+                    <p className="mt-1 text-muted-foreground">
+                      {problema.motivos
+                        .map((motivo) => MOTIVO_SEM_MOVIMENTACAO_LABEL[motivo])
+                        .join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {mon.tarefasAtrasadas && mon.tarefasAtrasadas.length > 0 && (
-          <ul className="space-y-1.5">
-            {mon.tarefasAtrasadas.map((tarefa) => (
-              <li
-                key={tarefa.id}
-                className="flex items-center gap-2 rounded-lg bg-rose-500/8 px-2.5 py-1.5 text-[11px] ring-1 ring-rose-500/20"
-              >
-                <CalendarClock className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-300" />
-                <span className="min-w-0 flex-1 truncate font-medium">
-                  {tarefa.titulo}
-                </span>
-                <span className="shrink-0 text-muted-foreground">
-                  prazo {tarefa.prazo}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
-          {fatos.map((fato) => (
-            <div key={fato.label} className="min-w-0">
-              <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                {fato.label}
-              </dt>
-              <dd className="truncate text-xs font-medium tabular-nums">
-                {fato.value}
+          {mon.tarefasAtrasadas?.map((tarefa) => (
+            <p key={tarefa.id} className="text-xs text-muted-foreground">
+              Tarefa atrasada: {tarefa.titulo} · prazo {tarefa.prazo}
+            </p>
+          ))}
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-1 text-xs">
+            <div>
+              <dt className="text-muted-foreground">Entrada na etapa</dt>
+              <dd className="tabular-nums">{formatDateTimePt(mon.stageEnteredAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Última movimentação</dt>
+              <dd className="tabular-nums">{formatDateTimePt(mon.lastMovementAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Prazo da etapa</dt>
+              <dd>
+                {mon.prazoConfigurado
+                  ? formatPrazoUnidade(
+                      mon.prazoConfigurado.valor,
+                      mon.prazoConfigurado.unidade,
+                    )
+                  : "Sem prazo"}
               </dd>
             </div>
-          ))}
-        </dl>
-
-        {children}
-
-        {onAddAtividade && isRed ? (
-          <Button
-            type="button"
-            size="sm"
-            className="w-full"
-            onClick={onAddAtividade}
-          >
-            <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
-            Adicionar atividade
-          </Button>
-        ) : null}
-      </div>
+            <div>
+              <dt className="text-muted-foreground">Alerta de inatividade</dt>
+              <dd>
+                {mon.inatividadeConfig
+                  ? formatPrazoUnidade(
+                      mon.inatividadeConfig.valor,
+                      mon.inatividadeConfig.unidade,
+                    )
+                  : (inatividadeFallback ?? "—")}
+              </dd>
+            </div>
+          </dl>
+          {children}
+          {onAddAtividade && isRed ? (
+            <Button type="button" size="sm" variant="outline" onClick={onAddAtividade}>
+              <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+              Adicionar atividade
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
 
+function DataField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        {label}
+      </p>
+      <div className="mt-0.5 pl-[22px] text-sm">{children}</div>
+    </div>
+  );
+}
+
+function ActionRow({ action }: { action: LeadDetalheAction }) {
+  const Icon = action.icon;
+  return (
+    <button
+      type="button"
+      disabled={action.disabled}
+      onClick={action.onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl border bg-background/40 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/60 disabled:opacity-50",
+        action.destructive && "text-destructive",
+      )}
+    >
+      {Icon ? (
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      ) : null}
+      <span className="min-w-0 flex-1 font-medium">{action.label}</span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}
+
+function FunilTrack({
+  stages,
+  currentId,
+  onVerTriagem,
+}: {
+  stages: { id: string; name: string; papel?: string | null }[];
+  currentId: string;
+  onVerTriagem?: () => void;
+}) {
+  const list = stages.filter(
+    (s) => s.papel !== "perdido" && s.papel !== "venda",
+  );
+  const track = list.length ? list : stages;
+  const idx = Math.max(
+    0,
+    track.findIndex((s) => s.id === currentId),
+  );
+
+  return (
+    <div className="rounded-xl border bg-background/30 p-3">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        Lead em andamento
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {track.map((s, i) => {
+          const done = i < idx;
+          const current = s.id === currentId;
+          return (
+            <div key={s.id} className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium",
+                  current
+                    ? "bg-primary text-primary-foreground"
+                    : done
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
+                {s.name}
+              </span>
+              {i < track.length - 1 ? (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : null}
+            </div>
+          );
+        })}
+        {onVerTriagem ? (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <button
+              type="button"
+              className="text-[11px] font-medium text-primary hover:underline"
+              onClick={onVerTriagem}
+            >
+              Ver triagem
+            </button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /**
- * Visão detalhada do lead/cliente: cabeçalho com identidade e ações rápidas,
- * alerta de monitoramento e os dados agrupados em cartões.
+ * Ficha no layout de CRM: dados à esquerda, ações à direita.
  */
+export type LeadDetalheAction = {
+  label: string;
+  onClick: () => void;
+  icon?: LucideIcon;
+  destructive?: boolean;
+  disabled?: boolean;
+};
+
 export function LeadDetalheDialog({
   lead,
   open,
   onOpenChange,
+  onUpdated,
   showCorretor = true,
   showMeuLeadBadge = false,
   equipe,
   inatividadeFallback,
   monitoramentoSlot,
   footer,
+  moreActions,
+  stageControl,
+  primaryAction,
   onAddAtividade,
 }: {
   lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdated?: (lead: Lead) => void;
   showCorretor?: boolean;
   showMeuLeadBadge?: boolean;
-  /** Equipe resolvida pela tela (cai para a equipe do lead quando ausente). */
   equipe?: string | null;
-  /** Prazo de inatividade do funil ativo, quando o lead não traz o próprio. */
   inatividadeFallback?: string;
-  /** Ação de monitoramento (histórico de prazos / adiar). */
   monitoramentoSlot?: ReactNode;
   footer?: ReactNode;
+  moreActions?: LeadDetalheAction[];
+  stageControl?: ReactNode;
+  primaryAction?: ReactNode;
   onAddAtividade?: () => void;
 }) {
-  const { funnelStages, colorByLabel } = useCatalog();
+  const { funnelStages, origens, colorByLabel } = useCatalog();
+  const [tab, setTab] = useState("info");
+  const hist = useTriagemHistory(open && lead ? lead.id : null);
+
+  useEffect(() => {
+    setTab("info");
+  }, [lead?.id]);
   const stage = funnelStages.find((item) => item.id === lead?.stage);
   const telefoneDigits = lead ? phoneDigits(lead.telefone) : "";
   const temTelefone = telefoneDigits.length >= 10;
   const email = lead ? displayEmail(lead.email) : "";
-  const mapsQuery = lead
-    ? [lead.prospeccao?.endereco, lead.bairro, lead.cidade]
-        .map((part) => part?.trim())
-        .filter(Boolean)
-        .join(", ")
-    : "";
-  const temMapa = Boolean(mapsQuery);
   const isProspeccao = Boolean(lead && hasProspeccao(lead.prospeccao));
+
+  async function patch(input: UpdateLeadInput) {
+    if (!lead) return;
+    const updated = mapApiLead(await updateLeadApi(lead.id, input));
+    onUpdated?.(updated);
+  }
+
+  async function saveText(
+    key: keyof UpdateLeadInput,
+    raw: string,
+    opts?: { required?: boolean; phone?: boolean; money?: boolean },
+  ) {
+    if (!lead) return;
+    if (opts?.phone) {
+      if (!raw) throw new Error("Informe o telefone.");
+      if (!isValidPhone(raw)) throw new Error("Telefone inválido.");
+      await patch({ telefone: formatPhone(raw) });
+      return;
+    }
+    if (opts?.money) {
+      const parsed = parseOptionalMoneyInput(raw);
+      await patch({ [key]: parsed != null ? Math.round(parsed) : null });
+      return;
+    }
+    if (key === "email") {
+      const next = raw || `contato.${phoneDigits(lead.telefone)}@sem-email.local`;
+      await patch({ email: next });
+      return;
+    }
+    if (key === "nome") {
+      if (!raw) throw new Error("Informe o nome.");
+      await patch({ nome: raw });
+      return;
+    }
+    if (opts?.required && !raw) throw new Error("Campo obrigatório.");
+    await patch({ [key]: raw || null });
+  }
+
+  async function saveProspeccao(key: keyof LeadProspeccao, raw: string) {
+    if (!lead) return;
+    const next = compactProspeccao({
+      ...(lead.prospeccao ?? {}),
+      [key]: key === "fit" ? (raw ? Number(raw) : null) : raw,
+    });
+    await patch({ prospeccao: next ?? null });
+  }
 
   function abrirWhatsApp() {
     if (!temTelefone) return;
     const e164 = telefoneDigits.startsWith("55")
       ? telefoneDigits
       : `55${telefoneDigits}`;
-    window.open(
-      getWhatsAppUrl(undefined, e164),
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(getWhatsAppUrl(undefined, e164), "_blank", "noopener,noreferrer");
   }
 
-  function abrirMaps() {
-    if (!temMapa) return;
-    window.open(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+  const origemOptions = origens.map((o) => ({ value: o, label: o }));
+  if (lead?.origem && !origens.includes(lead.origem)) {
+    origemOptions.unshift({ value: lead.origem, label: lead.origem });
   }
 
-  async function copiarTelefone() {
-    if (!lead?.telefone) return;
-    try {
-      await navigator.clipboard.writeText(lead.telefone);
-      toast.success("Telefone copiado.");
-    } catch {
-      toast.error("Não foi possível copiar o telefone.");
-    }
+  const verTriagem = moreActions?.find((a) => a.label === "Ver triagem");
+  const sidebarActions = moreActions?.filter((a) => !a.destructive) ?? [];
+  const perdaAction = moreActions?.find((a) => a.destructive);
+  const mon = lead?.monitoramento;
+  const atrasado = mon?.visual === "vermelho";
+  const statusLabel = atrasado
+    ? "Atrasado"
+    : mon?.visual === "laranja"
+      ? "Prazo próximo"
+      : "Em dia";
+
+  function ligar() {
+    if (!temTelefone) return;
+    window.location.href = `tel:+55${telefoneDigits}`;
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-[calc(100vw-1.5rem)] gap-0 p-0 sm:w-full",
-          isProspeccao ? "max-w-3xl" : "max-w-2xl",
-          "!flex !flex-col overflow-hidden",
-          "!top-[max(0.75rem,2dvh)] !translate-y-0",
-          "max-h-[calc(100dvh-1.5rem)]",
+          "w-[calc(100vw-1.25rem)] gap-0 overflow-hidden rounded-2xl border bg-card p-0 sm:max-w-5xl",
+          "!flex !flex-col",
+          "!top-[max(0.5rem,1.5dvh)] !translate-y-0",
+          "max-h-[calc(100dvh-1rem)]",
         )}
       >
-        {lead && (
+        {lead ? (
           <>
-            <header className="relative shrink-0 overflow-hidden border-b bg-gradient-to-br from-primary/12 via-card to-card px-4 pt-5 pb-4 sm:px-6">
-              <div className="pointer-events-none absolute -top-16 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-              <div className="relative flex items-start gap-3">
+            <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
+              <div className="flex min-w-0 items-start gap-3">
                 <span
                   className={cn(
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-base font-bold ring-4",
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold",
                     PRIORIDADE_AVATAR[lead.prioridade],
                   )}
                 >
                   {initials(lead.nome)}
                 </span>
-                <div className="min-w-0 flex-1 pr-6">
-                  <DialogTitle className="truncate text-base tracking-tight sm:text-lg">
-                    {lead.nome}
-                  </DialogTitle>
+                <div className="min-w-0">
+                  <DialogTitle className="sr-only">{lead.nome}</DialogTitle>
                   <DialogDescription className="sr-only">
                     Detalhes de {lead.nome}
                   </DialogDescription>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        CHIP,
-                        lead.tipo === "cliente" &&
-                          "border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-                      )}
-                    >
-                      {lead.tipo === "cliente"
-                        ? "Cliente da carteira"
-                        : "Lead de captação"}
-                    </Badge>
-                    {stage && (
-                      <Badge
-                        className={cn(
-                          catalogColorBadgeClass(stage.color),
-                          CHIP,
-                        )}
-                        style={catalogColorBadgeStyle(stage.color)}
-                        title={stage.name}
-                      >
-                        {stage.name}
-                      </Badge>
-                    )}
-                    <Badge
-                      className={cn(
-                        CHIP,
-                        "border-transparent",
-                        lead.prioridade === "Alta" &&
-                          "bg-destructive/15 text-destructive hover:bg-destructive/20",
-                        lead.prioridade === "Média" &&
-                          "bg-amber-500/15 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300",
-                        lead.prioridade === "Baixa" &&
-                          "bg-sky-500/15 text-sky-700 hover:bg-sky-500/20 dark:text-sky-300",
-                      )}
-                    >
-                      Prioridade {lead.prioridade}
-                    </Badge>
+                  <EditableValue
+                    value={lead.nome}
+                    className="text-lg font-semibold tracking-tight"
+                    onSave={(next) => saveText("nome", next, { required: true })}
+                  />
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {lead.tipo === "cliente" ? "Cliente" : "Lead"}
+                    {stage ? ` · ${stage.name}` : ""}
+                    {showCorretor && lead.corretor && lead.corretor !== "—"
+                      ? ` · ${lead.corretor}`
+                      : ""}
+                    {(equipe ?? lead.equipe)
+                      ? ` · ${equipe ?? lead.equipe}`
+                      : ""}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {showMeuLeadBadge ? <MeuLeadBadge /> : null}
+                    <LeadOrigemLiberacaoBadge lead={lead} />
                     {lead.documentacaoStatus1?.trim() ? (
                       <Badge
                         variant="outline"
                         className={cn(
                           docStatus1BadgeClass(lead.documentacaoStatus1),
-                          CHIP,
+                          "h-5 rounded-full px-2 text-[10px]",
                         )}
-                        title={`Documentação · Status 1 · ${lead.documentacaoStatus1.trim()}`}
                       >
                         {lead.documentacaoStatus1.trim()}
                       </Badge>
                     ) : null}
                     {lead.analise &&
-                      shouldShowAnaliseStatus(lead.analise.status) && (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            analiseBadgeClass(lead.analise.status),
-                            CHIP,
-                          )}
-                        >
-                          {ANALISE_STATUS_LABEL[lead.analise.status]}
-                        </Badge>
-                      )}
-                    {showMeuLeadBadge && <MeuLeadBadge />}
-                    <LeadOrigemLiberacaoBadge lead={lead} />
+                    shouldShowAnaliseStatus(lead.analise.status) ? (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          analiseBadgeClass(lead.analise.status),
+                          "h-5 rounded-full px-2 text-[10px]",
+                        )}
+                      >
+                        {ANALISE_STATUS_LABEL[lead.analise.status]}
+                      </Badge>
+                    ) : null}
                   </div>
                 </div>
               </div>
-
-              <div className="relative mt-3.5 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-8 bg-[#25D366] text-white hover:bg-[#25D366]/90"
-                  disabled={!temTelefone}
-                  onClick={abrirWhatsApp}
+              {mon && mon.problemas.length > 0 ? (
+                <div
+                  className={cn(
+                    "flex max-w-sm items-start gap-2 rounded-xl px-3 py-2 text-xs",
+                    atrasado
+                      ? "bg-rose-500/15 text-rose-700 dark:text-rose-200"
+                      : "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+                  )}
                 >
-                  <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                  WhatsApp
-                </Button>
-                <LinkAcao
-                  href={email ? `mailto:${email}` : null}
-                  icon={Mail}
-                  label="E-mail"
-                />
-                {isProspeccao ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8"
-                    disabled={!temMapa}
-                    onClick={abrirMaps}
-                  >
-                    <MapPin className="mr-1.5 h-3.5 w-3.5" />
-                    Maps
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 px-2 text-muted-foreground"
-                  disabled={!lead.telefone}
-                  onClick={() => void copiarTelefone()}
-                  title="Copiar telefone"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="font-semibold">{statusLabel}</p>
+                    <p className="text-[11px] opacity-90">
+                      {mon.problemas[0]?.titulo}
+                      {mon.tempoAtrasoLabel
+                        ? ` · ${mon.tempoAtrasoLabel}`
+                        : mon.tempoSemMovimentacaoLabel
+                          ? ` · ${mon.tempoSemMovimentacaoLabel}`
+                          : ""}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [scrollbar-gutter:stable] [scrollbar-width:thin]">
-              <div className="space-y-3 px-4 py-4 sm:px-6 sm:py-5">
-                <MonitoramentoCard
-                  lead={lead}
-                  inatividadeFallback={inatividadeFallback}
-                  onAddAtividade={onAddAtividade}
-                >
-                  {monitoramentoSlot}
-                </MonitoramentoCard>
+            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem]">
+              <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-width:thin]">
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList className="mb-4 h-10 w-full justify-start gap-1 rounded-full bg-muted/60 p-1 sm:w-auto">
+                    <TabsTrigger value="info" className="rounded-full px-3">
+                      <UserRound className="mr-1.5 h-3.5 w-3.5" />
+                      Informações
+                    </TabsTrigger>
+                    <TabsTrigger value="hist" className="rounded-full px-3">
+                      <Clock className="mr-1.5 h-3.5 w-3.5" />
+                      Histórico
+                    </TabsTrigger>
+                    <TabsTrigger value="obs" className="rounded-full px-3">
+                      <FileText className="mr-1.5 h-3.5 w-3.5" />
+                      Observações
+                    </TabsTrigger>
+                  </TabsList>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoCard
-                    icon={isProspeccao ? Building2 : Phone}
-                    title={isProspeccao ? "Empresa" : "Contato"}
-                  >
-                    <InfoRow
-                      label="Telefone"
-                      value={lead.telefone}
-                      action={
-                        <button
-                          type="button"
-                          title="Abrir WhatsApp"
-                          aria-label="Abrir WhatsApp"
-                          disabled={!temTelefone}
-                          className="shrink-0 rounded-md p-1.5 text-[#25D366] hover:bg-[#25D366]/15 disabled:pointer-events-none disabled:opacity-40"
-                          onClick={abrirWhatsApp}
-                        >
-                          <FaWhatsapp className="h-4 w-4" aria-hidden />
-                        </button>
-                      }
-                    />
-                    <InfoRow label="E-mail" value={email} />
-                    {isProspeccao ? (
-                      <InfoRow
-                        label="Quem abordar"
-                        value={lead.prospeccao?.quemAbordar}
-                      />
-                    ) : null}
-                    <InfoRow
-                      label="Origem"
-                      value={
-                        lead.origem ? (
-                          <Badge
-                            className={cn(
-                              catalogColorBadgeClass(
-                                colorByLabel("origem", lead.origem),
-                              ),
-                              CHIP,
-                            )}
-                            style={catalogColorBadgeStyle(
-                              colorByLabel("origem", lead.origem),
-                            )}
-                            title={lead.origem}
-                          >
-                            {lead.origem}
-                          </Badge>
-                        ) : null
-                      }
-                    />
-                  </InfoCard>
-
-                  {isProspeccao ? (
-                    <InfoCard icon={MapPin} title="Local">
-                      <InfoRow label="Município" value={lead.cidade} />
-                      <InfoRow label="Bairro / Região" value={lead.bairro} />
-                      <InfoRow
-                        label="Endereço"
-                        value={lead.prospeccao?.endereco}
-                        action={
-                          temMapa ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 shrink-0"
-                              title="Abrir no Google Maps"
-                              onClick={abrirMaps}
-                            >
-                              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                              Maps
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    </InfoCard>
-                  ) : (
-                    <InfoCard icon={Wallet} title="Perfil e renda">
-                      <InfoRow
-                        label="Renda mensal"
-                        value={lead.renda != null ? brl(lead.renda) : null}
-                      />
-                      <InfoRow label="Tipo de renda" value={lead.tipoRenda} />
-                      <InfoRow label="Estado civil" value={lead.estadoCivil} />
-                      <InfoRow label="CPF" value={lead.cpf} />
-                      <InfoRow label="RG" value={lead.rg} />
-                      <InfoRow label="Endereço" value={lead.endereco} />
-                      <InfoRow label="CEP" value={lead.cep} />
-                      <InfoRow label="Interesse" value={lead.interesse} />
-                    </InfoCard>
-                  )}
-
-                  {isProspeccao ? (
-                    <>
-                      <InfoCard icon={Globe} title="Digital">
-                        <InfoRow label="Site" value={lead.prospeccao?.site} />
-                        <InfoRow
-                          label="Instagram"
-                          value={lead.prospeccao?.instagram}
-                        />
-                        <InfoRow
-                          label="LinkedIn"
-                          value={lead.prospeccao?.linkedin}
-                        />
-                      </InfoCard>
-                      <InfoCard icon={Link2} title="Operação">
-                        <InfoRow
-                          label="Atuação / Serviços"
-                          value={lead.prospeccao?.atuacao}
-                        />
-                        <InfoRow
-                          label="Lançamentos"
-                          value={lead.prospeccao?.lancamentos}
-                        />
-                        <InfoRow label="Usados" value={lead.prospeccao?.usados} />
-                        <InfoRow
-                          label="Locação"
-                          value={lead.prospeccao?.locacao}
-                        />
-                        <InfoRow
-                          label="Administração"
-                          value={lead.prospeccao?.administracao}
-                        />
-                        <InfoRow
-                          label="CRM identificado"
-                          value={lead.prospeccao?.crmIdentificado}
-                        />
-                        <InfoRow
-                          label="Tecnologia"
-                          value={lead.prospeccao?.tecnologia}
-                        />
-                        <InfoRow
-                          label="Sinais"
-                          value={lead.prospeccao?.sinais}
-                        />
-                      </InfoCard>
-                      <InfoCard icon={Target} title="Fit">
-                        <InfoRow
-                          label="Produto indicado"
-                          value={lead.prospeccao?.produtoIndicado}
-                        />
-                        <InfoRow
-                          label="Fit"
-                          value={
-                            lead.prospeccao?.fit != null
-                              ? String(lead.prospeccao.fit)
-                              : null
-                          }
-                        />
-                        <InfoRow
-                          label="Motivo do fit"
-                          value={lead.prospeccao?.motivoFit}
-                        />
-                      </InfoCard>
-                    </>
-                  ) : (
-                    <InfoCard icon={MapPin} title="Localização e imóvel">
-                      <InfoRow label="Cidade" value={lead.cidade} />
-                      <InfoRow label="Bairro" value={lead.bairro} />
-                      {lead.construtora && (
-                        <InfoRow
-                          label="Construtora"
-                          value={lead.construtora.nome}
-                        />
-                      )}
-                      {lead.empreendimento && (
-                        <InfoRow
-                          label="Empreendimento"
-                          value={lead.empreendimento.nome}
-                        />
-                      )}
-                    </InfoCard>
-                  )}
-
-                  <InfoCard
-                    icon={Briefcase}
-                    title={isProspeccao ? "Funil" : "Atendimento"}
-                  >
-                    {showCorretor && (
-                      <InfoRow
-                        label="Corretor"
-                        value={
-                          <span className="flex items-center gap-1.5">
-                            <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            {lead.corretor}
-                          </span>
-                        }
-                      />
-                    )}
-                    {showCorretor && (equipe ?? lead.equipe) ? (
-                      <InfoRow label="Equipe" value={equipe ?? lead.equipe} />
-                    ) : null}
-                    <InfoRow
-                      label="Cadastrado em"
-                      value={
-                        lead.createdAt ? formatDateTimePt(lead.createdAt) : null
-                      }
-                    />
-                    <InfoRow
-                      label="Atualizado em"
-                      value={
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          {lead.updatedAt}
-                        </span>
-                      }
-                    />
-                  </InfoCard>
-
-                  {lead.tags.length > 0 && (
-                    <InfoCard icon={Tag} title="Tags" className="sm:col-span-2">
-                      <div className="flex flex-wrap gap-1.5 pt-2">
-                        {lead.tags.map((tag) => (
-                          <Badge
-                            key={tag}
-                            className={cn(
-                              catalogColorBadgeClass(colorByLabel("tag", tag)),
-                              CHIP,
-                            )}
-                            style={catalogColorBadgeStyle(
-                              colorByLabel("tag", tag),
-                            )}
-                            title={tag}
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
+                  <TabsContent value="info" className="mt-0 space-y-3">
+                    <section className="rounded-xl border bg-background/30 p-4">
+                      <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
+                        <User className="h-4 w-4 text-primary" />
+                        Dados do lead
+                      </h3>
+                      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                        <DataField icon={Phone} label="Telefone">
+                          <div className="flex items-center gap-1">
+                            <div className="min-w-0 flex-1">
+                              <EditableValue
+                                kind="phone"
+                                value={lead.telefone}
+                                onSave={(next) =>
+                                  saveText("telefone", next, { phone: true })
+                                }
+                              />
+                            </div>
+                            {temTelefone ? (
+                              <button
+                                type="button"
+                                className="shrink-0 p-0.5 text-[#25D366]"
+                                aria-label="WhatsApp"
+                                onClick={abrirWhatsApp}
+                              >
+                                <FaWhatsapp className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </DataField>
+                        <DataField icon={Wallet} label="Renda mensal">
+                          <EditableValue
+                            kind="money"
+                            value={
+                              lead.renda != null
+                                ? formatMoneyInput(lead.renda)
+                                : ""
+                            }
+                            display={
+                              lead.renda != null ? brl(lead.renda) : undefined
+                            }
+                            onSave={(next) =>
+                              saveText("renda", next, { money: true })
+                            }
+                          />
+                        </DataField>
+                        <DataField icon={Mail} label="E-mail">
+                          <EditableValue
+                            value={email}
+                            onSave={(next) => saveText("email", next)}
+                          />
+                        </DataField>
+                        <DataField icon={Briefcase} label="Tipo de renda">
+                          <EditableValue
+                            kind="select"
+                            value={lead.tipoRenda ?? ""}
+                            options={TIPO_RENDA_OPTIONS.map((o) => ({
+                              value: o,
+                              label: o,
+                            }))}
+                            onSave={(next) => saveText("tipoRenda", next)}
+                          />
+                        </DataField>
+                        <DataField icon={Globe} label="Origem">
+                          <EditableValue
+                            kind="select"
+                            value={
+                              lead.origem === "Não informado" ? "" : lead.origem
+                            }
+                            display={
+                              lead.origem && lead.origem !== "Não informado" ? (
+                                <span
+                                  className={cn(
+                                    "inline-flex rounded-full px-2 py-0.5 text-xs",
+                                    catalogColorBadgeClass(
+                                      colorByLabel("origem", lead.origem),
+                                    ),
+                                  )}
+                                  style={catalogColorBadgeStyle(
+                                    colorByLabel("origem", lead.origem),
+                                  )}
+                                >
+                                  {lead.origem}
+                                </span>
+                              ) : undefined
+                            }
+                            options={origemOptions}
+                            onSave={(next) =>
+                              saveText("origem", next || "Não informado")
+                            }
+                          />
+                        </DataField>
+                        <DataField icon={User} label="Estado civil">
+                          <EditableValue
+                            kind="select"
+                            value={lead.estadoCivil ?? ""}
+                            options={ESTADO_CIVIL_OPTIONS.map((o) => ({
+                              value: o,
+                              label: o,
+                            }))}
+                            onSave={(next) => saveText("estadoCivil", next)}
+                          />
+                        </DataField>
+                        <DataField icon={Flag} label="Prioridade">
+                          <EditableValue
+                            kind="select"
+                            value={lead.prioridade}
+                            className={
+                              lead.prioridade === "Alta"
+                                ? "text-destructive"
+                                : undefined
+                            }
+                            options={PRIORIDADE_OPTIONS.map((p) => ({
+                              value: p,
+                              label: p,
+                            }))}
+                            onSave={(next) => saveText("prioridade", next)}
+                          />
+                        </DataField>
+                        <DataField icon={UserRound} label="Perfil">
+                          <EditableValue
+                            value={lead.interesse}
+                            onSave={(next) => saveText("interesse", next)}
+                          />
+                        </DataField>
                       </div>
-                    </InfoCard>
-                  )}
+                      <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-3">
+                        <DataField icon={StickyNote} label="CPF">
+                          <EditableValue
+                            value={lead.cpf ?? ""}
+                            onSave={(next) => saveText("cpf", next)}
+                          />
+                        </DataField>
+                        <DataField icon={StickyNote} label="RG">
+                          <EditableValue
+                            value={lead.rg ?? ""}
+                            onSave={(next) => saveText("rg", next)}
+                          />
+                        </DataField>
+                        <DataField icon={StickyNote} label="CEP">
+                          <EditableValue
+                            value={lead.cep ?? ""}
+                            onSave={(next) => saveText("cep", next)}
+                          />
+                        </DataField>
+                      </div>
+                      <div className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                        <DataField icon={Globe} label="Cidade">
+                          <EditableValue
+                            value={lead.cidade}
+                            onSave={(next) => saveText("cidade", next)}
+                          />
+                        </DataField>
+                        <DataField icon={Globe} label="Bairro">
+                          <EditableValue
+                            value={lead.bairro}
+                            onSave={(next) => saveText("bairro", next)}
+                          />
+                        </DataField>
+                        <DataField icon={StickyNote} label="Endereço">
+                          <EditableValue
+                            value={lead.endereco ?? ""}
+                            onSave={(next) => saveText("endereco", next)}
+                          />
+                        </DataField>
+                      </div>
+                      {lead.tags.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {lead.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              className={cn(
+                                catalogColorBadgeClass(colorByLabel("tag", tag)),
+                                "h-6 rounded-full px-2.5 text-[11px]",
+                              )}
+                              style={catalogColorBadgeStyle(
+                                colorByLabel("tag", tag),
+                              )}
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
 
-                  {lead.analise?.parecer &&
-                    shouldShowAnaliseStatus(lead.analise.status) && (
-                      <InfoCard
-                        icon={ClipboardCheck}
-                        title="Parecer da análise"
-                        className="sm:col-span-2"
-                      >
-                        <p className="pt-2 text-sm whitespace-pre-wrap text-muted-foreground">
-                          {lead.analise.parecer}
-                        </p>
-                      </InfoCard>
+                    {isProspeccao ? (
+                      <section className="rounded-xl border bg-background/30 p-4">
+                        <h3 className="mb-3 text-sm font-medium">Prospecção</h3>
+                        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                          {(
+                            [
+                              ["quemAbordar", "Quem abordar"],
+                              ["endereco", "Endereço"],
+                              ["site", "Site"],
+                              ["instagram", "Instagram"],
+                              ["linkedin", "LinkedIn"],
+                            ] as const
+                          ).map(([key, label]) => (
+                            <DataField key={key} icon={Globe} label={label}>
+                              <EditableValue
+                                value={String(lead.prospeccao?.[key] ?? "")}
+                                onSave={(next) => saveProspeccao(key, next)}
+                              />
+                            </DataField>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    <FunilTrack
+                      stages={funnelStages}
+                      currentId={lead.stage}
+                      onVerTriagem={verTriagem?.onClick}
+                    />
+
+                    <MonitoramentoCard
+                      lead={lead}
+                      inatividadeFallback={inatividadeFallback}
+                      onAddAtividade={onAddAtividade}
+                    >
+                      {monitoramentoSlot}
+                    </MonitoramentoCard>
+                  </TabsContent>
+
+                  <TabsContent value="hist" className="mt-0">
+                    <HistoryTimeline
+                      events={hist.events}
+                      contactName={lead.nome}
+                      stageLabel={(slug) =>
+                        funnelStages.find((s) => s.id === slug)?.name ??
+                        slug ??
+                        ""
+                      }
+                      fallbackStage={lead.stage}
+                      loading={hist.loading}
+                      leadId={lead.id}
+                      onEventUpdated={(ev) =>
+                        hist.setEvents((cur) =>
+                          cur.map((item) => (item.id === ev.id ? ev : item)),
+                        )
+                      }
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="obs" className="mt-0 space-y-3">
+                    {lead.analise?.parecer &&
+                    shouldShowAnaliseStatus(lead.analise.status) ? (
+                      <div className="rounded-xl border p-3 text-sm whitespace-pre-wrap">
+                        {lead.analise.parecer}
+                      </div>
+                    ) : null}
+                    {hist.events.length === 0 && !hist.loading ? (
+                      <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                        Nenhuma observação registrada. Use Registrar histórico
+                        para incluir um relato.
+                      </p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {hist.events.map((ev) => (
+                          <li
+                            key={ev.id}
+                            className="rounded-xl border bg-background/40 p-3 text-sm"
+                          >
+                            <p className="text-[11px] text-muted-foreground">
+                              {ev.autor.name} · {formatTriagemWhen(ev.createdAt)}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap">{ev.texto}</p>
+                          </li>
+                        ))}
+                      </ul>
                     )}
-                </div>
+                  </TabsContent>
+                </Tabs>
               </div>
-            </div>
 
-            {footer}
+              <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t p-4 lg:border-t-0 lg:border-l">
+                <div className="space-y-2">
+                  {sidebarActions.map((action) => (
+                    <ActionRow key={action.label} action={action} />
+                  ))}
+                </div>
+                {stageControl ? (
+                  <div className="rounded-xl border bg-background/40 p-3">
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      Etapa atual
+                    </p>
+                    {stageControl}
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between rounded-xl border px-3 py-2.5">
+                  <span className="text-sm">Status do lead</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      atrasado &&
+                        "border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-200",
+                    )}
+                  >
+                    {atrasado ? (
+                      <TriangleAlert className="mr-1 h-3 w-3" />
+                    ) : null}
+                    {statusLabel}
+                  </Badge>
+                </div>
+                <div className="rounded-xl border bg-background/40 p-3 text-sm">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Resumo rápido
+                  </p>
+                  <dl className="space-y-1.5 text-xs">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-muted-foreground">Origem</dt>
+                      <dd>{lead.origem || "—"}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-muted-foreground">Prioridade</dt>
+                      <dd
+                        className={
+                          lead.prioridade === "Alta" ? "text-destructive" : ""
+                        }
+                      >
+                        {lead.prioridade}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-muted-foreground">Renda mensal</dt>
+                      <dd>
+                        {lead.renda != null ? brl(lead.renda) : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-muted-foreground">Criado em</dt>
+                      <dd>
+                        {lead.createdAt
+                          ? formatDateTimePt(lead.createdAt)
+                          : lead.updatedAt}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    type="button"
+                    className="h-10 bg-[#22c55e] text-white hover:bg-[#16a34a]"
+                    disabled={!temTelefone}
+                    onClick={abrirWhatsApp}
+                  >
+                    <FaWhatsapp className="mr-1.5 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10"
+                    disabled={!temTelefone}
+                    onClick={ligar}
+                  >
+                    <Phone className="mr-1.5 h-4 w-4" />
+                    Ligar
+                  </Button>
+                </div>
+                {primaryAction}
+                {perdaAction ? (
+                  <button
+                    type="button"
+                    className="text-center text-xs text-destructive hover:underline"
+                    onClick={perdaAction.onClick}
+                  >
+                    {perdaAction.label}
+                  </button>
+                ) : null}
+                {footer}
+              </aside>
+            </div>
           </>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );

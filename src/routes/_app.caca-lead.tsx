@@ -256,38 +256,36 @@ function CacaLeadPage() {
         onOpenChange={(open) => {
           if (!open) setDetail(null);
         }}
+        onUpdated={(next) => {
+          applyLead(next);
+          setDetail(next);
+        }}
         showCorretor={true}
-        footer={
-          detail && (canPegar || canReassign) ? (
-            <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:px-6">
-              {canReassign ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
+        moreActions={
+          detail && canReassign
+            ? [
+                {
+                  label: "Reatribuir",
+                  icon: UserRoundCog,
+                  onClick: () => {
                     const lead = detail;
                     setDetail(null);
                     setReassignLead(lead);
-                  }}
-                >
-                  <UserRoundCog className="size-4" />
-                  Reatribuir
-                </Button>
-              ) : null}
-              {canPegar ? (
-                <Button
-                  type="button"
-                  className="w-full"
-                  disabled={
-                    pegandoId === detail.id || detail.corretorId === user?.id
-                  }
-                  onClick={() => void handlePegar(detail)}
-                >
-                  {pegandoId === detail.id ? "Pegando…" : "Pegar este lead"}
-                </Button>
-              ) : null}
-            </div>
+                  },
+                },
+              ]
+            : undefined
+        }
+        primaryAction={
+          detail && canPegar ? (
+            <Button
+              type="button"
+              className="h-9"
+              disabled={pegandoId === detail.id || detail.corretorId === user?.id}
+              onClick={() => void handlePegar(detail)}
+            >
+              {pegandoId === detail.id ? "Pegando…" : "Pegar"}
+            </Button>
           ) : null
         }
       />

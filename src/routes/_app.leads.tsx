@@ -2764,6 +2764,10 @@ function LeadsPage() {
         lead={detailLead}
         open={!!detailLead}
         onOpenChange={(o) => !o && setDetailLead(null)}
+        onUpdated={(next) => {
+          applyLead(next);
+          setDetailLead(next);
+        }}
         showCorretor={showTeamColumns}
         equipe={detailLead && showTeamColumns ? equipeLabel(detailLead) : null}
         showMeuLeadBadge={Boolean(
@@ -2776,56 +2780,44 @@ function LeadsPage() {
             ? () => openAtividade(detailLead)
             : undefined
         }
-        footer={
-          detailLead ? (
-            <FormDialogActions>
-              {canReassign ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 sm:flex-none"
-                  onClick={() => {
+        moreActions={
+          detailLead
+            ? [
+                ...(canReassign
+                  ? [
+                      {
+                        label: "Reatribuir",
+                        icon: UserRoundCog,
+                        onClick: () => {
+                          const lead = detailLead;
+                          setDetailLead(null);
+                          setReassignLead(lead);
+                        },
+                      },
+                    ]
+                  : []),
+                ...(canWriteTriagem &&
+                canAgenda &&
+                detailLead.monitoramento?.visual !== "vermelho"
+                  ? [
+                      {
+                        label: "Adicionar atividade",
+                        icon: CalendarClock,
+                        onClick: () => openAtividade(detailLead),
+                      },
+                    ]
+                  : []),
+                {
+                  label: "Editar",
+                  icon: Pencil,
+                  onClick: () => {
                     const lead = detailLead;
                     setDetailLead(null);
-                    setReassignLead(lead);
-                  }}
-                >
-                  <UserRoundCog className="w-4 h-4" />
-                  Reatribuir
-                </Button>
-              ) : null}
-              {canWriteTriagem &&
-              canAgenda &&
-              detailLead.monitoramento?.visual !== "vermelho" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 sm:flex-none"
-                  onClick={() => openAtividade(detailLead)}
-                >
-                  <CalendarClock className="w-4 h-4" />
-                  Adicionar atividade
-                </Button>
-              ) : null}
-              <Button
-                variant="outline"
-                className="flex-1 sm:flex-none"
-                onClick={() => setDetailLead(null)}
-              >
-                Fechar
-              </Button>
-              <Button
-                className="flex-1 sm:flex-none"
-                onClick={() => {
-                  const lead = detailLead;
-                  setDetailLead(null);
-                  openEdit(lead);
-                }}
-              >
-                <Pencil className="w-4 h-4" /> Editar
-              </Button>
-            </FormDialogActions>
-          ) : null
+                    openEdit(lead);
+                  },
+                },
+              ]
+            : undefined
         }
       />
 

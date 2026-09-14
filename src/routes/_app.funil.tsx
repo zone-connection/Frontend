@@ -1719,6 +1719,10 @@ export function ComercialFunilBoard({
             setDetailLead(null);
           }
         }}
+        onUpdated={(next) => {
+          applyLead(next);
+          setDetailLead(next);
+        }}
         showCorretor={!isCorretor && !isPlatformAdmin}
         showMeuLeadBadge={Boolean(
           isGerente &&
@@ -1750,94 +1754,76 @@ export function ComercialFunilBoard({
             />
           ) : null
         }
-        footer={
-          detailLead ? (
-            <div className="shrink-0 space-y-2.5 border-t bg-muted/30 px-4 py-3 sm:px-6 sm:py-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn("w-full", !canWriteTriagem && "sm:col-span-2")}
-                  onClick={() => {
+        moreActions={
+          detailLead
+            ? [
+          {
+            label: "Ver triagem",
+            icon: ClipboardList,
+            onClick: () => {
+              const lead = detailLead;
+              setDetailLead(null);
+              setTriagemLead(lead);
+            },
+          },
+          ...(canWriteTriagem
+            ? [
+                {
+                  label: "Registrar histórico",
+                  icon: ClipboardList,
+                  onClick: () => openManualTriagem(detailLead),
+                },
+              ]
+            : []),
+          ...(canReassign
+            ? [
+                {
+                  label: "Reatribuir",
+                  icon: UserRoundCog,
+                  onClick: () => {
                     const lead = detailLead;
                     setDetailLead(null);
-                    setTriagemLead(lead);
-                  }}
-                >
-                  <ClipboardList className="mr-1 h-4 w-4" />
-                  Ver triagem
-                </Button>
-                {canWriteTriagem ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => openManualTriagem(detailLead)}
-                  >
-                    <ClipboardList className="mr-1 h-4 w-4" />
-                    Registrar histórico
-                  </Button>
-                ) : null}
-                {canReassign ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full sm:col-span-2"
-                    onClick={() => {
-                      const lead = detailLead;
-                      setDetailLead(null);
-                      setReassignLead(lead);
-                    }}
-                  >
-                    <UserRoundCog className="mr-1 h-4 w-4" />
-                    Reatribuir
-                  </Button>
-                ) : null}
-                {canWriteTriagem &&
-                canAgenda &&
-                detailLead.monitoramento?.visual !== "vermelho" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full sm:col-span-2"
-                    onClick={() => openAtividade(detailLead)}
-                  >
-                    <CalendarClock className="mr-1 h-4 w-4" />
-                    Adicionar atividade
-                  </Button>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2 border-t border-border/60 pt-2.5 sm:flex-row sm:items-center">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                    Etapa
-                  </span>
-                  <Select
-                    value={detailLead.stage}
-                    onValueChange={(v) => void moveDetailToStage(v)}
-                  >
-                    <SelectTrigger className="h-9 min-w-0 flex-1">
-                      <SelectValue placeholder="Selecione a etapa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {funnelStages.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive sm:px-3"
-                  onClick={openLostFromDetail}
-                >
-                  Dar perda
-                </Button>
-              </div>
-            </div>
+                    setReassignLead(lead);
+                  },
+                },
+              ]
+            : []),
+          ...(canWriteTriagem &&
+          canAgenda &&
+          detailLead.monitoramento?.visual !== "vermelho"
+            ? [
+                {
+                  label: "Adicionar atividade",
+                  icon: CalendarClock,
+                  onClick: () => openAtividade(detailLead),
+                },
+              ]
+            : []),
+          {
+            label: "Dar perda",
+            destructive: true,
+            onClick: openLostFromDetail,
+          },
+            ]
+            : undefined
+        }
+        stageControl={
+          detailLead ? (
+          <Select
+            value={detailLead.stage}
+            onValueChange={(v) => void moveDetailToStage(v)}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Etapa" />
+            </SelectTrigger>
+            <SelectContent>
+              {funnelStages.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           ) : null
         }
       />
