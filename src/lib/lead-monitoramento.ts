@@ -80,6 +80,7 @@ export type CorretorMonitoramentoLead = {
 export type CorretorMonitoramento = {
   id: string;
   name: string;
+  equipeId?: string | null;
   totalAtrasos: number;
   semMovimentacao: number;
   foraDoPrazo: number;

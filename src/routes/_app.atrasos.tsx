@@ -20,8 +20,16 @@ import { SemConexao } from "@/components/sem-conexao";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import { fetchCorretoresMonitoramento } from "@/lib/leads-api";
 import { resumoAtrasos } from "@/lib/lead-monitoramento";
 import type {
@@ -47,9 +55,14 @@ function Page() {
   const isPlatformAdmin = user?.role === "super_admin";
   const [rows, setRows] = useState<CorretorMonitoramento[]>([]);
   const [equipes, setEquipes] = useState<EquipeReatribuicaoResumo[]>([]);
+  const [equipesCadastro, setEquipesCadastro] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busca, setBusca] = useState("");
+  const [filterEquipeId, setFilterEquipeId] = useState("__all__");
+  const [filterCorretorId, setFilterCorretorId] = useState("__all__");
+  const isAdmin = user?.role === "admin" || user?.role === "analista";
+  const showEquipeFiltro = isAdmin && !isPlatformAdmin;
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -60,9 +73,13 @@ function Page() {
       if (opts?.silent) setRefreshing(true);
       else setLoading(true);
       try {
-        const data = await fetchCorretoresMonitoramento();
+        const [data, equipesData] = await Promise.all([
+          fetchCorretoresMonitoramento(),
+          isPlatformAdmin ? Promise.resolve([] as Equipe[]) : fetchEquipes(),
+        ]);
         setRows(data.corretores ?? []);
         setEquipes(data.equipes ?? []);
+        setEquipesCadastro(equipesData);
       } catch (err) {
         toast.error(
           err instanceof ApiError
@@ -74,35 +91,72 @@ function Page() {
         setRefreshing(false);
       }
     },
-    [canView],
+    [canView, isPlatformAdmin],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const idsPorEquipe = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const equipe of equipesCadastro) {
+      map.set(
+        equipe.id,
+        new Set([equipe.gerenteId, ...equipe.membros.map((m) => m.id)]),
+      );
+    }
+    return map;
+  }, [equipesCadastro]);
+
+  function corretorDaEquipe(row: CorretorMonitoramento, equipeId: string) {
+    if (equipeId === "__all__") return true;
+    if (row.equipeId === equipeId) return true;
+    return idsPorEquipe.get(equipeId)?.has(row.id) ?? false;
+  }
+
+  const corretoresDaEquipe = useMemo(
+    () => rows.filter((row) => corretorDaEquipe(row, filterEquipeId)),
+    [rows, filterEquipeId, idsPorEquipe],
+  );
+
   /** A busca acha o corretor pelo nome dele ou pelo nome de um lead atrasado. */
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return rows;
-    return rows.filter(
-      (row) =>
+    return corretoresDaEquipe.filter((row) => {
+      if (filterCorretorId !== "__all__" && row.id !== filterCorretorId) {
+        return false;
+      }
+      if (!termo) return true;
+      return (
         row.name.toLowerCase().includes(termo) ||
-        row.leads.some((lead) => lead.nome.toLowerCase().includes(termo)),
-    );
-  }, [rows, busca]);
+        row.leads.some((lead) => lead.nome.toLowerCase().includes(termo))
+      );
+    });
+  }, [corretoresDaEquipe, filterCorretorId, busca]);
 
   const equipesFiltradas = useMemo(() => {
+    if (filterCorretorId !== "__all__") return [];
     const termo = busca.trim().toLowerCase();
-    if (!termo) return equipes;
-    return equipes.filter((equipe) =>
-      equipe.name.toLowerCase().includes(termo),
-    );
-  }, [equipes, busca]);
+    return equipes.filter((equipe) => {
+      if (filterEquipeId !== "__all__" && equipe.id !== filterEquipeId) {
+        return false;
+      }
+      if (!termo) return true;
+      return equipe.name.toLowerCase().includes(termo);
+    });
+  }, [equipes, busca, filterEquipeId, filterCorretorId]);
 
-  const resumo = useMemo(() => resumoAtrasos(rows, equipes), [rows, equipes]);
+  const resumo = useMemo(
+    () => resumoAtrasos(filtrados, equipesFiltradas),
+    [filtrados, equipesFiltradas],
+  );
   const corretoresComAtraso = useMemo(
-    () => filtrados.filter((row) => row.totalAtrasos > 0).length,
+    () =>
+      filtrados.filter(
+        (row) =>
+          row.totalAtrasos > 0 || (row.leadsPerdidosReatribuicao ?? 0) > 0,
+      ).length,
     [filtrados],
   );
 
@@ -133,7 +187,52 @@ function Page() {
             : "Leads parados, fora do prazo da etapa ou com tarefa atrasada, por corretor."
         }
         actions={
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            {showEquipeFiltro ? (
+              <Select
+                value={filterEquipeId}
+                onValueChange={(v) => {
+                  setFilterEquipeId(v);
+                  setFilterCorretorId("__all__");
+                }}
+              >
+                <SelectTrigger
+                  className={cn("h-9 w-44 bg-background", FILTER_CONTROL)}
+                >
+                  <SelectValue placeholder="Equipe" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__all__">Todas as equipes</SelectItem>
+                  {equipesCadastro.map((equipe) => (
+                    <SelectItem key={equipe.id} value={equipe.id}>
+                      {equipe.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            {!isPlatformAdmin ? (
+              <Select
+                value={filterCorretorId}
+                onValueChange={setFilterCorretorId}
+              >
+                <SelectTrigger
+                  className={cn("h-9 w-48 bg-background", FILTER_CONTROL)}
+                >
+                  <SelectValue placeholder="Corretor" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__all__">Todos os corretores</SelectItem>
+                  {[...corretoresDaEquipe]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((row) => (
+                      <SelectItem key={row.id} value={row.id}>
+                        {row.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <div className="relative max-w-xs min-w-50 flex-1">
               <Search className={FILTER_SEARCH_ICON} />
               <Input
