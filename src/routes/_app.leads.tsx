@@ -155,6 +155,7 @@ import {
   FormDialogBody,
   FormDialogShell,
   FormSection,
+  FormSectionNav,
 } from "@/components/form-dialog";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import {
@@ -392,6 +393,15 @@ type PlatformLeadTab =
   | "fit"
   | "funil";
 
+type TenantLeadSection = "contato" | "documentos" | "qualificacao" | "local";
+
+const TENANT_LEAD_SECTIONS: { id: TenantLeadSection; label: string }[] = [
+  { id: "contato", label: "Contato" },
+  { id: "documentos", label: "Documentos" },
+  { id: "qualificacao", label: "Qualificação" },
+  { id: "local", label: "Local" },
+];
+
 function leadToForm(lead: Lead): FormState {
   const temp =
     (["Quente", "Morno", "Frio"] as const).find((t) => lead.tags.includes(t)) ??
@@ -546,6 +556,8 @@ function LeadsPage() {
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [platformLeadTab, setPlatformLeadTab] =
     useState<PlatformLeadTab>("empresa");
+  const [tenantLeadSection, setTenantLeadSection] =
+    useState<TenantLeadSection>("contato");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [deleteLead, setDeleteLead] = useState<Lead | null>(null);
@@ -990,6 +1002,7 @@ function LeadsPage() {
     setFormMode("create");
     setEditingId(null);
     setPlatformLeadTab("empresa");
+    setTenantLeadSection("contato");
     // Sem vínculo: lead fica no pool do admin para distribuição.
     setForm({
       ...emptyForm(),
@@ -1003,6 +1016,7 @@ function LeadsPage() {
     setFormMode("edit");
     setEditingId(lead.id);
     setPlatformLeadTab("empresa");
+    setTenantLeadSection("contato");
     const next = leadToForm(lead);
     if (!next.equipeId && lead.corretorId) {
       const eq = equipesAtivas.find((e) =>
@@ -1072,6 +1086,7 @@ function LeadsPage() {
     const email = form.email.trim();
 
     if (!nome || !telefone) {
+      setTenantLeadSection("contato");
       toast.error("Preencha nome e telefone.");
       return;
     }
@@ -1602,7 +1617,7 @@ function LeadsPage() {
       <FormDialogShell
         open={open}
         onOpenChange={setOpen}
-        className={isPlatformAdmin ? "max-w-3xl" : undefined}
+        className="max-w-3xl"
         icon={
           formMode === "edit" ? (
             <Pencil className="w-5 h-5" />
@@ -1625,10 +1640,10 @@ function LeadsPage() {
           formMode === "edit"
             ? isPlatformAdmin
               ? "Atualize cada seção da ficha de prospecção."
-              : "Atualize os dados do contato no funil."
+              : "Atualize os dados por seção."
             : isPlatformAdmin
               ? "Preencha cada seção: empresa, localização, digital, operação e fit."
-            : "Preencha os dados para adicionar o contato ao funil."
+              : "Preencha por seção, como no contrato de intermediação."
         }
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -2201,9 +2216,16 @@ function LeadsPage() {
               </>
             ) : (
               <>
+            <FormSectionNav
+              items={TENANT_LEAD_SECTIONS}
+              value={tenantLeadSection}
+              onChange={setTenantLeadSection}
+            />
+            {tenantLeadSection === "contato" ? (
             <FormSection
               icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
               title="Contato"
+              description="Nome, telefone e atribuição no funil."
             >
               <div className="space-y-1.5">
                 <Label
@@ -2396,10 +2418,12 @@ function LeadsPage() {
                 />
               </div>
             </FormSection>
+            ) : null}
 
+            {tenantLeadSection === "documentos" ? (
             <FormSection
               icon={<FileText className="w-3.5 h-3.5 text-primary" />}
-              title="Para contratos"
+              title="Documentos para contratos"
               description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
             >
               <ContatoContratoFields
@@ -2415,10 +2439,13 @@ function LeadsPage() {
                 }
               />
             </FormSection>
+            ) : null}
 
+            {tenantLeadSection === "qualificacao" ? (
             <FormSection
               icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
-              title="Renda"
+              title="Qualificação"
+              description="Renda, interesse no imóvel e urgência do atendimento."
             >
               {isPlatformAdmin ? null : (
               <>
@@ -2643,10 +2670,13 @@ function LeadsPage() {
                 </div>
               </div>
             </FormSection>
+            ) : null}
 
+            {tenantLeadSection === "local" ? (
             <FormSection
               icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
               title="Localização"
+              description="Cidade e bairro de interesse."
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -2681,6 +2711,7 @@ function LeadsPage() {
                 </div>
               </div>
             </FormSection>
+            ) : null}
               </>
             )}
           </FormDialogBody>

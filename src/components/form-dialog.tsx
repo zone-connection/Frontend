@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function FormDialogShell({
@@ -70,6 +71,49 @@ export function FormDialogShell({
         {footer}
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function FormSectionNav<T extends string>({
+  items,
+  value,
+  onChange,
+  className,
+}: {
+  items: readonly { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+  className?: string;
+}) {
+  const cols =
+    items.length <= 2
+      ? "grid-cols-2"
+      : items.length === 3
+        ? "grid-cols-2 sm:grid-cols-3"
+        : items.length === 4
+          ? "grid-cols-2 sm:grid-cols-4"
+          : "grid-cols-2 sm:grid-cols-3";
+
+  return (
+    <div
+      className={cn(
+        "grid gap-2 rounded-xl border bg-muted/30 p-2",
+        cols,
+        className,
+      )}
+    >
+      {items.map((section) => (
+        <Button
+          key={section.id}
+          type="button"
+          size="sm"
+          variant={value === section.id ? "default" : "ghost"}
+          onClick={() => onChange(section.id)}
+        >
+          {section.label}
+        </Button>
+      ))}
+    </div>
   );
 }
 

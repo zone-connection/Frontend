@@ -55,6 +55,7 @@ import {
   FormDialogBody,
   FormDialogShell,
   FormSection,
+  FormSectionNav,
   DetailField,
 } from "@/components/form-dialog";
 import { getSession } from "@/lib/auth";
@@ -134,6 +135,15 @@ export const Route = createFileRoute("/_app/clientes")({
   head: () => ({ meta: [{ title: "Clientes — Zone Connection" }] }),
   component: Clientes,
 });
+
+type ClienteFormSection = "contato" | "documentos" | "interesse" | "local";
+
+const CLIENTE_FORM_SECTIONS: { id: ClienteFormSection; label: string }[] = [
+  { id: "contato", label: "Contato" },
+  { id: "documentos", label: "Documentos" },
+  { id: "interesse", label: "Interesse" },
+  { id: "local", label: "Local" },
+];
 
 const CLIENTES_GRADIENT_BTN =
   "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110 disabled:opacity-50";
@@ -330,6 +340,8 @@ function Clientes() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
+  const [clienteFormSection, setClienteFormSection] =
+    useState<ClienteFormSection>("contato");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm(""));
 
@@ -346,6 +358,7 @@ function Clientes() {
   function openCreate() {
     setFormMode("create");
     setEditingId(null);
+    setClienteFormSection("contato");
     setForm(
       emptyForm(
         isCorretor || canOwnCarteira
@@ -359,6 +372,7 @@ function Clientes() {
   function openEdit(l: Lead) {
     setFormMode("edit");
     setEditingId(l.id);
+    setClienteFormSection("contato");
     setForm(leadToForm(l));
     setFormOpen(true);
     setDetail(null);
@@ -383,6 +397,7 @@ function Clientes() {
     const corretorNome = isCorretor ? defaultCorretor : form.corretor;
 
     if (!nome || !telefone) {
+      setClienteFormSection("contato");
       toast.error("Preencha nome e telefone.");
       return;
     }
@@ -955,6 +970,7 @@ function Clientes() {
       <FormDialogShell
         open={formOpen}
         onOpenChange={setFormOpen}
+        className="max-w-3xl"
         icon={
           formMode === "edit" ? (
             <Pencil className="w-5 h-5" />
@@ -965,15 +981,22 @@ function Clientes() {
         title={formMode === "edit" ? "Editar cliente" : "Novo cliente"}
         description={
           formMode === "edit"
-            ? "Atualize os dados do contato."
-            : "Cadastre um novo cliente na base da equipe."
+            ? "Atualize os dados por seção."
+            : "Preencha por seção, como no contrato de intermediação."
         }
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
+            <FormSectionNav
+              items={CLIENTE_FORM_SECTIONS}
+              value={clienteFormSection}
+              onChange={setClienteFormSection}
+            />
+            {clienteFormSection === "contato" ? (
             <FormSection
               icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
               title="Contato"
+              description="Nome, telefone e responsável pelo atendimento."
             >
               <div className="space-y-1.5">
                 <Label
@@ -1119,10 +1142,12 @@ function Clientes() {
                 </div>
               </div>
             </FormSection>
+            ) : null}
 
+            {clienteFormSection === "documentos" ? (
             <FormSection
               icon={<FileText className="w-3.5 h-3.5 text-primary" />}
-              title="Para contratos"
+              title="Documentos para contratos"
               description="Opcional. Se preencher, o contrato já sai com CPF, RG e endereço."
             >
               <ContatoContratoFields
@@ -1138,10 +1163,13 @@ function Clientes() {
                 }
               />
             </FormSection>
+            ) : null}
 
+            {clienteFormSection === "interesse" ? (
             <FormSection
               icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
               title="Interesse"
+              description="Renda, orçamento e o que o cliente busca no imóvel."
             >
               <div className="space-y-1.5">
                 <Label
@@ -1263,10 +1291,13 @@ function Clientes() {
                 </div>
               </div>
             </FormSection>
+            ) : null}
 
+            {clienteFormSection === "local" ? (
             <FormSection
               icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
               title="Localização"
+              description="Cidade e bairro de interesse."
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -1305,6 +1336,7 @@ function Clientes() {
                 </div>
               </div>
             </FormSection>
+            ) : null}
           </FormDialogBody>
 
           <FormDialogActions
