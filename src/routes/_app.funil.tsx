@@ -71,6 +71,7 @@ import {
   MONITORAMENTO_FILTRO_OPTIONS,
   applyInatividadeThreshold,
   formatPrazoUnidade,
+  isEtapaMonitoramentoTerminal,
   type MonitoramentoFiltro,
 } from "@/lib/lead-monitoramento";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
@@ -271,6 +272,20 @@ export function ComercialFunilBoard({
   const [corretorFilterOpen, setCorretorFilterOpen] = useState(false);
   const [recoveringStages, setRecoveringStages] = useState(false);
 
+  function decorateLeadMonitoramento(lead: Lead): Lead {
+    if (!funilAtivo || !lead.monitoramento) return lead;
+    const papel = funnelStages.find((s) => s.id === lead.stage)?.papel;
+    return {
+      ...lead,
+      monitoramento: applyInatividadeThreshold(
+        lead.monitoramento,
+        funilAtivo.inatividadeValor,
+        funilAtivo.inatividadeUnidade,
+        { terminal: isEtapaMonitoramentoTerminal(papel) },
+      ),
+    };
+  }
+
   useEffect(() => {
     let cancelled = false;
     void fetchFunilAtivo("comercial")
@@ -373,17 +388,7 @@ export function ComercialFunilBoard({
     }
 
     if (funilAtivo) {
-      list = list.map((l) => {
-        if (!l.monitoramento) return l;
-        return {
-          ...l,
-          monitoramento: applyInatividadeThreshold(
-            l.monitoramento,
-            funilAtivo.inatividadeValor,
-            funilAtivo.inatividadeUnidade,
-          ),
-        };
-      });
+      list = list.map((l) => decorateLeadMonitoramento(l));
     }
 
     if ((!isClientesFunil || adminVeClientesCorretor) && isAdmin && filterEquipeId !== "__all__") {
@@ -495,33 +500,13 @@ export function ComercialFunilBoard({
         ? null
         : found;
     if (!scoped) return;
-    const decorated =
-      funilAtivo && scoped.monitoramento
-        ? {
-            ...scoped,
-            monitoramento: applyInatividadeThreshold(
-              scoped.monitoramento,
-              funilAtivo.inatividadeValor,
-              funilAtivo.inatividadeUnidade,
-            ),
-          }
-        : scoped;
+    const decorated = decorateLeadMonitoramento(scoped);
     setDetailLead(decorated);
   }, [openLeadId, allLeads, funilAtivo, isClientesFunil, loading, teamScope, user]);
 
   useEffect(() => {
     if (!detailLead?.monitoramento || !funilAtivo) return;
-    setDetailLead((cur) => {
-      if (!cur?.monitoramento) return cur;
-      return {
-        ...cur,
-        monitoramento: applyInatividadeThreshold(
-          cur.monitoramento,
-          funilAtivo.inatividadeValor,
-          funilAtivo.inatividadeUnidade,
-        ),
-      };
-    });
+    setDetailLead((cur) => (cur ? decorateLeadMonitoramento(cur) : cur));
   }, [funilAtivo]);
   const boardRef = useRef<HTMLDivElement>(null);
   const dragOverlayRef = useRef<HTMLDivElement>(null);
@@ -693,17 +678,7 @@ export function ComercialFunilBoard({
   async function afterAtividadeCreated(leadId: string) {
     try {
       const mapped = mapApiLead(await fetchLeadById(leadId));
-      const next =
-        funilAtivo && mapped.monitoramento
-          ? {
-              ...mapped,
-              monitoramento: applyInatividadeThreshold(
-                mapped.monitoramento,
-                funilAtivo.inatividadeValor,
-                funilAtivo.inatividadeUnidade,
-              ),
-            }
-          : mapped;
+      const next = decorateLeadMonitoramento(mapped);
       applyLead(next);
       setDetailLead((cur) => (cur?.id === leadId ? next : cur));
     } catch {

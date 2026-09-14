@@ -240,7 +240,13 @@ export type ApplyInatividadeExtras = {
   now?: number;
   prazo?: { valor: number; unidade: PrazoUnidade } | null;
   alertaPercent?: number;
+  /** Etapa venda/perdido: não recalcula atraso nem pendência. */
+  terminal?: boolean;
 };
+
+export function isEtapaMonitoramentoTerminal(papel?: string | null) {
+  return papel === "venda" || papel === "perdido";
+}
 
 /** Recalcula inatividade e prazo da etapa a partir da última movimentação. */
 export function applyInatividadeThreshold(
@@ -249,6 +255,22 @@ export function applyInatividadeThreshold(
   unidade: PrazoUnidade,
   extras?: ApplyInatividadeExtras,
 ): LeadMonitoramento {
+  if (extras?.terminal) {
+    return {
+      ...mon,
+      problemas: [],
+      nivel: "normal",
+      visual: "none",
+      tarefasAtrasadas: [],
+      prazoDueAt: null,
+      tempoRestanteMs: null,
+      tempoRestanteLabel: null,
+      tempoAtrasoMs: null,
+      tempoAtrasoLabel: null,
+      prazoConfigurado: null,
+      podeAdiar: false,
+    };
+  }
   const now = extras?.now ?? Date.now();
   const thresholdMs = inatividadeToMs(valor, unidade);
   const last = latestMovementMs(mon);
@@ -375,7 +397,7 @@ export function applyOperacaoFunilThreshold<
 ): T {
   if (!item.monitoramento) return item;
   const etapa = funil.etapas.find((row) => row.id === item.funilEtapaId);
-  const terminal = etapa?.papel === "venda" || etapa?.papel === "perdido";
+  const terminal = isEtapaMonitoramentoTerminal(etapa?.papel);
   const prazo =
     !terminal && etapa?.prazoValor
       ? { valor: etapa.prazoValor, unidade: etapa.prazoUnidade }
@@ -389,6 +411,7 @@ export function applyOperacaoFunilThreshold<
       {
         prazo,
         alertaPercent: etapa?.alertaAntecedenciaPercent,
+        terminal,
       },
     ),
   };
