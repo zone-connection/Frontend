@@ -2672,8 +2672,8 @@ export function ImoveisPage({
                   images={[...quickImages, ...pendingPreviews]}
                   max={EMPREENDIMENTO_MAX_IMAGES}
                   label="Fotos"
-                  hint="Duas imagens por empreendimento (JPG, PNG ou WebP, máx. 5 MB)."
-                  slotLabels={["Foto 1", "Foto 2"]}
+                  hint={`Até ${EMPREENDIMENTO_MAX_IMAGES} imagens por empreendimento (JPG, PNG ou WebP, máx. 5 MB).`}
+                  slotLabels={["Foto 1"]}
                   disabled={quickSaving}
                   busy={imageBusy}
                   onAdd={(files) => void handleAddImages(files)}

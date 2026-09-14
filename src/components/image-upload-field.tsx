@@ -39,6 +39,8 @@ export function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const remaining = Math.max(0, max - images.length);
   const canAdd = !disabled && !busy && remaining > 0;
+  const slotCount =
+    max <= 4 ? max : Math.min(max, images.length + (remaining > 0 ? 1 : 0));
 
   function handleFiles(list: FileList | null) {
     if (!list?.length || !canAdd) return;
@@ -61,10 +63,16 @@ export function ImageUploadField({
       <div
         className={cn(
           "grid gap-2",
-          max > 1 && shape !== "logo" ? "grid-cols-2" : "grid-cols-1",
+          shape === "logo"
+            ? "grid-cols-1"
+            : max > 4
+              ? "grid-cols-2 sm:grid-cols-3"
+              : max > 1
+                ? "grid-cols-2"
+                : "grid-cols-1",
         )}
       >
-        {Array.from({ length: max }, (_, index) => {
+        {Array.from({ length: Math.max(slotCount, images.length) }, (_, index) => {
           const src = images[index];
           const slotLabel =
             slotLabels?.[index] ?? (max > 1 ? `Foto ${index + 1}` : "Adicionar");

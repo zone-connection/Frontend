@@ -180,7 +180,7 @@ export async function deleteEmpreendimento(
   });
 }
 
-export const EMPREENDIMENTO_MAX_IMAGES = 2;
+export const EMPREENDIMENTO_MAX_IMAGES = 15;
 export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 export const IMAGE_UPLOAD_ACCEPT = "image/jpeg,image/png,image/webp";
 

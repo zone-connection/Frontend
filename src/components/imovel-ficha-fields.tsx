@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_IMOVEL_TIPOS,
+  IMOVEL_MAX_FOTOS,
   IMOVEL_CARACTERISTICAS_DIFERENCIAIS,
   IMOVEL_DETALHES_IMOVEL,
   IMOVEL_LOCALIZACAO_INFRA,
@@ -321,18 +322,18 @@ export function ImovelFichaFields({
         <FormSection
           icon={<Camera className="h-3.5 w-3.5" />}
           title="Fotos"
-          description="Até 4 fotos. A primeira é a capa na captação, nos usados e no portal."
+          description={`Até ${IMOVEL_MAX_FOTOS} fotos. A primeira é a capa na captação, nos usados e no portal.`}
         >
           <ImageUploadField
             images={[
               ...foto.items.map((item) => item.url),
               ...(foto.previewUrls ?? []),
             ]}
-            max={4}
+            max={IMOVEL_MAX_FOTOS}
             label="Fotos do imóvel"
             hint="JPG, PNG ou WebP. Até 5 MB cada. Capa = primeira foto."
             recommendedSize="1600 × 1200"
-            slotLabels={["Capa", "Foto 2", "Foto 3", "Foto 4"]}
+            slotLabels={["Capa"]}
             busy={foto.busy}
             onAdd={(files) => {
               const file = files[0];

@@ -23,6 +23,7 @@ import {
   fetchCaptacaoImoveis,
   fetchProprietarios,
   formatBrl,
+  IMOVEL_MAX_FOTOS,
   imovelFotoItens,
   updateCaptacaoImovel,
   uploadCaptacaoImovelFoto,
@@ -571,9 +572,14 @@ export function CatalogUnidadeImoveis({
                       .finally(() => setFotoBusy(false));
                     return;
                   }
-                  setPendingFotos((current) => [...current, file].slice(0, 4));
+                  setPendingFotos((current) =>
+                    [...current, file].slice(0, IMOVEL_MAX_FOTOS),
+                  );
                   setPendingPreviews((current) =>
-                    [...current, URL.createObjectURL(file)].slice(0, 4),
+                    [...current, URL.createObjectURL(file)].slice(
+                      0,
+                      IMOVEL_MAX_FOTOS,
+                    ),
                   );
                 },
                 onRemove: (index, fotoId) => {

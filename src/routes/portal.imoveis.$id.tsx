@@ -7,6 +7,7 @@ import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_IMOVEL_TIPOS,
   formatBrl,
+  IMOVEL_MAX_FOTOS,
   type CaptacaoImovelTipo,
 } from "@/lib/captacao-api";
 import {
@@ -680,11 +681,11 @@ function PortalImovelPage() {
                 </div>
                 <ImageUploadField
                   label="Fotos"
-                  hint="Até 4 fotos. A primeira é a capa."
+                  hint={`Até ${IMOVEL_MAX_FOTOS} fotos. A primeira é a capa.`}
                   images={(imovel.fotos ?? []).map((foto) => foto.url)}
-                  max={4}
+                  max={IMOVEL_MAX_FOTOS}
                   busy={fotoBusy || saving}
-                  slotLabels={["Capa", "Foto 2", "Foto 3", "Foto 4"]}
+                  slotLabels={["Capa"]}
                   onAdd={(files) => {
                     const valid = files.filter((file) => {
                       const erro = assertImageFile(file);

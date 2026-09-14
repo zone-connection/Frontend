@@ -20,6 +20,7 @@ import { ApiError } from "@/lib/api";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_IMOVEL_TIPOS,
+  IMOVEL_MAX_FOTOS,
   type CaptacaoImovelTipo,
 } from "@/lib/captacao-api";
 import {
@@ -236,11 +237,11 @@ function PortalImoveisPage() {
             </div>
             <ImageUploadField
               label="Fotos do imóvel"
-              hint="Até 4 fotos. JPG, PNG ou WebP, no máximo 5 MB cada. A primeira vira a capa."
+              hint={`Até ${IMOVEL_MAX_FOTOS} fotos. JPG, PNG ou WebP, no máximo 5 MB cada. A primeira vira a capa.`}
               images={fotoPreviews}
-              max={4}
+              max={IMOVEL_MAX_FOTOS}
               busy={saving}
-              slotLabels={["Capa", "Foto 2", "Foto 3", "Foto 4"]}
+              slotLabels={["Capa"]}
               onAdd={(files) => {
                 const valid: File[] = [];
                 for (const file of files) {
@@ -252,9 +253,12 @@ function PortalImoveisPage() {
                   valid.push(file);
                 }
                 if (!valid.length) return;
-                setFotos((atual) => [...atual, ...valid].slice(0, 4));
+                setFotos((atual) => [...atual, ...valid].slice(0, IMOVEL_MAX_FOTOS));
                 setFotoPreviews((atual) =>
-                  [...atual, ...valid.map((file) => URL.createObjectURL(file))].slice(0, 4),
+                  [...atual, ...valid.map((file) => URL.createObjectURL(file))].slice(
+                    0,
+                    IMOVEL_MAX_FOTOS,
+                  ),
                 );
               }}
               onRemove={(index) => {
