@@ -312,10 +312,12 @@ function Config() {
   const isAnalista = user?.role === "analista";
   const isTreinee = user?.role === "treinee";
   const isCorretor = user?.role === "corretor";
+  const isAdmin = user?.role === "admin";
   const showCreci = Boolean(user && userCanInformarCreci(user) && !isPlatformAdmin);
   const isSolo = user?.tenant?.plano === "solo";
   const showOpsTabs = !isAnalista && !isTreinee && !isCorretor && !isPlatformAdmin;
   const showFunil = !isAnalista && !isTreinee && !isCorretor;
+  const showAutomacoes = isAdmin;
   const showUsuarioExtraTab = showOpsTabs && isSolo;
   const showDocumentacao = !isTreinee && !isCorretor && !isPlatformAdmin;
   const showMotivos = !isTreinee && !isCorretor;
@@ -350,6 +352,7 @@ function Config() {
       showCreci,
       showOps: showOpsTabs,
       showFunil,
+      showAutomacoes,
       showUsuarioExtra: showUsuarioExtraTab,
       showDocumentacao,
       showCatalog: showCatalogTabs,
@@ -361,6 +364,7 @@ function Config() {
       showCreci,
       showOpsTabs,
       showFunil,
+      showAutomacoes,
       showUsuarioExtraTab,
       showDocumentacao,
       showCatalogTabs,

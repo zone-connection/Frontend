@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { notifyAtrasoLiberacaoNav } from "@/lib/atraso-liberacao-nav";
+import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
   fetchFunis,
@@ -60,7 +61,9 @@ function isEtapaTerminal(etapa: FunilEtapa): boolean {
 }
 
 export function ConfigAutomacoesPanel() {
-  const tenantModules = getSession()?.tenant?.modules;
+  const session = getSession();
+  const canManageCacaLead = session?.role === "admin";
+  const tenantModules = session?.tenant?.modules;
   const tiposVisiveis = useMemo(
     () => FUNIL_TIPOS.filter((tipo) => funilTipoVisivel(tipo, tenantModules)),
     [tenantModules],
@@ -183,7 +186,7 @@ export function ConfigAutomacoesPanel() {
   }
 
   async function handleSaveAtrasoLiberacao() {
-    if (!selected) return;
+    if (!selected || !canManageCacaLead) return;
     const valor = Number(atrasoValor);
     if (!Number.isInteger(valor) || valor < 0) {
       toast.error("Informe o tempo depois do atraso.");
@@ -370,8 +373,9 @@ export function ConfigAutomacoesPanel() {
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Retrabalho desvincula o corretor e deixa o lead no funil
-                      e em Leads, destacado. O Caça-lead continua listando os
-                      atrasados para pegar, sem tirar do kanban.
+                      e em Leads, destacado. Com Caça-lead ligado, a tela
+                      aparece na barra lateral para todo o tenant; se o
+                      administrador desligar, some para todos.
                     </p>
                   </div>
                 </div>
@@ -382,20 +386,29 @@ export function ConfigAutomacoesPanel() {
                   <Switch
                     checked={atrasoAtiva}
                     onCheckedChange={setAtrasoAtiva}
+                    disabled={!canManageCacaLead}
                     aria-label="Ativar automação após atraso"
                   />
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {!canManageCacaLead ? (
+                  <p className="text-xs text-muted-foreground">
+                    Somente o administrador pode ativar ou desativar o
+                    Caça-lead.
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
+                    disabled={!canManageCacaLead}
                     onClick={() => setAtrasoDestino("caca_lead")}
                     className={cn(
                       "rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors",
                       atrasoDestino === "caca_lead"
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border text-muted-foreground hover:text-foreground",
+                      !canManageCacaLead && "cursor-not-allowed opacity-60",
                     )}
                   >
                     Caça-lead
@@ -405,17 +418,19 @@ export function ConfigAutomacoesPanel() {
                   </button>
                   <button
                     type="button"
+                    disabled={!canManageCacaLead}
                     onClick={() => setAtrasoDestino("retrabalho")}
                     className={cn(
                       "rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors",
                       atrasoDestino === "retrabalho"
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border text-muted-foreground hover:text-foreground",
+                      !canManageCacaLead && "cursor-not-allowed opacity-60",
                     )}
                   >
                     Retrabalho
                     <span className="mt-0.5 block font-normal leading-snug">
-                      Fica no funil e em Leads, destacado. O Caça-lead lista para pegar.
+                      Fica no funil e em Leads, destacado. A tela Caça-lead some do menu.
                     </span>
                   </button>
                 </div>
@@ -426,12 +441,14 @@ export function ConfigAutomacoesPanel() {
                     aria-label="Tempo depois do atraso"
                     className="h-9 w-20"
                     value={atrasoValor}
+                    disabled={!canManageCacaLead}
                     onChange={(e) => setAtrasoValor(e.target.value)}
                   />
                   <select
                     aria-label="Unidade do tempo após atraso"
                     className="h-9 rounded-md border bg-background px-2 text-sm"
                     value={atrasoUnidade}
+                    disabled={!canManageCacaLead}
                     onChange={(e) =>
                       setAtrasoUnidade(e.target.value as PrazoUnidade)
                     }
@@ -446,7 +463,7 @@ export function ConfigAutomacoesPanel() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={saving}
+                    disabled={saving || !canManageCacaLead}
                     onClick={() => void handleSaveAtrasoLiberacao()}
                   >
                     Salvar

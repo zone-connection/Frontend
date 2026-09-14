@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Crosshair, Loader2, Phone, Search, UserRoundCog } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import {
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { ApiError } from "@/lib/api";
+import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { getSession } from "@/lib/auth";
 import { brl, type Lead } from "@/lib/crm-types";
 import { FILTER_CONTROL, FILTER_SEARCH_ICON } from "@/lib/filter-bar";
@@ -40,6 +41,8 @@ export const Route = createFileRoute("/_app/caca-lead")({
 
 function CacaLeadPage() {
   const user = getSession();
+  const navigate = useNavigate();
+  const { hide: hideCacaLead, ready: cacaLeadReady } = useHideCacaLeadNav();
   const { applyLead, refresh } = useLeads();
   const canPegar =
     user?.role === "admin" ||
@@ -55,6 +58,7 @@ function CacaLeadPage() {
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
 
   const load = useCallback(async () => {
+    if (!cacaLeadReady || hideCacaLead) return;
     setLoading(true);
     try {
       const list = await fetchCacaLeads();
@@ -68,11 +72,16 @@ function CacaLeadPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hideCacaLead, cacaLeadReady]);
 
   useEffect(() => {
+    if (!cacaLeadReady) return;
+    if (hideCacaLead) {
+      void navigate({ to: "/dashboard" });
+      return;
+    }
     void load();
-  }, [load]);
+  }, [hideCacaLead, cacaLeadReady, load, navigate]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -109,6 +118,8 @@ function CacaLeadPage() {
       setPegandoId(null);
     }
   }
+
+  if (!cacaLeadReady || hideCacaLead) return null;
 
   return (
     <div>

@@ -50,6 +50,7 @@ import {
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
+import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { useTenantTheme } from "@/lib/tenant-theme";
@@ -372,6 +373,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const { brandName, logoUrl, modules } = useTenantTheme();
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
+  const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
   const plano = user?.tenant?.plano ?? null;
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -749,6 +751,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;
               }
+              if (item.to === "/caca-lead" && hideCacaLeadNav) {
+                return null;
+              }
               if (
                 hideClientesFromSidebar &&
                 (item.to === "/clientes" || item.to === "/funil-clientes")
@@ -769,7 +774,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar]);
+  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav]);
 
   useEffect(() => {
     const active = navSections.find((section) =>

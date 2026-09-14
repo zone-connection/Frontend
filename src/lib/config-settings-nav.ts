@@ -24,6 +24,7 @@ export type ConfigNavFlags = {
   showCreci: boolean;
   showOps: boolean;
   showFunil: boolean;
+  showAutomacoes: boolean;
   showUsuarioExtra: boolean;
   showDocumentacao: boolean;
   showCatalog: boolean;
@@ -138,14 +139,16 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
     operacaoItems.push(
       { id: "modulos", label: "Módulos" },
       { id: "funil", label: "Funis" },
-      { id: "automacoes", label: "Automações" },
-      { id: "financeiro", label: "Financeiro" },
     );
+    if (flags.showAutomacoes) {
+      operacaoItems.push({ id: "automacoes", label: "Automações" });
+    }
+    operacaoItems.push({ id: "financeiro", label: "Financeiro" });
   } else if (flags.showFunil) {
-    operacaoItems.push(
-      { id: "funil", label: "Funis" },
-      { id: "automacoes", label: "Automações" },
-    );
+    operacaoItems.push({ id: "funil", label: "Funis" });
+    if (flags.showAutomacoes) {
+      operacaoItems.push({ id: "automacoes", label: "Automações" });
+    }
   }
   if (flags.showMetas) {
     operacaoItems.push({ id: "metas", label: "Metas" });
@@ -155,8 +158,12 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
       id: "operacao",
       label: "Operação",
       description: flags.showOps
-        ? "Módulos, funis, automações e preferências da operação."
-        : "Funis e automações da operação comercial.",
+        ? flags.showAutomacoes
+          ? "Módulos, funis, automações e preferências da operação."
+          : "Módulos, funis e preferências da operação."
+        : flags.showAutomacoes
+          ? "Funis e automações da operação comercial."
+          : "Funis da operação comercial.",
       icon: Layers,
       items: operacaoItems,
     });
