@@ -7,9 +7,9 @@ import type {
 } from "@/lib/crm-types";
 import type { LeadProspeccao } from "@/lib/lead-prospeccao";
 import type {
-  CorretorMonitoramento,
   LeadMonitoramento,
   LeadPrazoAdiamento,
+  MonitoramentoAtrasos,
   MonitoramentoFiltro,
   PrazoUnidade,
 } from "@/lib/lead-monitoramento";
@@ -512,10 +512,8 @@ export async function deleteLeadApi(id: string): Promise<void> {
   await apiFetch<void>(`/leads/${id}`, { method: "DELETE" });
 }
 
-export async function fetchCorretoresMonitoramento(): Promise<
-  CorretorMonitoramento[]
-> {
-  return apiFetch<CorretorMonitoramento[]>("/leads/monitoramento/corretores");
+export async function fetchCorretoresMonitoramento(): Promise<MonitoramentoAtrasos> {
+  return apiFetch<MonitoramentoAtrasos>("/leads/monitoramento/corretores");
 }
 
 export async function syncLeadMonitoramento(): Promise<{

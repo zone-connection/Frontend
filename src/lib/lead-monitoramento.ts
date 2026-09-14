@@ -84,7 +84,19 @@ export type CorretorMonitoramento = {
   semMovimentacao: number;
   foraDoPrazo: number;
   tarefasAtrasadas?: number;
+  leadsPerdidosReatribuicao?: number;
   leads: CorretorMonitoramentoLead[];
+};
+
+export type EquipeReatribuicaoResumo = {
+  id: string;
+  name: string;
+  leadsPerdidosReatribuicao: number;
+};
+
+export type MonitoramentoAtrasos = {
+  corretores: CorretorMonitoramento[];
+  equipes: EquipeReatribuicaoResumo[];
 };
 
 export type AtrasosResumo = {
@@ -93,10 +105,15 @@ export type AtrasosResumo = {
   semMovimentacao: number;
   foraDoPrazo: number;
   tarefas: number;
+  perdidosCorretores: number;
+  perdidosEquipes: number;
 };
 
 /** Consolida os contadores de atraso de vários corretores. */
-export function resumoAtrasos(rows: CorretorMonitoramento[]): AtrasosResumo {
+export function resumoAtrasos(
+  rows: CorretorMonitoramento[],
+  equipes: EquipeReatribuicaoResumo[] = [],
+): AtrasosResumo {
   return rows.reduce<AtrasosResumo>(
     (acc, row) => ({
       corretores: acc.corretores + 1,
@@ -104,8 +121,22 @@ export function resumoAtrasos(rows: CorretorMonitoramento[]): AtrasosResumo {
       semMovimentacao: acc.semMovimentacao + row.semMovimentacao,
       foraDoPrazo: acc.foraDoPrazo + row.foraDoPrazo,
       tarefas: acc.tarefas + (row.tarefasAtrasadas ?? 0),
+      perdidosCorretores:
+        acc.perdidosCorretores + (row.leadsPerdidosReatribuicao ?? 0),
+      perdidosEquipes: acc.perdidosEquipes,
     }),
-    { corretores: 0, leads: 0, semMovimentacao: 0, foraDoPrazo: 0, tarefas: 0 },
+    {
+      corretores: 0,
+      leads: 0,
+      semMovimentacao: 0,
+      foraDoPrazo: 0,
+      tarefas: 0,
+      perdidosCorretores: 0,
+      perdidosEquipes: equipes.reduce(
+        (sum, equipe) => sum + equipe.leadsPerdidosReatribuicao,
+        0,
+      ),
+    },
   );
 }
 

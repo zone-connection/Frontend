@@ -9,10 +9,12 @@ import {
   RefreshCw,
   Search,
   TriangleAlert,
+  UserRoundMinus,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
-import { CorretoresAtrasosGrid } from "@/components/corretores-atrasos";
+import { CorretoresAtrasosGrid, EquipesReatribuicaoGrid } from "@/components/corretores-atrasos";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { SemConexao } from "@/components/sem-conexao";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,10 @@ import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { fetchCorretoresMonitoramento } from "@/lib/leads-api";
 import { resumoAtrasos } from "@/lib/lead-monitoramento";
-import type { CorretorMonitoramento } from "@/lib/lead-monitoramento";
+import type {
+  CorretorMonitoramento,
+  EquipeReatribuicaoResumo,
+} from "@/lib/lead-monitoramento";
 import { canViewModule } from "@/lib/permissions";
 import {
   FILTER_CONTROL,
@@ -41,6 +46,7 @@ function Page() {
   const isGerente = user?.role === "gerente";
   const isPlatformAdmin = user?.role === "super_admin";
   const [rows, setRows] = useState<CorretorMonitoramento[]>([]);
+  const [equipes, setEquipes] = useState<EquipeReatribuicaoResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busca, setBusca] = useState("");
@@ -54,7 +60,9 @@ function Page() {
       if (opts?.silent) setRefreshing(true);
       else setLoading(true);
       try {
-        setRows(await fetchCorretoresMonitoramento());
+        const data = await fetchCorretoresMonitoramento();
+        setRows(data.corretores ?? []);
+        setEquipes(data.equipes ?? []);
       } catch (err) {
         toast.error(
           err instanceof ApiError
@@ -84,7 +92,19 @@ function Page() {
     );
   }, [rows, busca]);
 
-  const resumo = useMemo(() => resumoAtrasos(rows), [rows]);
+  const equipesFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return equipes;
+    return equipes.filter((equipe) =>
+      equipe.name.toLowerCase().includes(termo),
+    );
+  }, [equipes, busca]);
+
+  const resumo = useMemo(() => resumoAtrasos(rows, equipes), [rows, equipes]);
+  const corretoresComAtraso = useMemo(
+    () => filtrados.filter((row) => row.totalAtrasos > 0).length,
+    [filtrados],
+  );
 
   if (!canView) {
     return (
@@ -143,7 +163,7 @@ function Page() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
         <FinanceKpiCard
           label="Leads em atraso"
           value={resumo.leads}
@@ -172,12 +192,26 @@ function Page() {
           tone="violet"
           format="number"
         />
+        <FinanceKpiCard
+          label="Perdidos na reatribuição (corretores)"
+          value={resumo.perdidosCorretores}
+          icon={UserRoundMinus}
+          tone="blue"
+          format="number"
+        />
+        <FinanceKpiCard
+          label="Perdidos na reatribuição (equipes)"
+          value={resumo.perdidosEquipes}
+          icon={Users}
+          tone="teal"
+          format="number"
+        />
       </section>
 
       <p className="mt-3 text-xs text-muted-foreground">
         {isPlatformAdmin
           ? "Clique na empresa para abrir o funil."
-          : `${resumo.corretores} corretor${resumo.corretores === 1 ? "" : "es"} com pendências · clique no lead para abrir o funil.`}
+          : `${corretoresComAtraso} corretor${corretoresComAtraso === 1 ? "" : "es"} com pendências · clique no lead para abrir o funil.`}
       </p>
 
       {loading ? (
@@ -185,7 +219,7 @@ function Page() {
           <Loader2 className="h-5 w-5 animate-spin" />
           Carregando atrasos…
         </div>
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && equipes.length === 0 ? (
         <Card className="mt-4 flex flex-col items-center gap-2 px-6 py-14 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <CircleCheckBig className="h-6 w-6" />
@@ -196,16 +230,28 @@ function Page() {
             recente e sem tarefa vencida.
           </p>
         </Card>
-      ) : filtrados.length === 0 ? (
+      ) : filtrados.length === 0 && equipesFiltradas.length === 0 ? (
         <Card className="mt-4 px-6 py-12 text-center text-sm text-muted-foreground">
-          Nenhum corretor ou lead encontrado para “{busca.trim()}”.
+          Nenhum corretor, equipe ou lead encontrado para “{busca.trim()}”.
         </Card>
       ) : (
-        <CorretoresAtrasosGrid
-          rows={filtrados}
-          leadsVisiveis={5}
-          className="mt-4 mb-6 xl:grid-cols-2 2xl:grid-cols-3"
-        />
+        <>
+          {filtrados.length > 0 ? (
+            <CorretoresAtrasosGrid
+              rows={filtrados}
+              leadsVisiveis={5}
+              className="mt-4 mb-6 xl:grid-cols-2 2xl:grid-cols-3"
+            />
+          ) : null}
+          {equipesFiltradas.length > 0 ? (
+            <section className="mb-6">
+              <h2 className="mb-2 text-sm font-semibold">
+                Equipes — leads perdidos na reatribuição
+              </h2>
+              <EquipesReatribuicaoGrid equipes={equipesFiltradas} />
+            </section>
+          ) : null}
+        </>
       )}
     </div>
   );

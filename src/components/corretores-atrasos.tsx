@@ -6,6 +6,8 @@ import {
   Clock,
   ListChecks,
   PauseCircle,
+  UserRoundMinus,
+  Users,
   TriangleAlert,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -18,6 +20,7 @@ import type {
   AtrasosResumo,
   CorretorMonitoramento,
   CorretorMonitoramentoLead,
+  EquipeReatribuicaoResumo,
   ProblemaMonitoramento,
 } from "@/lib/lead-monitoramento";
 import { cn } from "@/lib/utils";
@@ -222,6 +225,12 @@ function CorretorAtrasoCard({
               label="tarefas"
               className={PROBLEMA_STYLE.tarefa_atrasada.pill}
             />
+            <ResumoChip
+              icon={UserRoundMinus}
+              valor={row.leadsPerdidosReatribuicao ?? 0}
+              label="perdidos na reatribuição"
+              className="bg-slate-500/10 text-slate-600 dark:text-slate-300"
+            />
           </div>
         </div>
         <span className="shrink-0 self-start text-xs font-bold tabular-nums text-rose-600 dark:text-rose-300">
@@ -229,6 +238,7 @@ function CorretorAtrasoCard({
         </span>
       </div>
 
+      {row.leads.length > 0 ? (
       <ul className="mt-3 space-y-1">
         {leads.map((lead) => {
           const principal = PROBLEMA_STYLE[problemaPrincipal(lead)];
@@ -279,6 +289,7 @@ function CorretorAtrasoCard({
           );
         })}
       </ul>
+      ) : null}
 
       {row.leads.length > leadsVisiveis && (
         <button
@@ -326,6 +337,38 @@ export function CorretoresAtrasosGrid({
           stageName={stageName}
           leadsVisiveis={leadsVisiveis}
         />
+      ))}
+    </div>
+  );
+}
+
+export function EquipesReatribuicaoGrid({
+  equipes,
+  className,
+}: {
+  equipes: EquipeReatribuicaoResumo[];
+  className?: string;
+}) {
+  if (equipes.length === 0) return null;
+  return (
+    <div className={cn("grid gap-3 xl:grid-cols-2 2xl:grid-cols-3", className)}>
+      {equipes.map((equipe) => (
+        <div key={equipe.id} className="rounded-xl border bg-card p-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-300">
+              <Users className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{equipe.name}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Leads que saíram da equipe na reatribuição
+              </p>
+            </div>
+            <span className="shrink-0 text-xs font-bold tabular-nums text-slate-700 dark:text-slate-200">
+              {equipe.leadsPerdidosReatribuicao}
+            </span>
+          </div>
+        </div>
       ))}
     </div>
   );
