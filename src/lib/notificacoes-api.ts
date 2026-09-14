@@ -13,7 +13,9 @@ export type NotificacaoTipo =
   | "lead_sem_atendimento"
   | "tarefa_atrasada"
   | "imovel_compativel"
-  | "proposta_vencimento_proximo";
+  | "proposta_vencimento_proximo"
+  | "lead_atribuido"
+  | "lead_pool";
 
 export type Notificacao = {
   id: string;

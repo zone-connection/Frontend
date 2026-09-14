@@ -95,6 +95,7 @@ export type ApiUser = {
   id: string;
   name: string;
   email: string;
+  notifyEmail?: string | null;
   phone: string | null;
   whatsapp: string | null;
   dataNascimento: string | null;
@@ -127,6 +128,7 @@ export type PaginatedUsers = {
 export type CreateUserInput = {
   name: string;
   email: string;
+  notifyEmail?: string | null;
   password: string;
   phone?: string;
   whatsapp?: string;
@@ -151,6 +153,7 @@ export type CreateUserInput = {
 export type UpdateUserInput = {
   name?: string;
   email?: string;
+  notifyEmail?: string | null;
   phone?: string | null;
   whatsapp?: string | null;
   dataNascimento?: string | null;

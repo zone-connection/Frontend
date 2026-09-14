@@ -51,6 +51,7 @@ export interface AuthUser {
   phone?: string | null;
   cargo?: string | null;
   creci?: string | null;
+  notifyEmail?: string | null;
   creciStatus?: string | null;
   avatar?: string | null;
   lastLoginAt?: string | null;
@@ -237,6 +238,7 @@ export async function ensureSession(options?: {
 
 export async function updateMe(input: {
   creci?: string | null;
+  notifyEmail?: string | null;
   corAside?: string | null;
   corPrincipal?: string | null;
   corModulo?: string | null;

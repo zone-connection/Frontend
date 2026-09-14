@@ -644,7 +644,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.tipo === "lead_prazo_proximo" ||
       n.tipo === "lead_prazo_ultrapassado" ||
       n.tipo === "lead_sem_atendimento" ||
-      n.tipo === "tarefa_atrasada"
+      n.tipo === "tarefa_atrasada" ||
+      n.tipo === "lead_atribuido" ||
+      n.tipo === "lead_pool"
     ) {
       if (canOpenFunil) {
         void navigate({

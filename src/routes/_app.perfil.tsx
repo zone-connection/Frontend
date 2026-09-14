@@ -12,6 +12,7 @@ import {
   changePassword,
   getSession,
   removeMyAvatar,
+  updateMe,
   uploadMyAvatar,
   type AuthUser,
 } from "@/lib/auth";
@@ -82,6 +83,8 @@ function Perfil() {
   const [showPassword, setShowPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [savingNotifyEmail, setSavingNotifyEmail] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,6 +94,10 @@ function Perfil() {
     window.addEventListener("crm-session-updated", sync);
     return () => window.removeEventListener("crm-session-updated", sync);
   }, []);
+
+  useEffect(() => {
+    setNotifyEmail(user?.notifyEmail?.trim() ?? "");
+  }, [user?.id]);
 
   const initials =
     user?.name
@@ -162,6 +169,29 @@ function Perfil() {
       );
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function handleSaveNotifyEmail() {
+    const value = notifyEmail.trim();
+    if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      toast.error("Informe um e-mail de avisos válido");
+      return;
+    }
+    setSavingNotifyEmail(true);
+    try {
+      const next = await updateMe({ notifyEmail: value || null });
+      setUser(next);
+      setNotifyEmail(next.notifyEmail?.trim() ?? "");
+      toast.success("E-mail de avisos salvo");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar o e-mail de avisos",
+      );
+    } finally {
+      setSavingNotifyEmail(false);
     }
   }
 
@@ -249,8 +279,11 @@ function Perfil() {
               <Input defaultValue={user?.name} />
             </div>
             <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input defaultValue={user?.email} />
+              <Label>E-mail de login</Label>
+              <Input defaultValue={user?.email} disabled />
+              <p className="text-xs text-muted-foreground">
+                Usado para entrar no CRM. Não é alterado aqui.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Telefone</Label>
@@ -343,6 +376,30 @@ function Perfil() {
             <CardTitle className="text-base">Preferências</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-1.5 pb-4 border-b">
+              <Label htmlFor="notify-email">E-mail para avisos</Label>
+              <Input
+                id="notify-email"
+                type="email"
+                value={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.value)}
+                placeholder={user?.email || "ex.: seuemail@gmail.com"}
+                autoComplete="email"
+              />
+              <p className="text-xs text-muted-foreground">
+                Avisos de lead por e-mail (quando a imobiliária não usa
+                WhatsApp/OZap). Se vazio, usamos o e-mail de login.
+              </p>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={() => void handleSaveNotifyEmail()}
+                  disabled={savingNotifyEmail}
+                >
+                  {savingNotifyEmail ? "Salvando..." : "Salvar e-mail de avisos"}
+                </Button>
+              </div>
+            </div>
             <div className="flex items-center justify-between py-2 border-b">
               <div>
                 <div className="text-sm font-medium">Notificações push</div>

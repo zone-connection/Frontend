@@ -191,6 +191,7 @@ type FormMode = "create" | "edit";
 type FormState = {
   name: string;
   email: string;
+  notifyEmail: string;
   phone: string;
   whatsapp: string;
   dataNascimento: string;
@@ -213,6 +214,7 @@ type FormState = {
 const emptyForm = (): FormState => ({
   name: "",
   email: "",
+  notifyEmail: "",
   phone: "",
   whatsapp: "",
   dataNascimento: "",
@@ -247,6 +249,7 @@ function userToForm(u: ApiUser): FormState {
   return {
     name: u.name,
     email: u.email,
+    notifyEmail: u.notifyEmail ?? "",
     phone: u.phone ? formatPhone(u.phone) : "",
     whatsapp: u.whatsapp ? formatPhone(u.whatsapp) : "",
     dataNascimento: toDateInput(u.dataNascimento),
@@ -690,6 +693,7 @@ function Usuarios() {
         const created = await createUser({
           name,
           email,
+          notifyEmail: form.notifyEmail.trim() || undefined,
           password: form.password,
           phone: phone || undefined,
           whatsapp: whatsapp || undefined,
@@ -727,6 +731,7 @@ function Usuarios() {
         const updated = await updateUser(editingId, {
           name,
           email,
+          notifyEmail: form.notifyEmail.trim() || null,
           phone: phone || null,
           whatsapp: whatsapp || null,
           dataNascimento: form.dataNascimento || null,
@@ -1254,6 +1259,26 @@ function Usuarios() {
                 </div>
                 <div className="space-y-1.5">
                   <Label
+                    htmlFor="usr-notify-email"
+                    className="text-xs text-muted-foreground"
+                  >
+                    E-mail para avisos
+                  </Label>
+                  <Input
+                    id="usr-notify-email"
+                    type="email"
+                    value={form.notifyEmail}
+                    onChange={(e) => setField("notifyEmail", e.target.value)}
+                    placeholder="Opcional — se vazio, usa o e-mail de login"
+                    className="h-10 bg-background"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Destino dos avisos de lead por e-mail. Se vazio, usa o
+                    e-mail de login.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label
                     htmlFor="usr-tel"
                     className="text-xs text-muted-foreground"
                   >
@@ -1680,6 +1705,10 @@ function Usuarios() {
                       </Button>
                     </div>
                   </div>
+                  <DetailField
+                    label="E-mail para avisos"
+                    value={detail.notifyEmail || "mesmo do login"}
+                  />
                   <DetailField label="Telefone" value={detail.phone || "—"} />
                   <DetailField
                     label="WhatsApp"
