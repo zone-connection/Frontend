@@ -18,6 +18,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -92,6 +99,20 @@ export const Route = createFileRoute("/_app/leads-perdidos")({
   component: LeadsPerdidos,
 });
 
+const MOTIVO_TODOS = "all";
+const MOTIVO_SEM = "__sem_motivo__";
+
+function slugMotivo(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "motivo"
+  );
+}
+
 function initials(nome: string) {
   return nome
     .split(" ")
@@ -105,13 +126,14 @@ function initials(nome: string) {
 function LeadsPerdidos() {
   const user = getSession();
   const isPlatformAdmin = user?.role === "super_admin";
-  const { funnelStages, colorByLabel } = useCatalog();
+  const { funnelStages, colorByLabel, motivos } = useCatalog();
   const cached = getLostLeadsCache();
   const [leads, setLeads] = useState<LostLead[]>(cached ?? []);
   // Só mostra "Carregando..." na primeira visita sem cache.
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [motivoFilter, setMotivoFilter] = useState(MOTIVO_TODOS);
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
   const [detail, setDetail] = useState<LostLead | null>(null);
   const [purgeTarget, setPurgeTarget] = useState<LostLead | null>(null);
@@ -147,15 +169,35 @@ function LeadsPerdidos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const motivosFiltro = useMemo(() => {
+    const fromLeads = leads
+      .map((l) => l.motivoPerda?.trim())
+      .filter((m): m is string => Boolean(m));
+    return [...new Set([...motivos, ...fromLeads])].sort((a, b) =>
+      a.localeCompare(b, "pt-BR"),
+    );
+  }, [leads, motivos]);
+
+  const hasSemMotivo = useMemo(
+    () => leads.some((l) => !l.motivoPerda?.trim()),
+    [leads],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return leads;
-    return leads.filter((l) =>
-      `${l.nome} ${l.email} ${l.telefone} ${l.motivoPerda} ${l.corretor} ${l.perdidoPor}`
+    return leads.filter((l) => {
+      const motivo = l.motivoPerda?.trim() ?? "";
+      if (motivoFilter === MOTIVO_SEM) {
+        if (motivo) return false;
+      } else if (motivoFilter !== MOTIVO_TODOS) {
+        if (motivo.toLowerCase() !== motivoFilter.toLowerCase()) return false;
+      }
+      if (!q) return true;
+      return `${l.nome} ${l.email} ${l.telefone} ${l.motivoPerda} ${l.corretor} ${l.perdidoPor}`
         .toLowerCase()
-        .includes(q),
-    );
-  }, [leads, search]);
+        .includes(q);
+    });
+  }, [leads, search, motivoFilter]);
 
   const sorted = useMemo(
     () =>
@@ -167,7 +209,7 @@ function LeadsPerdidos() {
       ),
     [filtered, sort],
   );
-  const pager = useTablePager(sorted, `${search}|${sort}`);
+  const pager = useTablePager(sorted, `${search}|${sort}|${motivoFilter}`);
 
   const allVisibleIds = useMemo(() => sorted.map((l) => l.id), [sorted]);
   const allSelected =
@@ -266,9 +308,11 @@ function LeadsPerdidos() {
         description={
           loading
             ? "Carregando..."
-            : `${filtered.length} lead(s) removidos da operação.${
-                refreshing ? " Atualizando…" : ""
-              }`
+            : `${filtered.length} lead(s) removidos da operação${
+                motivoFilter !== MOTIVO_TODOS
+                  ? ` · ${motivoFilter === MOTIVO_SEM ? "sem motivo" : motivoFilter}`
+                  : ""
+              }.${refreshing ? " Atualizando…" : ""}`
         }
         actions={
           <>
@@ -300,24 +344,48 @@ function LeadsPerdidos() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() =>
+                onClick={() => {
+                  const day = new Date().toISOString().slice(0, 10);
+                  const suffix =
+                    motivoFilter === MOTIVO_TODOS
+                      ? day
+                      : `${slugMotivo(
+                          motivoFilter === MOTIVO_SEM
+                            ? "sem-motivo"
+                            : motivoFilter,
+                        )}-${day}`;
                   exportLostLeadsToExcel(
                     filtered,
-                    `leads-perdidos-${new Date().toISOString().slice(0, 10)}.xlsx`,
-                  )
-                }
+                    `leads-perdidos-${suffix}.xlsx`,
+                  );
+                }}
               >
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Excel (.xlsx)
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() =>
+                onClick={() => {
+                  const day = new Date().toISOString().slice(0, 10);
+                  const motivoLabel =
+                    motivoFilter === MOTIVO_TODOS
+                      ? null
+                      : motivoFilter === MOTIVO_SEM
+                        ? "Sem motivo"
+                        : motivoFilter;
+                  const suffix = motivoLabel
+                    ? `${slugMotivo(motivoLabel)}-${day}`
+                    : day;
                   exportLostLeadsToPdf(
                     filtered,
-                    `leads-perdidos-${new Date().toISOString().slice(0, 10)}.pdf`,
+                    `leads-perdidos-${suffix}.pdf`,
                     user?.tenant?.name?.trim() || "Imobiliária",
-                  )
-                }
+                    {
+                      title: motivoLabel
+                        ? `Leads Perdidos — ${motivoLabel}`
+                        : "Leads Perdidos",
+                    },
+                  );
+                }}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 PDF
@@ -342,6 +410,22 @@ function LeadsPerdidos() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select value={motivoFilter} onValueChange={setMotivoFilter}>
+          <SelectTrigger className={cn("h-9 w-52", FILTER_CONTROL)}>
+            <SelectValue placeholder="Motivo da perda" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={MOTIVO_TODOS}>Todos os motivos</SelectItem>
+            {hasSemMotivo ? (
+              <SelectItem value={MOTIVO_SEM}>Sem motivo</SelectItem>
+            ) : null}
+            {motivosFiltro.map((motivo) => (
+              <SelectItem key={motivo} value={motivo}>
+                {motivo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <TableSortSelect
           value={sort}
           onChange={setSort}

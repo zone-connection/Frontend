@@ -177,8 +177,9 @@ export function ConfigModulosOperacaoPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Escolha quais operações esta imobiliária utiliza. Desativar esconde o
-        menu e o acesso; funis e dados permanecem salvos.
+        Escolha quais operações esta imobiliária utiliza. Captação e venda de
+        usados começam desligadas; ative aqui para aparecer no menu. Desativar
+        esconde o acesso; funis e dados permanecem salvos.
       </p>
       {loading && (
         <p className="text-sm text-muted-foreground">Carregando…</p>
