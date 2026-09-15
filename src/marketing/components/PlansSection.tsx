@@ -62,8 +62,8 @@ const PLANS: Plan[] = [
     name: "Bronze",
     audience: "Ideal para pequenas imobiliárias",
     users: "Até 5 usuários",
-    setupFee: "R$ 249,99",
-    monthlyFee: "R$ 279,99/mês",
+    setupFee: "R$ 200,00",
+    monthlyFee: "R$ 249,00/mês",
     setupFeeOld: "R$ 790,00",
     monthlyFeeOld: "R$ 497,00",
     theme: {
@@ -85,8 +85,8 @@ const PLANS: Plan[] = [
     name: "Prata",
     audience: "Financeiro ou Administrativo",
     users: "Até 15 usuários",
-    setupFee: "R$ 459,99",
-    monthlyFee: "R$ 489,99/mês",
+    setupFee: "R$ 300,00",
+    monthlyFee: "R$ 379,00/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 997,00",
     theme: {
@@ -129,8 +129,8 @@ const PLANS: Plan[] = [
     name: "Ouro",
     audience: "Financeiro e Administrativo juntos",
     users: "Até 35 usuários",
-    setupFee: "R$ 569,99",
-    monthlyFee: "R$ 699,99/mês",
+    setupFee: "R$ 500,00",
+    monthlyFee: "R$ 549,00/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 1.649,00",
     theme: {

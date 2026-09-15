@@ -1496,8 +1496,8 @@ const SAAS_PLANOS: Record<
     titulo: "CONTRATO DE LICENÇA DE USO DE SOFTWARE (SaaS) – PLANO OURO",
     usuarios: "35 (trinta e cinco)",
     extra: "R$ 10,00 (dez reais) por usuário/mês",
-    mensalidade: "R$ 699,99",
-    implantacao: "R$ 569,99",
+    mensalidade: "R$ 549,00",
+    implantacao: "R$ 500,00",
     recursos:
       "CRM Imobiliário, cadastro de clientes, cadastro de empreendimentos, cadastro de corretores e usuários, funil de vendas, agenda comercial, triagem de leads, relatórios de leads, gráfico do funil de vendas, painel gerencial, atualizações da plataforma, suporte técnico em horário comercial, visão geral do financeiro, cadastro de clientes e fornecedores, movimentação bancária, contas a pagar, contas a receber, fluxo de caixa, centro de despesas, gestão de comissionamento, sistema administrativo, gerenciamento de equipes, ranking de corretores, métricas de desempenho, análise de documentações, gestão de metas, gerenciamento de propostas e acompanhamento da taxa de conversão.",
   },
@@ -1507,8 +1507,8 @@ const SAAS_PLANOS: Record<
       "CONTRATO DE LICENÇA DE USO DE SOFTWARE (SaaS) – PLANO PRATA ADMINISTRATIVO",
     usuarios: "15 (quinze)",
     extra: "R$ 10,00 (dez reais) por usuário/mês",
-    mensalidade: "R$ 489,99",
-    implantacao: "R$ 459,99",
+    mensalidade: "R$ 379,00",
+    implantacao: "R$ 300,00",
     recursos:
       "CRM Imobiliário, cadastro de clientes, cadastro de empreendimentos, cadastro de corretores e usuários, funil de vendas, agenda comercial, triagem de leads, relatórios de leads, gráfico do funil de vendas, painel gerencial, atualizações da plataforma, suporte técnico em horário comercial, sistema administrativo, gerenciamento de equipes, ranking de corretores, métricas de desempenho, análise de documentações, gestão de metas, gerenciamento de propostas e acompanhamento da taxa de conversão.",
   },
@@ -1518,8 +1518,8 @@ const SAAS_PLANOS: Record<
       "CONTRATO DE LICENÇA DE USO DE SOFTWARE (SaaS) – PLANO PRATA FINANCEIRO",
     usuarios: "15 (quinze)",
     extra: "R$ 10,00 (dez reais) por usuário/mês",
-    mensalidade: "R$ 489,99",
-    implantacao: "R$ 459,99",
+    mensalidade: "R$ 379,00",
+    implantacao: "R$ 300,00",
     recursos:
       "CRM Imobiliário, cadastro de clientes, cadastro de empreendimentos, cadastro de corretores e usuários, funil de vendas, agenda comercial, triagem de leads, relatórios de leads, gráfico do funil de vendas, painel gerencial, atualizações da plataforma, suporte técnico em horário comercial, visão geral do financeiro, cadastro de clientes e fornecedores, movimentação bancária, contas a pagar, contas a receber, fluxo de caixa, centro de despesas e gestão de comissionamento.",
   },
