@@ -416,6 +416,13 @@ export function isCorretorLike(role: string | null | undefined): boolean {
   return role === "corretor" || role === "treinee";
 }
 
+/** Corretor/treinee só vê comissões depois de ter venda vinculada. */
+export function canSeeComissao(user: AuthUser | null | undefined): boolean {
+  if (!user) return false;
+  if (!isCorretorLike(user.role)) return true;
+  return user.temVendaVinculada !== false;
+}
+
 /** Admin da imobiliária e gerente podem trocar o corretor do lead. */
 export function canReassignLead(role: string | null | undefined): boolean {
   return role === "admin" || role === "gerente";

@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
-import { canAccessRoute } from "@/lib/permissions";
+import { canAccessRoute, canSeeComissao } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
@@ -744,7 +744,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     user.tenant?.modules ?? modules,
                     plano,
                     user.permissions,
-                  ),
+                  ) &&
+                  (c.to !== "/financeiro/comissao" || canSeeComissao(user)),
                 );
                 return children.length ? { ...item, children } : null;
               }
@@ -757,6 +758,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (
                 hideClientesFromSidebar &&
                 (item.to === "/clientes" || item.to === "/funil-clientes")
+              ) {
+                return null;
+              }
+              if (
+                item.to === "/financeiro/comissao" &&
+                !canSeeComissao(user)
               ) {
                 return null;
               }

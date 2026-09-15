@@ -21,7 +21,7 @@ import {
 import { FunnelBarChart } from "@/components/funnel-bar-chart";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { canAccessRoute, isCorretorLike } from "@/lib/permissions";
+import { canAccessRoute, canSeeComissao, isCorretorLike } from "@/lib/permissions";
 import { hasUserModule } from "@/lib/user-permissions";
 import { catalogColorToChartHex } from "@/lib/catalog-colors";
 import { useCatalog, type FunnelStage } from "@/lib/catalog-store";
@@ -1509,6 +1509,7 @@ function DashboardCorretorView() {
           </div>
         </PagePanel>
 
+        {canSeeComissao(user) ? (
         <PagePanel
           inset="muted"
           guia="dashboard-comissao"
@@ -1547,6 +1548,7 @@ function DashboardCorretorView() {
             />
           </div>
         </PagePanel>
+        ) : null}
       </div>
 
       <section

@@ -48,6 +48,7 @@ export interface AuthUser {
     modules: Record<string, boolean>;
     actions: Record<string, boolean>;
   } | null;
+  temVendaVinculada?: boolean;
   phone?: string | null;
   cargo?: string | null;
   creci?: string | null;
