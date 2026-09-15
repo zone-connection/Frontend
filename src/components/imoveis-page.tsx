@@ -148,6 +148,7 @@ import {
   Users,
   Wallet,
   MessageCircle,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchNotificacoes } from "@/lib/notificacoes-api";
@@ -254,6 +255,7 @@ type EmpreendimentoFormTab =
   | "status"
   | "tags"
   | "previsao"
+  | "vitrine"
   | "observacao";
 
 type EmpreendimentoForm = {
@@ -276,6 +278,14 @@ type EmpreendimentoForm = {
   valorReferencia: string;
   rendaAPartirDe: string;
   observacao: string;
+  vitrineHeadline: string;
+  vitrineDescricao: string;
+  vitrineDiferenciais: string;
+  vitrineLazer: string;
+  vitrineNumero: string;
+  vitrineBairro: string;
+  vitrineEstado: string;
+  vitrineCep: string;
 };
 
 function emptyEmpreendimentoForm(): EmpreendimentoForm {
@@ -299,6 +309,14 @@ function emptyEmpreendimentoForm(): EmpreendimentoForm {
     valorReferencia: "",
     rendaAPartirDe: "",
     observacao: "",
+    vitrineHeadline: "",
+    vitrineDescricao: "",
+    vitrineDiferenciais: "",
+    vitrineLazer: "",
+    vitrineNumero: "",
+    vitrineBairro: "",
+    vitrineEstado: "",
+    vitrineCep: "",
   };
 }
 
@@ -329,6 +347,14 @@ function formFromEmpreendimento(item: Empreendimento): EmpreendimentoForm {
         ? formatMoneyInput(item.rendaAPartirDe)
         : "",
     observacao: item.observacao ?? "",
+    vitrineHeadline: item.vitrine?.headline ?? "",
+    vitrineDescricao: item.vitrine?.descricao ?? "",
+    vitrineDiferenciais: (item.vitrine?.diferenciais ?? []).join("\n"),
+    vitrineLazer: (item.vitrine?.lazer ?? []).join("\n"),
+    vitrineNumero: item.vitrine?.numero ?? "",
+    vitrineBairro: item.vitrine?.bairro ?? "",
+    vitrineEstado: item.vitrine?.estado ?? "",
+    vitrineCep: item.vitrine?.cep ?? "",
   };
 }
 
@@ -691,6 +717,22 @@ export function ImoveisPage({
         vagas: Number.isFinite(vagas) ? vagas : null,
         valorReferencia,
         rendaAPartirDe,
+        vitrine: {
+          headline: form.vitrineHeadline.trim() || null,
+          descricao: form.vitrineDescricao.trim() || null,
+          diferenciais: form.vitrineDiferenciais
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean),
+          lazer: form.vitrineLazer
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean),
+          numero: form.vitrineNumero.trim() || null,
+          bairro: form.vitrineBairro.trim() || null,
+          estado: form.vitrineEstado.trim() || null,
+          cep: form.vitrineCep.trim() || null,
+        },
       };
 
       if (editingId) {
@@ -719,6 +761,7 @@ export function ImoveisPage({
           ...(payload.rendaAPartirDe != null
             ? { rendaAPartirDe: payload.rendaAPartirDe }
             : {}),
+          vitrine: payload.vitrine,
         });
         try {
           for (const file of pendingFiles) {
@@ -2524,7 +2567,7 @@ export function ImoveisPage({
         className="max-w-3xl"
         icon={<Building2 className="w-5 h-5" />}
         title={editingId ? "Editar empreendimento" : "Novo empreendimento"}
-        description="Preencha cada seção: identidade, localidade, tipo, status, tags, previsão e observação."
+        description="Cadastre os dados do catálogo e o conteúdo da página pública compartilhada."
         footer={
           <FormDialogActions>
             <Button
@@ -2585,6 +2628,13 @@ export function ImoveisPage({
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Previsão
+              </TabsTrigger>
+              <TabsTrigger
+                value="vitrine"
+                className="gap-1.5 rounded-full px-3"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Página pública
               </TabsTrigger>
               <TabsTrigger
                 value="observacao"
@@ -3171,6 +3221,122 @@ export function ImoveisPage({
                 <p className="text-xs text-muted-foreground">
                   Renda mínima sugerida. Aparece no card e no filtro de renda.
                 </p>
+              </div>
+            </div>
+          </FormSection>
+            </TabsContent>
+
+            <TabsContent value="vitrine" className="mt-4">
+          <FormSection
+            icon={<Globe className="h-4 w-4" />}
+            title="Página pública"
+            description="Textos e endereço extra que aparecem no site compartilhado. Deixe em branco o que não quiser exibir."
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="imovel-vitrine-headline">Título de destaque</Label>
+                <Input
+                  id="imovel-vitrine-headline"
+                  value={form.vitrineHeadline}
+                  onChange={(event) =>
+                    setField("vitrineHeadline", event.target.value)
+                  }
+                  placeholder="Ex.: O lugar perfeito para viver bem"
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="imovel-vitrine-descricao">Descrição</Label>
+                <Textarea
+                  id="imovel-vitrine-descricao"
+                  value={form.vitrineDescricao}
+                  onChange={(event) =>
+                    setField("vitrineDescricao", event.target.value)
+                  }
+                  placeholder="Apresente o empreendimento para o cliente final."
+                  rows={8}
+                  maxLength={8000}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-diferenciais">
+                    Diferenciais (um por linha)
+                  </Label>
+                  <Textarea
+                    id="imovel-vitrine-diferenciais"
+                    value={form.vitrineDiferenciais}
+                    onChange={(event) =>
+                      setField("vitrineDiferenciais", event.target.value)
+                    }
+                    placeholder={"Varanda com parapeto em vidro\nPiso vinílico"}
+                    rows={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-lazer">
+                    Área de lazer (um por linha)
+                  </Label>
+                  <Textarea
+                    id="imovel-vitrine-lazer"
+                    value={form.vitrineLazer}
+                    onChange={(event) =>
+                      setField("vitrineLazer", event.target.value)
+                    }
+                    placeholder={"Piscina\nEspaço grill\nPlayground"}
+                    rows={6}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-numero">Número</Label>
+                  <Input
+                    id="imovel-vitrine-numero"
+                    value={form.vitrineNumero}
+                    onChange={(event) =>
+                      setField("vitrineNumero", event.target.value)
+                    }
+                    placeholder="1000"
+                    maxLength={20}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-bairro">Bairro</Label>
+                  <Input
+                    id="imovel-vitrine-bairro"
+                    value={form.vitrineBairro}
+                    onChange={(event) =>
+                      setField("vitrineBairro", event.target.value)
+                    }
+                    placeholder="Varzea"
+                    maxLength={80}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-estado">Estado</Label>
+                  <Input
+                    id="imovel-vitrine-estado"
+                    value={form.vitrineEstado}
+                    onChange={(event) =>
+                      setField("vitrineEstado", event.target.value)
+                    }
+                    placeholder="Pernambuco"
+                    maxLength={40}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imovel-vitrine-cep">CEP</Label>
+                  <Input
+                    id="imovel-vitrine-cep"
+                    value={form.vitrineCep}
+                    onChange={(event) =>
+                      setField("vitrineCep", event.target.value)
+                    }
+                    placeholder="50741-430"
+                    maxLength={12}
+                  />
+                </div>
               </div>
             </div>
           </FormSection>

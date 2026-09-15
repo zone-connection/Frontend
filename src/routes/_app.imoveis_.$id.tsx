@@ -104,11 +104,17 @@ function EmpreendimentoDetalhePage() {
   }
 
   const covers = empreendimentoImagens(item);
-  const imobiliaria = getSession()?.tenant?.name?.trim() || "Imobiliária";
+  const tenant = getSession()?.tenant;
+  const imobiliaria = tenant?.name?.trim() || "Imobiliária";
+  const tenantSlug = tenant?.slug?.trim() || "";
 
   async function compartilhar() {
-    const url = empreendimentoShareUrl(item.id);
-    const text = empreendimentoShareText(item.nome, imobiliaria, item.id);
+    if (!tenantSlug) {
+      toast.error("Não foi possível montar o link de compartilhamento.");
+      return;
+    }
+    const url = empreendimentoShareUrl(tenantSlug, item.nome);
+    const text = empreendimentoShareText(item.nome, imobiliaria, tenantSlug);
     try {
       if (typeof navigator.share === "function") {
         await navigator.share({

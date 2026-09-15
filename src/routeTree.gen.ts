@@ -95,6 +95,7 @@ import { Route as AppCaptacaoProprietariosIndexRouteImport } from './routes/_app
 import { Route as AppCaptacaoProprietariosIdRouteImport } from './routes/_app.captacao.proprietarios.$id'
 import { Route as AppImoveisUsadosVendasIndexRouteImport } from './routes/_app.imoveis-usados.vendas.index'
 import { Route as AppImoveisUsadosVendasIdRouteImport } from './routes/_app.imoveis-usados.vendas.$id'
+import { Route as PublicoEmpreendimentoTenantSlugRouteImport } from './routes/publico.empreendimento.$tenant.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -541,6 +542,12 @@ const AppImoveisUsadosVendasIdRoute =
     path: '/$id',
     getParentRoute: () => AppImoveisUsadosVendasRoute,
   } as any)
+const PublicoEmpreendimentoTenantSlugRoute =
+  PublicoEmpreendimentoTenantSlugRouteImport.update({
+    id: '/publico/empreendimento/$tenant/$slug',
+    path: '/publico/empreendimento/$tenant/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByFullPath {
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
   '/captacao/imoveis/': typeof AppCaptacaoImoveisIndexRoute
   '/captacao/proprietarios/': typeof AppCaptacaoProprietariosIndexRoute
@@ -705,6 +713,7 @@ export interface FileRoutesByTo {
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesIndexRoute
   '/captacao/imoveis': typeof AppCaptacaoImoveisIndexRoute
   '/captacao/proprietarios': typeof AppCaptacaoProprietariosIndexRoute
@@ -794,6 +803,7 @@ export interface FileRoutesById {
   '/_app/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/_app/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/_app/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/_app/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
   '/_app/captacao/imoveis/': typeof AppCaptacaoImoveisIndexRoute
   '/_app/captacao/proprietarios/': typeof AppCaptacaoProprietariosIndexRoute
@@ -883,6 +893,7 @@ export interface FileRouteTypes {
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
+    | '/publico/empreendimento/$tenant/$slug'
     | '/captacao/captacoes/'
     | '/captacao/imoveis/'
     | '/captacao/proprietarios/'
@@ -964,6 +975,7 @@ export interface FileRouteTypes {
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
+    | '/publico/empreendimento/$tenant/$slug'
     | '/captacao/captacoes'
     | '/captacao/imoveis'
     | '/captacao/proprietarios'
@@ -1052,6 +1064,7 @@ export interface FileRouteTypes {
     | '/_app/captacao/imoveis/$id'
     | '/_app/captacao/proprietarios/$id'
     | '/_app/imoveis-usados/vendas/$id'
+    | '/publico/empreendimento/$tenant/$slug'
     | '/_app/captacao/captacoes/'
     | '/_app/captacao/imoveis/'
     | '/_app/captacao/proprietarios/'
@@ -1070,6 +1083,7 @@ export interface RootRouteChildren {
   ProdutosIaWhatsappRoute: typeof ProdutosIaWhatsappRoute
   ProdutosSitesInstitucionaisRoute: typeof ProdutosSitesInstitucionaisRoute
   PublicoEmpreendimentoIdRoute: typeof PublicoEmpreendimentoIdRoute
+  PublicoEmpreendimentoTenantSlugRoute: typeof PublicoEmpreendimentoTenantSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1676,6 +1690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImoveisUsadosVendasIdRouteImport
       parentRoute: typeof AppImoveisUsadosVendasRoute
     }
+    '/publico/empreendimento/$tenant/$slug': {
+      id: '/publico/empreendimento/$tenant/$slug'
+      path: '/publico/empreendimento/$tenant/$slug'
+      fullPath: '/publico/empreendimento/$tenant/$slug'
+      preLoaderRoute: typeof PublicoEmpreendimentoTenantSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1940,6 +1961,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosIaWhatsappRoute: ProdutosIaWhatsappRoute,
   ProdutosSitesInstitucionaisRoute: ProdutosSitesInstitucionaisRoute,
   PublicoEmpreendimentoIdRoute: PublicoEmpreendimentoIdRoute,
+  PublicoEmpreendimentoTenantSlugRoute: PublicoEmpreendimentoTenantSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

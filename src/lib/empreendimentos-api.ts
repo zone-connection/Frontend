@@ -51,6 +51,18 @@ export type Empreendimento = {
   updatedAt: string;
   construtora: { id: string; nome: string; cor: string | null } | null;
   localidade: { id: string; nome: string } | null;
+  vitrine?: EmpreendimentoVitrine | null;
+};
+
+export type EmpreendimentoVitrine = {
+  headline: string | null;
+  descricao: string | null;
+  diferenciais: string[];
+  lazer: string[];
+  numero: string | null;
+  bairro: string | null;
+  estado: string | null;
+  cep: string | null;
 };
 
 export type CreateEmpreendimentoInput = {
@@ -71,6 +83,7 @@ export type CreateEmpreendimentoInput = {
   valorReferencia?: number | null;
   rendaAPartirDe?: number | null;
   areaM2?: number | null;
+  vitrine?: EmpreendimentoVitrine | null;
 };
 
 export type UpdateEmpreendimentoInput = {
@@ -93,6 +106,7 @@ export type UpdateEmpreendimentoInput = {
   areaM2?: number | null;
   externalUrl?: string | null;
   ativo?: boolean;
+  vitrine?: EmpreendimentoVitrine | null;
 };
 
 export type EmpreendimentoMatchNivel = "muito_compativel" | "compativel";
@@ -194,7 +208,6 @@ export function empreendimentoLocalidadeNome(item: Empreendimento) {
 }
 
 export type EmpreendimentoPublico = {
-  id: string;
   nome: string;
   cidade: string | null;
   endereco: string | null;
@@ -210,28 +223,52 @@ export type EmpreendimentoPublico = {
   localidade: string | null;
   construtora: string | null;
   imobiliaria: string;
+  tenantSlug: string;
+  slug: string;
   logoUrl: string | null;
   telefone: string | null;
   cor: string | null;
+  vitrine: EmpreendimentoVitrine | null;
 };
 
-export function empreendimentoShareUrl(id: string) {
+export function slugifyPublico(value: string) {
+  const slug = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return slug || "empreendimento";
+}
+
+export function empreendimentoShareUrl(tenantSlug: string, nome: string) {
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
       : "https://www.zoneconnection.com.br";
-  return `${origin}/publico/empreendimento/${id}`;
+  return `${origin}/publico/empreendimento/${encodeURIComponent(tenantSlug)}/${slugifyPublico(nome)}`;
 }
 
 export function empreendimentoShareText(
   nome: string,
   imobiliaria: string,
-  id: string,
+  tenantSlug: string,
 ) {
-  return `${nome} | ${imobiliaria} - ${empreendimentoShareUrl(id)}`;
+  return `${nome} | ${imobiliaria} - ${empreendimentoShareUrl(tenantSlug, nome)}`;
 }
 
 export async function fetchEmpreendimentoPublico(
+  tenantSlug: string,
+  slug: string,
+): Promise<EmpreendimentoPublico> {
+  return apiFetch<EmpreendimentoPublico>(
+    `/publico/empreendimentos/${encodeURIComponent(tenantSlug)}/${encodeURIComponent(slug)}`,
+    { skipAuth: true },
+  );
+}
+
+export async function fetchEmpreendimentoPublicoById(
   id: string,
 ): Promise<EmpreendimentoPublico> {
   return apiFetch<EmpreendimentoPublico>(`/publico/empreendimentos/${id}`, {
