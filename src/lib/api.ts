@@ -238,7 +238,8 @@ async function requestWithAuth(
       if (
         isBrowser() &&
         !window.location.pathname.startsWith("/login") &&
-        !window.location.pathname.startsWith("/portal")
+        !window.location.pathname.startsWith("/portal") &&
+        !window.location.pathname.startsWith("/publico")
       ) {
         window.location.assign("/login");
       }

@@ -18,6 +18,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppAtrasosRouteImport } from './routes/_app.atrasos'
+import { Route as AppCacaLeadRouteImport } from './routes/_app.caca-lead'
 import { Route as AppCaptacaoRouteImport } from './routes/_app.captacao'
 import { Route as AppClientesRouteImport } from './routes/_app.clientes'
 import { Route as AppClientesPerdidosRouteImport } from './routes/_app.clientes-perdidos'
@@ -36,7 +37,6 @@ import { Route as AppGuiaSistemaRouteImport } from './routes/_app.guia-sistema'
 import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
-import { Route as AppCacaLeadRouteImport } from './routes/_app.caca-lead'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
@@ -86,6 +86,7 @@ import { Route as AppImoveisUsadosVisaoGeralRouteImport } from './routes/_app.im
 import { Route as AppImoveisIdRouteImport } from './routes/_app.imoveis_.$id'
 import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.index'
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
+import { Route as PublicoEmpreendimentoIdRouteImport } from './routes/publico.empreendimento.$id'
 import { Route as AppCaptacaoCaptacoesIndexRouteImport } from './routes/_app.captacao.captacoes.index'
 import { Route as AppCaptacaoCaptacoesIdRouteImport } from './routes/_app.captacao.captacoes.$id'
 import { Route as AppCaptacaoImoveisIndexRouteImport } from './routes/_app.captacao.imoveis.index'
@@ -137,6 +138,11 @@ const AppAgendaRoute = AppAgendaRouteImport.update({
 const AppAtrasosRoute = AppAtrasosRouteImport.update({
   id: '/atrasos',
   path: '/atrasos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCacaLeadRoute = AppCacaLeadRouteImport.update({
+  id: '/caca-lead',
+  path: '/caca-lead',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCaptacaoRoute = AppCaptacaoRouteImport.update({
@@ -227,11 +233,6 @@ const AppImoveisUsadosRoute = AppImoveisUsadosRouteImport.update({
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCacaLeadRoute = AppCacaLeadRouteImport.update({
-  id: '/caca-lead',
-  path: '/caca-lead',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
@@ -490,6 +491,11 @@ const PortalImoveisIdRoute = PortalImoveisIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => PortalImoveisRoute,
 } as any)
+const PublicoEmpreendimentoIdRoute = PublicoEmpreendimentoIdRouteImport.update({
+  id: '/publico/empreendimento/$id',
+  path: '/publico/empreendimento/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppCaptacaoCaptacoesIndexRoute =
   AppCaptacaoCaptacoesIndexRouteImport.update({
     id: '/',
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/agenda': typeof AppAgendaRoute
   '/atrasos': typeof AppAtrasosRoute
+  '/caca-lead': typeof AppCacaLeadRoute
   '/captacao': typeof AppCaptacaoRouteWithChildren
   '/clientes': typeof AppClientesRoute
   '/clientes-perdidos': typeof AppClientesPerdidosRoute
@@ -563,7 +570,6 @@ export interface FileRoutesByFullPath {
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
-  '/caca-lead': typeof AppCacaLeadRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
   '/perfil': typeof AppPerfilRoute
@@ -612,6 +618,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/imoveis/$id': typeof AppImoveisIdRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
+  '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -630,6 +637,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/agenda': typeof AppAgendaRoute
   '/atrasos': typeof AppAtrasosRoute
+  '/caca-lead': typeof AppCacaLeadRoute
   '/captacao': typeof AppCaptacaoRouteWithChildren
   '/clientes': typeof AppClientesRoute
   '/clientes-perdidos': typeof AppClientesPerdidosRoute
@@ -648,7 +656,6 @@ export interface FileRoutesByTo {
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
-  '/caca-lead': typeof AppCacaLeadRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
   '/perfil': typeof AppPerfilRoute
@@ -692,6 +699,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/imoveis/$id': typeof AppImoveisIdRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
+  '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/portal/imoveis': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -713,6 +721,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/atrasos': typeof AppAtrasosRoute
+  '/_app/caca-lead': typeof AppCacaLeadRoute
   '/_app/captacao': typeof AppCaptacaoRouteWithChildren
   '/_app/clientes': typeof AppClientesRoute
   '/_app/clientes-perdidos': typeof AppClientesPerdidosRoute
@@ -731,7 +740,6 @@ export interface FileRoutesById {
   '/_app/imoveis': typeof AppImoveisRoute
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/_app/leads': typeof AppLeadsRoute
-  '/_app/caca-lead': typeof AppCacaLeadRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/_app/metas': typeof AppMetasRoute
   '/_app/perfil': typeof AppPerfilRoute
@@ -780,6 +788,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/_app/imoveis_/$id': typeof AppImoveisIdRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
+  '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/_app/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/_app/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -801,6 +810,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda'
     | '/atrasos'
+    | '/caca-lead'
     | '/captacao'
     | '/clientes'
     | '/clientes-perdidos'
@@ -819,7 +829,6 @@ export interface FileRouteTypes {
     | '/imoveis'
     | '/imoveis-usados'
     | '/leads'
-    | '/caca-lead'
     | '/leads-perdidos'
     | '/metas'
     | '/perfil'
@@ -868,6 +877,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/visao-geral'
     | '/imoveis/$id'
     | '/portal/imoveis/$id'
+    | '/publico/empreendimento/$id'
     | '/portal/imoveis/'
     | '/captacao/captacoes/$id'
     | '/captacao/imoveis/$id'
@@ -886,6 +896,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/agenda'
     | '/atrasos'
+    | '/caca-lead'
     | '/captacao'
     | '/clientes'
     | '/clientes-perdidos'
@@ -904,7 +915,6 @@ export interface FileRouteTypes {
     | '/imoveis'
     | '/imoveis-usados'
     | '/leads'
-    | '/caca-lead'
     | '/leads-perdidos'
     | '/metas'
     | '/perfil'
@@ -948,6 +958,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/visao-geral'
     | '/imoveis/$id'
     | '/portal/imoveis/$id'
+    | '/publico/empreendimento/$id'
     | '/portal/imoveis'
     | '/captacao/captacoes/$id'
     | '/captacao/imoveis/$id'
@@ -968,6 +979,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_app/agenda'
     | '/_app/atrasos'
+    | '/_app/caca-lead'
     | '/_app/captacao'
     | '/_app/clientes'
     | '/_app/clientes-perdidos'
@@ -986,7 +998,6 @@ export interface FileRouteTypes {
     | '/_app/imoveis'
     | '/_app/imoveis-usados'
     | '/_app/leads'
-    | '/_app/caca-lead'
     | '/_app/leads-perdidos'
     | '/_app/metas'
     | '/_app/perfil'
@@ -1035,6 +1046,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados/visao-geral'
     | '/_app/imoveis_/$id'
     | '/portal/imoveis/$id'
+    | '/publico/empreendimento/$id'
     | '/portal/imoveis/'
     | '/_app/captacao/captacoes/$id'
     | '/_app/captacao/imoveis/$id'
@@ -1057,6 +1069,7 @@ export interface RootRouteChildren {
   ProdutosCrmImobiliarioRoute: typeof ProdutosCrmImobiliarioRoute
   ProdutosIaWhatsappRoute: typeof ProdutosIaWhatsappRoute
   ProdutosSitesInstitucionaisRoute: typeof ProdutosSitesInstitucionaisRoute
+  PublicoEmpreendimentoIdRoute: typeof PublicoEmpreendimentoIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1122,6 +1135,13 @@ declare module '@tanstack/react-router' {
       path: '/atrasos'
       fullPath: '/atrasos'
       preLoaderRoute: typeof AppAtrasosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/caca-lead': {
+      id: '/_app/caca-lead'
+      path: '/caca-lead'
+      fullPath: '/caca-lead'
+      preLoaderRoute: typeof AppCacaLeadRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/captacao': {
@@ -1248,13 +1268,6 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/leads'
       preLoaderRoute: typeof AppLeadsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/caca-lead': {
-      id: '/_app/caca-lead'
-      path: '/caca-lead'
-      fullPath: '/caca-lead'
-      preLoaderRoute: typeof AppCacaLeadRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/leads-perdidos': {
@@ -1600,6 +1613,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalImoveisIdRouteImport
       parentRoute: typeof PortalImoveisRoute
     }
+    '/publico/empreendimento/$id': {
+      id: '/publico/empreendimento/$id'
+      path: '/publico/empreendimento/$id'
+      fullPath: '/publico/empreendimento/$id'
+      preLoaderRoute: typeof PublicoEmpreendimentoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/captacao/captacoes/': {
       id: '/_app/captacao/captacoes/'
       path: '/'
@@ -1794,6 +1814,7 @@ const AppImoveisUsadosRouteWithChildren =
 interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
   AppAtrasosRoute: typeof AppAtrasosRoute
+  AppCacaLeadRoute: typeof AppCacaLeadRoute
   AppCaptacaoRoute: typeof AppCaptacaoRouteWithChildren
   AppClientesRoute: typeof AppClientesRoute
   AppClientesPerdidosRoute: typeof AppClientesPerdidosRoute
@@ -1812,7 +1833,6 @@ interface AppRouteChildren {
   AppImoveisRoute: typeof AppImoveisRoute
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRoute
-  AppCacaLeadRoute: typeof AppCacaLeadRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
   AppMetasRoute: typeof AppMetasRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -1831,6 +1851,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAgendaRoute: AppAgendaRoute,
   AppAtrasosRoute: AppAtrasosRoute,
+  AppCacaLeadRoute: AppCacaLeadRoute,
   AppCaptacaoRoute: AppCaptacaoRouteWithChildren,
   AppClientesRoute: AppClientesRoute,
   AppClientesPerdidosRoute: AppClientesPerdidosRoute,
@@ -1849,7 +1870,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppImoveisRoute: AppImoveisRoute,
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
   AppLeadsRoute: AppLeadsRoute,
-  AppCacaLeadRoute: AppCacaLeadRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
   AppMetasRoute: AppMetasRoute,
   AppPerfilRoute: AppPerfilRoute,
@@ -1919,17 +1939,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosCrmImobiliarioRoute: ProdutosCrmImobiliarioRoute,
   ProdutosIaWhatsappRoute: ProdutosIaWhatsappRoute,
   ProdutosSitesInstitucionaisRoute: ProdutosSitesInstitucionaisRoute,
+  PublicoEmpreendimentoIdRoute: PublicoEmpreendimentoIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

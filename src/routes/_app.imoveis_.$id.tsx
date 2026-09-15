@@ -10,13 +10,16 @@ import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import {
   empreendimentoImagens,
   empreendimentoLocalidadeNome,
+  empreendimentoShareText,
+  empreendimentoShareUrl,
   empreendimentoStatusLabel,
   empreendimentoTipoLabel,
   fetchEmpreendimento,
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { fetchOruloComercial, fetchOruloOAuthUrl, type OruloComercial } from "@/lib/orulo-api";
-import { Building2, Loader2 } from "lucide-react";
+import { getSession } from "@/lib/auth";
+import { Building2, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/imoveis_/$id")({
@@ -101,6 +104,30 @@ function EmpreendimentoDetalhePage() {
   }
 
   const covers = empreendimentoImagens(item);
+  const imobiliaria = getSession()?.tenant?.name?.trim() || "Imobiliária";
+
+  async function compartilhar() {
+    const url = empreendimentoShareUrl(item.id);
+    const text = empreendimentoShareText(item.nome, imobiliaria, item.id);
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({
+          title: item.nome,
+          text,
+          url,
+        });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Texto copiado. Cole no WhatsApp para enviar.");
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  }
 
   return (
     <>
@@ -116,9 +143,15 @@ function EmpreendimentoDetalhePage() {
             .join(" · ") || "Empreendimento do catálogo"
         }
         actions={
-          <Button asChild size="sm" variant="outline">
-            <Link to="/imoveis">Voltar ao catálogo</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={() => void compartilhar()}>
+              <Share2 className="mr-1.5 h-4 w-4" />
+              Compartilhar
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/imoveis">Voltar ao catálogo</Link>
+            </Button>
+          </div>
         }
       />
 

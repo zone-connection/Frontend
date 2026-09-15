@@ -193,6 +193,52 @@ export function empreendimentoLocalidadeNome(item: Empreendimento) {
   return item.localidade?.nome || item.cidade || "";
 }
 
+export type EmpreendimentoPublico = {
+  id: string;
+  nome: string;
+  cidade: string | null;
+  endereco: string | null;
+  tipo: string | null;
+  status: string | null;
+  previsaoEntrega: string | null;
+  quartos: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  valorReferencia: number | null;
+  areaM2: number | null;
+  imagens: string[];
+  localidade: string | null;
+  construtora: string | null;
+  imobiliaria: string;
+  logoUrl: string | null;
+  telefone: string | null;
+  cor: string | null;
+};
+
+export function empreendimentoShareUrl(id: string) {
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://www.zoneconnection.com.br";
+  return `${origin}/publico/empreendimento/${id}`;
+}
+
+export function empreendimentoShareText(
+  nome: string,
+  imobiliaria: string,
+  id: string,
+) {
+  return `${nome} | ${imobiliaria} - ${empreendimentoShareUrl(id)}`;
+}
+
+export async function fetchEmpreendimentoPublico(
+  id: string,
+): Promise<EmpreendimentoPublico> {
+  return apiFetch<EmpreendimentoPublico>(`/publico/empreendimentos/${id}`, {
+    skipAuth: true,
+  });
+}
+
 export async function uploadEmpreendimentoImagem(
   id: string,
   file: File,
