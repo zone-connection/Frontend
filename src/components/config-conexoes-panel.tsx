@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api";
@@ -566,8 +567,11 @@ function GoogleConexoesCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row flex-wrap items-center gap-2 space-y-0">
         <CardTitle className="text-base">Google Agenda</CardTitle>
+        <Badge variant="secondary" className="text-[10px]">
+          Em desenvolvimento
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
@@ -709,8 +713,11 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row flex-wrap items-center gap-2 space-y-0">
         <CardTitle className="text-base">Órulo — catálogo de imóveis</CardTitle>
+        <Badge variant="secondary" className="text-[10px]">
+          Em desenvolvimento
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
