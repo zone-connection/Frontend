@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { brl } from "@/lib/crm-types";
 import type { EmpreendimentoPublico } from "@/lib/empreendimentos-api";
-import { getWhatsAppUrl } from "@/lib/env";
+import { env, getWhatsAppUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 function formatPrevisao(iso: string | null | undefined) {
@@ -26,6 +26,23 @@ function formatCep(value: string) {
   const digits = value.replace(/\D/g, "");
   if (digits.length === 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
   return value;
+}
+
+function formatPhone(value: string | null | undefined) {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
+  }
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return value?.trim() || "";
 }
 
 export function PublicoEmpreendimentoView({
@@ -80,19 +97,19 @@ export function PublicoEmpreendimentoView({
     Boolean(vitrine?.cep);
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-white text-zinc-900">
       <header className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-8">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             {item.logoUrl ? (
               <img
                 src={item.logoUrl}
                 alt={item.imobiliaria}
-                className="h-10 w-10 rounded-full object-cover ring-1 ring-zinc-200"
+                className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
               />
             ) : (
               <span
-                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
                 style={{ backgroundColor: accent }}
               >
                 {item.imobiliaria.slice(0, 1).toUpperCase()}
@@ -110,7 +127,7 @@ export function PublicoEmpreendimentoView({
               href={wa}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
+              className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white sm:px-4 sm:text-xs"
               style={{ backgroundColor: accent }}
             >
               Corretor(a)
@@ -119,45 +136,54 @@ export function PublicoEmpreendimentoView({
         </div>
       </header>
 
-      <section className="relative h-[52vh] min-h-[320px] overflow-hidden bg-zinc-900 sm:h-[62vh]">
-        {current ? (
+      <section className="relative h-[42vh] min-h-[220px] w-full overflow-hidden bg-zinc-900 sm:h-[62vh] sm:min-h-[320px]">
+        {photos[0] ? (
           <img
-            src={photos[0] ?? current}
+            src={photos[0]}
             alt={item.nome}
-            className="h-full w-full object-cover"
+            className="h-full w-full max-w-full object-cover"
           />
         ) : (
           <div className="h-full w-full bg-zinc-800" />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/25 to-black/20" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-4 pb-10 text-center text-white sm:px-8">
-          <h1 className="text-3xl font-semibold tracking-[0.18em] sm:text-5xl">
+        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-4 pb-6 text-center text-white sm:px-8 sm:pb-10">
+          <h1 className="break-words text-2xl font-semibold tracking-wide sm:text-5xl sm:tracking-[0.18em]">
             {item.nome}
           </h1>
           {item.tipo ? (
-            <span className="mt-4 inline-flex rounded-full bg-white/15 px-4 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+            <span className="mt-3 inline-flex rounded-full bg-white/15 px-4 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
               {item.tipo}
             </span>
           ) : null}
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-          <section>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
+        {item.valorReferencia != null ? (
+          <p
+            className="mb-6 text-2xl font-semibold tracking-tight sm:text-3xl"
+            style={{ color: accent }}
+          >
+            A partir de {brl(item.valorReferencia)}
+          </p>
+        ) : null}
+
+        <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
+          <section className="min-w-0 max-w-full">
             <p className="mb-3 text-sm font-medium text-zinc-500">Fotos</p>
-            <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50 shadow-sm">
-              <div className="relative aspect-16/10">
+            <div className="w-full max-w-full overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50 shadow-sm">
+              <div className="relative aspect-video w-full overflow-hidden">
                 {current ? (
                   <button
                     type="button"
-                    className="h-full w-full"
+                    className="absolute inset-0 h-full w-full"
                     onClick={() => setLightbox(true)}
                   >
                     <img
                       src={current}
                       alt={`${item.nome} ${index + 1}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full max-w-full object-cover"
                     />
                   </button>
                 ) : (
@@ -169,32 +195,32 @@ export function PublicoEmpreendimentoView({
                   <>
                     <button
                       type="button"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"
+                      className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-1.5 shadow sm:left-3 sm:p-2"
                       onClick={prev}
                       aria-label="Foto anterior"
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"
+                      className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-1.5 shadow sm:right-3 sm:p-2"
                       onClick={next}
                       aria-label="Próxima foto"
                     >
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </>
                 ) : null}
               </div>
               {photos.length > 1 ? (
-                <div className="flex gap-2 overflow-x-auto p-3">
+                <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain p-3">
                   {photos.map((src, i) => (
                     <button
-                      key={src}
+                      key={`${src}-${i}`}
                       type="button"
                       onClick={() => setIndex(i)}
                       className={cn(
-                        "h-16 w-24 shrink-0 overflow-hidden rounded-lg ring-2 ring-transparent",
+                        "h-14 w-20 shrink-0 overflow-hidden rounded-lg ring-2 ring-transparent sm:h-16 sm:w-24",
                         i === index && "ring-zinc-900",
                       )}
                     >
@@ -206,14 +232,14 @@ export function PublicoEmpreendimentoView({
             </div>
           </section>
 
-          <section className="space-y-6">
-            <div className="grid grid-cols-3 gap-3 text-center">
+          <section className="min-w-0 space-y-6">
+            <div className="grid grid-cols-2 gap-3 text-center">
               {item.status ? (
                 <div className="rounded-xl bg-zinc-50 px-3 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
                     Status
                   </p>
-                  <p className="mt-1 text-sm font-medium">{item.status}</p>
+                  <p className="mt-1 break-words text-sm font-medium">{item.status}</p>
                 </div>
               ) : null}
               {formatPrevisao(item.previsaoEntrega) ? (
@@ -226,19 +252,9 @@ export function PublicoEmpreendimentoView({
                   </p>
                 </div>
               ) : null}
-              {item.valorReferencia != null ? (
-                <div className="rounded-xl bg-zinc-50 px-3 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                    Valor
-                  </p>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: accent }}>
-                    {brl(item.valorReferencia)}
-                  </p>
-                </div>
-              ) : null}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-6 text-zinc-600">
+            <div className="flex flex-wrap gap-x-5 gap-y-3 text-zinc-600">
               {item.quartos != null ? (
                 <span className="flex items-center gap-2 text-sm">
                   <BedDouble className="h-4 w-4" /> {item.quartos} Quartos
@@ -383,12 +399,84 @@ export function PublicoEmpreendimentoView({
         ) : null}
       </main>
 
-      <footer className="bg-zinc-900 py-10 text-center text-zinc-400">
-        <p className="text-xs uppercase tracking-[0.2em]">Imobiliária</p>
-        <p className="mt-1 text-sm text-white">{item.imobiliaria}</p>
-        {item.valorReferencia != null ? (
-          <p className="mt-4 text-sm">Valor: {brl(item.valorReferencia)}</p>
-        ) : null}
+      <footer className="bg-zinc-900 px-4 py-12 text-zinc-400 sm:px-8">
+        <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              Imobiliária
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{item.imobiliaria}</p>
+            {item.creci ? (
+              <p className="mt-1 text-xs">CRECI {item.creci}</p>
+            ) : null}
+            {item.imobiliariaEndereco ? (
+              <p className="mt-3 text-sm leading-relaxed">{item.imobiliariaEndereco}</p>
+            ) : null}
+            {item.imobiliariaCidade ? (
+              <p className="mt-1 text-sm">{item.imobiliariaCidade}</p>
+            ) : null}
+            {item.telefone ? (
+              <a
+                href={getWhatsAppUrl(
+                  `Olá, vi o empreendimento ${item.nome} e gostaria de mais informações.`,
+                  item.telefone.replace(/\D/g, ""),
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block text-sm text-white hover:underline"
+              >
+                {formatPhone(item.telefone)}
+              </a>
+            ) : null}
+            {item.email ? (
+              <a
+                href={`mailto:${item.email}`}
+                className="mt-1 block text-sm text-white hover:underline"
+              >
+                {item.email}
+              </a>
+            ) : null}
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              Imóvel
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{item.nome}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              Tecnologia
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{env.appName}</p>
+            <p className="mt-1 text-xs">CRM para imobiliárias</p>
+            <a
+              href="https://www.zoneconnection.com.br"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 block text-sm text-white hover:underline"
+            >
+              www.zoneconnection.com.br
+            </a>
+            <a
+              href={getWhatsAppUrl(
+                `Olá, vi a página do empreendimento ${item.nome} e gostaria de conhecer o CRM.`,
+              )}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block text-sm text-white hover:underline"
+            >
+              WhatsApp {formatPhone(env.whatsappNumber)}
+            </a>
+            <a
+              href="https://www.instagram.com/zone.connection/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block text-sm text-white hover:underline"
+            >
+              Instagram @zone.connection
+            </a>
+          </div>
+        </div>
       </footer>
 
       {lightbox && current ? (

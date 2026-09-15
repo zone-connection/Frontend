@@ -227,6 +227,10 @@ export type EmpreendimentoPublico = {
   slug: string;
   logoUrl: string | null;
   telefone: string | null;
+  email: string | null;
+  imobiliariaEndereco: string | null;
+  imobiliariaCidade: string | null;
+  creci: string | null;
   cor: string | null;
   vitrine: EmpreendimentoVitrine | null;
 };
