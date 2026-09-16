@@ -199,6 +199,29 @@ function StatusPill({
   );
 }
 
+function tituloValorDevido(t: TituloFinanceiro) {
+  if (t.status === "atrasado") {
+    return Number(t.valorAtualizado ?? t.valor) || 0;
+  }
+  return Number(t.valor) || 0;
+}
+
+function TituloValorCell({ t }: { t: TituloFinanceiro }) {
+  const devido = tituloValorDevido(t);
+  const encargos = Number(t.valorAtraso) || 0;
+  return (
+    <div className="text-right">
+      <p className="text-sm font-semibold tabular-nums">{brl(devido)}</p>
+      {t.status === "atrasado" && encargos > 0 ? (
+        <p className="text-[10px] font-medium text-rose-600">
+          + {brl(encargos)} atraso
+          {t.diasAtraso ? ` · ${t.diasAtraso}d` : ""}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -464,7 +487,7 @@ function buildDisplayRows(
 
 function groupSummary(titulos: TituloFinanceiro[]) {
   const first = titulos[0];
-  const total = titulos.reduce((s, t) => s + t.valor, 0);
+  const total = titulos.reduce((s, t) => s + tituloValorDevido(t), 0);
   const pagas = titulos.filter((t) => t.status === "pago").length;
   const abertas = titulos.filter(
     (t) => t.status === "aberto" || t.status === "atrasado",
@@ -827,16 +850,20 @@ export function FinanceiroTitulosPanel({
   }, [items, search, periodo, status, categoriaFiltro, tipo, ocultarComissao]);
 
   const kpis = useMemo(() => {
-    const valor = (r: TituloFinanceiro) => Number(r.valor) || 0;
+    const principal = (r: TituloFinanceiro) => Number(r.valor) || 0;
+    const devido = (r: TituloFinanceiro) =>
+      r.status === "atrasado"
+        ? Number(r.valorAtualizado ?? r.valor) || 0
+        : principal(r);
     const aberto = rows
       .filter((r) => r.status === "aberto")
-      .reduce((s, r) => s + valor(r), 0);
+      .reduce((s, r) => s + principal(r), 0);
     const atrasado = rows
       .filter((r) => r.status === "atrasado")
-      .reduce((s, r) => s + valor(r), 0);
+      .reduce((s, r) => s + devido(r), 0);
     const pago = rows
       .filter((r) => r.status === "pago")
-      .reduce((s, r) => s + valor(r), 0);
+      .reduce((s, r) => s + principal(r), 0);
     return { aberto, atrasado, pago };
   }, [rows]);
 
@@ -1614,7 +1641,7 @@ export function FinanceiroTitulosPanel({
         inset="muted"
         className="mb-4"
         title="Indicadores do mês"
-        description="Títulos no recorte atual."
+        description="Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
       >
       <section className="grid gap-3 sm:grid-cols-3">
         <FinanceKpiCard
@@ -1778,8 +1805,8 @@ export function FinanceiroTitulosPanel({
                       <TableCell className="text-sm text-muted-foreground">
                         {t.parcela || "—"}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-semibold tabular-nums">
-                        {brl(t.valor)}
+                      <TableCell className="text-right">
+                        <TituloValorCell t={t} />
                       </TableCell>
                       <TableCell>
                         <StatusPill
@@ -1933,8 +1960,8 @@ export function FinanceiroTitulosPanel({
                             <TableCell className="text-sm text-muted-foreground">
                               {t.parcela || "—"}
                             </TableCell>
-                            <TableCell className="text-right text-sm font-semibold tabular-nums">
-                              {brl(t.valor)}
+                            <TableCell className="text-right">
+                              <TituloValorCell t={t} />
                             </TableCell>
                             <TableCell>
                               <StatusPill
@@ -3260,20 +3287,43 @@ export function FinanceiroTitulosPanel({
               {baixarTarget ? (
                 <div className="sm:col-span-2 space-y-1 rounded-xl border border-primary/15 bg-primary/5 px-3.5 py-3 text-sm text-muted-foreground">
                   <p>
-                    Valor:{" "}
-                    <span className="font-semibold tabular-nums text-primary">
+                    Principal:{" "}
+                    <span className="font-medium tabular-nums text-foreground">
                       {brl(baixarTarget.valor)}
                     </span>
                   </p>
-                <p>
-                  Vencimento:{" "}
-                  <span className="text-foreground">
-                    {formatDate(baixarTarget.vencimento)}
-                  </span>
-                </p>
-                <p>O lançamento entra no fluxo de caixa como realizado.</p>
-              </div>
-            ) : null}
+                  {(baixarTarget.valorAtraso ?? 0) > 0 ? (
+                    <>
+                      <p>
+                        Multa 2%:{" "}
+                        <span className="tabular-nums text-foreground">
+                          {brl(baixarTarget.multa ?? 0)}
+                        </span>
+                      </p>
+                      <p>
+                        Juros 1% a.m. ({baixarTarget.diasAtraso ?? 0} dia
+                        {(baixarTarget.diasAtraso ?? 0) === 1 ? "" : "s"}):{" "}
+                        <span className="tabular-nums text-foreground">
+                          {brl(baixarTarget.juros ?? 0)}
+                        </span>
+                      </p>
+                    </>
+                  ) : null}
+                  <p>
+                    Valor da baixa:{" "}
+                    <span className="font-semibold tabular-nums text-primary">
+                      {brl(tituloValorDevido(baixarTarget))}
+                    </span>
+                  </p>
+                  <p>
+                    Vencimento:{" "}
+                    <span className="text-foreground">
+                      {formatDate(baixarTarget.vencimento)}
+                    </span>
+                  </p>
+                  <p>O lançamento entra no fluxo de caixa como realizado.</p>
+                </div>
+              ) : null}
             </div>
           </FormSection>
         </FormDialogBody>
@@ -3341,8 +3391,18 @@ export function FinanceiroTitulosPanel({
                   </div>
                 </div>
                 <p className="mt-3 text-2xl font-semibold tabular-nums">
-                  {brl(detalhesTarget.valor)}
+                  {brl(tituloValorDevido(detalhesTarget))}
                 </p>
+                {detalhesTarget.status === "atrasado" &&
+                (detalhesTarget.valorAtraso ?? 0) > 0 ? (
+                  <p className="mt-1 text-xs text-rose-600">
+                    Principal {brl(detalhesTarget.valor)} + multa{" "}
+                    {brl(detalhesTarget.multa ?? 0)} + juros{" "}
+                    {brl(detalhesTarget.juros ?? 0)} ({detalhesTarget.diasAtraso}{" "}
+                    dia
+                    {(detalhesTarget.diasAtraso ?? 0) === 1 ? "" : "s"})
+                  </p>
+                ) : null}
               </div>
 
               <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">

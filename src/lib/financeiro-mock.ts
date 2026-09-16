@@ -113,6 +113,11 @@ export interface TituloFinanceiro {
   dataPagamento: string | null;
   valor: number;
   status: StatusTitulo;
+  diasAtraso?: number;
+  multa?: number;
+  juros?: number;
+  valorAtraso?: number;
+  valorAtualizado?: number;
   parcela: string;
   grupoParcelasId?: string | null;
   recorrenciaIndeterminada?: boolean;
