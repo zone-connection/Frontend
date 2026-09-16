@@ -23,6 +23,7 @@ import { HideFinanceValuesButton } from "@/components/hide-finance-values-button
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import {
   brl,
+  brlCompact,
   formatDate,
   statusBadgeClass,
   statusLabel,
@@ -113,6 +114,46 @@ const EMPTY_KPIS = {
 };
 
 const MONEY_BLUR = "select-none blur-[8px]";
+
+function composicaoPizzaLabel(hideValues: boolean) {
+  return ({
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    outerRadius = 0,
+    percent = 0,
+    value = 0,
+  }: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    outerRadius?: number;
+    percent?: number;
+    value?: number;
+  }) => {
+    if (!value) return null;
+    const rad = (-midAngle * Math.PI) / 180;
+    const r = outerRadius + 20;
+    const x = cx + r * Math.cos(rad);
+    const y = cy + r * Math.sin(rad);
+    const money = hideValues ? "••••" : brlCompact(Number(value));
+    const pct = `${Math.round(percent * 100)}%`;
+    return (
+      <text
+        x={x}
+        y={y}
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+        className="fill-foreground text-[10px] font-semibold"
+      >
+        {money}
+        <tspan x={x} dy="1.2em" className="fill-muted-foreground text-[9px] font-medium">
+          {pct}
+        </tspan>
+      </text>
+    );
+  };
+}
 
 const COMPOSICAO = [
   { key: "fixa", name: "Fixa", color: "hsl(199 89% 40%)" },
@@ -741,16 +782,18 @@ function Page() {
               <ResponsiveChartShell>
                 <ChartContainer
                   config={naturezaConfig}
-                  className="aspect-auto! mx-auto h-70 w-full min-w-80"
+                  className="aspect-auto! mx-auto h-80 w-full min-w-80"
                 >
                   <PieChart>
                     <Pie
                       data={composicao.rows}
                       dataKey="value"
                       nameKey="name"
-                      innerRadius={50}
-                      outerRadius={84}
+                      innerRadius={48}
+                      outerRadius={78}
                       paddingAngle={2}
+                      labelLine
+                      label={composicaoPizzaLabel(hideValues)}
                     >
                       {composicao.rows.map((row) => (
                         <Cell key={row.key} fill={row.color} />
@@ -767,29 +810,31 @@ function Page() {
                     />
                     <Legend
                       wrapperStyle={{ fontSize: 12 }}
-                      formatter={(value) => (
-                        <span className="text-xs text-foreground">{value}</span>
-                      )}
+                      formatter={(value, entry) => {
+                        const amount = Number(
+                          (entry as { payload?: { value?: number } }).payload
+                            ?.value ?? 0,
+                        );
+                        return (
+                          <span className="text-xs text-foreground">
+                            {value}
+                            <span
+                              className={cn(
+                                "ml-1.5 tabular-nums text-muted-foreground",
+                                hideValues && MONEY_BLUR,
+                              )}
+                            >
+                              {hideValues ? "••••" : brlCompact(amount)}
+                            </span>
+                          </span>
+                        );
+                      }}
                     />
                   </PieChart>
                 </ChartContainer>
               </ResponsiveChartShell>
             ) : (
               <div className="space-y-4">
-                <div className="flex h-3 overflow-hidden rounded-full bg-muted">
-                  {composicao.total > 0
-                    ? composicao.rows.map((row) => (
-                        <div
-                          key={row.key}
-                          className="h-full"
-                          style={{
-                            width: `${(row.value / composicao.total) * 100}%`,
-                            background: row.color,
-                          }}
-                        />
-                      ))
-                    : null}
-                </div>
                 <ul className="space-y-3">
                   {composicao.rows.map((row) => {
                     const pct =

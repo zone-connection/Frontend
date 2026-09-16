@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, FileText, Wallet } from "lucide-react";
+import { brl } from "@/lib/crm-types";
 import { cn } from "@/lib/utils";
 
 const BAR_COLORS = ["#0ea5e9", "#14b8a6", "#8b5cf6", "#f59e0b"];
@@ -7,16 +8,22 @@ const EQUIPE_COLORS = ["#22c55e", "#8b5cf6", "#0ea5e9", "#f59e0b", "#f43f5e"];
 
 export function DashRankBars({
   items,
+  format = "number",
 }: {
   items: Array<{ id: string; nome: string; valor: number }>;
+  format?: "number" | "money";
 }) {
-  const max = Math.max(...items.map((i) => i.valor), 1);
-  const total = items.reduce((s, i) => s + i.valor, 0) || 1;
+  const max = Math.max(...items.map((i) => i.valor), 0);
+  const total = items.reduce((s, i) => s + i.valor, 0);
   return (
     <div className="space-y-3">
       {items.map((item, index) => {
-        const pct = Math.round((item.valor / total) * 1000) / 10;
-        const width = Math.max(8, (item.valor / max) * 100);
+        const pct =
+          total > 0 ? Math.round((item.valor / total) * 1000) / 10 : 0;
+        const width =
+          item.valor <= 0 || max <= 0
+            ? 0
+            : Math.max(8, (item.valor / max) * 100);
         return (
           <div
             key={item.id}
@@ -36,7 +43,9 @@ export function DashRankBars({
               />
             </div>
             <span className="tabular-nums text-muted-foreground">
-              {item.valor.toLocaleString("pt-BR")}
+              {format === "money"
+                ? brl(item.valor)
+                : item.valor.toLocaleString("pt-BR")}
               {pct >= 10 ? `  ${pct}%` : ""}
             </span>
           </div>

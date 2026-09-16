@@ -743,7 +743,7 @@ function DashboardAdminView() {
         <PagePanel
           inset="muted"
           title="Pipeline de documentação"
-          description={`Processos cadastrados em ${mesLabel}.`}
+          description="Aprovadas, reprovadas e em análise — mesmos totais da tela Documentação."
           action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
         >
           <DashPipelineDonut
@@ -838,10 +838,11 @@ function DashboardAdminView() {
           ) : (
             <>
               <DashRankBars
+                format="money"
                 items={rankingPage.pageItems.map((r) => ({
                   id: r.corretorId,
                   nome: r.nome,
-                  valor: r.vendas.valor || r.leads,
+                  valor: r.vgv.valor,
                 }))}
               />
               <ListPager
