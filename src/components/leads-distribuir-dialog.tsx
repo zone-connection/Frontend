@@ -63,9 +63,14 @@ export function LeadsDistribuirDialog({
       });
       setQtdEquipes(nextEq);
 
-      const splitCr = splitEvenly(data.disponiveis, data.corretores.length);
+      const online = data.corretores.filter((c) => c.online);
+      const destinosCr = online.length > 0 ? online : data.corretores;
+      const splitCr = splitEvenly(data.disponiveis, destinosCr.length);
       const nextCr: Record<string, number> = {};
-      data.corretores.forEach((c, i) => {
+      data.corretores.forEach((c) => {
+        nextCr[c.id] = 0;
+      });
+      destinosCr.forEach((c, i) => {
         nextCr[c.id] = splitCr[i] ?? 0;
       });
       setQtdCorretores(nextCr);
@@ -95,23 +100,68 @@ export function LeadsDistribuirDialog({
     [qtdCorretores],
   );
 
-  function autoDividir() {
+  async function autoDividir() {
     if (!resumo) return;
+    if (resumo.disponiveis <= 0) {
+      toast.error("Não há leads no pool do admin para distribuir.");
+      return;
+    }
     if (destino === "equipes") {
+      if (resumo.equipes.length === 0) {
+        toast.error("Nenhuma equipe cadastrada.");
+        return;
+      }
       const split = splitEvenly(resumo.disponiveis, resumo.equipes.length);
       const next: Record<string, number> = {};
       resumo.equipes.forEach((eq, i) => {
         next[eq.equipeId] = split[i] ?? 0;
       });
       setQtdEquipes(next);
+      toast.success("Quantidades divididas entre as equipes. Confirme para enviar.");
       return;
     }
-    const split = splitEvenly(resumo.disponiveis, resumo.corretores.length);
+    const online = resumo.corretores.filter((c) => c.online);
+    if (online.length === 0) {
+      toast.error(
+        "Nenhum corretor online agora. Quem estiver no CRM com sessão ativa recebe a divisão.",
+      );
+      return;
+    }
+    const split = splitEvenly(resumo.disponiveis, online.length);
     const next: Record<string, number> = {};
-    resumo.corretores.forEach((c, i) => {
+    resumo.corretores.forEach((c) => {
+      next[c.id] = 0;
+    });
+    online.forEach((c, i) => {
       next[c.id] = split[i] ?? 0;
     });
     setQtdCorretores(next);
+    setSaving(true);
+    try {
+      const result = await distribuirLeadsCorretores({
+        alocacoes: resumo.corretores.map((c) => ({
+          corretorId: c.id,
+          quantidade: Number(next[c.id]) || 0,
+        })),
+      });
+      const detalhe = result.distribuicao
+        .filter((d) => d.quantidade > 0)
+        .map((d) => `${d.nome}: ${d.quantidade}`)
+        .join(" · ");
+      toast.success(
+        `${result.total} lead(s) enviados aos corretores online.${detalhe ? ` ${detalhe}` : ""}`,
+      );
+      onOpenChange(false);
+      onDone();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível distribuir os leads.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleConfirm() {
@@ -225,8 +275,16 @@ export function LeadsDistribuirDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={autoDividir}
+                  disabled={saving || loading}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void autoDividir();
+                  }}
                 >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
                   Dividir automaticamente
                 </Button>
               </div>
@@ -293,6 +351,7 @@ export function LeadsDistribuirDialog({
                           {c.equipeNome
                             ? `Equipe: ${c.equipeNome}`
                             : "Sem equipe"}
+                          {c.online ? " · Online" : ""}
                         </div>
                       </div>
                       <Input

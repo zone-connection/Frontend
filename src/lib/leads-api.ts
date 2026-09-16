@@ -326,6 +326,7 @@ export type DistribuirResumo = {
     id: string;
     nome: string;
     equipeNome: string | null;
+    online?: boolean;
   }>;
 };
 
