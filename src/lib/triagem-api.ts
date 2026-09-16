@@ -80,6 +80,29 @@ export async function fetchTriagemHistory(
   return apiFetch<TriagemHistoryResponse>(`/triagem/${leadId}`);
 }
 
+export interface TriagemKpis {
+  tempoMedioMs: number;
+  amostra: number;
+  atualizadosHoje: number;
+  atualizadosOntem: number;
+  maisRapida: {
+    corretorId: string | null;
+    nome: string;
+    tempoMedioMs: number;
+  } | null;
+}
+
+export async function fetchTriagemKpis(opts?: {
+  equipeId?: string;
+  semEquipe?: boolean;
+}): Promise<TriagemKpis> {
+  const qs = new URLSearchParams();
+  if (opts?.equipeId) qs.set("equipeId", opts.equipeId);
+  if (opts?.semEquipe) qs.set("semEquipe", "true");
+  const query = qs.toString();
+  return apiFetch<TriagemKpis>(`/triagem/kpis${query ? `?${query}` : ""}`);
+}
+
 export async function createTriagemEvent(
   input: CreateTriagemInput,
 ): Promise<TriagemEvent> {

@@ -3,11 +3,15 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import { useTablePager } from "@/lib/use-table-pager";
 import { CategoriaSearchSelect } from "@/components/categoria-search-select";
 import { getSession } from "@/lib/auth";
 import { canFinanceiroAction } from "@/lib/permissions";
+import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import {
@@ -26,7 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,8 +61,9 @@ import {
   fetchRecebimentoTipos,
   updateMovimento,
 } from "@/lib/financeiro-api";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
-import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
+import { TABLE_LUX } from "@/lib/filter-bar";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -69,7 +73,6 @@ import {
   brl,
   filterByPeriodo,
   formatDate,
-  statusBadgeClass,
   statusLabel,
   type DespesaTipo,
   type MovimentoFinanceiro,
@@ -113,6 +116,22 @@ const TIPO_OPTIONS = [
   { value: "entrada", label: "Entradas" },
   { value: "saida", label: "Saídas" },
 ];
+
+const STATUS_CHIP: Record<StatusTitulo, string> = {
+  pago: "bg-emerald-500 text-white",
+  aberto: "bg-sky-500 text-white",
+  atrasado: "bg-rose-500 text-white",
+  cancelado: "bg-slate-100 text-slate-700",
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 const FORMAS_PAGAMENTO = [
   "Pix",
@@ -556,7 +575,12 @@ function Page() {
           <div className="flex flex-wrap items-center gap-2">
             <HideFinanceValuesButton />
             {canCreateFin ? (
-              <Button type="button" onClick={openCreate}>
+              <Button
+                type="button"
+                onClick={openCreate}
+                className={BRAND_GRADIENT_BTN}
+                style={BRAND_GRADIENT_STYLE}
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 Novo lançamento
               </Button>
@@ -565,29 +589,39 @@ function Page() {
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-3 mb-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Movimentação"
+        description="Entradas e saídas no recorte."
+      >
+      <section className="grid gap-3 sm:grid-cols-3">
         <FinanceKpiCard
           label="Entradas filtradas"
           value={totais.entradas}
           icon={ArrowUpRight}
-          tone="blue-1"
+          variant="dash"
+          tone="emerald"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saídas filtradas"
           value={totais.saidas}
           icon={ArrowDownRight}
-          tone="blue-2"
+          variant="dash"
+          tone="orange"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saldo do filtro"
           value={totais.saldo}
           icon={ArrowUpRight}
-          tone="blue-3"
+          variant="dash"
+          tone="teal"
           blurValue={hideValues}
         />
       </section>
+      </PagePanel>
 
       <FinanceiroFiltrosBar
         search={search}
@@ -609,124 +643,149 @@ function Page() {
         }}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando lançamentos…
-          </div>
-        ) : (
-          <>
-          <Table className="[&_th]:px-4 [&_td]:px-4">
-            <TableHeader>
+      <Card className="overflow-hidden rounded-2xl">
+        <Table className={TABLE_LUX}>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>{parceiroLabel}</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-22 text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>{parceiroLabel}</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-22 text-right">Ações</TableHead>
+                <TableCell
+                  colSpan={8}
+                  className="h-24 text-center text-sm text-muted-foreground"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando…
+                  </span>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="h-24 text-center text-sm text-muted-foreground"
+                >
+                  Nenhum lançamento para os filtros selecionados.
+                </TableCell>
+              </TableRow>
+            ) : (
+              pager.pageItems.map((m) => (
+                <TableRow key={m.id} className="hover:bg-muted/40">
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                    {formatDate(m.data)}
+                  </TableCell>
+                  <TableCell className="max-w-72">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(m.descricao),
+                          )}
+                        >
+                          {initials(m.descricao)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">
+                          {m.descricao}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {m.categoria || m.centro || "Sem categoria"}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
+                    {m.parceiro || "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {m.categoria || m.centro || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                        m.tipo === "entrada"
+                          ? "bg-emerald-500 text-white"
+                          : "bg-rose-500 text-white",
+                      )}
+                    >
+                      {m.tipo === "entrada" ? "Entrada" : "Saída"}
+                    </span>
+                  </TableCell>
                   <TableCell
-                    colSpan={8}
-                    className="text-center text-muted-foreground py-10"
+                    className={cn(
+                      "text-right text-sm font-semibold tabular-nums",
+                      m.tipo === "entrada"
+                        ? "text-emerald-600"
+                        : "text-destructive",
+                    )}
                   >
-                    Nenhum lançamento para os filtros selecionados.
+                    {m.tipo === "entrada" ? "+" : "−"}
+                    {brl(m.valor)}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                        STATUS_CHIP[m.status],
+                      )}
+                    >
+                      {statusLabel(m.status)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {canEditFin ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Editar"
+                          onClick={() => openEdit(m)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                      {canDeleteFin ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          title="Excluir"
+                          onClick={() => setDeleteTarget(m)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                pager.pageItems.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="tabular-nums whitespace-nowrap">
-                      {formatDate(m.data)}
-                    </TableCell>
-                    <TableCell className="font-medium max-w-60">
-                      {m.descricao}
-                    </TableCell>
-                    <TableCell>{m.parceiro || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {m.categoria || m.centro || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          m.tipo === "entrada"
-                            ? `${STATUS_CHIP_CLASS} border-transparent bg-emerald-500/15 text-emerald-700`
-                            : `${STATUS_CHIP_CLASS} border-transparent bg-destructive/15 text-destructive`
-                        }
-                        title={m.tipo === "entrada" ? "Entrada" : "Saída"}
-                      >
-                        {m.tipo === "entrada" ? "Entrada" : "Saída"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right tabular-nums font-semibold ${
-                        m.tipo === "entrada"
-                          ? "text-emerald-600"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {m.tipo === "entrada" ? "+" : "—"}
-                      {brl(m.valor)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={statusBadgeClass(m.status)}
-                      >
-                        {statusLabel(m.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex items-center gap-1">
-                        {canEditFin ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Editar"
-                            onClick={() => openEdit(m)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        ) : null}
-                        {canDeleteFin ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Excluir"
-                            onClick={() => setDeleteTarget(m)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          <TablePager
-            page={pager.page}
-            totalPages={pager.totalPages}
-            total={pager.total}
-            onPageChange={pager.setPage}
-          />
-          </>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground mt-2">
-        {rows.length} lançamento(s)
-      </p>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          onPageChange={pager.setPage}
+        />
+      </Card>
 
       <FormDialogShell
         open={open}

@@ -52,10 +52,20 @@ const DASH_ICON: Record<FinanceKpiTone, string> = {
   "blue-6": "bg-[var(--kpi-seq-6,#034E6E)]",
 };
 
-const DASH_WASH: Partial<Record<FinanceKpiTone, string>> = {
-  emerald: "bg-emerald-50/90 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/50",
-  red: "bg-rose-50/90 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/50",
-  orange: "bg-orange-50/90 border-orange-100 dark:bg-orange-950/30 dark:border-orange-900/50",
+const DASH_WASH: Record<FinanceKpiTone, string> = {
+  teal: "bg-teal-50 border-teal-100/80 dark:bg-teal-950/25 dark:border-teal-900/40",
+  emerald: "bg-emerald-50 border-emerald-100/80 dark:bg-emerald-950/25 dark:border-emerald-900/40",
+  orange: "bg-orange-50 border-orange-100/80 dark:bg-orange-950/25 dark:border-orange-900/40",
+  red: "bg-rose-50 border-rose-100/80 dark:bg-rose-950/25 dark:border-rose-900/40",
+  blue: "bg-sky-50 border-sky-100/80 dark:bg-sky-950/25 dark:border-sky-900/40",
+  violet: "bg-violet-50 border-violet-100/80 dark:bg-violet-950/25 dark:border-violet-900/40",
+  rose: "bg-rose-50 border-rose-100/80 dark:bg-rose-950/25 dark:border-rose-900/40",
+  "blue-1": "bg-sky-50 border-sky-100/80",
+  "blue-2": "bg-sky-50 border-sky-100/80",
+  "blue-3": "bg-sky-50 border-sky-100/80",
+  "blue-4": "bg-sky-50 border-sky-100/80",
+  "blue-5": "bg-sky-50 border-sky-100/80",
+  "blue-6": "bg-sky-50 border-sky-100/80",
 };
 
 function money(n: number) {
@@ -180,9 +190,11 @@ export function FinanceKpiCard({
 
   const len = display.length;
   const valueSize = isDash
-    ? len > 16
-      ? "text-lg leading-tight sm:text-xl"
-      : "text-xl leading-tight sm:text-2xl"
+    ? len > 18
+      ? "text-sm leading-tight sm:text-base"
+      : len > 14
+        ? "text-base leading-tight sm:text-lg"
+        : "text-xl leading-tight sm:text-2xl"
     : compact
       ? len > 14
         ? "text-sm leading-snug"
@@ -198,11 +210,14 @@ export function FinanceKpiCard({
   const card = (
     <div
       className={cn(
-        "h-full min-w-0 flex flex-col overflow-hidden bg-card text-card-foreground",
+        "h-full min-w-0 flex flex-col overflow-hidden text-card-foreground",
         isDash
-          ? "rounded-2xl border border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]"
-          : "rounded-xl border border-border/60 shadow-sm",
-        wash && DASH_WASH[tone],
+          ? cn(
+              "rounded-2xl border shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.06)]",
+              DASH_WASH[tone],
+            )
+          : "rounded-xl border border-border/60 bg-card shadow-sm",
+        !isDash && wash && DASH_WASH[tone],
         interactive && "transition-shadow hover:shadow-md",
         active && "border-primary/50 ring-2 ring-primary/25 shadow-md",
         className,
@@ -216,19 +231,19 @@ export function FinanceKpiCard({
       ) : null}
       <div
         className={cn(
-          "flex flex-1 items-center min-w-0",
+          "flex min-w-0",
           isDash
-            ? "gap-3 p-4 min-h-22"
+            ? "flex-1 items-center gap-3 p-4"
             : compact
-              ? "gap-2 p-2.5 min-h-0"
-              : "gap-2.5 sm:gap-3 p-3 sm:p-4 min-h-21 sm:min-h-23",
+              ? "flex-1 items-center gap-2 p-2.5 min-h-0"
+              : "flex-1 items-center gap-2.5 sm:gap-3 p-3 sm:p-4 min-h-21 sm:min-h-23",
         )}
       >
         <div
           className={cn(
             "flex items-center justify-center shrink-0 text-white shadow-sm",
             isDash
-              ? cn("size-10 rounded-full sm:size-11", DASH_ICON[tone])
+              ? cn("size-11 rounded-full ring-4 ring-white/70", DASH_ICON[tone])
               : cn(
                   "rounded-md",
                   compact ? "w-8 h-8" : "w-8 h-8 sm:w-12 sm:h-12 sm:rounded-lg",
@@ -250,14 +265,14 @@ export function FinanceKpiCard({
           <div
             className={cn(
               "text-muted-foreground leading-snug truncate",
-              isDash ? "text-xs" : "text-[11px] sm:text-xs",
+              isDash ? "text-xs font-medium" : "text-[11px] sm:text-xs",
             )}
           >
             {label}
           </div>
           <div
             className={cn(
-              "font-bold tracking-tight tabular-nums mt-0.5 text-foreground break-all sm:wrap-break-word",
+              "font-bold tracking-tight tabular-nums mt-0.5 text-foreground whitespace-nowrap",
               valueSize,
               blurValue && "select-none blur-[8px]",
             )}
@@ -276,7 +291,7 @@ export function FinanceKpiCard({
               invert={invertEvolucao}
               className={cn("mt-1", blurValue && "select-none blur-[8px]")}
             />
-          ) : compact ? null : (
+          ) : isDash || compact ? null : (
             <span className="mt-1 block h-4.5" aria-hidden />
           )}
           {detail ? (

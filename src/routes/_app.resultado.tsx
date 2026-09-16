@@ -427,7 +427,7 @@ function AnalisePage() {
             label="Total em análise"
             value={pipelineSummary.emAnalise}
             icon={Clock3}
-            tone="blue-1"
+            tone="violet"
             format="number"
             active={kpiFilter === "emAnalise"}
             onClick={() => toggleKpiFilter("emAnalise")}
@@ -436,7 +436,7 @@ function AnalisePage() {
             label="Aprovado"
             value={pipelineSummary.aprovado}
             icon={CheckCircle2}
-            tone="blue-2"
+            tone="emerald"
             format="number"
             active={kpiFilter === "aprovado"}
             onClick={() => toggleKpiFilter("aprovado")}
@@ -445,7 +445,7 @@ function AnalisePage() {
             label="Reprovados"
             value={pipelineSummary.reprovado}
             icon={XCircle}
-            tone="blue-3"
+            tone="rose"
             format="number"
             active={kpiFilter === "reprovado"}
             onClick={() => toggleKpiFilter("reprovado")}
@@ -454,7 +454,7 @@ function AnalisePage() {
             label="Vendidos"
             value={pipelineSummary.vendidos}
             icon={BadgeCheck}
-            tone="blue-4"
+            tone="teal"
             format="number"
             active={kpiFilter === "vendidos"}
             onClick={() => toggleKpiFilter("vendidos")}
@@ -463,7 +463,7 @@ function AnalisePage() {
       ) : null}
 
       {!busy && kpiFilter ? (
-        <Card className="mb-4">
+        <Card className="mb-4 overflow-hidden rounded-2xl">
           <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <div>
               <CardTitle className="text-base">
@@ -523,7 +523,7 @@ function AnalisePage() {
       ) : null}
 
       {!busy && corretorRanking.length > 0 ? (
-        <Card className="mb-4 min-w-0 overflow-hidden">
+        <Card className="mb-4 min-w-0 overflow-hidden rounded-2xl">
           <CardHeader className="gap-3 space-y-0 pb-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -550,10 +550,10 @@ function AnalisePage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-border/60">
-              <table className="w-full min-w-xl text-sm">
+            <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-black/5">
+              <table className="w-full min-w-xl text-sm [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                 <thead>
-                  <tr className="border-b border-border/60 bg-muted/30 text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-border/60 bg-muted/30 text-left">
                     <th className="px-3 py-2.5 font-medium w-10">#</th>
                     <th className="px-3 py-2.5 font-medium">Corretor</th>
                     <th className="px-3 py-2.5 font-medium text-right tabular-nums">

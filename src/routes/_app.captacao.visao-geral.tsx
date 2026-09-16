@@ -82,6 +82,7 @@ function CaptacaoVisaoGeralPage() {
               tone="blue"
               icon={Users}
               format="number"
+              variant="dash"
               href="/captacao/proprietarios"
             />
             <FinanceKpiCard
@@ -90,6 +91,7 @@ function CaptacaoVisaoGeralPage() {
               tone="teal"
               icon={Building2}
               format="number"
+              variant="dash"
               href="/imoveis"
             />
             <FinanceKpiCard
@@ -98,6 +100,7 @@ function CaptacaoVisaoGeralPage() {
               tone="violet"
               icon={Kanban}
               format="number"
+              variant="dash"
               href="/captacao/captacoes"
             />
             <FinanceKpiCard
@@ -106,6 +109,7 @@ function CaptacaoVisaoGeralPage() {
               tone="orange"
               icon={Home}
               format="number"
+              variant="dash"
               href="/captacao/funil"
             />
             <FinanceKpiCard
@@ -114,6 +118,7 @@ function CaptacaoVisaoGeralPage() {
               tone="emerald"
               icon={Home}
               format="number"
+              variant="dash"
               href="/imoveis"
             />
           </div>

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel, PanelLink } from "@/components/page-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -169,7 +170,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import {
-  FILTER_BAR_STACK,
+  FILTER_BAR_SURFACE,
   FILTER_CLEAR_BTN,
   FILTER_CONTROL,
   FILTER_LABEL,
@@ -1075,31 +1076,16 @@ function DocumentacaoPage() {
         onClear: () => setFilterSearch(""),
       });
     }
-    if (filterPeriodo !== "todos") {
-      const campo =
-        CAMPO_DATA_OPTIONS.find((o) => o.value === filterCampoData)?.label ??
-        "Cadastro";
-      let label = `Período (${campo}): `;
-      if (filterPeriodo === "custom") {
-        const de = filterDataDe ? formatDayBr(filterDataDe) : "…";
-        const ate = filterDataAte ? formatDayBr(filterDataAte) : "…";
-        label += `${de} – ${ate}`;
-      } else if (isRecortePeriodo(filterPeriodo)) {
-        label += formatRecorteLabel(filterPeriodo, filterMes);
-      } else {
-        label +=
-          PERIODO_DOC_OPTIONS.find((o) => o.value === filterPeriodo)?.label ??
-          filterPeriodo;
-      }
+    if (filterPeriodo === "custom" && (filterDataDe || filterDataAte)) {
+      const de = filterDataDe ? formatDayBr(filterDataDe) : "…";
+      const ate = filterDataAte ? formatDayBr(filterDataAte) : "…";
       chips.push({
         id: "periodo",
-        label,
+        label: `Personalizado: ${de} – ${ate}`,
         onClear: () => {
           setFilterPeriodo("todos");
           setFilterDataDe("");
           setFilterDataAte("");
-          setFilterCampoData("createdAt");
-          setFilterMes(currentYearMonth());
         },
       });
     } else if (filterCampoData !== "createdAt") {
@@ -1960,7 +1946,7 @@ function DocumentacaoPage() {
   const readOnly = formMode === "view";
 
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader
         title="Documentação"
         description={
@@ -2052,9 +2038,123 @@ function DocumentacaoPage() {
         }
       />
 
-      <div className={FILTER_BAR_STACK}>
-          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-            <div className="relative flex-1 min-w-50 lg:max-w-sm">
+      <PagePanel
+        inset="muted"
+        title="Pipeline de documentação"
+        description="Volume, status e VGV do recorte filtrado."
+        action={<PanelLink to="/vendas">Ver vendas</PanelLink>}
+      >
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <FinanceKpiCard
+              variant="dash"
+              label={PERIODO_KPI_LABEL[filterPeriodo] ?? "Documentações"}
+              value={pipelineSummary.total}
+              icon={FolderOpen}
+              tone="emerald"
+              format="number"
+              suffix={
+                isRecortePeriodo(filterPeriodo)
+                  ? formatRecorteLabel(filterPeriodo, filterMes)
+                  : undefined
+              }
+              onClick={() => {
+                setFilterStatus1("__all__");
+                void navigate({ to: "/documentacao", search: {}, replace: true });
+              }}
+            />
+            <FinanceKpiCard
+              variant="dash"
+              label="Aprovadas"
+              value={pipelineSummary.aprovadas}
+              icon={CheckCircle2}
+              tone="blue"
+              format="number"
+              active={filterStatus1 === "Aprovado"}
+              onClick={() => {
+                if (filterStatus1 === "Aprovado") {
+                  setFilterStatus1("__all__");
+                  void navigate({
+                    to: "/documentacao",
+                    search: {},
+                    replace: true,
+                  });
+                  return;
+                }
+                setFilterStatus1("Aprovado");
+                void navigate({
+                  to: "/documentacao",
+                  search: { status: "aprovado" },
+                  replace: true,
+                });
+              }}
+            />
+            <FinanceKpiCard
+              variant="dash"
+              label="Reprovadas"
+              value={pipelineSummary.reprovadas}
+              icon={XCircle}
+              tone="rose"
+              format="number"
+              active={filterStatus1 === "Reprovado"}
+              onClick={() => {
+                if (filterStatus1 === "Reprovado") {
+                  setFilterStatus1("__all__");
+                  void navigate({
+                    to: "/documentacao",
+                    search: {},
+                    replace: true,
+                  });
+                  return;
+                }
+                setFilterStatus1("Reprovado");
+                void navigate({
+                  to: "/documentacao",
+                  search: { status: "reprovado" },
+                  replace: true,
+                });
+              }}
+            />
+            <FinanceKpiCard
+              variant="dash"
+              label="Em análise"
+              value={pipelineSummary.emAnalise}
+              icon={Clock3}
+              tone="violet"
+              format="number"
+              active={filterStatus1 === "Em análise"}
+              onClick={() => {
+                if (filterStatus1 === "Em análise") {
+                  setFilterStatus1("__all__");
+                  void navigate({
+                    to: "/documentacao",
+                    search: {},
+                    replace: true,
+                  });
+                  return;
+                }
+                setFilterStatus1("Em análise");
+                void navigate({
+                  to: "/documentacao",
+                  search: { status: "analise" },
+                  replace: true,
+                });
+              }}
+            />
+            <FinanceKpiCard
+              variant="dash"
+              label="VGV vendido"
+              value={pipelineSummary.vgv}
+              icon={Wallet}
+              tone="teal"
+              href="/vendas"
+            />
+          </div>
+      </PagePanel>
+
+      <div className={FILTER_BAR_SURFACE}>
+          <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[16rem] flex-[1.6]">
               <Label className={FILTER_LABEL}>
                 Busca
               </Label>
@@ -2069,18 +2169,18 @@ function DocumentacaoPage() {
               </div>
             </div>
 
-            <div>
+            <div className="min-w-[9.5rem] flex-1">
               <Label className={FILTER_LABEL}>
                 Ordenar
               </Label>
               <TableSortSelect
                 value={sort}
                 onChange={setSort}
-                className={FILTER_CONTROL}
+                className={cn(FILTER_CONTROL, "w-full")}
               />
             </div>
 
-            <div className="w-full sm:w-37.5">
+            <div className="min-w-[9.5rem] flex-1">
               <Label className={FILTER_LABEL}>
                 Data por
               </Label>
@@ -2088,7 +2188,7 @@ function DocumentacaoPage() {
                 value={filterCampoData}
                 onValueChange={(v) => setFilterCampoData(v as DocCampoData)}
               >
-                <SelectTrigger className={FILTER_CONTROL}>
+                <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2101,7 +2201,7 @@ function DocumentacaoPage() {
               </Select>
             </div>
 
-            <div className="w-full sm:w-42.5">
+            <div className="min-w-[9.5rem] flex-1">
               <Label className={FILTER_LABEL}>
                 Período
               </Label>
@@ -2121,7 +2221,7 @@ function DocumentacaoPage() {
                   }
                 }}
               >
-                <SelectTrigger className={FILTER_CONTROL}>
+                <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2135,7 +2235,7 @@ function DocumentacaoPage() {
             </div>
 
             {isRecortePeriodo(filterPeriodo) ? (
-              <div className="w-full sm:w-56">
+              <div className="min-w-[9.5rem] flex-1">
                 <Label className={FILTER_LABEL}>
                   {PERIODO_RECORTE_LABEL[filterPeriodo] ?? "Recorte"}
                 </Label>
@@ -2143,7 +2243,7 @@ function DocumentacaoPage() {
                   value={snapYearMonth(filterMes, filterPeriodo)}
                   onValueChange={setFilterMes}
                 >
-                  <SelectTrigger className={FILTER_CONTROL}>
+                  <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
@@ -2159,7 +2259,7 @@ function DocumentacaoPage() {
 
             {filterPeriodo === "custom" ? (
               <>
-                <div className="w-full sm:w-37.5">
+                <div className="min-w-[9.5rem] flex-1">
                   <Label className={FILTER_LABEL}>
                     De
                   </Label>
@@ -2170,7 +2270,7 @@ function DocumentacaoPage() {
                     className={FILTER_CONTROL}
                   />
                 </div>
-                <div className="w-full sm:w-37.5">
+                <div className="min-w-[9.5rem] flex-1">
                   <Label className={FILTER_LABEL}>
                     Até
                   </Label>
@@ -2184,7 +2284,7 @@ function DocumentacaoPage() {
               </>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 lg:pb-0.5">
+            <div className="flex shrink-0 items-center gap-1.5 pb-px">
               <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -2454,7 +2554,7 @@ function DocumentacaoPage() {
           </div>
 
         {activeFilterChips.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {activeFilterChips.map((chip) => (
               <Badge
                 key={chip.id}
@@ -2474,101 +2574,8 @@ function DocumentacaoPage() {
             ))}
           </div>
         ) : null}
+          </div>
       </div>
-
-      <section className="mb-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-        <FinanceKpiCard
-          label={PERIODO_KPI_LABEL[filterPeriodo] ?? "Documentações"}
-          value={pipelineSummary.total}
-          icon={FolderOpen}
-          tone="blue-1"
-          format="number"
-          compact
-          suffix={
-            isRecortePeriodo(filterPeriodo)
-              ? formatRecorteLabel(filterPeriodo, filterMes)
-              : undefined
-          }
-          onClick={() => {
-            setFilterStatus1("__all__");
-            void navigate({ to: "/documentacao", search: {}, replace: true });
-          }}
-        />
-        <FinanceKpiCard
-          label="Aprovadas"
-          value={pipelineSummary.aprovadas}
-          icon={CheckCircle2}
-          tone="blue-2"
-          format="number"
-          compact
-          active={filterStatus1 === "Aprovado"}
-          onClick={() => {
-            if (filterStatus1 === "Aprovado") {
-              setFilterStatus1("__all__");
-              void navigate({ to: "/documentacao", search: {}, replace: true });
-              return;
-            }
-            setFilterStatus1("Aprovado");
-            void navigate({
-              to: "/documentacao",
-              search: { status: "aprovado" },
-              replace: true,
-            });
-          }}
-        />
-        <FinanceKpiCard
-          label="Reprovadas"
-          value={pipelineSummary.reprovadas}
-          icon={XCircle}
-          tone="blue-3"
-          format="number"
-          compact
-          active={filterStatus1 === "Reprovado"}
-          onClick={() => {
-            if (filterStatus1 === "Reprovado") {
-              setFilterStatus1("__all__");
-              void navigate({ to: "/documentacao", search: {}, replace: true });
-              return;
-            }
-            setFilterStatus1("Reprovado");
-            void navigate({
-              to: "/documentacao",
-              search: { status: "reprovado" },
-              replace: true,
-            });
-          }}
-        />
-        <FinanceKpiCard
-          label="Em análise"
-          value={pipelineSummary.emAnalise}
-          icon={Clock3}
-          tone="blue-4"
-          format="number"
-          compact
-          active={filterStatus1 === "Em análise"}
-          onClick={() => {
-            if (filterStatus1 === "Em análise") {
-              setFilterStatus1("__all__");
-              void navigate({ to: "/documentacao", search: {}, replace: true });
-              return;
-            }
-            setFilterStatus1("Em análise");
-            void navigate({
-              to: "/documentacao",
-              search: { status: "analise" },
-              replace: true,
-            });
-          }}
-        />
-        <FinanceKpiCard
-          label="VGV vendido"
-          value={pipelineSummary.vgv}
-          icon={Wallet}
-          tone="blue-5"
-          compact
-          href="/vendas"
-        />
-      </section>
 
       <Card className="min-w-0 overflow-hidden">
         <CardContent className="min-w-0 p-0">

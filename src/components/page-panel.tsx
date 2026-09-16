@@ -1,6 +1,28 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { SOFT_BTN } from "@/lib/soft-btn";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { cn } from "@/lib/utils";
+
+export function PanelLink({
+  to,
+  children,
+}: {
+  to: string;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      className={cn("h-8 text-xs", SOFT_BTN)}
+    >
+      <Link to={to as never}>{children}</Link>
+    </Button>
+  );
+}
 
 export function PagePanel({
   title,

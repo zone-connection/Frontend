@@ -374,28 +374,28 @@ function Page() {
               label={`Entradas do ${periodoNoun}`}
               value={data.totais.entradas ?? 0}
               icon={UsersRound}
-              tone="blue-1"
+              tone="emerald"
               format="number"
             />
             <FinanceKpiCard
               label={`Vendas do ${periodoNoun}`}
               value={data.totais.vendas ?? 0}
               icon={TrendingUp}
-              tone="blue-2"
+              tone="blue"
               format="number"
             />
             <FinanceKpiCard
               label={`VGV do ${periodoNoun}`}
               value={data.totais.vgv ?? 0}
               icon={Wallet}
-              tone="blue-3"
+              tone="violet"
               format="money"
             />
             <FinanceKpiCard
               label="Taxa de conversão"
               value={data.totais.taxaConversao ?? 0}
               icon={Goal}
-              tone="blue-4"
+              tone="teal"
               format="percent"
             />
           </section>
@@ -479,8 +479,17 @@ function Page() {
           </section>
 
           {showRankingGerentes && (
-            <section className="mt-5 mb-6">
-              <Card className="overflow-hidden">
+            <section className="mt-5 mb-6 space-y-4">
+              <PodioVendas
+                title="Pódio de vendas · gerentes"
+                items={data.gerentes.map((row) => ({
+                  id: `${row.gerenteId}:${row.equipeId}`,
+                  nome: row.nome,
+                  vendas: row.vendas.valor,
+                  vgv: row.vgv.valor,
+                }))}
+              />
+              <Card className="overflow-hidden rounded-2xl">
                 <CardHeader className="border-b border-border/40 bg-gradient-to-r from-primary/[0.09] via-primary/[0.03] to-transparent">
                   <CardTitle className="text-base flex items-center gap-2">
                     <UsersRound className="h-4 w-4 text-primary" />
@@ -497,7 +506,7 @@ function Page() {
                     </p>
                   ) : (
                     <>
-                    <Table className="min-w-200 [&_th]:px-4 [&_td]:px-4">
+                    <Table className="min-w-200 [&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="w-10">#</TableHead>
@@ -568,7 +577,7 @@ function PodioVendas({
 }: {
   title: string;
   items: Array<{ id: string; nome: string; vendas: number; vgv: number }>;
-  onSelect: (item: {
+  onSelect?: (item: {
     id: string;
     nome: string;
     vendas: number;
@@ -632,14 +641,8 @@ function PodioVendas({
           <div className="flex items-end justify-center gap-0">
             {slots.map(({ row, place, step, avatar, stepClass, flow }) => {
               if (!row) return null;
-
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => onSelect(row)}
-                  className="flex min-w-0 flex-1 flex-col items-center transition-transform hover:-translate-y-0.5"
-                >
+              const inner = (
+                <>
                   <div className="mb-3 flex w-full flex-col items-center px-1 text-center sm:px-2">
                     <div
                       className={cn(
@@ -696,7 +699,26 @@ function PodioVendas({
                       <Medal className="relative z-10 h-3.5 w-3.5 opacity-70" />
                     )}
                   </div>
-                </button>
+                </>
+              );
+              const className =
+                "flex min-w-0 flex-1 flex-col items-center transition-transform hover:-translate-y-0.5";
+              if (onSelect) {
+                return (
+                  <button
+                    key={row.id}
+                    type="button"
+                    onClick={() => onSelect(row)}
+                    className={className}
+                  >
+                    {inner}
+                  </button>
+                );
+              }
+              return (
+                <div key={row.id} className={className}>
+                  {inner}
+                </div>
               );
             })}
           </div>
@@ -997,7 +1019,7 @@ function GerenteRow({ row }: { row: DashboardRankingGerente }) {
   const entradas = row.entradas.valor ?? 0;
   const conversao = row.taxaConversao.valor ?? 0;
   return (
-    <TableRow className="align-top">
+    <TableRow className="align-top hover:bg-muted/40">
       <TableCell className="tabular-nums text-muted-foreground">
         {row.posicao}
       </TableCell>

@@ -301,7 +301,7 @@ function PortalImovelPage() {
         onChange={(id) => setTab(id as Tab)}
       />
       {tab === "Informações" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Informações</CardTitle>
           </CardHeader>
@@ -342,7 +342,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Histórico" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Histórico</CardTitle>
           </CardHeader>
@@ -359,7 +359,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Comercialização" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Comercialização</CardTitle>
           </CardHeader>
@@ -389,7 +389,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Visitas" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Visitas</CardTitle>
           </CardHeader>
@@ -452,7 +452,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Propostas" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Propostas</CardTitle>
           </CardHeader>
@@ -484,7 +484,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Fechamento" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Fechamento</CardTitle>
           </CardHeader>
@@ -514,7 +514,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Documentação" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Documentação</CardTitle>
           </CardHeader>
@@ -551,7 +551,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Contrato" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Contrato</CardTitle>
           </CardHeader>
@@ -571,7 +571,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Chaves" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Chaves</CardTitle>
           </CardHeader>
@@ -980,7 +980,7 @@ function PortalImovelPage() {
         </AlertDialogContent>
       </AlertDialog>
       {tab === "Pós-venda" && (
-        <Card className="border-primary/15 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Pós-venda</CardTitle>
           </CardHeader>

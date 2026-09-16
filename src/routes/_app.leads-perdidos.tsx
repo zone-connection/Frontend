@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { PagePanel } from "@/components/page-panel";
+import {
+  LostLeadsMotivoKpis,
+  lostLeadAvatarClass,
+  lostMotivoChipClass,
+  lostMotivoIcon,
+} from "@/components/lost-leads-lux";
 import { Card } from "@/components/ui/card";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
@@ -67,7 +74,7 @@ import {
   sortByTableOrder,
   type TableSort,
 } from "@/lib/table-sort";
-import { deleteLeadApi, deleteLeadsBulkApi } from "@/lib/leads-api";
+import { deleteLeadApi, deleteLeadsBulkApi, fetchLostLeadsKpis, type LostLeadsKpis } from "@/lib/leads-api";
 import {
   getLostLeadsCache,
   loadLostLeads,
@@ -88,11 +95,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { displayEmail } from "@/lib/email";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import {
-  FILTER_BAR_SHELL,
-  FILTER_CONTROL,
-  FILTER_SEARCH_ICON,
-} from "@/lib/filter-bar";
+import { FILTER_BAR_SHELL, FILTER_CONTROL } from "@/lib/filter-bar";
 
 export const Route = createFileRoute("/_app/leads-perdidos")({
   head: () => ({ meta: [{ title: "Leads Perdidos — Zone Connection" }] }),
@@ -129,6 +132,7 @@ function LeadsPerdidos() {
   const { funnelStages, colorByLabel, motivos } = useCatalog();
   const cached = getLostLeadsCache();
   const [leads, setLeads] = useState<LostLead[]>(cached ?? []);
+  const [kpis, setKpis] = useState<LostLeadsKpis | null>(null);
   // Só mostra "Carregando..." na primeira visita sem cache.
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,6 +152,11 @@ function LeadsPerdidos() {
     try {
       const data = await loadLostLeads({ force: true });
       setLeads(data);
+      try {
+        setKpis(await fetchLostLeadsKpis());
+      } catch {
+        setKpis(null);
+      }
     } catch (err) {
       // Com cache na tela, não apaga a lista — só avisa.
       if (!getLostLeadsCache()?.length) {
@@ -179,9 +188,29 @@ function LeadsPerdidos() {
   }, [leads, motivos]);
 
   const hasSemMotivo = useMemo(
-    () => leads.some((l) => !l.motivoPerda?.trim()),
+    () => leads.some((l) => !l.motivoPerda?.trim() || l.motivoPerda === "—"),
     [leads],
   );
+
+  const motivoCards = useMemo(() => {
+    if (kpis?.motivos?.length) return kpis.motivos;
+    const counts = new Map<string, number>();
+    for (const lead of leads) {
+      const motivo =
+        lead.motivoPerda?.trim() && lead.motivoPerda !== "—"
+          ? lead.motivoPerda.trim()
+          : "Sem motivo";
+      counts.set(motivo, (counts.get(motivo) ?? 0) + 1);
+    }
+    const total = leads.length;
+    return [...counts.entries()]
+      .map(([motivo, count]) => ({
+        motivo,
+        count,
+        pct: total ? Math.round((count / total) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.count - a.count || a.motivo.localeCompare(b.motivo, "pt-BR"));
+  }, [kpis, leads]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -308,14 +337,12 @@ function LeadsPerdidos() {
         description={
           loading
             ? "Carregando..."
-            : `${filtered.length} lead(s) removidos da operação${
-                motivoFilter !== MOTIVO_TODOS
-                  ? ` · ${motivoFilter === MOTIVO_SEM ? "sem motivo" : motivoFilter}`
-                  : ""
-              }.${refreshing ? " Atualizando…" : ""}`
+            : `${kpis?.total ?? filtered.length} lead(s) fora da opera\u00e7\u00e3o.${
+                refreshing ? " Atualizando..." : ""
+              }`
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {selectedCount > 0 && (
               <Button
                 variant="destructive"
@@ -392,26 +419,38 @@ function LeadsPerdidos() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          </>
+          </div>
         }
       />
 
+      {motivoCards.length > 0 ? (
+        <PagePanel inset="muted" className="mb-4">
+          <LostLeadsMotivoKpis
+            items={motivoCards}
+            active={motivoFilter}
+            onSelect={(motivo) =>
+              setMotivoFilter(motivo === "all" ? MOTIVO_TODOS : motivo)
+            }
+          />
+        </PagePanel>
+      ) : null}
+
       <div className={FILTER_BAR_SHELL}>
         <div className="relative min-w-50 max-w-md flex-1">
-          <Search className={FILTER_SEARCH_ICON} />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={
               isPlatformAdmin
                 ? "Buscar por nome, motivo..."
                 : "Buscar por nome, motivo, corretor..."
             }
-            className={cn("pl-9 h-9", FILTER_CONTROL)}
+            className={cn("h-9 rounded-full bg-background pl-9", FILTER_CONTROL)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={motivoFilter} onValueChange={setMotivoFilter}>
-          <SelectTrigger className={cn("h-9 w-52", FILTER_CONTROL)}>
+          <SelectTrigger className={cn("w-52", FILTER_CONTROL)}>
             <SelectValue placeholder="Motivo da perda" />
           </SelectTrigger>
           <SelectContent>
@@ -433,8 +472,8 @@ function LeadsPerdidos() {
         />
       </div>
 
-      <Card className="overflow-hidden">
-        <Table className="[&_th]:px-4 [&_td]:px-4">
+      <Card className="overflow-hidden rounded-2xl">
+        <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
           <TableHeader>
             <TableRow>
               <TableHead className="w-10 pr-0">
@@ -496,30 +535,43 @@ function LeadsPerdidos() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="w-8 h-8">
-                        <AvatarFallback className="avatar-fallback-brand text-xs">
+                        <AvatarFallback className={cn("text-xs text-white", lostLeadAvatarClass(l.nome))}>
                           {initials(l.nome)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="table-person-name text-sm">{l.nome}</div>
+                        <div className="text-sm font-medium">{l.nome}</div>
                         <div className="text-xs text-muted-foreground">
                           {l.telefone}
                         </div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell
-                    className="text-sm max-w-55 truncate"
-                    title={l.motivoPerda}
-                  >
-                    {l.motivoPerda}
+                  <TableCell>
+                    {l.motivoPerda && l.motivoPerda !== "—" ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                          lostMotivoChipClass(l.motivoPerda),
+                        )}
+                        title={l.motivoPerda}
+                      >
+                        {(() => {
+                          const Icon = lostMotivoIcon(l.motivoPerda);
+                          return <Icon className="h-3 w-3" />;
+                        })()}
+                        {l.motivoPerda}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   {isPlatformAdmin ? null : (
-                  <TableCell className="table-person-name text-sm">
+                  <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
                     {l.corretor}
                   </TableCell>
                   )}
-                  <TableCell className="text-sm">{l.perdidoPor}</TableCell>
+                  <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">{l.perdidoPor}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {l.perdidoAt}
                   </TableCell>

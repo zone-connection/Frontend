@@ -81,7 +81,7 @@ export function TableFrame({
   return (
     <div
       className={cn(
-        "min-w-0 overflow-hidden rounded-2xl border border-primary/15 bg-card shadow-sm",
+        "min-w-0 overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]",
         className,
       )}
     >

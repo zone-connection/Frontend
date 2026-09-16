@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel, PanelLink } from "@/components/page-panel";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -43,6 +45,7 @@ import {
   Download,
   FileText,
   Handshake,
+  LayoutGrid,
   Loader2,
   Receipt,
   Sparkles,
@@ -844,21 +847,41 @@ function ContratosPage() {
         </div>
       ) : null}
 
+      <PagePanel
+        inset="muted"
+        title="Biblioteca de contratos"
+        description="Modelos disponíveis para o seu perfil."
+        action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+      >
+        <div className="grid gap-3 grid-cols-2">
+          <FinanceKpiCard
+            variant="dash"
+            label="Modelos visíveis"
+            value={templatesVisiveis.length}
+            icon={FileText}
+            tone="emerald"
+            format="number"
+          />
+          <FinanceKpiCard
+            variant="dash"
+            label="Categorias"
+            value={gruposVisiveis.length}
+            icon={LayoutGrid}
+            tone="blue"
+            format="number"
+          />
+        </div>
+      </PagePanel>
+
       <div className="space-y-5">
         {gruposVisiveis.map((group) => (
-          <section
+          <PagePanel
             key={group.id}
-            className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+            title={group.title}
+            description={group.description}
+            inset="muted"
           >
-            <div className="border-b border-border/40 bg-linear-to-r from-primary/9 via-primary/3 to-transparent px-4 py-3.5 sm:px-5">
-              <h2 className="text-base font-semibold tracking-tight text-module-title">
-                {group.title}
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {group.description}
-              </p>
-            </div>
-            <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {group.templates.map((template) => {
                 const meta = TEMPLATE_META[template.id];
                 const Icon = meta?.icon ?? FileText;
@@ -896,7 +919,7 @@ function ContratosPage() {
                 );
               })}
             </div>
-          </section>
+          </PagePanel>
         ))}
       </div>
 

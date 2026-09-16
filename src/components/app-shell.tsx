@@ -54,6 +54,11 @@ import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { useTenantTheme } from "@/lib/tenant-theme";
+import {
+  FALLBACK_BRAND_HEX,
+  navBlockSolid,
+  sampleLogoBrandHex,
+} from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
 import { ApiError } from "@/lib/api";
@@ -371,7 +376,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const { brandName, logoUrl, modules } = useTenantTheme();
+  const { brandName, logoUrl, modules, tenant } = useTenantTheme();
+  const [brandHex, setBrandHex] = useState(
+    tenant?.primaryColor?.trim() || FALLBACK_BRAND_HEX,
+  );
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
@@ -400,6 +408,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("crm-session-updated", sync);
     return () => window.removeEventListener("crm-session-updated", sync);
   }, []);
+
+  useEffect(() => {
+    const configured = tenant?.primaryColor?.trim();
+    if (configured) {
+      setBrandHex(configured);
+      return;
+    }
+    let cancelled = false;
+    void sampleLogoBrandHex(logoUrl).then((hex) => {
+      if (!cancelled && hex) setBrandHex(hex);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenant?.primaryColor, logoUrl]);
 
   const loadNotificacoes = useCallback(async () => {
     try {
@@ -908,10 +931,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const active =
               pathname === standaloneLeaf.to ||
               pathname.startsWith(`${standaloneLeaf.to}/`);
+            const tone = navBlockSolid(brandHex, section.id);
             return (
               <div
                 key={section.id}
                 className="border-b border-white/10"
+                style={{ borderLeft: tone.borderLeft }}
               >
                 <Link
                   to={standaloneLeaf.to}
@@ -920,7 +945,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   title={collapsedView ? section.label : undefined}
                   className={cn(parentClass, active && "bg-white/[0.06] text-white")}
                 >
-                  <SectionIcon className="size-4 shrink-0 stroke-[1.6]" />
+                  <SectionIcon
+                    className="size-4 shrink-0 stroke-[1.6]"
+                    style={{ color: tone.accent }}
+                  />
                   {!collapsedView && (
                     <span className="flex-1 truncate">{section.label}</span>
                   )}
@@ -929,15 +957,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           }
 
+          const tone = navBlockSolid(brandHex, section.id);
           return (
-            <div key={section.id} className="border-b border-white/10 py-1">
+            <div
+              key={section.id}
+              className="border-b border-white/10 py-1"
+              style={{ borderLeft: tone.borderLeft }}
+            >
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 title={collapsedView ? section.label : undefined}
                 className={cn(parentClass, "cursor-pointer")}
               >
-                <SectionIcon className="size-4 shrink-0 stroke-[1.6]" />
+                <SectionIcon
+                  className="size-4 shrink-0 stroke-[1.6]"
+                  style={{ color: tone.accent }}
+                />
                 {!collapsedView && (
                   <>
                     <span className="flex-1 truncate text-left">
@@ -1049,7 +1085,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div
+      className={cn(
+        "flex w-full bg-background",
+        isTriagem ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden" : "min-h-screen",
+      )}
+    >
       {/* Sidebar fixa — visível apenas em telas md e acima */}
       <aside
         className={cn(
@@ -1163,8 +1204,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0",
-          isTriagem && "lg:h-dvh lg:overflow-hidden",
+          "flex min-w-0 flex-1 flex-col",
+          isTriagem && "lg:min-h-0",
         )}
       >
         <header className="h-14 border-b bg-card/90 backdrop-blur sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 min-w-0 shrink-0">
@@ -1313,8 +1354,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         <main
           className={cn(
-            "flex-1 p-3 sm:p-4 md:p-6 max-w-full min-w-0 overflow-x-clip",
-            isTriagem && "flex min-h-0 flex-col lg:overflow-hidden",
+            "max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6",
+            isTriagem && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
           )}
         >
           {children}
@@ -1371,12 +1412,14 @@ export function PageHeader({
   description,
   actions,
   actionsClassName,
+  eyebrow,
 }: {
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   /** Classes extras no container das actions (ex.: funil sem max-width). */
   actionsClassName?: string;
+  eyebrow?: string;
 }) {
   const { brandName } = useTenantTheme();
   return (
@@ -1387,7 +1430,7 @@ export function PageHeader({
       <div className="min-w-0 flex-1 space-y-1 lg:min-w-64">
         <p className="mb-1.5 inline-flex max-w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
           <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-          <span className="truncate">{brandName}</span>
+          <span className="truncate">{eyebrow ?? brandName}</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight wrap-break-word text-module-title sm:text-2xl">

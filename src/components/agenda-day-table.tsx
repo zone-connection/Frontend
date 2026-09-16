@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { addDays, sameDay, startOfWeek, toDateInput } from "@/components/agenda-board";
 import { AGENDAMENTO_TIPO_ICON } from "@/components/agenda-tipo-option";
+import { AGENDA_LUX_BLOCK } from "@/lib/agenda-lux-colors";
 import { toast } from "sonner";
 
 /** Horários da tabela: 07:00 até 00:00. */
@@ -162,6 +163,7 @@ type Props = {
   currentUserId?: string;
   completingId?: string | null;
   cancelingId?: string | null;
+  tone?: "default" | "lux";
   onSelectDay?: (day: Date) => void;
   onCreateAt: (day: Date, hour?: number) => void;
   onEdit: (item: Agendamento) => void;
@@ -227,6 +229,7 @@ export function AgendaDayTable({
   currentUserId,
   completingId,
   cancelingId,
+  tone = "default",
   onSelectDay,
   onCreateAt,
   onEdit,
@@ -253,13 +256,20 @@ export function AgendaDayTable({
             new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
         )[0]
     : undefined;
+  const lux = tone === "lux";
 
   return (
-    <div className="overflow-hidden rounded-3xl border bg-card shadow-sm max-sm:-mx-3 max-sm:rounded-none max-sm:border-x-0">
-      {onSelectDay ? (
+    <div
+      className={cn(
+        "overflow-hidden rounded-3xl border shadow-sm max-sm:-mx-3 max-sm:rounded-none max-sm:border-x-0",
+        lux ? "border-[#c9a227]/18 bg-[#101217]" : "bg-card",
+      )}
+    >
+      {onSelectDay && !lux ? (
         <WeekStrip day={day} items={items} onSelectDay={onSelectDay} />
       ) : null}
 
+      {!lux ? (
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-gradient-to-r from-primary/10 to-transparent px-4 py-4 sm:px-5">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
@@ -289,6 +299,7 @@ export function AgendaDayTable({
           Agendar
         </Button>
       </div>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
@@ -402,8 +413,10 @@ export function AgendaDayTable({
                 <div className="min-w-0 py-1 pr-3 sm:pr-4">
                   <article
                     className={cn(
-                      "relative overflow-hidden rounded-xl border border-l-[3px] shadow-sm transition hover:shadow-md",
-                      AGENDAMENTO_TIPO_CARD[visual],
+                      "relative overflow-hidden rounded-xl border shadow-sm transition hover:shadow-md",
+                      lux
+                        ? cn("border-transparent", AGENDA_LUX_BLOCK[visual])
+                        : cn("border-l-[3px]", AGENDAMENTO_TIPO_CARD[visual]),
                       item.status === "concluido" && "opacity-90",
                     )}
                   >

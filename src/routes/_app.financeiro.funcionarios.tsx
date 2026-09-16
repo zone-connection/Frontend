@@ -7,7 +7,7 @@ import { FormDialogActions, FormDialogBody, FormDialogShell } from "@/components
 import { TablePager } from "@/components/table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -325,7 +325,7 @@ function Page() {
         />
       </div>
 
-      <Card className="overflow-hidden">
+      <div className={TABLE_SHELL}>
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
@@ -338,7 +338,7 @@ function Page() {
           </div>
         ) : (
           <>
-            <Table>
+            <Table className={TABLE_LUX}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Cód.</TableHead>
@@ -448,7 +448,7 @@ function Page() {
             />
           </>
         )}
-      </Card>
+      </div>
 
       <FormDialogShell
         open={dialogOpen}

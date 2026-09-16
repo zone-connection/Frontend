@@ -35,7 +35,13 @@ import {
   FormDialogBody,
   FormDialogShell,
   FormSection,
+  FormSectionNav,
 } from "@/components/form-dialog";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel } from "@/components/page-panel";
+import { FORM_CONTROL, FORM_LABEL, FORM_OPTION_CARD, FORM_OPTION_CARD_ACTIVE } from "@/lib/form-surface";
+import { SOFT_SURFACE } from "@/lib/soft-surface";
+import { TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { isCorretorLike } from "@/lib/permissions";
@@ -73,8 +79,8 @@ import {
   Copy,
   Check,
   Shield,
-  ChevronDown,
   GitFork,
+  Contact,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -93,6 +99,14 @@ type FormState = {
 };
 
 const NONE_FUNIL = "__none__";
+
+const TEAM_FORM_SECTIONS = [
+  { id: "dados", label: "Dados" },
+  { id: "corretores", label: "Corretores" },
+  { id: "funis", label: "Funis" },
+] as const;
+
+type TeamFormSectionId = (typeof TEAM_FORM_SECTIONS)[number]["id"];
 
 const emptyFunisForm = (): Record<FunilTipo, string> => ({
   comercial: "",
@@ -132,7 +146,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function MemberRow({
+function MemberTableRow({
   member,
   roleLabel,
   accent,
@@ -146,63 +160,62 @@ function MemberRow({
   resetting?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2.5 sm:gap-3 sm:px-3",
-        accent ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/50",
-      )}
-    >
-      <Avatar className="h-9 w-9 shrink-0">
-        <AvatarFallback
+    <tr className="border-b border-black/5 last:border-0">
+      <td className="py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarFallback
+              className={cn(
+                "text-[10px] font-semibold",
+                accent
+                  ? "avatar-fallback-brand text-white"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {initials(member.name)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="table-person-name truncate text-sm font-medium">
+            {member.name}
+          </span>
+        </div>
+      </td>
+      <td className="py-2.5">
+        <span
           className={cn(
-            "text-[11px] font-semibold",
+            "inline-flex h-5 items-center rounded-full px-2 text-[10px] font-medium",
             accent
-              ? "avatar-fallback-brand text-white"
+              ? "bg-primary/10 text-primary"
               : "bg-muted text-muted-foreground",
           )}
         >
-          {initials(member.name)}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-1.5">
-          {accent && <Crown className="h-3.5 w-3.5 shrink-0 text-primary" />}
-          <span className="table-person-name min-w-0 flex-1 truncate text-sm font-medium">
-            {member.name}
-          </span>
-          <Badge
-            variant="outline"
-            className={cn(
-              "h-5 shrink-0 px-2 text-[10px] font-medium capitalize",
-              accent && "border-primary/30 text-primary",
-            )}
-            title={roleLabel}
+          {accent ? <Crown className="mr-1 h-3 w-3" /> : null}
+          {roleLabel}
+        </span>
+      </td>
+      <td className="hidden py-2.5 text-xs text-muted-foreground sm:table-cell">
+        {member.email}
+      </td>
+      <td className="py-2.5 text-right">
+        {onResetPassword ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Gerar senha temporária"
+            disabled={resetting}
+            onClick={onResetPassword}
           >
-            {roleLabel}
-          </Badge>
-        </div>
-        <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {member.email}
-        </div>
-      </div>
-      {onResetPassword && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          title="Gerar senha temporária"
-          disabled={resetting}
-          onClick={onResetPassword}
-        >
-          {resetting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <KeyRound className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      )}
-    </div>
+            {resetting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <KeyRound className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        ) : null}
+      </td>
+    </tr>
   );
 }
 
@@ -233,23 +246,15 @@ function EquipesPage() {
   const [gerentes, setGerentes] = useState<EquipeOptionUser[]>([]);
   const [corretores, setCorretores] = useState<EquipeOptionUser[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [catalogFunis, setCatalogFunis] = useState<Funil[]>([]);
+  const [teamFormSection, setTeamFormSection] =
+    useState<TeamFormSectionId>("dados");
 
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
       const next = await fetchEquipes();
       setItems(next);
-      setExpandedIds((prev) => {
-        if (prev.size > 0) {
-          const keep = new Set(
-            [...prev].filter((id) => next.some((eq) => eq.id === id)),
-          );
-          if (keep.size > 0) return keep;
-        }
-        return new Set(next.slice(0, 1).map((eq) => eq.id));
-      });
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -273,15 +278,6 @@ function EquipesPage() {
         toast.error("Não foi possível carregar os funis para vínculo.");
       });
   }, [canManage]);
-
-  function toggleExpanded(id: string) {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   async function loadOptions(equipeId?: string) {
     setOptionsLoading(true);
@@ -308,6 +304,7 @@ function EquipesPage() {
     setFormMode("create");
     setEditingId(null);
     setForm(emptyForm());
+    setTeamFormSection("dados");
     setOpen(true);
     await loadOptions();
   }
@@ -323,6 +320,7 @@ function EquipesPage() {
       status: equipe.status,
       funis: funisFromEquipe(equipe),
     });
+    setTeamFormSection("dados");
     setOpen(true);
     await loadOptions(equipe.id);
   }
@@ -342,6 +340,14 @@ function EquipesPage() {
   }, [gerentes]);
 
   const selectedCount = form.membroIds.length;
+
+  const kpis = useMemo(() => {
+    const ativas = items.filter((eq) => eq.status === "ativo").length;
+    const corretores = items.reduce((n, eq) => n + eq.membros.length, 0);
+    const leads = items.reduce((n, eq) => n + (eq.leadsCount ?? 0), 0);
+    const pool = items.reduce((n, eq) => n + (eq.leadsPool ?? 0), 0);
+    return { ativas, corretores, leads, pool };
+  }, [items]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -473,7 +479,7 @@ function EquipesPage() {
           Carregando equipes...
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-16 text-center">
+        <div className={cn(SOFT_SURFACE, "px-4 py-16 text-center")}>
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Network className="h-5 w-5 text-primary" />
           </div>
@@ -489,60 +495,58 @@ function EquipesPage() {
           </p>
         </div>
       ) : (
-        <div className="min-w-0 space-y-3">
-          <div className="min-w-0 overflow-x-auto overflow-y-hidden rounded-2xl border border-border/80 bg-card">
-            <table className="w-full min-w-[36rem] text-left text-sm">
-              <thead className="border-b border-border/60 bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2.5 font-semibold">Equipe</th>
-                  {FUNIL_TIPOS.map((tipo) => (
-                    <th key={tipo} className="px-4 py-2.5 font-semibold">
-                      {FUNIL_TIPO_LABEL[tipo]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((eq) => (
-                  <tr
-                    key={`funil-row-${eq.id}`}
-                    className="border-b border-border/40 last:border-0"
-                  >
-                    <td className="px-4 py-2.5 font-medium">{eq.name}</td>
-                    {FUNIL_TIPOS.map((tipo) => (
-                      <td
-                        key={tipo}
-                        className="px-4 py-2.5 text-muted-foreground"
-                      >
-                        {funilCell(eq.funis, tipo)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="min-w-0 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FinanceKpiCard
+              variant="dash"
+              tone="blue"
+              icon={Network}
+              label="Equipes ativas"
+              value={kpis.ativas}
+              format="number"
+              detail={`${items.length} no total`}
+            />
+            <FinanceKpiCard
+              variant="dash"
+              tone="teal"
+              icon={Users}
+              label="Corretores"
+              value={kpis.corretores}
+              format="number"
+            />
+            <FinanceKpiCard
+              variant="dash"
+              tone="violet"
+              icon={Contact}
+              label="Leads nas equipes"
+              value={kpis.leads}
+              format="number"
+            />
+            <FinanceKpiCard
+              variant="dash"
+              tone="orange"
+              icon={GitFork}
+              label="No pool"
+              value={kpis.pool}
+              format="number"
+            />
           </div>
 
-          {items.map((eq) => {
-            const expanded = expandedIds.has(eq.id);
-            return (
-              <section
-                key={eq.id}
-                className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card"
-              >
-                <div className="flex min-w-0 items-stretch gap-1 border-b border-border/60 bg-linear-to-r from-primary/[0.07] to-transparent px-3 py-3 sm:gap-2 sm:px-4">
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(eq.id)}
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left sm:gap-3"
-                    aria-expanded={expanded}
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <PagePanel
+            title="Times"
+            description="Gerente, corretores e funis de cada operação."
+            inset="muted"
+          >
+            <div className="space-y-3">
+          {items.map((eq) => (
+              <section key={eq.id} className={cn(TABLE_SHELL, "bg-background")}>
+                <div className="flex min-w-0 items-start gap-3 border-b border-black/5 px-4 py-3">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Users className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <h2 className="min-w-0 max-w-full truncate text-sm font-semibold text-primary">
+                        <h2 className="min-w-0 truncate text-sm font-semibold tracking-tight">
                           {eq.name}
                         </h2>
                         <Badge
@@ -554,39 +558,39 @@ function EquipesPage() {
                           {eq.status}
                         </Badge>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                        <span>
-                          {eq.membros.length} corretor
-                          {eq.membros.length === 1 ? "" : "es"}
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {eq.membros.length} corretor
+                        {eq.membros.length === 1 ? "" : "es"}
+                        <span className="mx-1.5 text-muted-foreground/40">
+                          ·
                         </span>
-                        <span className="text-muted-foreground/40">·</span>
                         <span className="tabular-nums">
                           {eq.leadsCount ?? 0} lead
                           {(eq.leadsCount ?? 0) === 1 ? "" : "s"}
                         </span>
-                        {(eq.leadsPool ?? 0) > 0 && (
+                        {(eq.leadsPool ?? 0) > 0 ? (
                           <span className="text-amber-600 dark:text-amber-400">
+                            {" "}
                             ({eq.leadsPool} no pool)
                           </span>
-                        )}
-                        <span className="text-muted-foreground/40">·</span>
-                        <span className="truncate">
-                          Gerente:{" "}
-                          <span className="font-medium text-foreground/80">
-                            {eq.gerente.name}
+                        ) : null}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {FUNIL_TIPOS.map((tipo) => (
+                          <span
+                            key={tipo}
+                            className="inline-flex items-center gap-1 rounded-full border border-black/8 bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground"
+                          >
+                            <span className="font-medium text-foreground/70">
+                              {FUNIL_TIPO_LABEL[tipo]}
+                            </span>
+                            {funilCell(eq.funis, tipo)}
                           </span>
-                        </span>
+                        ))}
                       </div>
                     </div>
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                        expanded && "rotate-180",
-                      )}
-                    />
-                  </button>
                   {canManage && (
-                    <div className="flex shrink-0 items-center gap-0.5 self-center">
+                    <div className="flex shrink-0 items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -609,31 +613,41 @@ function EquipesPage() {
                   )}
                 </div>
 
-                {expanded && (
-                  <div className="grid min-w-0 gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,16rem)_1fr]">
-                    <div className="min-w-0 space-y-2">
-                      <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                        Gerente
-                      </p>
-                      <MemberRow
-                        member={eq.gerente}
-                        roleLabel="Gerente"
-                        accent
-                      />
-                    </div>
-
-                    <div className="min-w-0 space-y-2">
-                      <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Corretores ({eq.membros.length})
-                      </p>
-                      {eq.membros.length === 0 ? (
-                        <div className="rounded-xl border border-dashed px-3 py-8 text-center text-xs text-muted-foreground">
-                          Sem corretores nesta equipe
-                        </div>
-                      ) : (
-                        <div className="grid min-w-0 gap-1 sm:grid-cols-2 xl:grid-cols-3">
-                          {eq.membros.map((m) => (
-                            <MemberRow
+                  <div className="overflow-x-auto">
+                    <table
+                      className={cn(
+                        "w-full min-w-[28rem] text-left text-sm",
+                        TABLE_LUX,
+                      )}
+                    >
+                      <thead className="border-b border-black/5 bg-muted/40">
+                        <tr>
+                          <th className="py-2 font-semibold">Pessoa</th>
+                          <th className="py-2 font-semibold">Papel</th>
+                          <th className="hidden py-2 font-semibold sm:table-cell">
+                            E-mail
+                          </th>
+                          <th className="py-2 font-semibold" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <MemberTableRow
+                          member={eq.gerente}
+                          roleLabel="Gerente"
+                          accent
+                        />
+                        {eq.membros.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="py-6 text-center text-xs text-muted-foreground"
+                            >
+                              Sem corretores nesta equipe
+                            </td>
+                          </tr>
+                        ) : (
+                          eq.membros.map((m) => (
+                            <MemberTableRow
                               key={m.id}
                               member={m}
                               roleLabel="Corretor"
@@ -644,40 +658,15 @@ function EquipesPage() {
                               }
                               resetting={resettingId === m.id}
                             />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 space-y-2 lg:col-span-2">
-                      <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Funis da equipe
-                      </p>
-                      <div className="grid min-w-0 gap-2 sm:grid-cols-3">
-                        {FUNIL_TIPOS.map((tipo) => (
-                          <div
-                            key={tipo}
-                            className="rounded-xl border border-border/70 px-3 py-2.5"
-                          >
-                            <p className="text-[11px] font-medium text-muted-foreground">
-                              {FUNIL_TIPO_LABEL[tipo]}
-                            </p>
-                            <p className="mt-0.5 text-sm font-medium">
-                              {funilCell(eq.funis, tipo)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="px-1 text-[11px] text-muted-foreground">
-                        Vale para novas operações. Captações e vendas já
-                        criadas permanecem no funil original.
-                      </p>
-                    </div>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                )}
               </section>
-            );
-          })}
+          ))}
+            </div>
+          </PagePanel>
         </div>
       )}
 
@@ -688,35 +677,38 @@ function EquipesPage() {
             onOpenChange={setOpen}
             icon={<Network className="w-5 h-5" />}
             title={formMode === "create" ? "Nova equipe" : "Editar equipe"}
-            description="Defina o gerente, os corretores e os funis usados nas novas operações."
-            className="max-w-xl"
+            description="Gerente, corretores e funis das novas operações."
+            className="max-w-3xl"
           >
             <form
               onSubmit={(e) => void handleSubmit(e)}
               className="flex flex-col flex-1 min-h-0"
             >
               <FormDialogBody>
+                <FormSectionNav
+                  items={TEAM_FORM_SECTIONS}
+                  value={teamFormSection}
+                  onChange={setTeamFormSection}
+                />
+                <div className={cn(teamFormSection !== "dados" && "hidden")}>
                 <FormSection
                   icon={<UserCog className="w-3.5 h-3.5 text-primary" />}
                   title="Identificação"
+                  description="Nome, responsável e se a equipe está ativa."
                 >
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Nome da equipe
-                    </Label>
+                    <Label className={FORM_LABEL}>Nome da equipe</Label>
                     <Input
                       value={form.name}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, name: e.target.value }))
                       }
                       placeholder="Ex.: Equipe Recife Norte"
-                      className="h-10 bg-background"
+                      className={FORM_CONTROL}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Gerente
-                    </Label>
+                    <Label className={FORM_LABEL}>Gerente</Label>
                     <Select
                       value={form.gerenteId || "__none__"}
                       onValueChange={(v) =>
@@ -727,7 +719,7 @@ function EquipesPage() {
                       }
                       disabled={optionsLoading}
                     >
-                      <SelectTrigger className="h-10 bg-background">
+                      <SelectTrigger className={FORM_CONTROL}>
                         <SelectValue placeholder="Selecionar gerente" />
                       </SelectTrigger>
                       <SelectContent>
@@ -749,9 +741,7 @@ function EquipesPage() {
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      Status
-                    </Label>
+                    <Label className={FORM_LABEL}>Status</Label>
                     <Select
                       value={form.status}
                       onValueChange={(v) =>
@@ -761,7 +751,7 @@ function EquipesPage() {
                         }))
                       }
                     >
-                      <SelectTrigger className="h-10 bg-background">
+                      <SelectTrigger className={FORM_CONTROL}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -771,10 +761,13 @@ function EquipesPage() {
                     </Select>
                   </div>
                 </FormSection>
+                </div>
 
+                <div className={cn(teamFormSection !== "corretores" && "hidden")}>
                 <FormSection
                   icon={<Users className="w-3.5 h-3.5 text-primary" />}
                   title={`Corretores (${selectedCount})`}
+                  description="Marque quem entra neste time. Um corretor só pode estar em uma equipe."
                 >
                   {optionsLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -787,13 +780,17 @@ function EquipesPage() {
                       Usuários ou liberte-os de outras equipes.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-56 overflow-y-auto rounded-lg border p-3">
+                    <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                       {corretores.map((c) => {
                         const checked = form.membroIds.includes(c.id);
                         return (
                           <label
                             key={c.id}
-                            className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer"
+                            className={cn(
+                              FORM_OPTION_CARD,
+                              "cursor-pointer sm:col-span-1",
+                              checked && FORM_OPTION_CARD_ACTIVE,
+                            )}
                           >
                             <Checkbox
                               checked={checked}
@@ -802,10 +799,10 @@ function EquipesPage() {
                               }
                             />
                             <div className="min-w-0">
-                              <div className="table-person-name text-sm truncate">
+                              <div className="table-person-name truncate text-sm">
                                 {c.name}
                               </div>
-                              <div className="text-xs text-muted-foreground truncate">
+                              <div className="truncate text-xs text-muted-foreground">
                                 {c.email}
                               </div>
                             </div>
@@ -815,16 +812,14 @@ function EquipesPage() {
                     </div>
                   )}
                 </FormSection>
+                </div>
 
+                <div className={cn(teamFormSection !== "funis" && "hidden")}>
                 <FormSection
                   icon={<GitFork className="w-3.5 h-3.5 text-primary" />}
                   title="Funis da equipe"
+                  description="Um funil ativo por tipo. Captações e vendas já criadas ficam no funil original."
                 >
-                  <p className="text-xs text-muted-foreground">
-                    Um funil ativo por tipo de operação. Novas captações e
-                    vendas de usados usam essa configuração; o Kanban comercial
-                    continua no funil comercial da imobiliária.
-                  </p>
                   {FUNIL_TIPOS.map((tipo) => {
                     const currentId = form.funis[tipo];
                     const options = catalogFunis.filter(
@@ -832,7 +827,7 @@ function EquipesPage() {
                     );
                     return (
                       <div key={tipo} className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
+                        <Label className={FORM_LABEL}>
                           {FUNIL_TIPO_LABEL[tipo]}
                         </Label>
                         <Select
@@ -847,7 +842,7 @@ function EquipesPage() {
                             }))
                           }
                         >
-                          <SelectTrigger className="h-10 bg-background">
+                          <SelectTrigger className={FORM_CONTROL}>
                             <SelectValue placeholder="Nenhum" />
                           </SelectTrigger>
                           <SelectContent>
@@ -867,9 +862,10 @@ function EquipesPage() {
                     );
                   })}
                 </FormSection>
+                </div>
               </FormDialogBody>
 
-              <FormDialogActions>
+              <FormDialogActions hint="As alterações valem para novas operações.">
                 <Button
                   type="button"
                   variant="outline"

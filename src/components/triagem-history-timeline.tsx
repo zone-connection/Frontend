@@ -21,10 +21,10 @@ import {
   loadTriagemHistory,
   replaceTriagemHistoryCached,
 } from "@/lib/triagem-history-cache";
-import { ClipboardList, FileText, Loader2, Pencil } from "lucide-react";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { FileText, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 
 export const MAX_TRIAGEM_TEXTO = 400;
 
@@ -138,11 +138,7 @@ export function HistoryTimeline({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <ClipboardList className="w-4 h-4 text-primary" />
-        Linha do tempo da triagem
-      </div>
+    <div className="space-y-1">
       <ol className="relative space-y-0">
         {events.map((ev, index) => {
           const stageSlug = ev.stageNovo || ev.stageAnterior || fallbackStage;
@@ -161,7 +157,7 @@ export function HistoryTimeline({
             expandedOriginalId === ev.id;
 
           return (
-            <li key={ev.id} className="relative flex gap-3 pb-6 last:pb-0">
+            <li key={ev.id} className="relative flex gap-3 pb-4 last:pb-0">
               <div className="flex flex-col items-center w-5 shrink-0">
                 <span className="relative z-10 mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
                   <FileText className="h-2.5 w-2.5" />
@@ -199,13 +195,18 @@ export function HistoryTimeline({
                 </div>
 
                 <div className={cn(
-                  "rounded-xl border bg-card p-3.5 space-y-2.5 shadow-sm",
+                  "rounded-2xl border border-black/5 bg-card p-3.5 space-y-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
                   (ev.origem === "retrabalho" || ev.origem === "caca_lead") &&
-                    "border-amber-400/50 bg-amber-50/70 dark:bg-amber-950/20",
+                    "border-amber-200 bg-amber-50/80 dark:bg-amber-950/20",
                 )}>
                   <div className="flex items-start gap-2.5">
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                      <AvatarFallback
+                        className={cn(
+                          "text-[10px] font-semibold text-white",
+                          lostLeadAvatarClass(ev.autor.name),
+                        )}
+                      >
                         {personInitials(ev.autor.name)}
                       </AvatarFallback>
                     </Avatar>
@@ -222,8 +223,8 @@ export function HistoryTimeline({
                           <Badge
                             variant="secondary"
                             className={cn(
-                              STATUS_CHIP_CLASS,
-                              "font-medium bg-primary/10 text-primary border-primary/20",
+                              "h-6 w-auto max-w-[10rem] rounded-full px-2.5 text-[11px] font-semibold",
+                              "bg-primary/10 text-primary border-transparent",
                             )}
                             title={
                               changedStage ? stageName : `Manteve ${stageName}`
@@ -232,7 +233,7 @@ export function HistoryTimeline({
                             {changedStage ? stageName : `Manteve ${stageName}`}
                           </Badge>
                         )}
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="rounded-full text-[10px]">
                           {ev.origem === "funil"
                             ? "Funil"
                             : ev.origem === "retrabalho"

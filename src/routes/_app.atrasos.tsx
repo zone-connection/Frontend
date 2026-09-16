@@ -264,6 +264,7 @@ function Page() {
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
         <FinanceKpiCard
+          variant="dash"
           label="Leads em atraso"
           value={resumo.leads}
           icon={TriangleAlert}

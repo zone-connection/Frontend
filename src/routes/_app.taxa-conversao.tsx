@@ -279,7 +279,7 @@ function Page() {
             evolucaoPct={conv.documentacoes.evolucaoPct}
             valorMesAnterior={conv.documentacoes.valorMesAnterior}
             icon={FileText}
-            tone="blue-1"
+            tone="blue"
             format="number"
           />
         )}
@@ -289,7 +289,7 @@ function Page() {
           evolucaoPct={conv.vendas.evolucaoPct}
           valorMesAnterior={conv.vendas.valorMesAnterior}
           icon={TrendingUp}
-          tone="blue-2"
+          tone="emerald"
           format="number"
         />
         <FinanceKpiCard
@@ -298,7 +298,7 @@ function Page() {
           evolucaoPct={conv.taxa.evolucaoPct}
           valorMesAnterior={conv.taxa.valorMesAnterior}
           icon={Percent}
-          tone="blue-3"
+          tone="violet"
           format="percent"
         />
         <FinanceKpiCard
@@ -307,7 +307,7 @@ function Page() {
           evolucaoPct={conv.vgv.evolucaoPct}
           valorMesAnterior={conv.vgv.valorMesAnterior}
           icon={Wallet}
-          tone="blue-4"
+          tone="teal"
         />
         <FinanceKpiCard
           label="Leads perdidos"
@@ -315,7 +315,7 @@ function Page() {
           evolucaoPct={admin.perdidos.mes.evolucaoPct}
           valorMesAnterior={admin.perdidos.mes.valorMesAnterior}
           icon={UserX}
-          tone="blue-5"
+          tone="rose"
           format="number"
           invertEvolucao
         />
@@ -324,14 +324,14 @@ function Page() {
             label="Taxa geral (ranking)"
             value={ranking.totais.taxaConversao}
             icon={Goal}
-            tone="blue-6"
+            tone="orange"
             format="percent"
             suffix={`· ${ranking.totais.visitas} visitas`}
           />
         )}
       </section>
 
-      <Card className="mb-4">
+      <Card className="mb-4 overflow-hidden rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Funil do mês</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -467,7 +467,7 @@ function Page() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2 mb-4 min-w-0">
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Documentações × vendas</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -523,7 +523,7 @@ function Page() {
           </CardContent>
         </Card>
 
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Taxa por corretor (%)</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -585,7 +585,7 @@ function Page() {
         </Card>
       </div>
 
-      <Card className="mb-4">
+      <Card className="mb-4 overflow-hidden rounded-2xl">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <UserRound className="h-4 w-4 text-primary" />
@@ -602,9 +602,9 @@ function Page() {
               Nenhum corretor para os filtros.
             </p>
           ) : (
-            <table className="w-full min-w-225 text-sm">
+            <table className="w-full min-w-225 text-sm [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
               <thead>
-                <tr className="border-b text-left text-muted-foreground">
+                <tr className="border-b text-left">
                   <th className="pb-2 pr-2 font-medium w-10">#</th>
                   <th className="pb-2 pr-2 font-medium">Corretor</th>
                   <th className="pb-2 pr-2 font-medium text-right">Docs</th>
@@ -632,7 +632,7 @@ function Page() {
       )}
 
       {showRankingGerentes && ranking && (
-        <Card className="mb-6">
+        <Card className="mb-6 overflow-hidden rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <UsersRound className="h-4 w-4 text-primary" />
@@ -645,9 +645,9 @@ function Page() {
                 Nenhuma equipe com gerente cadastrada.
               </p>
             ) : (
-              <table className="w-full min-w-180 text-sm">
+              <table className="w-full min-w-180 text-sm [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                 <thead>
-                  <tr className="border-b text-left text-muted-foreground">
+                  <tr className="border-b text-left">
                     <th className="pb-2 pr-2 font-medium w-10">#</th>
                     <th className="pb-2 pr-2 font-medium">Gerente</th>
                     <th className="pb-2 pr-2 font-medium text-right">
@@ -671,7 +671,7 @@ function Page() {
                     .map((g, idx) => (
                       <tr
                         key={g.gerenteId}
-                        className="border-b border-border/40"
+                        className="border-b border-border/40 hover:bg-muted/40"
                       >
                         <td className="py-2.5 pr-2 text-muted-foreground">
                           {idx + 1}
@@ -732,7 +732,7 @@ function CorretorConversaoRow({
 }) {
   const taxa = row.taxaConversao.valor;
   return (
-    <tr className="border-b border-border/40">
+    <tr className="border-b border-border/40 hover:bg-muted/40">
       <td className="py-2.5 pr-2 text-muted-foreground">{posicao}</td>
       <td className="py-2.5 pr-2">
         <div className="font-medium">{row.nome}</div>

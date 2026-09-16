@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import { useTablePager } from "@/lib/use-table-pager";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import {
@@ -20,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,9 +51,9 @@ import {
   fetchParceiros,
   updateParceiro,
 } from "@/lib/financeiro-api";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
-import { FILTER_CONTROL } from "@/lib/filter-bar";
-import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
+import { FILTER_CONTROL, TABLE_LUX } from "@/lib/filter-bar";
 import {
   type ParceiroFinanceiro,
   type TipoParceiro,
@@ -94,6 +96,27 @@ const TIPO_FORM_OPTIONS: { value: TipoParceiro; label: string }[] = [
   { value: "fornecedor", label: "Fornecedor" },
   { value: "ambos", label: "Cliente e fornecedor" },
 ];
+
+const TIPO_CHIP: Record<TipoParceiro, string> = {
+  cliente: "bg-sky-500 text-white",
+  fornecedor: "bg-violet-500 text-white",
+  ambos: "bg-teal-500 text-white",
+};
+
+const TIPO_LABEL: Record<TipoParceiro, string> = {
+  cliente: "Cliente",
+  fornecedor: "Fornecedor",
+  ambos: "Ambos",
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 type FormState = {
   nome: string;
@@ -313,7 +336,12 @@ function Page() {
         }
         actions={
           canCreateFin ? (
-            <Button type="button" onClick={openCreate}>
+            <Button
+              type="button"
+              onClick={openCreate}
+              className={BRAND_GRADIENT_BTN}
+              style={BRAND_GRADIENT_STYLE}
+            >
               <Plus className="w-4 h-4 mr-1" />
               {isPlatformAdmin ? "Novo fornecedor" : "Novo parceiro"}
             </Button>
@@ -354,120 +382,149 @@ function Page() {
         }}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando parceiros…
-          </div>
-        ) : (
-          <>
-          <Table className="[&_th]:px-4 [&_td]:px-4">
-            <TableHeader>
+      <Card className="overflow-hidden rounded-2xl">
+        <Table className={TABLE_LUX}>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Documento</TableHead>
+              {!isPlatformAdmin && <TableHead>Tipo</TableHead>}
+              {!isPlatformAdmin && <TableHead>Imobiliária</TableHead>}
+              <TableHead>Cidade</TableHead>
+              <TableHead>Contato</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-22 text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Documento</TableHead>
-                {!isPlatformAdmin && <TableHead>Tipo</TableHead>}
-                {!isPlatformAdmin && <TableHead>Imobiliária</TableHead>}
-                <TableHead>Cidade</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-22 text-right">Ações</TableHead>
+                <TableCell
+                  colSpan={colCount}
+                  className="h-24 text-center text-sm text-muted-foreground"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando…
+                  </span>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={colCount}
-                    className="text-center text-muted-foreground py-10"
-                  >
-                    Nenhum{" "}
-                    {isPlatformAdmin ? "fornecedor" : "parceiro"} encontrado
-                    para os filtros.
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={colCount}
+                  className="h-24 text-center text-sm text-muted-foreground"
+                >
+                  Nenhum {isPlatformAdmin ? "fornecedor" : "parceiro"}{" "}
+                  encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              pager.pageItems.map((p) => (
+                <TableRow key={p.id} className="hover:bg-muted/40">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(p.nome),
+                          )}
+                        >
+                          {initials(p.nome)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">
+                          {p.nome}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {p.cidade || "Sem cidade"}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="tabular-nums text-sm text-muted-foreground">
+                    {p.documento}
+                  </TableCell>
+                  {!isPlatformAdmin && (
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                          TIPO_CHIP[p.tipo],
+                        )}
+                      >
+                        {TIPO_LABEL[p.tipo]}
+                      </span>
+                    </TableCell>
+                  )}
+                  {!isPlatformAdmin && (
+                    <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
+                      {p.imobiliaria || "—"}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-sm text-muted-foreground">
+                    {p.cidade || "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div className="truncate">{p.email || "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.telefone || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                        p.ativo
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-100 text-slate-700",
+                      )}
+                    >
+                      {p.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {canEditFin ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Editar"
+                          onClick={() => openEdit(p)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                      {canDeleteFin ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          title="Excluir"
+                          onClick={() => setDeleteTarget(p)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                pager.pageItems.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.nome}</TableCell>
-                    <TableCell className="tabular-nums text-muted-foreground">
-                      {p.documento}
-                    </TableCell>
-                    {!isPlatformAdmin && (
-                      <TableCell>
-                        <Badge variant="secondary" className="capitalize">
-                          {p.tipo}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {!isPlatformAdmin && (
-                      <TableCell>{p.imobiliaria || "—"}</TableCell>
-                    )}
-                    <TableCell>{p.cidade || "—"}</TableCell>
-                    <TableCell className="text-sm">
-                      <div>{p.email || "—"}</div>
-                      <div className="text-muted-foreground">
-                        {p.telefone || "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          p.ativo
-                            ? `${STATUS_CHIP_CLASS} border-transparent bg-emerald-500/15 text-emerald-700`
-                            : `${STATUS_CHIP_CLASS} text-muted-foreground`
-                        }
-                        title={p.ativo ? "Ativo" : "Inativo"}
-                      >
-                        {p.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex items-center gap-1">
-                        {canEditFin ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Editar"
-                            onClick={() => openEdit(p)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        ) : null}
-                        {canDeleteFin ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Excluir"
-                            onClick={() => setDeleteTarget(p)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          <TablePager
-            page={pager.page}
-            totalPages={pager.totalPages}
-            total={pager.total}
-            onPageChange={pager.setPage}
-          />
-          </>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground mt-2">
-        {rows.length} de {parceiros.length}{" "}
-        {isPlatformAdmin ? "fornecedores" : "parceiros"}
-      </p>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          onPageChange={pager.setPage}
+        />
+      </Card>
 
       <FormDialogShell
         open={open}

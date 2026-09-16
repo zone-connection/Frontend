@@ -12,6 +12,7 @@ import { HideFinanceValuesButton } from "@/components/hide-finance-values-button
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
+import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import {
@@ -51,7 +52,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { FILTER_CONTROL } from "@/lib/filter-bar";
+import { FILTER_CONTROL, TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
 import { canFinanceiroAction, isCorretorLike } from "@/lib/permissions";
 import {
@@ -337,7 +338,13 @@ function Page() {
         ))}
       </div>
 
-      <section className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Pipeline de comissões"
+        description="Valores no recorte filtrado."
+      >
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <FinanceKpiCard
           label={
             recebimento === "nao_recebidas"
@@ -348,31 +355,36 @@ function Page() {
           }
           value={kpis.total}
           icon={Percent}
-          tone="blue-1"
+          variant="dash"
+          tone="emerald"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Pendentes"
           value={kpis.pending}
           icon={Clock3}
-          tone="blue-2"
+          variant="dash"
+          tone="blue"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Liberadas"
           value={kpis.released}
           icon={Banknote}
-          tone="blue-3"
+          variant="dash"
+          tone="violet"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Pagas"
           value={kpis.paid}
           icon={CheckCircle2}
-          tone="blue-4"
+          variant="dash"
+          tone="teal"
           blurValue={hideValues}
         />
       </section>
+      </PagePanel>
 
       <FinanceiroFiltrosBar
         search={search}
@@ -403,9 +415,9 @@ function Page() {
         }}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
+      <div className={TABLE_SHELL}>
         <div className="overflow-x-auto overflow-y-hidden">
-          <Table className="[&_th]:px-4 [&_td]:px-4">
+          <Table className={TABLE_LUX}>
             <TableHeader>
               <TableRow>
                 <TableHead className="h-9">Corretor</TableHead>

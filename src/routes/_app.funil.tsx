@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,10 +128,7 @@ import {
   DEFAULT_STATUS2,
 } from "@/lib/documentacao-api";
 import {
-  funnelColumnBg,
-  funnelColumnBorder,
   nextCatalogColor,
-  STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import {
   formatMoneyInput,
@@ -1374,7 +1372,7 @@ export function ComercialFunilBoard({
         data-guia="funil-board"
         className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 scroll-smooth"
       >
-        {boardStages.map((stage, stageIndex) => {
+        {boardStages.map((stage) => {
           const isOrphanColumn = stage.id === FORA_DO_FUNIL_STAGE;
           const stageLeads = isOrphanColumn
             ? orphanLeads
@@ -1383,41 +1381,16 @@ export function ComercialFunilBoard({
               );
           const total = stageLeads.reduce((s, l) => s + (l.renda ?? 0), 0);
           return (
-            <div
+            <FunilColumnShell
               key={stage.id}
               data-funnel-stage={isOrphanColumn ? undefined : stage.id}
-              className={cn(
-                "w-72 shrink-0 flex flex-col rounded-2xl border border-black/5 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition-[box-shadow,background-color,transform] duration-200 ease-out",
-                isOrphanColumn
-                  ? "bg-amber-50 dark:bg-amber-950/20"
-                  : funnelColumnBg(stageIndex, boardStages.length),
-                !isOrphanColumn &&
-                  activeDropStage === stage.id &&
-                  "scale-[1.01] bg-primary/8 ring-2 ring-[#079ED4]/50 shadow-lg shadow-[#079ED4]/10",
-              )}
+              title={stage.name}
+              count={stageLeads.length}
+              total={brl(total)}
+              color={stage.color}
+              orphan={isOrphanColumn}
+              active={!isOrphanColumn && activeDropStage === stage.id}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      STATUS_CHIP_CLASS,
-                      "border-black/10 shadow-none",
-                      stage.color,
-                    )}
-                    title={stage.name}
-                  >
-                    {stage.name}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {stageLeads.length}
-                  </span>
-                </div>
-                <span className="text-[11px] font-semibold text-foreground">
-                  {brl(total)}
-                </span>
-              </div>
-              <div className="space-y-2 min-h-16 flex-1">
                 {stageLeads.map((l) => (
                   <Card
                     key={l.id}
@@ -1428,19 +1401,16 @@ export function ComercialFunilBoard({
                     onPointerCancel={(e) => endCardPointer(e, false)}
                     onClick={() => openDetail(l)}
                     className={cn(
-                      "p-3 cursor-grab active:cursor-grabbing touch-manipulation select-none transition-[opacity,box-shadow,transform] duration-200",
+                      "rounded-xl border-black/5 p-3 cursor-grab active:cursor-grabbing touch-manipulation select-none shadow-sm transition-[opacity,box-shadow,transform] duration-200",
                       dragging === l.id
                         ? "scale-[0.98] border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none"
-                        : "hover:shadow-md",
+                        : "hover:-translate-y-0.5 hover:shadow-md",
                       l.origemAtrasoLiberacao === "retrabalho" &&
                         dragging !== l.id &&
                         "border-amber-400/70 bg-amber-50/90 ring-1 ring-amber-400/30 dark:bg-amber-950/25",
                       isClientesFunil &&
                         dragging !== l.id &&
                         "border-2 bg-white dark:bg-card",
-                      isClientesFunil &&
-                        dragging !== l.id &&
-                        funnelColumnBorder(stageIndex, boardStages.length),
                       leadMonitoramentoCardClass(l),
                     )}
                   >
@@ -1610,8 +1580,7 @@ export function ComercialFunilBoard({
                     </div>
                   </Card>
                 ))}
-              </div>
-            </div>
+            </FunilColumnShell>
           );
         })}
       </div>
@@ -2350,25 +2319,17 @@ function AnalistaFunilBoard() {
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6">
-          {ANALISTA_COLUMNS.map((col, index) => {
+          {ANALISTA_COLUMNS.map((col) => {
             const colItems = items.filter((i) => i.status === col.id);
             return (
-              <div
+              <FunilColumnShell
                 key={col.id}
-                className={cn(
-                  "w-72 shrink-0 flex flex-col rounded-2xl border border-black/5 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]",
-                  funnelColumnBg(index, ANALISTA_COLUMNS.length),
-                )}
+                title={col.label}
+                count={colItems.length}
+                color="#334155"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary">{col.label}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {colItems.length}
-                  </span>
-                </div>
-                <div className="space-y-2 min-h-16 flex-1">
                   {colItems.map((item) => (
-                    <Card key={item.id} className="p-3 space-y-2 shadow-sm">
+                    <Card key={item.id} className="space-y-2 rounded-xl border-black/5 p-3 shadow-sm">
                       <div className="text-sm font-semibold text-foreground/80 truncate">
                         {item.nome}
                       </div>
@@ -2420,8 +2381,7 @@ function AnalistaFunilBoard() {
                       </div>
                     </Card>
                   ))}
-                </div>
-              </div>
+              </FunilColumnShell>
             );
           })}
         </div>

@@ -55,6 +55,14 @@ export function PortalPageTitle({
   );
 }
 
+const WASH: Record<string, string> = {
+  "#0f4c5c": "bg-sky-50 border-sky-100",
+  "#3b82f6": "bg-blue-50 border-blue-100",
+  "#16a34a": "bg-emerald-50 border-emerald-100",
+  "#7c3aed": "bg-violet-50 border-violet-100",
+  "#ea580c": "bg-orange-50 border-orange-100",
+};
+
 export function PortalStatCard({
   label,
   hint,
@@ -69,7 +77,12 @@ export function PortalStatCard({
   accent: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_-16px_rgba(15,76,92,0.35)]">
+    <div
+      className={cn(
+        "rounded-2xl border p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+        WASH[accent] ?? "border-slate-100 bg-white",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-700">{label}</p>
@@ -79,14 +92,11 @@ export function PortalStatCard({
           </p>
         </div>
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-white"
           style={{ background: accent }}
         >
           <Icon className="h-5 w-5" />
         </span>
-      </div>
-      <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full w-2/5 rounded-full" style={{ background: accent }} />
       </div>
     </div>
   );
@@ -101,7 +111,7 @@ export function PortalImovelCard({
 }) {
   const tipo = portalTipoLabel(imovel.tipo);
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_-18px_rgba(15,76,92,0.4)]">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="relative">
         {imovel.fotoUrl ? (
           <img
@@ -166,7 +176,7 @@ export function PortalImovelCard({
         <Link
           to="/portal/imoveis/$id"
           params={{ id: imovel.id }}
-          className="mt-auto flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 py-2.5 text-sm font-medium text-[#0f4c5c] hover:bg-slate-200"
+          className="mt-auto flex items-center justify-center gap-1.5 rounded-full bg-sky-50 py-2.5 text-sm font-medium text-[#0f4c5c] hover:bg-sky-100"
         >
           Ver detalhes
           <ArrowRight className="h-3.5 w-3.5" />

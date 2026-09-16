@@ -7,7 +7,12 @@ import {
   type FormEvent,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
+import { PagePanel, PanelLink } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DetailField,
   FormDialogActions,
@@ -182,6 +187,16 @@ export const Route = createFileRoute("/_app/propostas")({
   head: () => ({ meta: [{ title: "Propostas — Zone Connection" }] }),
   component: Page,
 });
+
+function initialsNome(nome: string) {
+  return nome
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 const STATUS_OPTIONS: { value: PropostaStatus | "todos"; label: string }[] = [
   { value: "todos", label: "Todos os status" },
@@ -1002,6 +1017,7 @@ function Page() {
     const emAberto = rows.filter((r) =>
       ["enviada", "negociacao", "rascunho"].includes(r.status),
     );
+    const recusadas = rows.filter((r) => r.status === "recusada").length;
     const decididas = rows.filter((r) =>
       ["aceita", "recusada", "expirada"].includes(r.status),
     ).length;
@@ -1013,6 +1029,7 @@ function Page() {
       aceitas: aceitas.length,
       valorAceitas: aceitas.reduce((s, r) => s + r.valor, 0),
       emAberto: emAberto.length,
+      recusadas,
       taxaAceite,
     };
   }, [rows]);
@@ -1357,6 +1374,7 @@ function Page() {
   return (
     <div>
       <PageHeader
+        eyebrow="Propostas"
         title="Propostas"
         description="Propostas comerciais enviadas aos clientes"
         actions={
@@ -1367,37 +1385,48 @@ function Page() {
         }
       />
 
-      <section className="grid gap-3 grid-cols-2 xl:grid-cols-4 mb-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Pipeline de propostas"
+        description="Volume e aceite no recorte atual."
+      >
+      <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
         <FinanceKpiCard
+          variant="dash"
           label="Propostas (filtro)"
           value={kpis.total}
           icon={FileText}
-          tone="blue-1"
+          tone="blue"
           format="number"
         />
         <FinanceKpiCard
+          variant="dash"
           label="VGV das propostas"
           value={kpis.valor}
           icon={Handshake}
-          tone="blue-2"
+          tone="violet"
         />
         <FinanceKpiCard
+          variant="dash"
           label="Aceitas"
           value={kpis.aceitas}
           icon={CheckCircle2}
-          tone="blue-3"
+          tone="emerald"
           format="number"
           suffix={kpis.valorAceitas ? `· ${brl(kpis.valorAceitas)}` : undefined}
         />
         <FinanceKpiCard
+          variant="dash"
           label="Em aberto"
           value={kpis.emAberto}
           icon={Clock3}
-          tone="blue-4"
+          tone="orange"
           format="number"
           suffix={`· ${kpis.taxaAceite.toFixed(0)}% aceite`}
         />
       </section>
+      </PagePanel>
 
       <div className={FILTER_BAR_SHELL}>
         <div className="relative min-w-50 max-w-sm flex-1">
@@ -1478,8 +1507,8 @@ function Page() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-        <Table>
+      <Card className="overflow-hidden rounded-2xl">
+        <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
           <TableHeader>
             <TableRow>
               <TableHead>Código</TableHead>
@@ -1497,7 +1526,7 @@ function Page() {
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="text-center text-muted-foreground py-10"
+                  className="h-24 text-center text-sm text-muted-foreground"
                 >
                   <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
                   Carregando…
@@ -1507,7 +1536,7 @@ function Page() {
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="text-center text-muted-foreground py-10"
+                  className="h-24 text-center text-sm text-muted-foreground"
                 >
                   Nenhuma proposta para os filtros selecionados.
                 </TableCell>
@@ -1516,28 +1545,46 @@ function Page() {
               pager.pageItems.map((p) => (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-muted/40"
                   onClick={() => setSelected(p)}
                 >
                   <TableCell className="font-mono text-xs font-medium">
                     {p.codigo}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{p.clienteNome}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.clienteTelefone ? formatPhone(p.clienteTelefone) : "—"}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(p.clienteNome),
+                          )}
+                        >
+                          {initialsNome(p.clienteNome)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-medium">{p.clienteNome}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {p.clienteTelefone
+                            ? formatPhone(p.clienteTelefone)
+                            : "—"}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div>{p.empreendimento?.nome ?? "—"}</div>
+                    <div className="text-sm font-medium">
+                      {p.empreendimento?.nome ?? "—"}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {p.unidade ? `Un. ${p.unidade}` : "Sem unidade"}
                       {p.construtora ? ` · ${p.construtora.nome}` : ""}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
                     <div>{p.corretor?.name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs normal-case tracking-normal">
                       {equipeName(p)}
                     </div>
                   </TableCell>
@@ -1553,10 +1600,13 @@ function Page() {
                       {PROPOSTA_STATUS_LABEL[p.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="tabular-nums whitespace-nowrap">
+                  <TableCell className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                     {formatPropostaDate(p.validade)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <PropostaActionMenus
                       proposta={p}
                       brand={pdfBrand}
@@ -1594,7 +1644,7 @@ function Page() {
           total={pager.total}
           onPageChange={pager.setPage}
         />
-      </div>
+      </Card>
       <p className="text-xs text-muted-foreground mt-2">
         {rows.length} de {items.length} propostas
       </p>

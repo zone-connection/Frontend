@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,8 @@ import {
   type InteressadoUsado,
 } from "@/lib/imoveis-usados-api";
 import { TableFrame } from "@/components/operacao-ui";
+import { TABLE_LUX } from "@/lib/filter-bar";
+import { cn } from "@/lib/utils";
 import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -148,7 +152,7 @@ function InteressadosUsadoPage() {
         </div>
       ) : (
         <TableFrame>
-        <Table>
+        <Table className={TABLE_LUX}>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
@@ -161,24 +165,54 @@ function InteressadosUsadoPage() {
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-sm text-muted-foreground"
+                >
                   Nenhum interessado cadastrado.
                 </TableCell>
               </TableRow>
             ) : (
               pager.pageItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.nome}</TableCell>
-                  <TableCell>{item.cidade || "—"}</TableCell>
+                <TableRow key={item.id} className="hover:bg-muted/40">
                   <TableCell>
-                    {item.tipoDesejado
-                      ? CAPTACAO_IMOVEL_TIPO_LABEL[item.tipoDesejado]
-                      : "—"}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(item.nome),
+                          )}
+                        >
+                          {item.nome
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((part) => part[0]?.toUpperCase() ?? "")
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{item.nome}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {item.cidade || "—"}
                   </TableCell>
                   <TableCell>
+                    {item.tipoDesejado ? (
+                      <span className="inline-flex rounded-full bg-sky-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+                        {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipoDesejado]}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm font-semibold tabular-nums">
                     {formatBrl(item.precoMin)} — {formatBrl(item.precoMax)}
                   </TableCell>
-                  <TableCell>{item.quartosMin ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {item.quartosMin ?? "—"}
+                  </TableCell>
                 </TableRow>
               ))
             )}

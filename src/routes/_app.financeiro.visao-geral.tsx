@@ -2,13 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel, PanelLink } from "@/components/page-panel";
 import {
   DetailField,
   FormDialogActions,
   FormDialogBody,
   FormDialogShell,
 } from "@/components/form-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
@@ -518,17 +518,26 @@ function Page() {
         </div>
       ) : null}
 
-      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Resumo do período"
+        description={`Resultado e pendências de ${periodoAnoMes}.`}
+        action={<PanelLink to="/financeiro/comissao">Ver comissões</PanelLink>}
+      >
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <FinanceKpiCard
+          variant="dash"
           label="Resultado"
           value={Math.round(k.resultadoMes)}
           icon={TrendingUp}
-          tone="blue-4"
+          tone="emerald"
           evolucaoPct={k.evolucaoResultado}
           detail={`Receitas ${brl(Math.round(k.receitasMes))} · Despesas ${brl(Math.round(k.despesasMes))}`}
           blurValue={hideValues}
         />
         <FinanceKpiCard
+          variant="dash"
           label="Comissões a receber"
           value={Math.round(comissoesMes)}
           icon={Percent}
@@ -542,6 +551,7 @@ function Page() {
           blurValue={hideValues}
         />
         <FinanceKpiCard
+          variant="dash"
           label={noAno ? "A receber no ano" : "A receber neste mês"}
           value={k.aReceber}
           icon={Banknote}
@@ -550,6 +560,7 @@ function Page() {
           blurValue={hideValues}
         />
         <FinanceKpiCard
+          variant="dash"
           label={noAno ? "A pagar no ano" : "A pagar neste mês"}
           value={k.aPagar}
           icon={ArrowDownRight}
@@ -558,13 +569,14 @@ function Page() {
           blurValue={hideValues}
         />
       </section>
+      </PagePanel>
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-5">
-        <Card className="min-w-0 overflow-hidden lg:col-span-3">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Receitas x despesas</CardTitle>
-          </CardHeader>
-          <CardContent className="min-w-0">
+        <PagePanel
+          className="min-w-0 lg:col-span-3"
+          inset="muted"
+          title="Receitas x despesas"
+        >
             {chartData.length === 0 ? (
               <p className="flex h-70 items-center justify-center text-sm text-muted-foreground">
                 Sem dados no período.
@@ -686,12 +698,12 @@ function Page() {
                 </ChartContainer>
               </ResponsiveChartShell>
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="min-w-0 overflow-hidden lg:col-span-2">
-          <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
-            <CardTitle className="text-base">Composição do mês</CardTitle>
+        </PagePanel>
+        <PagePanel
+          className="min-w-0 lg:col-span-2"
+          inset="muted"
+          title="Composição do mês"
+        >
             <div className="flex shrink-0 gap-1">
               <Button
                 type="button"
@@ -724,8 +736,7 @@ function Page() {
                 <span className="ml-1 hidden sm:inline">Pizza</span>
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
+
             {composicaoVista === "pizza" ? (
               <ResponsiveChartShell>
                 <ChartContainer
@@ -842,8 +853,7 @@ function Page() {
                 ) : null}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </PagePanel>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">

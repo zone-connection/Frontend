@@ -2,6 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PortalEmpty, PortalPageTitle } from "@/components/portal-ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { fetchPortalVisitasCarteira } from "@/lib/portal-api";
 import { toast } from "sonner";
@@ -51,21 +59,43 @@ function PortalVisitasPage() {
       {itens.length === 0 ? (
         <PortalEmpty>Nenhuma visita registrada ainda.</PortalEmpty>
       ) : (
-        <div className="space-y-3">
-          {itens.map((item) => (
-            <Link
-              key={item.id}
-              to="/portal/imoveis/$id"
-              params={{ id: item.imovel.id }}
-              className="block rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:border-[#148ea3]/40"
-            >
-              <p className="text-xs font-medium text-[#0d7a8c]">{item.grupo}</p>
-              <p className="mt-1 text-sm font-semibold text-[#12343d]">{item.imovel.identificacao}</p>
-              <p className="mt-1 text-sm text-slate-600">
-                {new Date(item.dataHora).toLocaleString("pt-BR")} · {item.status}
-              </p>
-            </Link>
-          ))}
+        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
+          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-500">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Imóvel</TableHead>
+                <TableHead>Quando</TableHead>
+                <TableHead>Grupo</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {itens.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50">
+                  <TableCell>
+                    <Link
+                      to="/portal/imoveis/$id"
+                      params={{ id: item.imovel.id }}
+                      className="text-sm font-medium text-[#12343d] hover:underline"
+                    >
+                      {item.imovel.identificacao}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-500">
+                    {new Date(item.dataHora).toLocaleString("pt-BR")}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex rounded-full bg-sky-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+                      {item.grupo}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-600">
+                    {item.status}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

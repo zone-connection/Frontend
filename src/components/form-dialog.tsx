@@ -44,9 +44,9 @@ export function FormDialogShell({
           className,
         )}
       >
-        <DialogHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b bg-gradient-to-br from-primary/10 via-background to-background shrink-0">
+        <DialogHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-black/5 bg-muted/20 shrink-0">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               {icon}
             </div>
             <div className="space-y-1 pr-6 min-w-0">
@@ -139,7 +139,7 @@ export function FormSection({
     >
       <div className="flex items-start gap-2.5">
         {icon ? (
-          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             {icon}
           </span>
         ) : null}

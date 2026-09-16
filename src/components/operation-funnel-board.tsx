@@ -7,14 +7,15 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import {
   monitoramentoCardClass,
   OperacaoFunilAlerta,
 } from "@/components/operacao-funil-alerta";
-import { funnelColumnBg, STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
+import { FunilColumnShell } from "@/components/funil-column-shell";
 import { getWhatsAppUrl } from "@/lib/env";
 import type { LeadMonitoramento } from "@/lib/lead-monitoramento";
 import { phoneDigits } from "@/lib/phone";
@@ -23,7 +24,6 @@ import {
   Banknote,
   ChevronLeft,
   ChevronRight,
-  CircleUser,
   ClipboardList,
   Clock,
   Phone,
@@ -216,15 +216,20 @@ export function OperationFunnelBoard({
         ref={boardRef}
         className="-mx-6 flex gap-3 overflow-x-auto scroll-smooth px-6 pb-4"
       >
-        {stages.map((stage, index) => {
+        {stages.map((stage) => {
           const columnCards = cards.filter((card) => card.etapaId === stage.id);
           const total = columnCards.reduce(
             (sum, card) => sum + (card.value ?? 0),
             0,
           );
           return (
-            <div
+            <FunilColumnShell
               key={stage.id}
+              title={stage.label}
+              count={columnCards.length}
+              total={formatColumnTotal(total)}
+              color={stage.color}
+              active={activeDrop === stage.id}
               onDragOver={(event) => {
                 event.preventDefault();
                 setActiveDrop(stage.id);
@@ -233,35 +238,7 @@ export function OperationFunnelBoard({
                 if (activeDrop === stage.id) setActiveDrop(null);
               }}
               onDrop={(event) => handleDrop(stage.id, event)}
-              className={cn(
-                "flex w-72 shrink-0 flex-col rounded-xl p-3 transition-[box-shadow,background-color,transform] duration-200 ease-out",
-                funnelColumnBg(index, stages.length),
-                activeDrop === stage.id &&
-                  "scale-[1.01] bg-primary/8 shadow-lg shadow-[#079ED4]/10 ring-2 ring-[#079ED4]/50",
-              )}
             >
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      STATUS_CHIP_CLASS,
-                      "border-black/10 shadow-none",
-                      stage.color,
-                    )}
-                    title={stage.label}
-                  >
-                    {stage.label}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {columnCards.length}
-                  </span>
-                </div>
-                <span className="text-[11px] font-semibold text-foreground">
-                  {formatColumnTotal(total)}
-                </span>
-              </div>
-              <div className="min-h-16 flex-1 space-y-2">
                 {columnCards.length === 0 ? (
                   <p className="px-1 py-6 text-center text-xs text-muted-foreground">
                     Arraste um card para esta etapa
@@ -286,7 +263,7 @@ export function OperationFunnelBoard({
                         }}
                         onClick={() => openCard(card)}
                         className={cn(
-                          "cursor-grab select-none p-3 transition-[opacity,box-shadow,transform] duration-200 active:cursor-grabbing hover:shadow-md",
+                          "cursor-grab select-none rounded-2xl border-black/5 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[opacity,box-shadow,transform] duration-200 hover:bg-muted/40 hover:shadow-md active:cursor-grabbing",
                           movingId !== card.id &&
                             monitoramentoCardClass(card.monitoramento),
                           movingId === card.id &&
@@ -294,11 +271,22 @@ export function OperationFunnelBoard({
                         )}
                       >
                         <div className="mb-1.5 flex items-start justify-between gap-2">
-                          <div className="table-person-name flex min-w-0 items-center gap-1.5 text-sm">
-                            <CircleUser
-                              className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                              aria-hidden
-                            />
+                          <div className="table-person-name flex min-w-0 items-center gap-2 text-sm">
+                            <Avatar className="h-7 w-7 shrink-0">
+                              <AvatarFallback
+                                className={cn(
+                                  "text-[10px] font-semibold text-white",
+                                  lostLeadAvatarClass(card.title),
+                                )}
+                              >
+                                {card.title
+                                  .split(" ")
+                                  .filter(Boolean)
+                                  .slice(0, 2)
+                                  .map((part) => part[0]?.toUpperCase() ?? "")
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
                             <span className="truncate">{card.title}</span>
                           </div>
                           <div
@@ -398,8 +386,7 @@ export function OperationFunnelBoard({
                     );
                   })
                 )}
-              </div>
-            </div>
+            </FunilColumnShell>
           );
         })}
       </div>

@@ -14,6 +14,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
+import { PagePanel, PanelLink } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import {
   FormDialogActions,
@@ -45,7 +47,8 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canViewModule } from "@/lib/permissions";
-import { origemBadgeClass } from "@/lib/catalog-colors";
+import { origemBadgeClass, catalogColorToChartHex } from "@/lib/catalog-colors";
+import { useCatalog } from "@/lib/catalog-store";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
   displayFonte,
@@ -148,6 +151,7 @@ function VendasPage() {
   const isSolo = user?.tenant?.plano === "solo";
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";
+  const { colorByLabel } = useCatalog();
   const [docs, setDocs] = useState<Documentacao[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -311,6 +315,22 @@ function VendasPage() {
 
   const totalVgv = filtered.reduce((sum, doc) => sum + (doc.vgv ?? 0), 0);
   const comVgv = filtered.filter((doc) => (doc.vgv ?? 0) > 0).length;
+  const origemDonut = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const doc of filtered) {
+      const label = doc.lead.origem?.trim() || "Sem origem";
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    const fallback = ["#0ea5e9", "#8b5cf6", "#14b8a6", "#f59e0b", "#f43f5e"];
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+      .map(([label, value], index) => ({
+        label,
+        value,
+        color: catalogColorToChartHex(colorByLabel("origem", label))
+          || fallback[index % fallback.length],
+      }));
+  }, [filtered, colorByLabel]);
 
   const clearFilters = () => {
     setDraft(emptyFilters);
@@ -493,29 +513,53 @@ function VendasPage() {
         description="Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
       />
 
+      <div className="mb-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+      <PagePanel
+        inset="muted"
+        title="Resumo de vendas"
+        description="Resultado no recorte filtrado."
+        action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+      >
       <section className="grid gap-3 grid-cols-2 xl:grid-cols-3">
         <FinanceKpiCard
+          variant="dash"
           label="Vendas filtradas"
           value={filtered.length}
           icon={ReceiptText}
-          tone="blue-1"
+          tone="emerald"
           format="number"
         />
         <FinanceKpiCard
+          variant="dash"
           label="VGV vendido"
           value={totalVgv}
           icon={Wallet}
-          tone="blue-2"
+          tone="blue"
         />
         <FinanceKpiCard
+          variant="dash"
           label="Vendas com VGV"
           value={comVgv}
           icon={UsersRound}
-          tone="blue-3"
+          tone="teal"
           format="number"
           suffix={`de ${filtered.length}`}
         />
       </section>
+      </PagePanel>
+      <PagePanel
+        inset="muted"
+        title="Origem das vendas"
+        description="De onde vieram as vendas do recorte."
+      >
+        <DashDonut
+          items={origemDonut}
+          emptyLabel="Nenhuma venda neste recorte"
+          centerLabel="vendas"
+        />
+        <DashDonutLegend items={origemDonut} />
+      </PagePanel>
+      </div>
 
       <div className={cn("mt-5", FILTER_BAR_SURFACE)}>
         <div className="space-y-3">
@@ -689,7 +733,8 @@ function VendasPage() {
         </div>
       </div>
 
-      <Card className="mt-4 overflow-hidden rounded-2xl">
+      <PagePanel className="mt-4" title="Lista" description="Vendas no recorte filtrado.">
+      <Card className="overflow-hidden rounded-xl border-0 bg-transparent shadow-none">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -822,6 +867,7 @@ function VendasPage() {
           </>
         )}
       </Card>
+      </PagePanel>
 
       <FormDialogShell
         open={editOpen}

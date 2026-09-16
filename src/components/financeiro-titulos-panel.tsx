@@ -5,15 +5,20 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import { useTablePager } from "@/lib/use-table-pager";
 import { ComissaoLancamentoDialog } from "@/components/comissao-lancamento-dialog";
 import { CategoriaSearchSelect } from "@/components/categoria-search-select";
+import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import {
@@ -85,7 +90,13 @@ import {
 } from "@/lib/financeiro-prefs";
 import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
 import { canFinanceiroAction } from "@/lib/permissions";
-import { FILTER_LABEL, FILTER_VISTA_WRAP } from "@/lib/filter-bar";
+import {
+  FILTER_LABEL,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+  TABLE_LUX,
+} from "@/lib/filter-bar";
 import {
   FORM_CONTROL,
   FORM_OPTION_CARD,
@@ -152,6 +163,77 @@ type QuickKind = "parceiro" | "categoria" | null;
 type TituloFormTab = "dados" | "cobranca" | "contrato";
 type GrupoParcelaTipo = "adesao" | "mensalidade";
 
+function tituloStatusChipClass(status: string) {
+  switch (status) {
+    case "pago":
+    case "paga":
+      return "bg-emerald-500 text-white";
+    case "atrasado":
+      return "bg-rose-500 text-white";
+    case "aberto":
+    case "pendente":
+      return "bg-sky-500 text-white";
+    case "cancelado":
+      return "bg-slate-100 text-slate-700";
+    default:
+      return "bg-violet-500 text-white";
+  }
+}
+
+function StatusPill({
+  status,
+  label,
+}: {
+  status: string;
+  label: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+        tituloStatusChipClass(status),
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function TituloAvatarName({
+  name,
+  extra,
+}: {
+  name: string;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar className="h-8 w-8 shrink-0">
+        <AvatarFallback
+          className={cn("text-xs text-white", lostLeadAvatarClass(name))}
+        >
+          {initials(name || "?")}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm font-medium">{name}</span>
+          {extra}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ComissaoOrigemBadge({
   titulo,
 }: {
@@ -162,12 +244,9 @@ function ComissaoOrigemBadge({
     ? (COMISSAO_PAPEL_LABEL[titulo.comissaoPapel] ?? titulo.comissaoPapel)
     : null;
   return (
-    <Badge
-      variant="outline"
-      className="shrink-0 border-brand-accent/40 text-[10px] text-brand-accent"
-    >
+    <span className="inline-flex shrink-0 items-center rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-semibold text-white">
       {papel ? `Comissão · ${papel}` : "Comissão"}
-    </Badge>
+    </span>
   );
 }
 
@@ -798,7 +877,7 @@ export function FinanceiroTitulosPanel({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-8 w-8"
           title="Ver detalhes"
           onClick={() => setDetalhesTarget(t)}
         >
@@ -808,7 +887,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             title="Abrir comissão de origem"
             onClick={() =>
               void navigate({
@@ -824,7 +903,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             title="Ver parcelas"
             onClick={() => void openGrupo(t)}
           >
@@ -837,7 +916,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             title="Baixar"
             onClick={() => openBaixar(t)}
           >
@@ -848,7 +927,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             title={t.grupoParcelasId ? "Editar parcela" : "Editar"}
             onClick={() => openEdit(t)}
           >
@@ -859,7 +938,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8"
             title="Editar todas as parcelas"
             onClick={() => void openEditGrupo(t)}
           >
@@ -870,7 +949,7 @@ export function FinanceiroTitulosPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-destructive"
+            className="h-8 w-8 text-destructive"
             title="Excluir"
             onClick={() => setDeleteTarget(t)}
           >
@@ -1531,31 +1610,41 @@ export function FinanceiroTitulosPanel({
         }
       />
 
-      <section className="grid gap-3 sm:grid-cols-3 mb-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Indicadores do mês"
+        description="Títulos no recorte atual."
+      >
+      <section className="grid gap-3 sm:grid-cols-3">
         <FinanceKpiCard
+          variant="dash"
           label={
             tipo === "receber" ? "A receber neste mês" : "A pagar neste mês"
           }
           value={kpis.aberto}
           icon={Clock3}
-          tone="blue-1"
+          tone="teal"
           blurValue={hideValues}
         />
         <FinanceKpiCard
+          variant="dash"
           label="Atrasado neste mês"
           value={kpis.atrasado}
           icon={AlertTriangle}
-          tone="blue-2"
+          tone="rose"
           blurValue={hideValues}
         />
         <FinanceKpiCard
+          variant="dash"
           label={tipo === "receber" ? "Recebido neste mês" : "Pago neste mês"}
           value={kpis.pago}
           icon={CheckCircle2}
-          tone="blue-3"
+          tone="emerald"
           blurValue={hideValues}
         />
       </section>
+      </PagePanel>
 
       <FinanceiroFiltrosBar
         search={search}
@@ -1626,8 +1715,8 @@ export function FinanceiroTitulosPanel({
         }
       />
 
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-        <Table className="[&_th]:px-4 [&_td]:px-4">
+      <Card className="overflow-hidden rounded-2xl">
+        <Table className={TABLE_LUX}>
           <TableHeader>
             <TableRow>
               <TableHead>Descrição</TableHead>
@@ -1637,7 +1726,7 @@ export function FinanceiroTitulosPanel({
               <TableHead>Parcela</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-42" />
+              <TableHead className="w-42 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1645,7 +1734,7 @@ export function FinanceiroTitulosPanel({
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="text-center text-muted-foreground py-10"
+                  className="h-24 text-center text-sm text-muted-foreground"
                 >
                   Nenhum título no filtro.
                 </TableCell>
@@ -1655,47 +1744,48 @@ export function FinanceiroTitulosPanel({
                 if (row.kind === "single") {
                   const t = row.titulo;
                   return (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium max-w-50">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="truncate">{t.descricao}</span>
-                          <ComissaoOrigemBadge titulo={t} />
-                          {tipo === "pagar" && despesaNaturezaLabel(t.natureza) ? (
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 text-[10px]"
-                            >
-                              {despesaNaturezaLabel(t.natureza)}
-                            </Badge>
-                          ) : null}
-                          {t.platformContratoId ? (
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 text-[10px]"
-                            >
-                              Contrato
-                            </Badge>
-                          ) : null}
-                        </div>
+                    <TableRow key={t.id} className="hover:bg-muted/40">
+                      <TableCell className="max-w-72">
+                        <TituloAvatarName
+                          name={t.descricao}
+                          extra={
+                            <>
+                              <ComissaoOrigemBadge titulo={t} />
+                              {tipo === "pagar" &&
+                              despesaNaturezaLabel(t.natureza) ? (
+                                <span className="inline-flex shrink-0 items-center rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold text-amber-950">
+                                  {despesaNaturezaLabel(t.natureza)}
+                                </span>
+                              ) : null}
+                              {t.platformContratoId ? (
+                                <span className="inline-flex shrink-0 items-center rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                  Contrato
+                                </span>
+                              ) : null}
+                            </>
+                          }
+                        />
                       </TableCell>
-                      <TableCell className="truncate max-w-35">
+                      <TableCell className="max-w-40 text-sm uppercase tracking-wide text-muted-foreground">
                         {t.parceiro || "—"}
                       </TableCell>
-                      <TableCell className="truncate max-w-30">
+                      <TableCell className="max-w-32 truncate text-sm text-muted-foreground">
                         {t.categoria || t.centro || "—"}
                       </TableCell>
-                      <TableCell>{formatDate(t.vencimento)}</TableCell>
-                      <TableCell>{t.parcela || "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                        {formatDate(t.vencimento)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.parcela || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">
                         {brl(t.valor)}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={statusBadgeClass(t.status)}
-                        >
-                          {statusLabel(t.status)}
-                        </Badge>
+                        <StatusPill
+                          status={t.status}
+                          label={statusLabel(t.status)}
+                        />
                       </TableCell>
                       <TableCell>{renderTituloActions(t)}</TableCell>
                     </TableRow>
@@ -1709,108 +1799,103 @@ export function FinanceiroTitulosPanel({
                 );
                 return (
                   <Fragment key={row.grupoId}>
-                    <TableRow>
-                      <TableCell className="font-medium max-w-55">
+                    <TableRow className="hover:bg-muted/40">
+                      <TableCell className="max-w-72">
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 text-left w-full min-w-0"
+                          className="w-full min-w-0 text-left"
                           onClick={() => toggleGrupo(row.grupoId)}
                         >
-                          {expanded ? (
-                            <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-                          )}
-                          <span className="truncate">{summary.descricao}</span>
-                          {row.titulos.some((titulo) => titulo.comissaoId) ? (
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 border-brand-accent/40 text-[10px] text-brand-accent"
-                            >
-                              Comissão
-                            </Badge>
-                          ) : null}
-                          {isContrato ? (
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 text-[10px]"
-                            >
-                              Contrato
-                            </Badge>
-                          ) : null}
+                          <TituloAvatarName
+                            name={summary.descricao}
+                            extra={
+                              <>
+                                {row.titulos.some((titulo) => titulo.comissaoId) ? (
+                                  <span className="inline-flex shrink-0 items-center rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                    Comissão
+                                  </span>
+                                ) : null}
+                                {isContrato ? (
+                                  <span className="inline-flex shrink-0 items-center rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                    Contrato
+                                  </span>
+                                ) : null}
+                              </>
+                            }
+                          />
                         </button>
                       </TableCell>
-                      <TableCell className="truncate max-w-35">
+                      <TableCell className="max-w-40 text-sm uppercase tracking-wide text-muted-foreground">
                         {summary.parceiro || "—"}
                       </TableCell>
-                      <TableCell className="truncate max-w-30">
+                      <TableCell className="max-w-32 truncate text-sm text-muted-foreground">
                         {summary.categoria || summary.centro || "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
                         {summary.vencimento
                           ? formatDate(summary.vencimento)
                           : "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
                         {row.titulos.some(
                           (titulo) => titulo.recorrenciaIndeterminada,
                         )
                           ? "Mensal contínuo"
                           : `${summary.n} parcela${summary.n === 1 ? "" : "s"}`}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">
                         {brl(summary.total)}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={statusBadgeClass(summary.statusResumo)}
-                        >
-                          {summary.pagas === summary.n
-                            ? statusLabel("pago")
-                            : `${summary.pagas}/${summary.n} pagas`}
-                        </Badge>
+                        <StatusPill
+                          status={summary.statusResumo}
+                          label={
+                            summary.pagas === summary.n
+                              ? statusLabel("pago")
+                              : `${summary.pagas}/${summary.n} pagas`
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-0.5">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-8 w-8"
                             title={expanded ? "Recolher" : "Expandir"}
                             onClick={() => toggleGrupo(row.grupoId)}
                           >
                             {expanded ? (
-                              <ChevronDown className="w-3.5 h-3.5" />
+                              <ChevronDown className="w-4 h-4" />
                             ) : (
-                              <ChevronRight className="w-3.5 h-3.5" />
+                              <ChevronRight className="w-4 h-4" />
                             )}
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-8 w-8"
                             title="Ver parcelas"
                             onClick={() => void openGrupo(row.titulos[0])}
                           >
-                            <ListOrdered className="w-3.5 h-3.5" />
+                            <ListOrdered className="w-4 h-4" />
                           </Button>
                           {canEditFin ? (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
                               title="Editar todas as parcelas"
                               onClick={() => void openEditGrupo(row.titulos)}
                             >
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil className="w-4 h-4" />
                             </Button>
                           ) : null}
                           {canDeleteFin ? (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-destructive"
+                              className="h-8 w-8 text-destructive"
                               title="Excluir todas as parcelas"
                               onClick={() =>
                                 setDeleteGrupoTarget({
@@ -1821,7 +1906,7 @@ export function FinanceiroTitulosPanel({
                                 })
                               }
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           ) : null}
                         </div>
@@ -1831,38 +1916,40 @@ export function FinanceiroTitulosPanel({
                       ? row.titulos.map((t) => (
                           <TableRow
                             key={`${row.grupoId}-${t.id}`}
-                            className="bg-muted/20"
+                            className="bg-muted/20 hover:bg-muted/40"
                           >
-                            <TableCell className="pl-9 text-sm text-muted-foreground">
+                            <TableCell className="pl-12 text-sm text-muted-foreground">
                               Parcela {t.parcela || "—"}
                             </TableCell>
-                            <TableCell className="truncate max-w-35">
+                            <TableCell className="max-w-40 text-sm uppercase tracking-wide text-muted-foreground">
                               {t.parceiro || "—"}
                             </TableCell>
-                            <TableCell className="truncate max-w-30">
+                            <TableCell className="max-w-32 truncate text-sm text-muted-foreground">
                               {t.categoria || t.centro || "—"}
                             </TableCell>
-                            <TableCell>{formatDate(t.vencimento)}</TableCell>
-                            <TableCell>{t.parcela || "—"}</TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                              {formatDate(t.vencimento)}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {t.parcela || "—"}
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-semibold tabular-nums">
                               {brl(t.valor)}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant="secondary"
-                                className={statusBadgeClass(t.status)}
-                              >
-                                {statusLabel(t.status)}
-                              </Badge>
+                              <StatusPill
+                                status={t.status}
+                                label={statusLabel(t.status)}
+                              />
                             </TableCell>
                             <TableCell>
-                              <div className="flex justify-end gap-1 items-center">
+                              <div className="flex items-center justify-end gap-1">
                                 {canEditFin &&
                                 t.status !== "pago" &&
                                 t.status !== "cancelado" ? (
                                   <Button
                                     size="sm"
-                                    className="h-7"
+                                    className="h-8"
                                     onClick={() => openBaixar(t)}
                                   >
                                     <Banknote className="w-3.5 h-3.5 mr-1" />
@@ -1891,7 +1978,7 @@ export function FinanceiroTitulosPanel({
           total={pager.total}
           onPageChange={pager.setPage}
         />
-      </div>
+      </Card>
 
       <ComissaoLancamentoDialog
         open={comissaoDialogOpen}
@@ -1908,7 +1995,7 @@ export function FinanceiroTitulosPanel({
         open={open}
         onOpenChange={setOpen}
         icon={<Banknote className="w-5 h-5" />}
-        className="max-w-2xl"
+        className="max-w-3xl rounded-3xl"
         title={
           formMode === "create"
             ? comoContrato
@@ -1959,48 +2046,62 @@ export function FinanceiroTitulosPanel({
         <FormDialogBody>
           <form
             id="titulo-form"
-            className="space-y-4 [&_input]:border-primary/20 [&_input]:bg-background/90"
+            className="space-y-5 [&_label]:text-xs [&_label]:font-medium [&_label]:text-muted-foreground"
             onSubmit={onSubmit}
           >
-            <div className="overflow-hidden rounded-2xl border border-primary/15 bg-linear-to-br from-primary/12 via-card to-card p-4 shadow-sm shadow-primary/5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-2xl border border-teal-100/80 bg-teal-50 px-3.5 py-3 dark:border-teal-900/40 dark:bg-teal-950/25">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Tipo
+                </p>
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold">
                   {tipo === "receber" ? (
-                    <ArrowDownLeft className="h-3.5 w-3.5" />
+                    <ArrowDownLeft className="h-3.5 w-3.5 text-teal-600" />
                   ) : (
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-orange-600" />
                   )}
-                  {tipo === "receber" ? "Conta a receber" : "Conta a pagar"}
-                </span>
-                <span className="inline-flex items-center rounded-full border border-primary/20 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
+                  {tipo === "receber" ? "A receber" : "A pagar"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-violet-100/80 bg-violet-50 px-3.5 py-3 dark:border-violet-900/40 dark:bg-violet-950/25">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Recorrência
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold">
                   {comoContrato
                     ? "Contrato"
                     : parcelado && formMode === "create"
                       ? recorrenciaIndeterminada
-                        ? "Recorrência mensal"
-                        : `Recorrência ${RECORRENCIAS.find((r) => r.value === recorrencia)?.label.toLowerCase()}`
+                        ? "Mensal contínua"
+                        : (RECORRENCIAS.find((r) => r.value === recorrencia)
+                            ?.label ?? "Parcelado")
                       : parcelado
-                        ? "Título parcelado"
-                        : "Título avulso"}
-                </span>
-                <span className="ml-auto rounded-xl bg-primary/12 px-3 py-1.5 text-sm font-semibold tabular-nums text-primary">
+                        ? "Parcelado"
+                        : "Parcela única"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100/80 bg-emerald-50 px-3.5 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Total
+                </p>
+                <p className="mt-1 text-sm font-semibold tabular-nums">
                   {comoContrato
-                    ? `Previsto: ${brl(
+                    ? brl(
                         (parseValor(contratoForm.valorAdesao) || 0) +
                           (parseValor(contratoForm.valorMensalidade) || 0) *
                             (Number(qtdParcelas) || 1),
-                      )}`
+                      )
                     : form.valor
                       ? parcelado && formMode === "create"
                         ? recorrenciaIndeterminada
-                          ? "Mensal, sem término"
-                          : `Total: ${brl(
-                            (parseValor(form.valor) || 0) *
-                              (Number(qtdParcelas) || 1),
-                          )}`
-                        : `Valor: ${brl(parseValor(form.valor) || 0)}`
-                      : "Preencha os dados"}
-                </span>
+                          ? "Mensal"
+                          : brl(
+                              (parseValor(form.valor) || 0) *
+                                (Number(qtdParcelas) || 1),
+                            )
+                        : brl(parseValor(form.valor) || 0)
+                      : "—"}
+                </p>
               </div>
             </div>
 
@@ -2245,15 +2346,16 @@ export function FinanceiroTitulosPanel({
                 (formTab === "dados" || formMode === "edit-grupo") ? (
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label>Tipo de despesa *</Label>
-                    <div className={cn(FILTER_VISTA_WRAP, "h-10 p-1")}>
+                    <div className={cn(FILTER_VISTA_WRAP, "h-9 p-0.5")}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          "h-8 px-4 text-primary hover:bg-primary/10 hover:text-primary",
-                          form.natureza === "fixa" &&
-                            "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground",
+                          "h-8 rounded-full px-4",
+                          form.natureza === "fixa"
+                            ? FILTER_VISTA_BTN_ACTIVE
+                            : FILTER_VISTA_BTN,
                         )}
                         onClick={() =>
                           setForm((f) => ({ ...f, natureza: "fixa" }))
@@ -2266,9 +2368,10 @@ export function FinanceiroTitulosPanel({
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          "h-8 px-4 text-primary hover:bg-primary/10 hover:text-primary",
-                          form.natureza === "variavel" &&
-                            "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground",
+                          "h-8 rounded-full px-4",
+                          form.natureza === "variavel"
+                            ? FILTER_VISTA_BTN_ACTIVE
+                            : FILTER_VISTA_BTN,
                         )}
                         onClick={() =>
                           setForm((f) => ({ ...f, natureza: "variavel" }))

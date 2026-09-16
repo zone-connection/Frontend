@@ -47,6 +47,7 @@ import {
   FormDialogBody,
   FormDialogShell,
   FormSection,
+  FormSectionNav,
   DetailField,
 } from "@/components/form-dialog";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
@@ -134,6 +135,7 @@ import {
 } from "@/lib/filter-bar";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 
 export const Route = createFileRoute("/_app/usuarios")({
   head: () => ({ meta: [{ title: "Usuários — Zone Connection" }] }),
@@ -188,6 +190,17 @@ const STATUS_LABEL: Record<UserStatus, string> = {
 const PASSWORD_HINT = "Mín. 8 caracteres, com maiúscula, minúscula e número.";
 
 type FormMode = "create" | "edit";
+
+const USER_FORM_SECTIONS = [
+  { id: "identidade", label: "Identidade" },
+  { id: "contato", label: "Contato" },
+  { id: "documentos", label: "Contratos" },
+  { id: "creci", label: "CRECI" },
+  { id: "acesso", label: "Acesso" },
+] as const;
+
+type UserFormSectionId = (typeof USER_FORM_SECTIONS)[number]["id"];
+
 type FormState = {
   name: string;
   email: string;
@@ -452,6 +465,8 @@ function Usuarios() {
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [userFormSection, setUserFormSection] =
+    useState<UserFormSectionId>("identidade");
   const [saving, setSaving] = useState(false);
 
   const [detail, setDetail] = useState<ApiUser | null>(null);
@@ -611,6 +626,7 @@ function Usuarios() {
     setFormMode("create");
     setEditingId(null);
     setForm(emptyForm());
+    setUserFormSection("identidade");
     setFormOpen(true);
   }
 
@@ -618,6 +634,7 @@ function Usuarios() {
     setFormMode("edit");
     setEditingId(u.id);
     setForm(userToForm(u));
+    setUserFormSection("identidade");
     setFormOpen(true);
     setDetail(null);
   }
@@ -888,7 +905,7 @@ function Usuarios() {
             label="Total de corretores"
             value={adminStats.corretores}
             icon={Users}
-            tone="blue-1"
+            tone="emerald"
             format="number"
             onClick={() => {
               setRoleFilter("corretor");
@@ -904,7 +921,7 @@ function Usuarios() {
                 : "—"
             }
             icon={Clock3}
-            tone="blue-2"
+            tone="teal"
             format="number"
             suffix={
               adminStats.loggedInToday > 0
@@ -991,10 +1008,10 @@ function Usuarios() {
           </Select>
       </div>
 
-      <Card className="min-w-0 overflow-hidden">
+      <Card className="min-w-0 overflow-hidden rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
-          className="w-full min-w-7xl table-fixed [&_th]:px-3 [&_td]:overflow-hidden [&_td]:px-3 [&_th]:whitespace-nowrap"
+          className="w-full min-w-7xl table-fixed [&_th]:px-3 [&_td]:overflow-hidden [&_td]:px-3 [&_th]:whitespace-nowrap [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground"
         >
           <TableHeader>
             <TableRow>
@@ -1035,7 +1052,9 @@ function Usuarios() {
                   <TableCell className="min-w-0">
                     <div className="flex min-w-0 items-center gap-3">
                       <Avatar className="w-8 h-8 shrink-0">
-                        <AvatarFallback className="avatar-fallback-brand text-xs">
+                        <AvatarFallback
+                          className={cn("text-xs text-white", lostLeadAvatarClass(u.name))}
+                        >
                           {initials(u.name)}
                         </AvatarFallback>
                       </Avatar>
@@ -1209,6 +1228,7 @@ function Usuarios() {
             <UserPlus className="w-5 h-5" />
           )
         }
+        className="max-w-3xl"
         title={formMode === "edit" ? "Editar usuário" : "Novo usuário"}
         description={
           formMode === "edit"
@@ -1218,9 +1238,18 @@ function Usuarios() {
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
+            <FormSectionNav
+              items={USER_FORM_SECTIONS}
+              value={userFormSection}
+              onChange={setUserFormSection}
+            />
+            <div
+              className={cn(userFormSection !== "identidade" && "hidden")}
+            >
             <FormSection
               icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-              title="Dados"
+              title="Identidade"
+              description="Nome, cargo e apresentação no CRM."
             >
               <div className="space-y-1.5">
                 <Label
@@ -1239,6 +1268,52 @@ function Usuarios() {
                   required
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="usr-cargo"
+                  className="text-xs text-muted-foreground"
+                >
+                  Cargo
+                </Label>
+                <Input
+                  id="usr-cargo"
+                  value={form.cargo}
+                  onChange={(e) => setField("cargo", e.target.value)}
+                  placeholder="Ex.: Corretor sênior"
+                  className="h-10 bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="usr-nascimento"
+                  className="text-xs text-muted-foreground"
+                >
+                  Data de nascimento
+                </Label>
+                <Input
+                  id="usr-nascimento"
+                  type="date"
+                  value={form.dataNascimento}
+                  onChange={(e) => setField("dataNascimento", e.target.value)}
+                  className="h-10 bg-background"
+                />
+              </div>
+              <CorPicker
+                id="usr-cor"
+                value={form.cor}
+                onChange={(hex) => setField("cor", hex)}
+                previewLabel={form.name}
+              />
+            </FormSection>
+            </div>
+            <div
+              className={cn(userFormSection !== "contato" && "hidden")}
+            >
+            <FormSection
+              icon={<UserPlus className="w-3.5 h-3.5 text-primary" />}
+              title="Contato"
+              description="Canais de login, avisos e WhatsApp."
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label
@@ -1317,43 +1392,11 @@ function Usuarios() {
                   Usado para enviar o resultado da análise ao corretor.
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="usr-nascimento"
-                  className="text-xs text-muted-foreground"
-                >
-                  Data de nascimento
-                </Label>
-                <Input
-                  id="usr-nascimento"
-                  type="date"
-                  value={form.dataNascimento}
-                  onChange={(e) => setField("dataNascimento", e.target.value)}
-                  className="h-10 bg-background"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="usr-cargo"
-                  className="text-xs text-muted-foreground"
-                >
-                  Cargo
-                </Label>
-                <Input
-                  id="usr-cargo"
-                  value={form.cargo}
-                  onChange={(e) => setField("cargo", e.target.value)}
-                  placeholder="Ex.: Corretor sênior"
-                  className="h-10 bg-background"
-                />
-              </div>
-              <CorPicker
-                id="usr-cor"
-                value={form.cor}
-                onChange={(hex) => setField("cor", hex)}
-                previewLabel={form.name}
-              />
             </FormSection>
+            </div>
+            <div
+              className={cn(userFormSection !== "documentos" && "hidden")}
+            >
             <FormSection
               icon={<FileText className="w-3.5 h-3.5 text-primary" />}
               title="Para contratos"
@@ -1372,6 +1415,10 @@ function Usuarios() {
                 }
               />
             </FormSection>
+            </div>
+            <div
+              className={cn(userFormSection !== "creci" && "hidden")}
+            >
             <FormSection
               icon={<IdCard className="w-3.5 h-3.5 text-primary" />}
               title="Processo CRECI"
@@ -1462,6 +1509,10 @@ function Usuarios() {
                 </div>
               ) : null}
             </FormSection>
+            </div>
+            <div
+              className={cn(userFormSection !== "acesso" && "hidden")}
+            >
             <FormSection
               icon={<Shield className="w-3.5 h-3.5 text-primary" />}
               title="Acesso"
@@ -1613,6 +1664,7 @@ function Usuarios() {
                 </div>
               )}
             </FormSection>
+            </div>
           </FormDialogBody>
           <FormDialogActions hint="As alterações são salvas no banco.">
             <Button

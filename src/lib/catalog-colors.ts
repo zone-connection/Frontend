@@ -442,6 +442,27 @@ function funnelScaleIndex(index: number, total: number, length: number) {
   return Math.round(t * (length - 1));
 }
 
+/** Corpo da coluna do kanban: fundo plano, sem degradê. */
+export const FUNNEL_COLUMN_BODY =
+  "bg-[#eef1f4] dark:bg-zinc-900/55";
+
+/** Cabeçalho sólido da etapa (cor do catálogo, sem degradê). */
+export function funnelStageHeaderClass(
+  color: string | null | undefined,
+): string {
+  const normalized = normalizeCatalogColor(color);
+  if (isHexColor(normalized)) return hexBadgeTextClass(normalized);
+  return `${catalogColorSwatch(normalized)} ${catalogColorTextClass(normalized)}`;
+}
+
+export function funnelStageHeaderStyle(
+  color: string | null | undefined,
+): { backgroundColor: string } | undefined {
+  const normalized = normalizeCatalogColor(color);
+  if (isHexColor(normalized)) return { backgroundColor: normalized };
+  return undefined;
+}
+
 /**
  * Fundo de coluna em degradê na família do aside.
  * `tone: "light"` — mais suave (ex.: equipes).

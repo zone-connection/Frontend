@@ -19,13 +19,14 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Cake, CalendarDays, Plus, type LucideIcon } from "lucide-react";
 import { AGENDAMENTO_TIPO_ICON } from "@/components/agenda-tipo-option";
+import { AGENDA_LUX_BLOCK } from "@/lib/agenda-lux-colors";
 
 export type AgendaViewMode = "dia" | "semana" | "mes";
 
 const HOUR_START = 7;
 const HOUR_END = 23;
-const PX_PER_HOUR_WEEK = 56;
-const PX_PER_HOUR_DAY = 76;
+const PX_PER_HOUR_WEEK = 32;
+const PX_PER_HOUR_DAY = 52;
 const DEFAULT_DURATION_MIN = 60;
 
 function eventIcon(item: Agendamento): LucideIcon {
@@ -171,6 +172,7 @@ type BoardProps = {
   anchor: Date;
   items: Agendamento[];
   loading?: boolean;
+  tone?: "default" | "lux";
   onSelectDay: (day: Date) => void;
   onCreateAt: (day: Date, hour?: number) => void;
   onEdit: (item: Agendamento) => void;
@@ -181,6 +183,7 @@ export function AgendaBoard({
   anchor,
   items,
   loading,
+  tone = "default",
   onSelectDay,
   onCreateAt,
   onEdit,
@@ -191,6 +194,7 @@ export function AgendaBoard({
         anchor={anchor}
         items={items}
         loading={loading}
+        tone={tone}
         onSelectDay={onSelectDay}
         onCreateAt={onCreateAt}
         onEdit={onEdit}
@@ -208,6 +212,7 @@ export function AgendaBoard({
       days={days}
       items={items}
       loading={loading}
+      tone={tone}
       onCreateAt={onCreateAt}
       onEdit={onEdit}
     />
@@ -218,12 +223,14 @@ function TimeGridBoard({
   days,
   items,
   loading,
+  tone = "default",
   onCreateAt,
   onEdit,
 }: {
   days: Date[];
   items: Agendamento[];
   loading?: boolean;
+  tone?: "default" | "lux";
   onCreateAt: (day: Date, hour?: number) => void;
   onEdit: (item: Agendamento) => void;
 }) {
@@ -256,9 +263,17 @@ function TimeGridBoard({
   const nowTop =
     ((now.getHours() * 60 + now.getMinutes() - HOUR_START * 60) / 60) *
     pxPerHour;
+  const lux = tone === "lux";
 
   return (
-    <div className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border bg-card shadow-sm">
+    <div
+      className={cn(
+        "relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border shadow-sm",
+        lux
+          ? "border-[#c9a227]/18 bg-[#101217]"
+          : "border bg-card",
+      )}
+    >
       {loading ? (
         <div className="absolute inset-0 z-20 bg-background/50 flex items-center justify-center text-sm text-muted-foreground">
           Carregando…
@@ -268,34 +283,49 @@ function TimeGridBoard({
       <div
         className={cn("grid", days.length > 1 ? "min-w-220" : "min-w-0")}
         style={{
-          gridTemplateColumns: `${isDayView ? 72 : 56}px repeat(${days.length}, minmax(9rem, 1fr))`,
+          gridTemplateColumns: `${isDayView ? 72 : 56}px repeat(${days.length}, minmax(7.5rem, 1fr))`,
         }}
       >
-        <div className="sticky top-0 z-10 border-b bg-linear-to-b from-primary/8 to-card" />
+        <div
+          className={cn(
+            "sticky left-0 top-0 z-20 border-b bg-card",
+            lux
+              ? "border-[#c9a227]/15 bg-[#101217]"
+              : "bg-linear-to-b from-primary/8 to-card",
+          )}
+        />
         {days.map((day) => {
           const isToday = sameDay(day, today);
           return (
             <div
               key={toDateInput(day)}
               className={cn(
-                "sticky top-0 z-10 border-b border-l bg-linear-to-b to-card px-2 py-2.5 text-center",
-                isToday ? "from-primary/18" : "from-primary/8",
+                "sticky top-0 z-10 border-b border-l px-1.5 py-1.5 text-center",
+                lux
+                  ? "border-[#c9a227]/15 bg-[#12141a]"
+                  : "bg-linear-to-b to-card",
+                !lux && (isToday ? "from-primary/18" : "from-primary/8"),
               )}
             >
               <div
                 className={cn(
-                  "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
-                  isToday && "text-primary",
+                  "text-[11px] font-semibold uppercase tracking-wide",
+                  lux ? "text-zinc-400" : "text-muted-foreground",
+                  isToday && (lux ? "text-[#e8d48b]" : "text-primary"),
                 )}
               >
                 {day.toLocaleDateString("pt-BR", { weekday: "short" })}
               </div>
               <div
                 className={cn(
-                  "mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold",
+                  "mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
                   isToday
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
-                    : "hover:bg-muted",
+                    ? lux
+                      ? "bg-[#c9a227] text-[#1a1408]"
+                      : "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                    : lux
+                      ? "text-zinc-200 hover:bg-white/5"
+                      : "hover:bg-muted",
                 )}
               >
                 {day.getDate()}
@@ -304,15 +334,20 @@ function TimeGridBoard({
           );
         })}
 
-        <div className="relative border-r" style={{ height: gridHeight }}>
+        <div
+          className={cn(
+            "sticky left-0 z-10 border-r bg-card",
+          )}
+          style={{ height: gridHeight }}
+        >
           {hours.map((h) => (
             <div
               key={h}
-              className={cn(
-                "absolute right-2 -translate-y-1/2 tabular-nums text-muted-foreground",
-                isDayView ? "text-xs font-medium" : "text-[11px]",
-              )}
-              style={{ top: (h - HOUR_START) * pxPerHour }}
+              className="absolute inset-x-0 flex items-start justify-end pr-1.5 pt-0.5 tabular-nums text-[11px] font-semibold leading-none text-foreground"
+              style={{
+                top: (h - HOUR_START) * pxPerHour,
+                height: pxPerHour,
+              }}
             >
               {formatHour(h)}
             </div>
@@ -335,8 +370,8 @@ function TimeGridBoard({
                   key={h}
                   type="button"
                   className={cn(
-                    "group/slot absolute inset-x-0 border-t border-border/50 transition-colors hover:bg-primary/8",
-                    h % 2 === 0 && "bg-muted/20",
+                    "group/slot absolute inset-x-0 border-t border-border/80 transition-colors hover:bg-primary/8",
+                    h % 2 === 0 && "bg-muted/30",
                   )}
                   style={{
                     top: (h - HOUR_START) * pxPerHour,
@@ -413,7 +448,7 @@ function TimeGridBoard({
                 const origem = getAgendamentoOrigem(item);
                 const visual = getAgendamentoVisual(item);
                 const Icon = eventIcon(item);
-                const cardHeight = Math.max(height, isDayView ? 44 : 22);
+                const cardHeight = Math.max(height, isDayView ? 40 : 28);
 
                 return (
                   <button
@@ -426,13 +461,20 @@ function TimeGridBoard({
                     className={cn(
                       "absolute z-6 overflow-hidden text-left transition",
                       isDayView
-                        ? cn(
-                            "left-2 right-3 rounded-xl border border-l-[3px] px-3 py-2 shadow-sm hover:shadow-md",
-                            AGENDAMENTO_TIPO_CARD[visual],
-                          )
+                        ? lux
+                          ? cn(
+                              "left-2 right-3 rounded-xl border px-3 py-2 shadow-md",
+                              AGENDA_LUX_BLOCK[visual],
+                            )
+                          : cn(
+                              "left-2 right-3 rounded-xl border border-l-[3px] px-3 py-2 shadow-sm hover:shadow-md",
+                              AGENDAMENTO_TIPO_CARD[visual],
+                            )
                         : cn(
-                            "left-1 right-1 rounded-md border px-1.5 py-1 shadow-sm hover:brightness-110",
-                            AGENDAMENTO_TIPO_BLOCK[visual],
+                            "left-0.5 right-0.5 rounded-md border px-1 py-0.5 shadow-sm hover:brightness-110",
+                            lux
+                              ? AGENDA_LUX_BLOCK[visual]
+                              : AGENDAMENTO_TIPO_BLOCK[visual],
                           ),
                       item.status === "concluido" && "opacity-80",
                       item.status === "cancelado" && "opacity-50 grayscale",
@@ -472,17 +514,12 @@ function TimeGridBoard({
                       </div>
                     ) : (
                       <>
-                        <div className="truncate text-[11px] font-semibold leading-tight">
+                        <div className="truncate text-[10px] font-bold tabular-nums leading-tight">
+                          {formatEventTime(item)}
+                        </div>
+                        <div className="truncate text-[10px] font-semibold leading-tight">
                           {getAgendamentoCardTitle(item)}
                         </div>
-                        {height > 36 ? (
-                          <div className="truncate text-[10px] opacity-90">
-                            {formatEventTime(item)}
-                            {getAgendamentoCardSubtitle(item)
-                              ? ` · ${getAgendamentoCardSubtitle(item)}`
-                              : ""}
-                          </div>
-                        ) : null}
                       </>
                     )}
                   </button>
@@ -500,6 +537,7 @@ function MonthBoard({
   anchor,
   items,
   loading,
+  tone = "default",
   onSelectDay,
   onCreateAt,
   onEdit,
@@ -507,6 +545,7 @@ function MonthBoard({
   anchor: Date;
   items: Agendamento[];
   loading?: boolean;
+  tone?: "default" | "lux";
   onSelectDay: (day: Date) => void;
   onCreateAt: (day: Date, hour?: number) => void;
   onEdit: (item: Agendamento) => void;
@@ -516,6 +555,7 @@ function MonthBoard({
   const gridStart = startOfWeek(monthStart);
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
   const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  const lux = tone === "lux";
 
   const byDay = useMemo(() => {
     const map = new Map<string, Agendamento[]>();
@@ -536,7 +576,12 @@ function MonthBoard({
   }, [items]);
 
   return (
-    <div className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border bg-card shadow-sm">
+    <div
+      className={cn(
+        "relative overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-3xl border shadow-sm",
+        lux ? "border-[#c9a227]/18 bg-[#101217]" : "bg-card",
+      )}
+    >
       {loading ? (
         <div className="absolute inset-0 z-20 bg-background/50 flex items-center justify-center text-sm text-muted-foreground">
           Carregando…
@@ -604,7 +649,9 @@ function MonthBoard({
                       onClick={() => onEdit(item)}
                       className={cn(
                         "truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-medium leading-tight border shadow-sm",
-                        AGENDAMENTO_TIPO_BLOCK[getAgendamentoVisual(item)],
+                        lux
+                          ? AGENDA_LUX_BLOCK[getAgendamentoVisual(item)]
+                          : AGENDAMENTO_TIPO_BLOCK[getAgendamentoVisual(item)],
                         item.status === "cancelado" && "opacity-50 grayscale",
                       )}
                       title={`${AGENDAMENTO_VISUAL_LABEL[getAgendamentoVisual(item)]} · ${AGENDAMENTO_ORIGEM_LABEL[getAgendamentoOrigem(item)]} · ${getAgendamentoCardTitle(item)}${

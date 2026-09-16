@@ -85,7 +85,7 @@ export function MetasGestorBoard({
     filteredGruposCorretores.length === 0;
 
   return (
-    <div className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b bg-gradient-to-r from-primary/10 via-background to-background px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Acompanhamento</p>
@@ -243,7 +243,7 @@ export function MetasPorOrigem({
 
   if (vista === "tabela") {
     return (
-      <div className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm">
         <MetasTable
           metas={metas}
           showResponsavel={!flat}
@@ -258,7 +258,7 @@ export function MetasPorOrigem({
 
   if (flat) {
     return (
-      <div className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm">
         <PanelBlock
           heading={
             <SectionHeading
@@ -281,7 +281,7 @@ export function MetasPorOrigem({
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm">
       <PanelBlock
         heading={
           <SectionHeading
@@ -375,7 +375,7 @@ function MetasTable({
 
   return (
     <>
-    <Table className="[&_th]:px-4 [&_td]:px-4">
+    <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
       <TableHeader>
         <TableRow>
           {showResponsavel ? <TableHead>Responsável</TableHead> : null}
@@ -394,7 +394,7 @@ function MetasTable({
           const barra = Math.min(100, Math.max(0, meta.percentual));
           const responsavel = metaResponsavel(meta);
           return (
-            <TableRow key={meta.id}>
+            <TableRow key={meta.id} className="hover:bg-muted/40">
               {showResponsavel ? (
                 <TableCell>
                   <div className="flex min-w-40 items-center gap-2.5">

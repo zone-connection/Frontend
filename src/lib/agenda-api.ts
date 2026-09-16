@@ -382,6 +382,27 @@ export async function fetchAgendamentos(
   return apiFetch<Agendamento[]>(`/agenda${query ? `?${query}` : ""}`);
 }
 
+export type AgendaKpiCard = { hoje: number; ontem: number };
+
+export interface AgendaKpis {
+  compromissos: AgendaKpiCard;
+  atendimentos: AgendaKpiCard;
+  reunioes: AgendaKpiCard;
+  propostas: AgendaKpiCard;
+  visitas: AgendaKpiCard;
+}
+
+export async function fetchAgendaKpis(params: {
+  corretorId?: string;
+  equipeId?: string;
+} = {}): Promise<AgendaKpis> {
+  const qs = new URLSearchParams();
+  if (params.corretorId) qs.set("corretorId", params.corretorId);
+  if (params.equipeId) qs.set("equipeId", params.equipeId);
+  const query = qs.toString();
+  return apiFetch<AgendaKpis>(`/agenda/kpis${query ? `?${query}` : ""}`);
+}
+
 export async function fetchSolicitacoesAgenda(): Promise<Agendamento[]> {
   return apiFetch<Agendamento[]>("/agenda/solicitacoes");
 }

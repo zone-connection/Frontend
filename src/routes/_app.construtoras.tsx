@@ -1138,7 +1138,7 @@ function ConstrutorasPage() {
         </TabsContent>
 
         <TabsContent value="lista" className="mt-0">
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden rounded-2xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Lista de construtoras</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -1163,7 +1163,7 @@ function ConstrutorasPage() {
                 </div>
               ) : (
                 <>
-                <Table className="[&_th]:px-4 [&_td]:px-4">
+                <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
@@ -1183,7 +1183,7 @@ function ConstrutorasPage() {
                   </TableHeader>
                   <TableBody>
                     {construtorasPager.pageItems.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className="hover:bg-muted/40">
                         <TableCell className="font-medium">
                           {canViewVendas ? (
                             <button
@@ -1383,21 +1383,21 @@ function ConstrutorasPage() {
                   label="Vendas"
                   value={vendasTotais.vendas}
                   icon={Wallet}
-                  tone="blue-1"
+                  tone="emerald"
                   format="number"
                 />
                 <FinanceKpiCard
                   label="VGV"
                   value={vendasTotais.vgv}
                   icon={Wallet}
-                  tone="blue-3"
+                  tone="blue"
                   format="money"
                 />
                 <FinanceKpiCard
                   label="Corretores"
                   value={vendasTotais.corretores}
                   icon={UsersRound}
-                  tone="blue-4"
+                  tone="violet"
                   format="number"
                 />
               </CardContent>
@@ -1438,7 +1438,7 @@ function ConstrutorasPage() {
         ) : null}
 
         <TabsContent value="visibilidade" className="mt-0">
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -1501,7 +1501,7 @@ function ConstrutorasPage() {
                 </p>
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <Table className="min-w-max [&_th]:px-3 [&_td]:px-3">
+                  <Table className="min-w-max [&_th]:px-3 [&_td]:px-3 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="sticky left-0 z-20 min-w-44">

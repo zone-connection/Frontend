@@ -22,6 +22,7 @@ import { HideFinanceValuesButton } from "@/components/hide-finance-values-button
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
+import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import {
   FormDialogActions,
@@ -65,7 +66,7 @@ import {
   type FluxoItem,
 } from "@/lib/financeiro-mock";
 import { cn } from "@/lib/utils";
-import { FILTER_BAR_SURFACE } from "@/lib/filter-bar";
+import { FILTER_BAR_SURFACE, TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -472,36 +473,47 @@ function Page() {
         </div>
       </div>
 
-      <section className="grid gap-3 grid-cols-2 xl:grid-cols-4 mb-4">
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Fluxo de caixa"
+        description="Realizado e previsto no recorte."
+      >
+      <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
         <FinanceKpiCard
           label="Entradas realizadas"
           value={totais.entradasRealizadas}
           icon={ArrowUpRight}
-          tone="blue-1"
+          variant="dash"
+          tone="emerald"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="Saídas realizadas"
           value={totais.saidasRealizadas}
           icon={ArrowDownRight}
-          tone="blue-2"
+          variant="dash"
+          tone="teal"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="A receber neste mês"
           value={totais.entradasPrevistas}
           icon={ArrowUpRight}
-          tone="blue-3"
+          variant="dash"
+          tone="orange"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           label="A pagar neste mês"
           value={totais.saidasPrevistas}
           icon={ArrowDownRight}
-          tone="blue-4"
+          variant="dash"
+          tone="violet"
           blurValue={hideValues}
         />
       </section>
+      </PagePanel>
 
       <div className="grid gap-4 min-w-0 lg:grid-cols-2 mb-4">
         <Card className="min-w-0 overflow-hidden">
@@ -662,8 +674,8 @@ function Page() {
           onSelectItem={onSelectItem}
         />
       ) : view === "dia" ? (
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-          <Table>
+        <div className={TABLE_SHELL}>
+          <Table className={TABLE_LUX}>
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
@@ -744,8 +756,8 @@ function Page() {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-          <Table>
+        <div className={TABLE_SHELL}>
+          <Table className={TABLE_LUX}>
             <TableHeader>
               <TableRow>
                 <TableHead>Período</TableHead>

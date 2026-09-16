@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,7 @@ import {
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
   FILTER_VISTA_WRAP,
+  TABLE_LUX,
 } from "@/lib/filter-bar";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
@@ -89,7 +92,7 @@ export const Route = createFileRoute("/_app/captacao/captacoes/")({
 type Vista = "cards" | "tabela";
 const VISTA_KEY = "captacoes.vista";
 const TABLE_CHIP =
-  "h-5 w-auto max-w-[8.5rem] min-w-0 shrink rounded-full border-transparent px-2 py-0 text-[10px] font-medium leading-5 shadow-none";
+  "h-6 w-auto max-w-[8.5rem] min-w-0 shrink rounded-full border-transparent px-2.5 py-0 text-[10px] font-semibold leading-6 shadow-none";
 
 function getVista(): Vista {
   try {
@@ -99,24 +102,13 @@ function getVista(): Vista {
   }
 }
 
-function TableHeadCell({
-  className,
-  children,
-}: {
-  className?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <TableHead
-      style={{ backgroundColor: "transparent" }}
-      className={cn(
-        "h-11 bg-transparent text-[11px] font-semibold uppercase tracking-wider text-white/90",
-        className,
-      )}
-    >
-      {children}
-    </TableHead>
-  );
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function CaptacoesPage() {
@@ -411,44 +403,39 @@ function CaptacoesPage() {
           </CardContent>
         </Card>
       ) : vista === "tabela" ? (
-        <Card className="overflow-hidden border-primary/15 shadow-sm shadow-primary/5">
-          <Table className="[&_th]:px-3.5 [&_td]:px-3.5 [&_td]:py-2.5">
-            <TableHeader
-              style={{
-                backgroundColor: "transparent",
-                backgroundImage: BRAND_GRADIENT_STYLE.backgroundImage,
-              }}
-              className="text-white"
-            >
-              <TableRow className="hover:bg-transparent">
-                <TableHeadCell>Proprietário</TableHeadCell>
-                <TableHeadCell>Imóvel</TableHeadCell>
-                <TableHeadCell>Responsável</TableHeadCell>
-                <TableHeadCell>Origem</TableHeadCell>
-                <TableHeadCell>Exclusividade</TableHeadCell>
-                <TableHeadCell className="text-right">Valor</TableHeadCell>
-                <TableHeadCell>Etapa</TableHeadCell>
-                <TableHeadCell className="w-28 text-right">Ações</TableHeadCell>
+        <Card className="overflow-hidden rounded-2xl">
+          <Table className={TABLE_LUX}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Proprietário</TableHead>
+                <TableHead>Imóvel</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Exclusividade</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Etapa</TableHead>
+                <TableHead className="w-28 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pager.pageItems.map((item, index) => (
-                <TableRow
-                  key={item.id}
-                  className={cn(
-                    "group border-border/50 hover:bg-primary/10",
-                    index % 2 === 0
-                      ? "bg-linear-to-r from-primary/10 via-primary/4 to-transparent"
-                      : "bg-linear-to-r from-primary/[0.04] to-transparent",
-                  )}
-                >
+              {pager.pageItems.map((item) => (
+                <TableRow key={item.id} className="hover:bg-muted/40">
                   <TableCell>
-                    <div className="flex min-w-40 items-start gap-2.5">
-                      <span className="mt-1 h-8 w-1.5 shrink-0 rounded-full bg-linear-to-b from-[#0e6f8a] to-primary shadow-sm shadow-primary/25" />
+                    <div className="flex min-w-40 items-center gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(item.proprietario.nome),
+                          )}
+                        >
+                          {initials(item.proprietario.nome)}
+                        </AvatarFallback>
+                      </Avatar>
                       <Link
                         to="/captacao/proprietarios/$id"
                         params={{ id: item.proprietario.id }}
-                        className="truncate font-semibold leading-snug tracking-tight hover:underline"
+                        className="truncate text-sm font-medium hover:underline"
                       >
                         {item.proprietario.nome}
                       </Link>
@@ -460,7 +447,9 @@ function CaptacoesPage() {
                       params={{ id: item.imovel.id }}
                       className="min-w-0 hover:underline"
                     >
-                      <p className="truncate font-medium">{item.imovel.titulo}</p>
+                      <p className="truncate text-sm font-medium">
+                        {item.imovel.titulo}
+                      </p>
                       {item.imovel.cidade ? (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {item.imovel.cidade}
@@ -468,19 +457,19 @@ function CaptacoesPage() {
                       ) : null}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
                     {item.responsavel.name}
                   </TableCell>
                   <TableCell>
                     {item.canceladoPeloProprietario ? (
-                      <Badge className="mb-1 bg-red-600 text-white hover:bg-red-600">
+                      <span className="mb-1 inline-flex rounded-full bg-rose-500 px-2.5 py-1 text-[11px] font-semibold text-white">
                         Cancelado pelo proprietário
-                      </Badge>
+                      </span>
                     ) : null}
                     {item.sugestaoProprietario ? (
-                      <Badge className="mb-1 bg-violet-600 text-white hover:bg-violet-600">
+                      <span className="mb-1 inline-flex rounded-full bg-violet-500 px-2.5 py-1 text-[11px] font-semibold text-white">
                         Sugestão do proprietário
-                      </Badge>
+                      </span>
                     ) : null}
                     {item.origem ? (
                       <Badge
@@ -504,27 +493,24 @@ function CaptacoesPage() {
                   </TableCell>
                   <TableCell>
                     {item.exclusividade ? (
-                      <Badge className={cn(STATUS_CHIP_CLASS, TABLE_CHIP, "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300")}>
+                      <span className="inline-flex rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white">
                         Sim
-                      </Badge>
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">Não</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {item.valorPretendido != null ? (
-                      <span className="inline-flex rounded-md bg-linear-to-r from-primary/15 to-cyan-400/20 px-2 py-0.5 font-semibold tabular-nums tracking-tight text-primary">
-                        {formatBrl(item.valorPretendido)}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
+                  <TableCell className="text-right text-sm font-semibold tabular-nums">
+                    {item.valorPretendido != null
+                      ? formatBrl(item.valorPretendido)
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge
                       className={cn(
                         STATUS_CHIP_CLASS,
                         TABLE_CHIP,
+                        "rounded-full",
                         catalogColorBadgeClass(item.funilEtapa.color),
                       )}
                       style={catalogColorBadgeStyle(item.funilEtapa.color)}
@@ -534,12 +520,12 @@ function CaptacoesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="inline-flex rounded-lg border border-primary/20 bg-linear-to-br from-primary/10 to-cyan-400/10 p-0.5">
+                    <div className="flex justify-end gap-1">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary"
+                        className="h-8 w-8"
                         title="Ver detalhes"
                         asChild
                       >
@@ -547,14 +533,14 @@ function CaptacoesPage() {
                           to="/captacao/captacoes/$id"
                           params={{ id: item.id }}
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 hover:bg-primary/10"
+                        className="h-8 w-8"
                         title="Editar"
                         asChild
                       >
@@ -562,18 +548,18 @@ function CaptacoesPage() {
                           to="/captacao/captacoes/$id"
                           params={{ id: item.id }}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 hover:bg-destructive/10"
+                        className="h-8 w-8 text-destructive"
                         title="Excluir"
                         onClick={() => setPendingDelete(item)}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -594,7 +580,7 @@ function CaptacoesPage() {
           {pager.pageItems.map((item) => (
             <Card
               key={item.id}
-              className="group overflow-hidden transition-shadow hover:shadow-lg"
+              className="group overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md"
             >
               <div className="relative h-40 overflow-hidden bg-linear-to-br from-primary/25 via-primary/10 to-muted">
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -675,6 +661,8 @@ function CaptacoesPage() {
                   <Badge
                     className={cn(
                       STATUS_CHIP_CLASS,
+                      TABLE_CHIP,
+                      "rounded-full",
                       catalogColorBadgeClass(item.funilEtapa.color),
                     )}
                     style={catalogColorBadgeStyle(item.funilEtapa.color)}

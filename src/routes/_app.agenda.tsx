@@ -6,7 +6,17 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { AgendaDayTable } from "@/components/agenda-day-table";
+import {
+  AgendaLuxHeader,
+  AgendaLuxKpis,
+  AgendaLuxMiniCalendar,
+  AgendaLuxQuickActions,
+  AgendaLuxShell,
+  AgendaLuxTypeChips,
+  AgendaLuxUpcoming,
+} from "@/components/agenda-lux";
+import { ModuloAjudaButton } from "@/components/modulo-ajuda";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -47,7 +57,6 @@ import {
   toDateInput,
   type AgendaViewMode,
 } from "@/components/agenda-board";
-import { AgendaDayTable } from "@/components/agenda-day-table";
 import { TimePicker } from "@/components/time-picker";
 import { getSession } from "@/lib/auth";
 import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
@@ -63,20 +72,20 @@ import {
   AGENDAMENTO_STATUS,
   AGENDAMENTO_STATUS_LABEL,
   AGENDAMENTO_TIPOS,
-  AGENDAMENTO_TIPO_DOT,
   AGENDAMENTO_TIPO_LABEL,
   AGENDAMENTO_TIPO_SOFT,
-  AGENDAMENTO_VISUAL_LABEL,
   WEEKDAY_OPTIONS,
   aprovarAgendamento,
   createAgendamento,
   deleteAgendamento,
   fetchAgendamentos,
+  fetchAgendaKpis,
   fetchSolicitacoesAgenda,
   isAgendamentoAniversario,
   recusarAgendamento,
   updateAgendamento,
   type Agendamento,
+  type AgendaKpis,
   type AgendamentoAlvo,
   type AgendamentoEscopo,
   type AgendamentoRecurrenceFreq,
@@ -88,14 +97,12 @@ import { AgendamentoTipoOption, AgendamentoTipoPicker } from "@/components/agend
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   CalendarDays,
-  CalendarRange,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   Filter,
   Inbox,
-  LayoutList,
   Loader2,
   Network,
   Plus,
@@ -106,7 +113,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SOFT_BTN } from "@/lib/soft-btn";
-import { FILTER_BAR_SURFACE } from "@/lib/filter-bar";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import {
   Popover,
@@ -223,12 +229,6 @@ function formatAgendaPreview(date: string, timeStart: string, timeEnd: string) {
     : `${dateLabel} · ${timeStart}`;
 }
 
-const VIEW_OPTIONS: { id: AgendaViewMode; label: string }[] = [
-  { id: "dia", label: "Dia" },
-  { id: "semana", label: "Semana" },
-  { id: "mes", label: "Mês" },
-];
-
 function AgendaPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -241,9 +241,7 @@ function AgendaPage() {
   const showSolicitacoes = !isAdmin && !isPlatformAdmin;
   const { leads, assignees, loading: leadsLoading } = useLeads();
 
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>(
-    isPlatformAdmin ? "calendario" : "tabela",
-  );
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("calendario");
   const [section, setSection] = useState<AgendaSection>("agenda");
   const [view, setView] = useState<AgendaViewMode>("semana");
   const [selectedDay, setSelectedDay] = useState<Date>(() =>
@@ -251,12 +249,16 @@ function AgendaPage() {
   );
 
   const [items, setItems] = useState<Agendamento[]>([]);
+  const [kpis, setKpis] = useState<AgendaKpis | null>(null);
   const [solicitacoes, setSolicitacoes] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [assignUsers, setAssignUsers] = useState<
     Array<{ id: string; name: string; role: string }>
   >([]);
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    startOfMonth(new Date()),
+  );
   const [filterEquipeId, setFilterEquipeId] = useState("__all__");
   const [filterCorretorId, setFilterCorretorId] = useState(
     () => search.corretorId ?? "__all__",
@@ -275,15 +277,10 @@ function AgendaPage() {
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
-  const visibleRange = useMemo(() => {
-    if (layoutMode === "tabela") {
-      return {
-        from: startOfWeek(selectedDay),
-        to: endOfWeek(selectedDay),
-      };
-    }
-    return getVisibleRange(view, selectedDay);
-  }, [layoutMode, view, selectedDay]);
+  const visibleRange = useMemo(
+    () => getVisibleRange("mes", selectedDay),
+    [selectedDay],
+  );
 
   const visibleLeads = useMemo(() => {
     if (!user) return [];
@@ -502,7 +499,7 @@ function AgendaPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, sols] = await Promise.all([
+      const [data, sols, kpiData] = await Promise.all([
         fetchAgendamentos({
           from: visibleRange.from.toISOString(),
           to: visibleRange.to.toISOString(),
@@ -515,7 +512,7 @@ function AgendaPage() {
               ? filterCorretorId
               : undefined,
           tipo:
-            filterTipo !== "__all__"
+            filterTipo !== "__all__" && filterTipo !== "aniversario"
               ? (filterTipo as AgendamentoTipo)
               : undefined,
           status:
@@ -524,9 +521,20 @@ function AgendaPage() {
               : undefined,
         }),
         showSolicitacoes ? fetchSolicitacoesAgenda() : Promise.resolve([]),
+        fetchAgendaKpis({
+          equipeId:
+            isAdmin && filterEquipeId !== "__all__"
+              ? filterEquipeId
+              : undefined,
+          corretorId:
+            isManager && filterCorretorId !== "__all__"
+              ? filterCorretorId
+              : undefined,
+        }),
       ]);
       setItems(data);
       setSolicitacoes(sols);
+      setKpis(kpiData);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -552,13 +560,16 @@ function AgendaPage() {
     void loadItems();
   }, [loadItems]);
 
-  const visibleAgendaItems = useMemo(
-    () =>
+  const visibleAgendaItems = useMemo(() => {
+    const base =
       filterStatus === "cancelado"
         ? items
-        : items.filter((item) => item.status !== "cancelado"),
-    [items, filterStatus],
-  );
+        : items.filter((item) => item.status !== "cancelado");
+    if (filterTipo === "aniversario") {
+      return base.filter((item) => isAgendamentoAniversario(item));
+    }
+    return base;
+  }, [items, filterStatus, filterTipo]);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -580,7 +591,7 @@ function AgendaPage() {
     }));
   }
 
-  function openCreate(day?: Date, hour?: number) {
+  function openCreate(day?: Date, hour?: number, tipo?: AgendamentoTipo) {
     setFormMode("create");
     setEditingId(null);
     const base = emptyForm();
@@ -596,6 +607,7 @@ function AgendaPage() {
         base.timeEnd = `${String(hour + 1).padStart(2, "0")}:00`;
       }
     }
+    if (tipo) base.tipo = tipo;
     if ((isAdmin || isGerente) && filterCorretorId !== "__all__") {
       const option = corretorFilterOptions.find(
         (a) => a.id === filterCorretorId,
@@ -989,7 +1001,9 @@ function AgendaPage() {
   }
 
   function goToday() {
-    setSelectedDay(startOfDay(new Date()));
+    const today = startOfDay(new Date());
+    setSelectedDay(today);
+    setCalendarMonth(startOfMonth(today));
   }
 
   function shiftAgenda(direction: -1 | 1) {
@@ -1011,8 +1025,9 @@ function AgendaPage() {
   }
 
   function handleSelectDay(day: Date) {
-    setSelectedDay(startOfDay(day));
-    setLayoutMode("tabela");
+    const next = startOfDay(day);
+    setSelectedDay(next);
+    setCalendarMonth(startOfMonth(next));
   }
 
   const rangeTitle =
@@ -1026,32 +1041,21 @@ function AgendaPage() {
       : formatRangeLabel(view, selectedDay);
 
   return (
-    <div>
-      <PageHeader
-        title="Agenda"
-        description={
-          section === "solicitacoes"
-            ? isGerente
-              ? "Pedidos de visita/reunião dos corretores aguardando sua aprovação."
-              : "Pedidos enviados ao gerente — acompanhe aqui sem misturar com sua agenda do dia."
-            : viewedAgendaName
-              ? `Visualizando a agenda de ${viewedAgendaName}.`
-              : isManager
-                ? "Compromissos da equipe no dia — toque num horário livre para agendar."
-                : "Seus compromissos do dia — toque num horário livre para agendar."
-        }
+    <AgendaLuxShell>
+      <AgendaLuxHeader
+        help={<ModuloAjudaButton />}
         actions={
           section === "agenda" ? (
-            <Button className="rounded-full shadow-md shadow-primary/20" onClick={() => openCreate()}>
-              <Plus className="w-4 h-4 mr-1" />
-              Novo
+            <Button onClick={() => openCreate()}>
+              <Plus className="mr-1 h-4 w-4" />
+              Novo compromisso
             </Button>
           ) : null
         }
       />
 
       {viewedAgendaName && section === "agenda" ? (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-teal-300/50 bg-teal-500/10 px-4 py-2.5 text-sm text-teal-900 dark:text-teal-100">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-sm">
           <span>
             Agenda de <strong>{viewedAgendaName}</strong>
           </span>
@@ -1059,7 +1063,6 @@ function AgendaPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="border-teal-300 bg-white hover:bg-teal-50"
             onClick={() => setAgendaUserFilter("__all__")}
           >
             Voltar à minha visão
@@ -1067,14 +1070,14 @@ function AgendaPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 inline-flex rounded-full border bg-muted/40 p-1">
+      <div className="mb-4 inline-flex rounded-full border border-black/5 bg-card p-1">
         <button
           type="button"
           onClick={() => setSection("agenda")}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
             section === "agenda"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -1088,14 +1091,14 @@ function AgendaPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
               section === "solicitacoes"
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Inbox className="w-4 h-4" />
             Solicitações
             {solicitacoes.length > 0 ? (
-              <Badge className="h-5 min-w-5 px-1.5 text-[10px] bg-amber-500 hover:bg-amber-500">
+              <Badge className="h-5 min-w-5 bg-amber-500 px-1.5 text-[10px] hover:bg-amber-500">
                 {solicitacoes.length > 9 ? "9+" : solicitacoes.length}
               </Badge>
             ) : null}
@@ -1184,22 +1187,19 @@ function AgendaPage() {
         </div>
       ) : (
         <>
-          <div
-            className={cn(
-              "mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between",
-              FILTER_BAR_SURFACE,
-            )}
-          >
+          <AgendaLuxKpis kpis={kpis} />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0">
+          <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-black/5 bg-card px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-full"
                 onClick={goToday}
               >
                 Hoje
               </Button>
-              <div className="inline-flex items-center rounded-full border bg-muted/40 p-0.5">
+              <div className="inline-flex items-center rounded-full border border-black/5 p-0.5">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1219,54 +1219,49 @@ function AgendaPage() {
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-              <h2 className="text-base font-semibold capitalize min-w-0">
+              <h2 className="min-w-0 text-base font-semibold capitalize">
                 {rangeTitle}
               </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant={layoutMode === "calendario" ? "default" : "outline"}
-                size="sm"
-                className="rounded-full"
-                onClick={() =>
-                  setLayoutMode((m) =>
-                    m === "tabela" ? "calendario" : "tabela",
-                  )
-                }
-              >
-                {layoutMode === "tabela" ? (
-                  <>
-                    <CalendarRange className="w-4 h-4 mr-1.5" />
-                    Ver calendário
-                  </>
-                ) : (
-                  <>
-                    <LayoutList className="w-4 h-4 mr-1.5" />
-                    Ver tabela do dia
-                  </>
-                )}
-              </Button>
-
-              {layoutMode === "calendario" ? (
-                <div className="inline-flex rounded-full border p-0.5 bg-muted/40">
-                  {VIEW_OPTIONS.map((opt) => (
+              <div className="inline-flex rounded-full border border-black/5 p-0.5">
+                {(
+                  [
+                    { id: "dia", label: "Dia", mode: "calendario" as const },
+                    { id: "semana", label: "Semana", mode: "calendario" as const },
+                    { id: "mes", label: "Mês", mode: "calendario" as const },
+                    { id: "lista", label: "Lista", mode: "tabela" as const },
+                  ] as const
+                ).map((opt) => {
+                  const active =
+                    opt.mode === "tabela"
+                      ? layoutMode === "tabela"
+                      : layoutMode === "calendario" && view === opt.id;
+                  return (
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setView(opt.id)}
+                      onClick={() => {
+                        if (opt.mode === "tabela") {
+                          setLayoutMode("tabela");
+                          return;
+                        }
+                        setLayoutMode("calendario");
+                        setView(opt.id);
+                      }}
                       className={cn(
                         "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                        view === opt.id
-                          ? "bg-background text-foreground shadow-sm"
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {opt.label}
                     </button>
-                  ))}
-                </div>
-              ) : null}
+                  );
+                })}
+              </div>
 
               <Popover>
                 <PopoverTrigger asChild>
@@ -1275,7 +1270,7 @@ function AgendaPage() {
                     size="sm"
                     className={cn(
                       "rounded-full",
-                      activeFiltersCount > 0 && "border-primary/40 bg-primary/8",
+                      activeFiltersCount > 0 && "border-primary",
                     )}
                   >
                     <Filter className="w-4 h-4 mr-1.5" />
@@ -1406,21 +1401,8 @@ function AgendaPage() {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-            {([...AGENDAMENTO_TIPOS, "aniversario"] as const).map((visual) => (
-              <span
-                key={visual}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium",
-                  AGENDAMENTO_TIPO_SOFT[visual],
-                )}
-              >
-                <span
-                  className={cn("size-2 rounded-full", AGENDAMENTO_TIPO_DOT[visual])}
-                />
-                {AGENDAMENTO_VISUAL_LABEL[visual]}
-              </span>
-            ))}
+          <div className="mb-2">
+            <AgendaLuxTypeChips value={filterTipo} onChange={setFilterTipo} />
           </div>
 
           {layoutMode === "tabela" ? (
@@ -1450,6 +1432,35 @@ function AgendaPage() {
               onEdit={openEdit}
             />
           )}
+            </div>
+            <aside className="space-y-3">
+              <AgendaLuxMiniCalendar
+                month={calendarMonth}
+                selected={selectedDay}
+                items={items}
+                onSelect={handleSelectDay}
+                onShiftMonth={(dir) =>
+                  setCalendarMonth((current) =>
+                    startOfMonth(
+                      new Date(
+                        current.getFullYear(),
+                        current.getMonth() + dir,
+                        1,
+                      ),
+                    ),
+                  )
+                }
+              />
+              <AgendaLuxUpcoming
+                items={visibleAgendaItems}
+                onOpen={openEdit}
+              />
+              <AgendaLuxQuickActions
+                onCreate={() => openCreate()}
+                onBlock={() => openCreate(selectedDay, undefined, "bloqueio")}
+              />
+            </aside>
+          </div>
         </>
       )}
 
@@ -2102,6 +2113,6 @@ function AgendaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AgendaLuxShell>
   );
 }

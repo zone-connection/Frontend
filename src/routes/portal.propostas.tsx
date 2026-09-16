@@ -2,6 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PortalEmpty, PortalPageTitle } from "@/components/portal-ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { formatBrl } from "@/lib/captacao-api";
 import { fetchPortalPropostasCarteira } from "@/lib/portal-api";
@@ -49,20 +57,43 @@ function PortalPropostasPage() {
           Ainda não há propostas. Elas aparecem quando o imóvel entra em venda de usados.
         </PortalEmpty>
       ) : (
-        <div className="space-y-3">
-          {itens.map((item) => (
-            <Link
-              key={item.id}
-              to="/portal/imoveis/$id"
-              params={{ id: item.imovel.id }}
-              className="block rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:border-[#148ea3]/40"
-            >
-              <p className="text-sm font-semibold text-[#12343d]">{item.imovel.identificacao}</p>
-              <p className="mt-1 text-sm text-slate-600">
-                Proposta #{item.numero} · {formatBrl(item.valor)} · {item.status}
-              </p>
-            </Link>
-          ))}
+        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
+          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-500">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Imóvel</TableHead>
+                <TableHead>Proposta</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {itens.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50">
+                  <TableCell>
+                    <Link
+                      to="/portal/imoveis/$id"
+                      params={{ id: item.imovel.id }}
+                      className="text-sm font-medium text-[#12343d] hover:underline"
+                    >
+                      {item.imovel.identificacao}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-500">
+                    #{item.numero}
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-semibold tabular-nums">
+                    {formatBrl(item.valor)}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex rounded-full bg-violet-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+                      {item.status}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

@@ -39,6 +39,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  CalendarDays,
   Clock3,
   FileCheck2,
   FileText,
@@ -50,9 +51,14 @@ import {
   UserX,
   UsersRound,
   Wallet,
-  XCircle,
 } from "lucide-react";
 import { SemConexao } from "@/components/sem-conexao";
+import {
+  DashDocResumo,
+  DashPipelineDonut,
+  DashRankBars,
+  DashShareDonut,
+} from "@/components/dashboard-info";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { SOFT_BTN } from "@/lib/soft-btn";
@@ -190,24 +196,7 @@ function ListPager({
   );
 }
 
-function initials(nome: string) {
-  return nome
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
 const MOTIVO_COLORS = ["#f43f5e", "#fb923c", "#f59e0b", "#94a3b8", "#64748b"];
-const EQUIPE_ACCENTS = [
-  "border-l-sky-500",
-  "border-l-emerald-500",
-  "border-l-violet-500",
-  "border-l-orange-500",
-  "border-l-slate-400",
-];
 
 function MotivosDonut({
   items,
@@ -255,6 +244,71 @@ function MotivosDonut({
   );
 }
 
+const WASH: Record<string, string> = {
+  teal: "border-teal-100/80 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-950/25",
+  sky: "border-sky-100/80 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-950/25",
+  emerald:
+    "border-emerald-100/80 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/25",
+  violet:
+    "border-violet-100/80 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/25",
+  rose: "border-rose-100/80 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/25",
+  orange:
+    "border-orange-100/80 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/25",
+  amber:
+    "border-amber-100/80 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/25",
+};
+
+function WashTile({
+  tone,
+  children,
+  className,
+}: {
+  tone: keyof typeof WASH;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-2xl border p-3", WASH[tone], className)}>
+      {children}
+    </div>
+  );
+}
+
+function FunnelWashBars({
+  data,
+}: {
+  data: Array<{ etapa: string; total: number; fill?: string }>;
+}) {
+  const max = Math.max(...data.map((row) => row.total), 1);
+  return (
+    <div className="space-y-1">
+      {data.map((row) => {
+        const width = Math.max(8, (row.total / max) * 100);
+        return (
+          <div
+            key={row.etapa}
+            className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-sky-100/80 bg-sky-50/80 px-2.5 py-1.5 dark:border-sky-900/40 dark:bg-sky-950/20"
+          >
+            <span className="truncate text-xs font-medium">{row.etapa}</span>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/80 dark:bg-black/20">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${width}%`,
+                  backgroundColor: row.fill ?? "#0ea5e9",
+                }}
+              />
+            </div>
+            <span className="w-5 shrink-0 text-right text-xs font-semibold tabular-nums">
+              {row.total}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ConversionRing({
   value,
   caption,
@@ -263,12 +317,12 @@ function ConversionRing({
   caption?: string;
 }) {
   const pct = Math.max(0, Math.min(100, value));
-  const r = 52;
+  const r = 42;
   const c = 2 * Math.PI * r;
   const offset = c - (pct / 100) * c;
   return (
     <div className="flex flex-col items-center">
-      <div className="relative size-36">
+      <div className="relative size-24">
         <svg viewBox="0 0 128 128" className="-rotate-90">
           <circle
             cx="64"
@@ -291,7 +345,7 @@ function ConversionRing({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold tabular-nums tracking-tight">
+          <span className="text-xl font-bold tabular-nums tracking-tight">
             {pct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
           </span>
         </div>
@@ -536,7 +590,8 @@ function DashboardAdminView() {
     return (
       <div>
         <PageHeader
-          title="Dashboard"
+          eyebrow="Bem-vindo(a)"
+          title={user?.tenant?.name || "Dashboard"}
           description="Visão gerencial da imobiliária."
           actions={filtros}
         />
@@ -563,10 +618,11 @@ function DashboardAdminView() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Dashboard"
-        description={`Visão gerencial · ${mesLabel} · comparação com o mês anterior.`}
-        actions={filtros}
-      />
+          eyebrow="Bem-vindo(a)"
+          title={user?.tenant?.name || "Dashboard"}
+          description={`Visão gerencial · ${mesLabel} · comparação com o mês anterior.`}
+          actions={filtros}
+        />
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -690,48 +746,11 @@ function DashboardAdminView() {
           description={`Processos cadastrados em ${mesLabel}.`}
           action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <FinanceKpiCard
-              label="Aprovadas"
-              value={summary.documentacaoPipeline.aprovadas.valor}
-              evolucaoPct={summary.documentacaoPipeline.aprovadas.evolucaoPct}
-              valorMesAnterior={
-                summary.documentacaoPipeline.aprovadas.valorMesAnterior
-              }
-              icon={CheckCircle2}
-              tone="emerald"
-              format="number"
-              variant="dash"
-              wash
-            />
-            <FinanceKpiCard
-              label="Reprovadas"
-              value={summary.documentacaoPipeline.reprovadas.valor}
-              evolucaoPct={summary.documentacaoPipeline.reprovadas.evolucaoPct}
-              valorMesAnterior={
-                summary.documentacaoPipeline.reprovadas.valorMesAnterior
-              }
-              invertEvolucao
-              icon={XCircle}
-              tone="red"
-              format="number"
-              variant="dash"
-              wash
-            />
-            <FinanceKpiCard
-              label="Em análise"
-              value={summary.documentacaoPipeline.emAnalise.valor}
-              evolucaoPct={summary.documentacaoPipeline.emAnalise.evolucaoPct}
-              valorMesAnterior={
-                summary.documentacaoPipeline.emAnalise.valorMesAnterior
-              }
-              icon={Clock3}
-              tone="orange"
-              format="number"
-              variant="dash"
-              wash
-            />
-          </div>
+          <DashPipelineDonut
+            aprovadas={summary.documentacaoPipeline.aprovadas.valor}
+            reprovadas={summary.documentacaoPipeline.reprovadas.valor}
+            emAnalise={summary.documentacaoPipeline.emAnalise.valor}
+          />
         </PagePanel>
 
         <PagePanel
@@ -786,27 +805,89 @@ function DashboardAdminView() {
               tone="orange"
               variant="dash"
             />
-            <FinanceKpiCard
-              label="Liberadas"
-              value={summary.comissao.liberada.valor}
-              evolucaoPct={summary.comissao.liberada.evolucaoPct}
-              valorMesAnterior={summary.comissao.liberada.valorMesAnterior}
-              icon={Banknote}
-              tone="blue"
-              variant="dash"
-            />
-            <FinanceKpiCard
-              label="Pagas"
-              value={summary.comissao.paga.valor}
-              evolucaoPct={summary.comissao.paga.evolucaoPct}
-              valorMesAnterior={summary.comissao.paga.valorMesAnterior}
-              icon={CheckCircle2}
-              tone="emerald"
-              variant="dash"
-            />
           </div>
         </PagePanel>
       </div>
+      )}
+
+      {isSolo || isPlatformAdmin ? (
+        <PagePanel
+          inset="muted"
+          title="Documentações"
+          description={`Resumo de ${mesLabel}.`}
+          action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+        >
+          <DashDocResumo
+            aprovadas={summary.documentacaoPipeline.aprovadas.valor}
+            vendas={summary.conversao.vendas.valor}
+            vgv={summary.conversao.vgv.valor}
+          />
+        </PagePanel>
+      ) : (
+      <section className="grid min-w-0 gap-4 xl:grid-cols-3">
+        <PagePanel
+          inset="muted"
+          title="Ranking de corretores"
+          description="Ordenado por VGV do mês."
+          action={<PanelLink to="/corretores">Ver corretores</PanelLink>}
+        >
+          {rankingItens.length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              Nenhum corretor ativo.
+            </p>
+          ) : (
+            <>
+              <DashRankBars
+                items={rankingPage.pageItems.map((r) => ({
+                  id: r.corretorId,
+                  nome: r.nome,
+                  valor: r.vendas.valor || r.leads,
+                }))}
+              />
+              <ListPager
+                page={rankingPage.page}
+                totalPages={rankingPage.totalPages}
+                total={rankingPage.total}
+                onPageChange={rankingPage.setPage}
+              />
+            </>
+          )}
+        </PagePanel>
+
+        <PagePanel
+          inset="muted"
+          title="Carteira por equipe"
+          description="Leads e clientes ativos por time."
+          action={<PanelLink to="/leads">Ver carteira</PanelLink>}
+        >
+          {equipesItens.length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              Nenhuma equipe cadastrada.
+            </p>
+          ) : (
+            <DashShareDonut
+              centerLabel="Total"
+              items={equipesItens.map((eq) => ({
+                nome: eq.nome,
+                valor: eq.total,
+              }))}
+            />
+          )}
+        </PagePanel>
+
+        <PagePanel
+          inset="muted"
+          title="Documentações"
+          description={`Resumo de ${mesLabel}.`}
+          action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+        >
+          <DashDocResumo
+            aprovadas={summary.documentacaoPipeline.aprovadas.valor}
+            vendas={summary.conversao.vendas.valor}
+            vgv={summary.conversao.vgv.valor}
+          />
+        </PagePanel>
+      </section>
       )}
 
       <section
@@ -814,17 +895,22 @@ function DashboardAdminView() {
         className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]"
       >
         <PagePanel
+          inset="muted"
           title="Funil geral"
           description="Leads ativos nas etapas do funil de vendas."
           action={<PanelLink to="/funil">Ver funil</PanelLink>}
         >
-          <FunnelBarChart
-            data={funnelData}
-            emptyLabel="Nenhum lead ativo no funil."
-          />
+          {funnelData.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Nenhum lead ativo no funil.
+            </p>
+          ) : (
+            <FunnelWashBars data={funnelData} />
+          )}
         </PagePanel>
 
         <PagePanel
+          inset="muted"
           title="Conversão do mês"
           description={
             isPlatformAdmin
@@ -837,14 +923,16 @@ function DashboardAdminView() {
             </PanelLink>
           }
         >
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
-              <ConversionRing value={summary.conversao.taxa.valor} />
-              <div className="w-full flex-1 space-y-3">
+          <div className="space-y-2">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+              <WashTile tone="teal" className="flex justify-center p-2 sm:w-28 sm:shrink-0">
+                <ConversionRing value={summary.conversao.taxa.valor} />
+              </WashTile>
+              <div className="w-full min-w-0 flex-1 space-y-1.5">
                 {isPlatformAdmin ? null : (
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/12 text-sky-600">
-                      <FileText className="size-4" />
+                  <WashTile tone="sky" className="flex items-center gap-2.5 py-1.5">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white ring-2 ring-white/70">
+                      <FileText className="size-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
@@ -857,14 +945,16 @@ function DashboardAdminView() {
                       </div>
                       <EvolucaoBadge
                         value={summary.conversao.documentacoes.evolucaoPct}
-                        previous={summary.conversao.documentacoes.valorMesAnterior}
+                        previous={
+                          summary.conversao.documentacoes.valorMesAnterior
+                        }
                       />
                     </div>
-                  </div>
+                  </WashTile>
                 )}
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/12 text-emerald-600">
-                    <CheckCircle2 className="size-4" />
+                <WashTile tone="emerald" className="flex items-center gap-2.5 py-1.5">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white/70">
+                    <CheckCircle2 className="size-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
@@ -880,10 +970,10 @@ function DashboardAdminView() {
                       previous={summary.conversao.vendas.valorMesAnterior}
                     />
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/12 text-teal-600">
-                    <Wallet className="size-4" />
+                </WashTile>
+                <WashTile tone="teal" className="flex items-center gap-2.5 py-1.5">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-500 text-white ring-2 ring-white/70">
+                    <Wallet className="size-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
@@ -899,17 +989,20 @@ function DashboardAdminView() {
                       previous={summary.conversao.vgv.valorMesAnterior}
                     />
                   </div>
-                </div>
+                </WashTile>
               </div>
             </div>
             {summary.entradas.semana > 0 ? (
-              <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <WashTile
+                tone="amber"
+                className="px-2.5 py-1.5 text-xs leading-snug text-amber-800 dark:text-amber-200"
+              >
                 {summary.entradas.semana} novo
                 {summary.entradas.semana === 1 ? "" : "s"} nesta semana
                 {summary.entradas.semana > summary.entradas.mes.valor
                   ? " — parte pode ser de dias do mês passado (a semana começa na segunda)."
                   : "."}
-              </div>
+              </WashTile>
             ) : null}
           </div>
         </PagePanel>
@@ -917,13 +1010,16 @@ function DashboardAdminView() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <PagePanel
+          inset="muted"
           title="Leads perdidos — motivos"
           description={`Motivos registrados em ${mesLabel}.`}
           action={<PanelLink to="/leads-perdidos">Ver perdidos</PanelLink>}
         >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <MotivosDonut items={perdidosMotivos} />
-            <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <WashTile tone="rose" className="flex justify-center sm:w-44 sm:shrink-0">
+              <MotivosDonut items={perdidosMotivos} />
+            </WashTile>
+            <div className="min-w-0 flex-1 space-y-2">
             {perdidosMotivos.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground">
                 Nenhum lead perdido neste mês.
@@ -933,21 +1029,31 @@ function DashboardAdminView() {
                 {perdidosPage.pageItems.map((m) => {
                   const total = perdidosMotivos.reduce((s, row) => s + row.valor, 0) || 1;
                   const share = Math.round((m.valor / total) * 100);
+                  const colorIndex = perdidosMotivos.findIndex(
+                    (row) => row.motivo === m.motivo,
+                  );
+                  const barColor =
+                    MOTIVO_COLORS[
+                      Math.max(0, colorIndex) % MOTIVO_COLORS.length
+                    ];
                   return (
-                  <div key={m.motivo} className="space-y-1.5">
+                  <WashTile key={m.motivo} tone="rose" className="space-y-1.5 py-2.5">
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{m.motivo}</span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
                         {m.valor} · {share}%
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-2 overflow-hidden rounded-full bg-white/70 dark:bg-black/20">
                       <div
-                        className="h-full rounded-full bg-rose-400"
-                        style={{ width: `${Math.max(8, share)}%` }}
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(8, share)}%`,
+                          backgroundColor: barColor,
+                        }}
                       />
                     </div>
-                  </div>
+                  </WashTile>
                   );
                 })}
                 <ListPager
@@ -963,23 +1069,36 @@ function DashboardAdminView() {
         </PagePanel>
 
         <PagePanel
+          inset="muted"
           title="Agenda de hoje"
           description={`${summary.agenda.totalHoje} compromisso${summary.agenda.totalHoje === 1 ? "" : "s"} · ${summary.agenda.atrasados} atrasado${summary.agenda.atrasados === 1 ? "" : "s"}`}
           action={<PanelLink to="/agenda">Abrir agenda</PanelLink>}
         >
-          <div className="mb-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-sky-500/12 px-2.5 py-1 font-medium text-sky-700 dark:text-sky-300">
-              {summary.agenda.pendentesHoje} pendente
-              {summary.agenda.pendentesHoje === 1 ? "" : "s"}
-            </span>
-            <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-300">
-              {summary.agenda.concluidosHoje} concluído
-              {summary.agenda.concluidosHoje === 1 ? "" : "s"}
-            </span>
-            <span className="rounded-full bg-rose-500/12 px-2.5 py-1 font-medium text-rose-700 dark:text-rose-300">
-              {summary.agenda.atrasados} atrasado
-              {summary.agenda.atrasados === 1 ? "" : "s"}
-            </span>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            <WashTile tone="sky" className="px-2.5 py-2 text-center">
+              <p className="text-lg font-semibold tabular-nums leading-none">
+                {summary.agenda.pendentesHoje}
+              </p>
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                Pendentes
+              </p>
+            </WashTile>
+            <WashTile tone="emerald" className="px-2.5 py-2 text-center">
+              <p className="text-lg font-semibold tabular-nums leading-none">
+                {summary.agenda.concluidosHoje}
+              </p>
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Concluídos
+              </p>
+            </WashTile>
+            <WashTile tone="rose" className="px-2.5 py-2 text-center">
+              <p className="text-lg font-semibold tabular-nums leading-none">
+                {summary.agenda.atrasados}
+              </p>
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                Atrasados
+              </p>
+            </WashTile>
           </div>
           {agendaItens.length === 0 ? (
             <p className="py-4 text-sm text-muted-foreground">
@@ -988,12 +1107,26 @@ function DashboardAdminView() {
           ) : (
             <>
               <div className="space-y-2">
-                {agendaPage.pageItems.map((item) => (
-                  <div
+                {agendaPage.pageItems.map((item) => {
+                  const late =
+                    item.status !== "concluido" &&
+                    new Date(item.startsAt).getTime() < Date.now();
+                  const tone =
+                    item.status === "concluido"
+                      ? "emerald"
+                      : late
+                        ? "rose"
+                        : "amber";
+                  return (
+                  <WashTile
                     key={item.id}
-                    className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
+                    tone={tone}
+                    className="flex items-center gap-3 py-2.5"
                   >
-                    <time className="w-12 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/80 text-foreground">
+                      <CalendarDays className="size-4" />
+                    </span>
+                    <time className="w-12 shrink-0 text-xs font-semibold tabular-nums">
                       {new Date(item.startsAt).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -1011,8 +1144,9 @@ function DashboardAdminView() {
                       status={item.status}
                       startsAt={item.startsAt}
                     />
-                  </div>
-                ))}
+                  </WashTile>
+                  );
+                })}
               </div>
               <ListPager
                 page={agendaPage.page}
@@ -1025,153 +1159,8 @@ function DashboardAdminView() {
         </PagePanel>
       </section>
 
-      {isSolo || isPlatformAdmin ? null : (
-      <section className="grid min-w-0 gap-4 xl:grid-cols-2">
-        <PagePanel
-          title="Ranking de corretores"
-          description="Ordenado por VGV do mês."
-          action={<PanelLink to="/corretores">Ver corretores</PanelLink>}
-        >
-          {rankingItens.length === 0 ? (
-            <p className="py-4 text-sm text-muted-foreground">
-              Nenhum corretor ativo.
-            </p>
-          ) : (
-            <>
-              <div className="-mx-1 overflow-x-auto overflow-y-hidden overscroll-x-contain">
-                <table className="w-full min-w-140 text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-2 pr-2 font-medium whitespace-nowrap">
-                        #
-                      </th>
-                      <th className="pb-2 pr-3 font-medium whitespace-nowrap">
-                        Corretor
-                      </th>
-                      <th className="pb-2 pr-3 text-right font-medium whitespace-nowrap">
-                        Leads
-                      </th>
-                      <th className="pb-2 pr-3 text-right font-medium whitespace-nowrap">
-                        Visitas
-                      </th>
-                      <th className="pb-2 pr-3 text-right font-medium whitespace-nowrap">
-                        Vendas
-                      </th>
-                      <th className="pb-2 text-right font-medium whitespace-nowrap">
-                        VGV
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingPage.pageItems.map((r, index) => (
-                      <tr
-                        key={r.corretorId}
-                        className="border-b border-black/5 last:border-0"
-                      >
-                        <td className="py-2.5 pr-2 text-xs tabular-nums text-muted-foreground">
-                          {(rankingPage.page - 1) * DASHBOARD_PAGE_SIZE +
-                            index +
-                            1}
-                        </td>
-                        <td className="max-w-52 py-2.5 pr-3">
-                          <div className="flex items-center gap-2.5">
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-[11px] font-bold text-sky-700">
-                              {initials(r.nome)}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="truncate font-medium">{r.nome}</div>
-                              <div className="truncate text-xs text-muted-foreground">
-                                {r.equipe ?? "Sem equipe"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2.5 pr-3 text-right tabular-nums whitespace-nowrap">
-                          {r.leads}
-                        </td>
-                        <td className="py-2.5 pr-3 text-right tabular-nums whitespace-nowrap">
-                          {r.visitas}
-                        </td>
-                        <td className="py-2.5 pr-3 text-right whitespace-nowrap">
-                          <div className="font-medium tabular-nums">
-                            {r.vendas.valor}
-                          </div>
-                          <EvolucaoBadge value={r.vendas.evolucaoPct} />
-                        </td>
-                        <td className="py-2.5 text-right whitespace-nowrap">
-                          <div className="font-medium tabular-nums">
-                            {money(r.vgv.valor)}
-                          </div>
-                          <EvolucaoBadge value={r.vgv.evolucaoPct} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <ListPager
-                page={rankingPage.page}
-                totalPages={rankingPage.totalPages}
-                total={rankingPage.total}
-                onPageChange={rankingPage.setPage}
-              />
-            </>
-          )}
-        </PagePanel>
-
-        <PagePanel
-          title="Carteira por equipe"
-          description="Leads e clientes ativos por time."
-          action={<PanelLink to="/leads">Ver carteira</PanelLink>}
-        >
-          <div className="space-y-3">
-            {equipesItens.length === 0 ? (
-              <p className="py-4 text-sm text-muted-foreground">
-                Nenhuma equipe cadastrada.
-              </p>
-            ) : (
-              <>
-                {equipesPage.pageItems.map((eq, index) => (
-                  <div
-                    key={eq.equipeId}
-                    className={cn(
-                      "rounded-xl border border-black/5 bg-background px-3 py-2.5 border-l-4",
-                      EQUIPE_ACCENTS[index % EQUIPE_ACCENTS.length],
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-medium">{eq.nome}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {eq.corretores} corretor
-                          {eq.corretores === 1 ? "" : "es"}
-                        </div>
-                      </div>
-                      <div className="text-right text-sm">
-                        <div className="font-semibold tabular-nums">
-                          {eq.total}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {eq.leads} leads · {eq.clientes} clientes
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <ListPager
-                  page={equipesPage.page}
-                  totalPages={equipesPage.totalPages}
-                  total={equipesPage.total}
-                  onPageChange={equipesPage.setPage}
-                />
-              </>
-            )}
-          </div>
-        </PagePanel>
-      </section>
-      )}
-
       <PagePanel
+        inset="muted"
         title="Metas vs realizado"
         description={
           isPlatformAdmin
@@ -1185,10 +1174,10 @@ function DashboardAdminView() {
         <div className="space-y-5">
           {isSolo ? (
             metasCorretores.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {metasCorretoresPage.pageItems.map((m) => (
-                  <div key={m.id}>
-                    <div className="mb-1 flex justify-between gap-3 text-sm">
+                  <WashTile key={m.id} tone="violet">
+                    <div className="mb-1.5 flex justify-between gap-3 text-sm">
                       <span className="font-medium">
                         {META_TIPO_LABEL[m.tipo] ?? m.tipo}
                       </span>
@@ -1200,7 +1189,7 @@ function DashboardAdminView() {
                       </span>
                     </div>
                     <Progress value={m.percentual} />
-                  </div>
+                  </WashTile>
                 ))}
                 <ListPager
                   page={metasCorretoresPage.page}
@@ -1215,9 +1204,9 @@ function DashboardAdminView() {
               </p>
             )
           ) : (
-            <div className="grid gap-5 lg:grid-cols-3">
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="grid gap-3 lg:grid-cols-3">
+              <WashTile tone="teal" className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-teal-800 dark:text-teal-200">
                   {isPlatformAdmin ? "Empresa" : "Imobiliária"}
                 </h3>
                 <div>
@@ -1231,11 +1220,11 @@ function DashboardAdminView() {
                   </div>
                   <Progress value={summary.metas.imobiliaria.percentual} />
                 </div>
-              </div>
+              </WashTile>
 
               {isPlatformAdmin ? null : (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <WashTile tone="violet" className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-violet-800 dark:text-violet-200">
                     Por equipe
                   </h3>
                   {metasEquipes.length === 0 ? (
@@ -1263,12 +1252,12 @@ function DashboardAdminView() {
                       />
                     </>
                   )}
-                </div>
+                </WashTile>
               )}
 
               {isPlatformAdmin ? null : (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <WashTile tone="sky" className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-200">
                     Por corretor
                   </h3>
                   {metasCorretores.length === 0 ? (
@@ -1304,7 +1293,7 @@ function DashboardAdminView() {
                       />
                     </>
                   )}
-                </div>
+                </WashTile>
               )}
             </div>
           )}

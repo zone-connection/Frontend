@@ -492,6 +492,21 @@ export async function fetchLostLeads(params?: {
   return apiFetch<PaginatedLeads>(`/leads/perdidos?${qs.toString()}`);
 }
 
+export interface LostLeadMotivoKpi {
+  motivo: string;
+  count: number;
+  pct: number;
+}
+
+export interface LostLeadsKpis {
+  total: number;
+  motivos: LostLeadMotivoKpi[];
+}
+
+export async function fetchLostLeadsKpis(): Promise<LostLeadsKpis> {
+  return apiFetch<LostLeadsKpis>("/leads/perdidos-kpis");
+}
+
 /** Clientes perdidos — só corretor (própria carteira). */
 export async function fetchLostClientes(params?: {
   search?: string;
