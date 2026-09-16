@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Clock, Crosshair, Loader2, Timer, Workflow } from "lucide-react";
+import { Clock, Crosshair, Loader2, Timer, UserCheck, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,7 @@ export function ConfigAutomacoesPanel() {
   >("retrabalho");
   const [atrasoValor, setAtrasoValor] = useState("24");
   const [atrasoUnidade, setAtrasoUnidade] = useState<PrazoUnidade>("horas");
+  const [distribuicaoAutoAtiva, setDistribuicaoAutoAtiva] = useState(false);
   const [etapaDraft, setEtapaDraft] = useState<
     Record<
       string,
@@ -132,6 +133,7 @@ export function ConfigAutomacoesPanel() {
     setAtrasoDestino(selected.atrasoLiberacaoDestino ?? "retrabalho");
     setAtrasoValor(String(selected.atrasoLiberacaoValor ?? 24));
     setAtrasoUnidade(selected.atrasoLiberacaoUnidade ?? "horas");
+    setDistribuicaoAutoAtiva(selected.distribuicaoAutoAtiva === true);
     const next: Record<
       string,
       { prazo: string; unidade: PrazoUnidade; alerta: string }
@@ -152,6 +154,7 @@ export function ConfigAutomacoesPanel() {
     selected?.atrasoLiberacaoDestino,
     selected?.atrasoLiberacaoValor,
     selected?.atrasoLiberacaoUnidade,
+    selected?.distribuicaoAutoAtiva,
     selected?.updatedAt,
   ]);
 
@@ -206,6 +209,34 @@ export function ConfigAutomacoesPanel() {
     } catch (err) {
       toast.error(
         errorMessage(err, "Não foi possível salvar a automação de atraso."),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleDistribuicaoAuto(next: boolean) {
+    if (!selected || !canManageCacaLead || saving) return;
+    const previous = distribuicaoAutoAtiva;
+    setDistribuicaoAutoAtiva(next);
+    setSaving(true);
+    try {
+      const updated = await updateFunil(selected.id, {
+        distribuicaoAutoAtiva: next,
+      });
+      applyFunil(updated);
+      toast.success(
+        next
+          ? "Distribuição automática ligada."
+          : "Distribuição automática desligada.",
+      );
+    } catch (err) {
+      setDistribuicaoAutoAtiva(previous);
+      toast.error(
+        errorMessage(
+          err,
+          "Não foi possível alterar a distribuição automática.",
+        ),
       );
     } finally {
       setSaving(false);
@@ -473,6 +504,49 @@ export function ConfigAutomacoesPanel() {
                   Tempo contado a partir do momento em que o lead fica atrasado.
                   Zero = desvincula na hora. O interruptor só vale depois de
                   salvar.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {funilTipoOf(selected) === "comercial" ? (
+            <Card>
+              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                <div className="flex items-start gap-2">
+                  <UserCheck className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <CardTitle className="text-base">
+                      Distribuição para corretores online
+                    </CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Leads do pool Chegaram (sem equipe e sem corretor) são
+                      enviados sozinhos para corretores e trainees ativos que
+                      estiverem online no CRM. Quem tem menos leads na carteira
+                      recebe primeiro.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={distribuicaoAutoAtiva ? "default" : "secondary"}
+                  >
+                    {distribuicaoAutoAtiva ? "Ligada" : "Desligada"}
+                  </Badge>
+                  <Switch
+                    checked={distribuicaoAutoAtiva}
+                    onCheckedChange={(next) =>
+                      void handleToggleDistribuicaoAuto(next)
+                    }
+                    disabled={!canManageCacaLead || saving}
+                    aria-label="Ligar ou desligar distribuição automática"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  {canManageCacaLead
+                    ? "Ligue ou desligue quando quiser. Vale na hora: leads de Chegaram só são enviados enquanto estiver ligada e houver corretor online."
+                    : "Somente o administrador da imobiliária pode ligar ou desligar esta automação."}
                 </p>
               </CardContent>
             </Card>
