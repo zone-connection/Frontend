@@ -123,6 +123,7 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates } from "@/lib/leads-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
@@ -171,6 +172,8 @@ import {
   FILTER_CONTROL,
   FILTER_LABEL,
   FILTER_SEARCH_ICON,
+  TABLE_LUX,
+  TABLE_SHELL,
 } from "@/lib/filter-bar";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
@@ -2993,8 +2996,9 @@ function LeadsPage() {
             label="Total de leads"
             value={kpiCounts.total}
             icon={Users}
-            tone="blue-1"
+            tone="blue"
             format="number"
+            variant="dash"
             className={cn(
               distribuicaoFilter === "all" &&
                 prioridadeFilter === "all" &&
@@ -3025,8 +3029,9 @@ function LeadsPage() {
                 label="Chegaram"
                 value={kpiCounts.chegaram}
                 icon={Inbox}
-                tone="blue-2"
+                tone="teal"
                 format="number"
+                variant="dash"
                 className={cn(distribuicaoFilter === "chegaram" && "shadow-md")}
               />
             </button>
@@ -3050,6 +3055,7 @@ function LeadsPage() {
                 icon={Repeat}
                 tone="orange"
                 format="number"
+                variant="dash"
                 className={cn(
                   distribuicaoFilter === "retrabalho" && "shadow-md",
                 )}
@@ -3073,8 +3079,9 @@ function LeadsPage() {
                 label="Distribuídos"
                 value={kpiCounts.distribuidos}
                 icon={UserCheck}
-                tone="blue-3"
+                tone="violet"
                 format="number"
+                variant="dash"
                 className={cn(
                   distribuicaoFilter === "distribuidos" && "shadow-md",
                 )}
@@ -3100,8 +3107,9 @@ function LeadsPage() {
                   label="Meus leads"
                   value={kpiCounts.meus}
                   icon={Briefcase}
-                  tone="blue-4"
+                  tone="emerald"
                   format="number"
+                  variant="dash"
                   className={cn(distribuicaoFilter === "meus" && "shadow-md")}
                 />
               </button>
@@ -3122,8 +3130,9 @@ function LeadsPage() {
               label="Novos na etapa"
               value={kpiCounts.novos}
               icon={Inbox}
-              tone="blue-2"
+              tone="teal"
               format="number"
+              variant="dash"
               className={cn(
                 (stageFilter === "novo" ||
                   funnelStages.find((s) => s.id === stageFilter)?.papel ===
@@ -3144,8 +3153,9 @@ function LeadsPage() {
             label="Prioridade alta"
             value={kpiCounts.alta}
             icon={Flame}
-            tone={isCorretor ? "blue-3" : isGerente ? "blue-5" : "blue-4"}
+            tone="rose"
             format="number"
+            variant="dash"
             className={cn(prioridadeFilter === "Alta" && "shadow-md")}
           />
         </button>
@@ -3163,8 +3173,9 @@ function LeadsPage() {
               label="Em atendimento"
               value={Math.max(0, kpiCounts.total - kpiCounts.novos)}
               icon={UserCheck}
-              tone="blue-4"
+              tone="violet"
               format="number"
+              variant="dash"
             />
           </button>
         )}
@@ -3443,10 +3454,13 @@ function LeadsPage() {
         </div>
       )}
 
-      <Card className="min-w-0 overflow-hidden">
+      <Card className={cn("min-w-0", TABLE_SHELL)}>
         <Table
           containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
-          className="w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:px-2.5 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle"
+          className={cn(
+            "w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle",
+            TABLE_LUX,
+          )}
         >
           <TableHeader>
             <TableRow>
@@ -3537,8 +3551,13 @@ function LeadsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex min-w-0 items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="avatar-fallback-brand text-[9px]">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback
+                            className={cn(
+                              "text-[10px] text-white",
+                              lostLeadAvatarClass(l.nome),
+                            )}
+                          >
                             {l.nome
                               .split(" ")
                               .map((n) => n[0])
@@ -3570,7 +3589,7 @@ function LeadsPage() {
                             catalogColorBadgeClass(
                               colorByLabel("origem", l.origem),
                             ),
-                            "w-auto max-w-full",
+                            "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
                           )}
                           style={catalogColorBadgeStyle(
                             colorByLabel("origem", l.origem),
@@ -3596,7 +3615,7 @@ function LeadsPage() {
                       <Badge
                         className={cn(
                           catalogColorBadgeClass(stage.color),
-                          "w-28 justify-center",
+                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
                           isNovoStage && "badge-novo-glow",
                         )}
                         style={
@@ -3653,7 +3672,7 @@ function LeadsPage() {
                       <Badge
                         className={cn(
                           prioridadeBadgeClass(l.prioridade),
-                          "w-auto max-w-full",
+                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
                         )}
                       >
                         {l.prioridade}

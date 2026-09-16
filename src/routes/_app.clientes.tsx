@@ -115,11 +115,16 @@ import {
   Loader2,
   FileSpreadsheet,
   FileText,
+  Users,
 } from "lucide-react";
 import { cn, userFacingError } from "@/lib/utils";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import {
   FILTER_BAR_SHELL,
   FILTER_CONTROL,
+  TABLE_LUX,
+  TABLE_SHELL,
 } from "@/lib/filter-bar";
 import {
   catalogColorBadgeClass,
@@ -304,6 +309,18 @@ function Clientes() {
     [clientes, sort],
   );
   const clientesPager = useTablePager(sortedClientes, sort);
+
+  const kpiClientes = useMemo(() => {
+    const cidades = new Set(
+      clientes.map((c) => c.cidade?.trim()).filter(Boolean),
+    );
+    const comRenda = clientes.filter((c) => c.renda != null).length;
+    return {
+      total: clientes.length,
+      cidades: cidades.size,
+      comRenda,
+    };
+  }, [clientes]);
 
   const corretorOptions = useMemo(
     () =>
@@ -814,6 +831,32 @@ function Clientes() {
           </>
         }
       />
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <FinanceKpiCard
+          label="Total de clientes"
+          value={kpiClientes.total}
+          icon={Users}
+          tone="blue"
+          format="number"
+          variant="dash"
+        />
+        <FinanceKpiCard
+          label="Cidades"
+          value={kpiClientes.cidades}
+          icon={MapPin}
+          tone="teal"
+          format="number"
+          variant="dash"
+        />
+        <FinanceKpiCard
+          label="Com renda"
+          value={kpiClientes.comRenda}
+          icon={Wallet}
+          tone="violet"
+          format="number"
+          variant="dash"
+        />
+      </div>
       <div className={FILTER_BAR_SHELL}>
         <TableSortSelect
           value={sort}
@@ -821,8 +864,8 @@ function Clientes() {
           className={FILTER_CONTROL}
         />
       </div>
-      <Card className="overflow-hidden">
-        <Table>
+      <Card className={TABLE_SHELL}>
+        <Table className={TABLE_LUX}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
@@ -866,8 +909,13 @@ function Clientes() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className="avatar-fallback-brand text-xs">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback
+                        className={cn(
+                          "text-xs text-white",
+                          lostLeadAvatarClass(l.nome),
+                        )}
+                      >
                         {initials(l.nome)}
                       </AvatarFallback>
                     </Avatar>
@@ -883,7 +931,14 @@ function Clientes() {
                 </TableCell>
                 <TableCell className="text-sm">{l.telefone}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={STATUS_CHIP_CLASS} title={l.interesse}>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      STATUS_CHIP_CLASS,
+                      "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
+                    )}
+                    title={l.interesse}
+                  >
                     {l.interesse}
                   </Badge>
                 </TableCell>
@@ -901,7 +956,11 @@ function Clientes() {
                     {l.tags.map((t) => (
                       <Badge
                         key={t}
-                        className={cn(STATUS_CHIP_CLASS, colorByLabel("tag", t))}
+                        className={cn(
+                          STATUS_CHIP_CLASS,
+                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
+                          colorByLabel("tag", t),
+                        )}
                         title={t}
                       >
                         {t}

@@ -91,6 +91,9 @@ import {
 } from "@/lib/money-input";
 import { useCatalog } from "@/lib/catalog-store";
 import { nextCatalogColor, STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { CatalogItem } from "@/lib/catalog-api";
 import { cn } from "@/lib/utils";
 import {
@@ -163,6 +166,8 @@ import {
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
   FILTER_VISTA_WRAP,
+  TABLE_LUX,
+  TABLE_SHELL,
 } from "@/lib/filter-bar";
 
 const IMOVEIS_GRADIENT_BTN =
@@ -203,7 +208,7 @@ function ImoveisTableHead({
     <TableHead
       style={CLEAR_TH_BG}
       className={cn(
-        "h-11 bg-transparent text-[11px] font-semibold uppercase tracking-wider text-white/90",
+        "h-11 bg-transparent text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
         className,
       )}
     >
@@ -1184,6 +1189,16 @@ export function ImoveisPage({
   );
   const imoveisPager = useTablePager(sorted, sort);
 
+  const kpiImoveis = useMemo(
+    () => ({
+      total: items.length + captacaoImoveis.length,
+      empreendimentos: items.length,
+      litoral: items.filter((item) => empreendimentoHasLitoral(item)).length,
+      matches: items.filter((item) => (item.matchTotal ?? 0) > 0).length,
+    }),
+    [captacaoImoveis.length, items],
+  );
+
   const captacaoFiltered = useMemo(() => {
     if (embedded) return [];
     const q = search.trim().toLocaleLowerCase("pt-BR");
@@ -1350,6 +1365,43 @@ export function ImoveisPage({
               </Button>
             ) : null}
           </div>
+        </div>
+      ) : null}
+
+      {!embedded ? (
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <FinanceKpiCard
+            label="No catálogo"
+            value={kpiImoveis.total}
+            icon={Home}
+            tone="blue"
+            format="number"
+            variant="dash"
+          />
+          <FinanceKpiCard
+            label="Empreendimentos"
+            value={kpiImoveis.empreendimentos}
+            icon={Building2}
+            tone="teal"
+            format="number"
+            variant="dash"
+          />
+          <FinanceKpiCard
+            label="Litoral"
+            value={kpiImoveis.litoral}
+            icon={MapPin}
+            tone="violet"
+            format="number"
+            variant="dash"
+          />
+          <FinanceKpiCard
+            label="Com clientes"
+            value={kpiImoveis.matches}
+            icon={Users}
+            tone="orange"
+            format="number"
+            variant="dash"
+          />
         </div>
       ) : null}
 
@@ -1561,8 +1613,8 @@ export function ImoveisPage({
           Carregando…
         </div>
       ) : catalogEmpty ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+        <Card className={TABLE_SHELL}>
+          <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
             <Building2 className="w-8 h-8 opacity-40" />
             <p className="text-center max-w-sm">
               {items.length === 0 && captacaoImoveis.length === 0
@@ -1588,15 +1640,9 @@ export function ImoveisPage({
           </CardContent>
         </Card>
       ) : vista === "tabela" ? (
-        <Card className="overflow-hidden border-primary/15 shadow-sm shadow-primary/5">
-          <Table className="[&_th]:px-3.5 [&_td]:px-3.5 [&_td]:py-2.5">
-            <TableHeader
-              style={{
-                backgroundColor: "transparent",
-                backgroundImage: BRAND_GRADIENT_STYLE.backgroundImage,
-              }}
-              className="text-white"
-            >
+        <Card className={TABLE_SHELL}>
+          <Table className={TABLE_LUX}>
+            <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <ImoveisTableHead>Empreendimento</ImoveisTableHead>
                 {showCampo("construtora") ? (
@@ -1641,19 +1687,28 @@ export function ImoveisPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {imoveisPager.pageItems.map((item, index) => (
+              {imoveisPager.pageItems.map((item) => (
                   <TableRow
                     key={item.id}
-                    className={cn(
-                      "group border-border/50 hover:bg-primary/10",
-                      index % 2 === 0
-                        ? "bg-linear-to-r from-primary/10 via-primary/4 to-transparent"
-                        : "bg-linear-to-r from-primary/[0.04] to-transparent",
-                    )}
+                    className="group hover:bg-muted/40"
                   >
                     <TableCell>
-                      <div className="flex min-w-40 items-start gap-2.5">
-                        <span className="mt-1 h-8 w-1.5 shrink-0 rounded-full bg-linear-to-b from-[#0e6f8a] to-primary shadow-sm shadow-primary/25" />
+                      <div className="flex min-w-40 items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback
+                            className={cn(
+                              "text-xs text-white",
+                              lostLeadAvatarClass(item.nome),
+                            )}
+                          >
+                            {item.nome
+                              .split(" ")
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((part) => part[0]?.toUpperCase() ?? "")
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0">
                           <Link
                             to="/imoveis/$id"
@@ -1748,7 +1803,7 @@ export function ImoveisPage({
                     {showCampo("valor") ? (
                       <TableCell className="text-right">
                         {item.valorReferencia != null ? (
-                          <span className="inline-flex rounded-md bg-linear-to-r from-primary/15 to-cyan-400/20 px-2 py-0.5 font-semibold tabular-nums tracking-tight text-primary">
+                          <span className="inline-flex rounded-full bg-muted/70 px-2 py-0.5 font-semibold tabular-nums tracking-tight">
                             {brl(item.valorReferencia)}
                           </span>
                         ) : (
@@ -1768,7 +1823,7 @@ export function ImoveisPage({
                       </TableCell>
                     ) : null}
                     <TableCell className="text-right">
-                      <div className="inline-flex rounded-lg border border-primary/20 bg-linear-to-br from-primary/10 to-cyan-400/10 p-0.5">
+                      <div className="inline-flex rounded-full border border-black/5 bg-muted/40 p-0.5">
                         <Button
                           type="button"
                           variant="ghost"
@@ -1817,19 +1872,28 @@ export function ImoveisPage({
                     </TableCell>
                   </TableRow>
               ))}
-              {captacaoFiltered.map((item, index) => (
+              {captacaoFiltered.map((item) => (
                 <TableRow
                   key={`cap-${item.id}`}
-                  className={cn(
-                    "group border-border/50 hover:bg-primary/10",
-                    (sorted.length + index) % 2 === 0
-                      ? "bg-linear-to-r from-primary/10 via-primary/4 to-transparent"
-                      : "bg-linear-to-r from-primary/[0.04] to-transparent",
-                  )}
+                  className="group hover:bg-muted/40"
                 >
                   <TableCell>
-                    <div className="flex min-w-40 items-start gap-2.5">
-                      <span className="mt-1 h-8 w-1.5 shrink-0 rounded-full bg-linear-to-b from-[#0e6f8a] to-primary shadow-sm shadow-primary/25" />
+                    <div className="flex min-w-40 items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs text-white",
+                            lostLeadAvatarClass(item.titulo),
+                          )}
+                        >
+                          {item.titulo
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((part) => part[0]?.toUpperCase() ?? "")
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         <Link
                           to="/captacao/imoveis/$id"
@@ -1886,7 +1950,7 @@ export function ImoveisPage({
                   {showCampo("valor") ? (
                     <TableCell className="text-right">
                       {item.valor != null ? (
-                        <span className="inline-flex rounded-md bg-linear-to-r from-primary/15 to-cyan-400/20 px-2 py-0.5 font-semibold tabular-nums tracking-tight text-primary">
+                        <span className="inline-flex rounded-full bg-muted/70 px-2 py-0.5 font-semibold tabular-nums tracking-tight">
                           {formatBrl(item.valor)}
                         </span>
                       ) : (
@@ -1968,15 +2032,15 @@ export function ImoveisPage({
           {imoveisPager.pageItems.map((item) => (
             <Card
               key={item.id}
-              className="group overflow-hidden transition-shadow hover:shadow-lg"
+              className={cn(TABLE_SHELL, "group")}
             >
               <Link
                 to="/imoveis/$id"
                 params={{ id: item.id }}
-                className="relative block h-40 overflow-hidden bg-linear-to-br from-primary/25 via-primary/10 to-muted"
+                className="relative block h-40 overflow-hidden bg-muted/40"
               >
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Building2 className="h-10 w-10 text-primary/35" />
+                  <Building2 className="h-10 w-10 text-muted-foreground/40" />
                 </div>
                 {(() => {
                   const covers = empreendimentoImagens(item);
@@ -2007,7 +2071,7 @@ export function ImoveisPage({
                 <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
                 {showCampo("localidade") &&
                 empreendimentoLocalidadeNome(item) ? (
-                  <Badge className="absolute bottom-3 right-3 border-white/20 bg-black/45 text-white hover:bg-black/55">
+                  <Badge className="absolute bottom-3 right-3 rounded-full border-white/20 bg-black/45 text-white hover:bg-black/55">
                     {empreendimentoLocalidadeNome(item)}
                   </Badge>
                 ) : null}
@@ -2075,9 +2139,9 @@ export function ImoveisPage({
                 <button
                   type="button"
                   onClick={() => void openMatches(item)}
-                  className="flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-left text-xs hover:bg-primary/12"
+                  className="flex w-full items-center justify-between rounded-xl border border-black/5 bg-muted/40 px-3 py-2 text-left text-xs hover:bg-muted/70"
                 >
-                  <span className="font-medium text-primary">
+                  <span className="font-medium text-foreground">
                     {(item.matchTotal ?? 0) > 0
                       ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
                       : "Ver clientes compatíveis"}
@@ -2087,7 +2151,7 @@ export function ImoveisPage({
                       {item.matchMuitoCompativeis} muito compatíveis
                     </span>
                   ) : (
-                    <Users className="h-3.5 w-3.5 text-primary" />
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   )}
                 </button>
                 {showCampo("endereco") && item.endereco ? (
@@ -2103,6 +2167,7 @@ export function ImoveisPage({
                       <Badge
                         className={cn(
                           STATUS_CHIP_CLASS,
+                          IMOVEIS_TABLE_CHIP,
                           colorByLabel("empreendimento_tipo", item.tipo),
                         )}
                         title={empreendimentoTipoLabel(item.tipo)}
@@ -2114,7 +2179,11 @@ export function ImoveisPage({
                       <Badge
                         className={cn(
                           STATUS_CHIP_CLASS,
-                          colorByLabel("empreendimento_status", item.status),
+                          IMOVEIS_TABLE_CHIP,
+                          colorByLabel(
+                            "empreendimento_status",
+                            item.status,
+                          ),
                         )}
                         title={empreendimentoStatusLabel(item.status)}
                       >
@@ -2127,6 +2196,7 @@ export function ImoveisPage({
                             key={tag}
                             className={cn(
                               STATUS_CHIP_CLASS,
+                              IMOVEIS_TABLE_CHIP,
                               colorByLabel("empreendimento_tag", tag),
                             )}
                             title={tag}
@@ -2186,12 +2256,12 @@ export function ImoveisPage({
           {captacaoFiltered.map((item) => (
             <Card
               key={`cap-${item.id}`}
-              className="group overflow-hidden transition-shadow hover:shadow-lg"
+              className={cn(TABLE_SHELL, "group")}
             >
               <Link
                 to="/captacao/imoveis/$id"
                 params={{ id: item.id }}
-                className="relative block h-40 overflow-hidden bg-linear-to-br from-primary/25 via-primary/10 to-muted"
+                className="relative block h-40 overflow-hidden bg-muted/40"
               >
                 {item.fotoUrl ? (
                   <img
@@ -2201,10 +2271,10 @@ export function ImoveisPage({
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <Building2 className="h-10 w-10 text-primary/35" />
+                    <Building2 className="h-10 w-10 text-muted-foreground/40" />
                   </div>
                 )}
-                <Badge className="absolute bottom-3 right-3 border-white/20 bg-black/45 text-white hover:bg-black/55">
+                <Badge className="absolute bottom-3 right-3 rounded-full border-white/20 bg-black/45 text-white hover:bg-black/55">
                   Captação
                 </Badge>
               </Link>

@@ -55,12 +55,14 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CorPicker } from "@/components/cor-picker";
 import {
   assertImageFile,
   ImageUploadField,
 } from "@/components/image-upload-field";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { ConstrutoraVendasTable } from "@/components/vendas-resumo-dialog";
 import { useCatalog } from "@/lib/catalog-store";
 import {
@@ -113,6 +115,8 @@ import {
   FILTER_CONTROL,
   FILTER_LABEL,
   FILTER_SEARCH_ICON,
+  TABLE_LUX,
+  TABLE_SHELL,
 } from "@/lib/filter-bar";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import {
@@ -197,7 +201,10 @@ function ConstrutoraNomeChip({
   return (
     <Badge
       variant="secondary"
-      className={cn(STATUS_CHIP_CLASS, "border-transparent font-bold")}
+      className={cn(
+        STATUS_CHIP_CLASS,
+        "!h-6 !w-auto max-w-[12rem] justify-center rounded-full border-transparent px-2.5 font-bold",
+      )}
       style={cor ? construtoraBadgeStyle(cor) : undefined}
       title={nome}
     >
@@ -429,6 +436,22 @@ function ConstrutorasPage() {
   );
   const construtorasPager = useTablePager(sortedItems, sort);
   const drivePager = useTablePager(sortedDriveItems, sort);
+
+  const kpiConstrutoras = useMemo(() => {
+    const books = items.filter((item) => Boolean(item.driveFolderUrl?.trim()))
+      .length;
+    const cidades = uniqueLocalidades(items).length;
+    const empreendimentos = items.reduce(
+      (sum, item) => sum + (item._count?.empreendimentos ?? 0),
+      0,
+    );
+    return {
+      total: items.length,
+      books,
+      cidades,
+      empreendimentos,
+    };
+  }, [items]);
 
   const visibilityCities = useMemo(() => {
     let rows = [...localidades].sort((a, b) =>
@@ -971,6 +994,41 @@ function ConstrutorasPage() {
         }
       />
 
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <FinanceKpiCard
+          label="Construtoras"
+          value={kpiConstrutoras.total}
+          icon={Building2}
+          tone="blue"
+          format="number"
+          variant="dash"
+        />
+        <FinanceKpiCard
+          label="Books no Drive"
+          value={kpiConstrutoras.books}
+          icon={FolderOpen}
+          tone="teal"
+          format="number"
+          variant="dash"
+        />
+        <FinanceKpiCard
+          label="Cidades"
+          value={kpiConstrutoras.cidades}
+          icon={MapPin}
+          tone="violet"
+          format="number"
+          variant="dash"
+        />
+        <FinanceKpiCard
+          label="Empreendimentos"
+          value={kpiConstrutoras.empreendimentos}
+          icon={Building}
+          tone="orange"
+          format="number"
+          variant="dash"
+        />
+      </div>
+
       <div
         className={cn(
           "mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3",
@@ -1068,7 +1126,7 @@ function ConstrutorasPage() {
         </TabsList>
 
         <TabsContent value="books" className="mt-0">
-          <Card>
+          <Card className={TABLE_SHELL}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Books das construtoras</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -1138,7 +1196,7 @@ function ConstrutorasPage() {
         </TabsContent>
 
         <TabsContent value="lista" className="mt-0">
-          <Card className="overflow-hidden rounded-2xl">
+          <Card className={TABLE_SHELL}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Lista de construtoras</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -1163,7 +1221,7 @@ function ConstrutorasPage() {
                 </div>
               ) : (
                 <>
-                <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                <Table className={TABLE_LUX}>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
@@ -1185,30 +1243,45 @@ function ConstrutorasPage() {
                     {construtorasPager.pageItems.map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/40">
                         <TableCell className="font-medium">
-                          {canViewVendas ? (
-                            <button
-                              type="button"
-                              className="text-left hover:opacity-90"
-                              onClick={() => openVendas(item)}
-                              title="Ver vendas"
-                            >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback
+                                className={cn(
+                                  "text-xs text-white",
+                                  lostLeadAvatarClass(item.nome),
+                                )}
+                              >
+                                {construtoraIniciais(item.nome)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {canViewVendas ? (
+                              <button
+                                type="button"
+                                className="text-left hover:opacity-90"
+                                onClick={() => openVendas(item)}
+                                title="Ver vendas"
+                              >
+                                <ConstrutoraNomeChip
+                                  nome={item.nome}
+                                  cor={item.cor}
+                                />
+                              </button>
+                            ) : (
                               <ConstrutoraNomeChip
                                 nome={item.nome}
                                 cor={item.cor}
                               />
-                            </button>
-                          ) : (
-                            <ConstrutoraNomeChip
-                              nome={item.nome}
-                              cor={item.cor}
-                            />
-                          )}
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {item.cca ? (
                             <Badge
-                              className={catalogColorBadgeClass(
-                                ccas.find((c) => c.label === item.cca)?.color,
+                              className={cn(
+                                catalogColorBadgeClass(
+                                  ccas.find((c) => c.label === item.cca)?.color,
+                                ),
+                                "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
                               )}
                               style={catalogColorBadgeStyle(
                                 ccas.find((c) => c.label === item.cca)?.color,
@@ -1238,7 +1311,10 @@ function ConstrutorasPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">
+                          <Badge
+                            variant="secondary"
+                            className="h-6 rounded-full px-2.5"
+                          >
                             {item._count?.empreendimentos ?? 0}
                           </Badge>
                         </TableCell>
@@ -1317,8 +1393,8 @@ function ConstrutorasPage() {
 
         {canViewVendas ? (
         <TabsContent value="vendas" className="mt-0 space-y-4">
-          <Card className="overflow-hidden border-border/70">
-            <CardHeader className="bg-linear-to-br from-primary/10 via-background to-background pb-4">
+          <Card className={TABLE_SHELL}>
+            <CardHeader className="pb-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <CardTitle className="text-base">Vendas por construtora</CardTitle>
@@ -1342,7 +1418,7 @@ function ConstrutorasPage() {
                       });
                     }}
                   >
-                    <SelectTrigger className="h-10 bg-background">
+                    <SelectTrigger className={cn("h-10", FILTER_CONTROL)}>
                       <SelectValue placeholder="Selecione a construtora" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1385,6 +1461,7 @@ function ConstrutorasPage() {
                   icon={Wallet}
                   tone="emerald"
                   format="number"
+                  variant="dash"
                 />
                 <FinanceKpiCard
                   label="VGV"
@@ -1392,6 +1469,7 @@ function ConstrutorasPage() {
                   icon={Wallet}
                   tone="blue"
                   format="money"
+                  variant="dash"
                 />
                 <FinanceKpiCard
                   label="Corretores"
@@ -1399,12 +1477,13 @@ function ConstrutorasPage() {
                   icon={UsersRound}
                   tone="violet"
                   format="number"
+                  variant="dash"
                 />
               </CardContent>
             ) : null}
           </Card>
 
-          <Card className="overflow-hidden">
+          <Card className={TABLE_SHELL}>
             <CardContent className="p-0">
               {!vendasConstrutoraId ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
@@ -1438,7 +1517,7 @@ function ConstrutorasPage() {
         ) : null}
 
         <TabsContent value="visibilidade" className="mt-0">
-          <Card className="overflow-hidden rounded-2xl">
+          <Card className={TABLE_SHELL}>
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -1465,12 +1544,13 @@ function ConstrutorasPage() {
                         setMatrixCidadeNome(event.target.value)
                       }
                       maxLength={80}
+                      className={FILTER_CONTROL}
                     />
                     <Button
                       type="submit"
                       variant="outline"
                       disabled={savingMatrixCidade}
-                      className="shrink-0"
+                      className={cn("shrink-0", FILTER_CONTROL)}
                     >
                       {savingMatrixCidade ? (
                         <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -1501,7 +1581,13 @@ function ConstrutorasPage() {
                 </p>
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <Table className="min-w-max [&_th]:px-3 [&_td]:px-3 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                  <Table
+                    className={cn(
+                      "min-w-max",
+                      TABLE_LUX,
+                      "[&_th]:px-3 [&_td]:px-3",
+                    )}
+                  >
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="sticky left-0 z-20 min-w-44">
@@ -1521,7 +1607,7 @@ function ConstrutorasPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {construtorasPager.pageItems.map((item, index) => {
+                      {construtorasPager.pageItems.map((item) => {
                         const linkedIds = new Set(
                           (item.localidades ?? []).map(
                             (localidade) => localidade.id,
@@ -1530,20 +1616,22 @@ function ConstrutorasPage() {
                         return (
                           <TableRow
                             key={item.id}
-                            className={cn(
-                              "hover:bg-transparent",
-                              index % 2 === 1 ? "bg-muted/40" : "bg-background",
-                            )}
+                            className="group hover:bg-muted/40"
                           >
-                            <TableCell
-                              className={cn(
-                                "sticky left-0 z-10 font-medium",
-                                index % 2 === 1
-                                  ? "bg-muted/40"
-                                  : "bg-background",
-                              )}
-                            >
-                              {item.nome}
+                            <TableCell className="sticky left-0 z-10 bg-card font-medium group-hover:bg-muted/40">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback
+                                    className={cn(
+                                      "text-xs text-white",
+                                      lostLeadAvatarClass(item.nome),
+                                    )}
+                                  >
+                                    {construtoraIniciais(item.nome)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {item.nome}
+                              </div>
                             </TableCell>
                             {visibilityCities.map((cidade) => {
                               const present = linkedIds.has(cidade.id);

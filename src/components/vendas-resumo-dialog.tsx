@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { formatCpfCnpj, cn } from "@/lib/utils";
+import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { TABLE_LUX } from "@/lib/filter-bar";
 import {
   Building2,
   ChevronDown,
@@ -117,8 +119,10 @@ function CorretorCell({
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         )
       ) : null}
-      <Avatar className="h-9 w-9 border border-border/70 shadow-sm">
-        <AvatarFallback className="bg-[#079ED4]/12 text-[11px] font-semibold text-[#04648A]">
+      <Avatar className="h-8 w-8">
+        <AvatarFallback
+          className={cn("text-xs text-white", lostLeadAvatarClass(name))}
+        >
           {initials(name)}
         </AvatarFallback>
       </Avatar>
@@ -156,7 +160,7 @@ export function ConstrutoraVendasTable({
   }
 
   return (
-    <Table>
+    <Table className={TABLE_LUX}>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className={thClass}>Corretor</TableHead>
@@ -175,8 +179,8 @@ export function ConstrutoraVendasTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {grupos.map((grupo, index) => {
-          const zebra = index % 2 === 1 ? "bg-muted/25" : "bg-background";
+        {grupos.map((grupo) => {
+          const zebra = "hover:bg-muted/40";
           if (grupo.vendas.length === 1) {
             const venda = grupo.vendas[0];
             return (
@@ -382,7 +386,7 @@ export function ConstrutoraVendasTable({
 
 function CorretorVendasTable({ items }: { items: VendaResumoItem[] }) {
   return (
-    <Table>
+    <Table className={TABLE_LUX}>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className={thClass}>Construtora</TableHead>
