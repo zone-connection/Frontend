@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Banknote, CheckCircle2, Clock3, Eye, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, Clock3, Eye, LayoutList, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
@@ -23,6 +23,11 @@ import {
   FormSection,
 } from "@/components/form-dialog";
 import { ComissaoLancamentoDialog, numberValue, relationName } from "@/components/comissao-lancamento-dialog";
+import {
+  ComissaoCalendario,
+  filterComissoesCalendario,
+  type ComissaoVista,
+} from "@/components/comissao-calendario";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +57,14 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { FILTER_CONTROL, TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
+import {
+  FILTER_CONTROL,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+  TABLE_LUX,
+  TABLE_SHELL,
+} from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
 import { canFinanceiroAction, isCorretorLike } from "@/lib/permissions";
 import {
@@ -111,6 +123,10 @@ function Page() {
   const isFinanceTeam =
     role === "admin" || role === "super_admin" || role === "financeiro";
   const isCorretorViewer = isCorretorLike(role);
+  const preferCalendar = isCorretorViewer || role === "gerente";
+  const [vista, setVista] = useState<ComissaoVista>(
+    preferCalendar ? "calendario" : "tabela",
+  );
   const [hideValues] = useHideFinanceiroValues();
   const canCreateFin = isFinanceTeam && canFinanceiroAction(session, "create");
   const canEditFin = isFinanceTeam && canFinanceiroAction(session, "edit");
@@ -210,14 +226,24 @@ function Page() {
         .some((value) => value.includes(query));
     });
   }, [items, search, periodo, recebimento, equipe]);
+  const calendarRows = useMemo(
+    () =>
+      filterComissoesCalendario(items, {
+        search,
+        recebimento,
+        equipe,
+      }),
+    [items, search, recebimento, equipe],
+  );
   const pager = useTablePager(
     rows,
     `${search}|${periodo}|${recebimento}|${equipe}`,
   );
 
   const kpis = useMemo(() => {
+    const source = vista === "calendario" ? calendarRows : rows;
     const sum = (state?: ComissaoStatus) =>
-      rows
+      source
         .filter((item) => !state || item.status === state)
         .reduce((total, item) => total + numberValue(commissionValue(item)), 0);
     return {
@@ -225,9 +251,9 @@ function Page() {
       pending: sum("pendente"),
       released: sum("liberada"),
       paid: sum("paga"),
-      vgv: rows.reduce((total, item) => total + numberValue(item.vgv), 0),
+      vgv: source.reduce((total, item) => total + numberValue(item.vgv), 0),
     };
-  }, [rows, commissionValue]);
+  }, [rows, calendarRows, vista, commissionValue]);
 
   function openCreate() {
     setMode("create");
@@ -300,7 +326,7 @@ function Page() {
         description={
           isFinanceTeam
             ? "Gestão das comissões por venda. Ao lançar, as fatias já entram em Contas a receber e a pagar; se estiver pendente, o fluxo projeta o recebimento. Ao marcar como paga (aqui ou na baixa), o fluxo registra como realizado."
-            : "Acompanhe as comissões disponíveis para o seu perfil"
+            : "Calendário das comissões no dia previsto de recebimento. Troque para a tabela se quiser a lista."
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -315,11 +341,12 @@ function Page() {
         }
       />
 
-      <div
-        className="mb-4 inline-flex rounded-full border bg-muted/40 p-1"
-        role="group"
-        aria-label="Separar comissões recebidas e não recebidas"
-      >
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div
+          className="inline-flex rounded-full border bg-muted/40 p-1"
+          role="group"
+          aria-label="Separar comissões recebidas e não recebidas"
+        >
         {RECEBIMENTO_OPTIONS.map((option) => (
           <button
             key={option.value}
@@ -336,6 +363,35 @@ function Page() {
             {option.label}
           </button>
         ))}
+        </div>
+        <div className={FILTER_VISTA_WRAP} role="group" aria-label="Tipo de visualização">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              FILTER_VISTA_BTN,
+              vista === "calendario" && FILTER_VISTA_BTN_ACTIVE,
+            )}
+            onClick={() => setVista("calendario")}
+          >
+            <CalendarDays className="mr-1.5 h-4 w-4" />
+            Calendário
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              FILTER_VISTA_BTN,
+              vista === "tabela" && FILTER_VISTA_BTN_ACTIVE,
+            )}
+            onClick={() => setVista("tabela")}
+          >
+            <LayoutList className="mr-1.5 h-4 w-4" />
+            Lista
+          </Button>
+        </div>
       </div>
 
       <PagePanel
@@ -415,6 +471,20 @@ function Page() {
         }}
       />
 
+      {vista === "calendario" ? (
+        loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <ComissaoCalendario
+            items={calendarRows}
+            amountOf={(item) => numberValue(commissionValue(item))}
+            hideValues={hideValues}
+            onOpen={setDetail}
+          />
+        )
+      ) : (
       <div className={TABLE_SHELL}>
         <div className="overflow-x-auto overflow-y-hidden">
           <Table className={TABLE_LUX}>
@@ -588,10 +658,18 @@ function Page() {
           />
         </div>
       </div>
+      )}
+      {vista === "tabela" ? (
       <p className="mt-2 mb-4 text-xs text-muted-foreground">
         VGV filtrado: {brl(kpis.vgv)} · {rows.length} de {items.length}{" "}
         comissão(ões)
       </p>
+      ) : (
+        <p className="mt-3 mb-4 text-xs text-muted-foreground">
+          {calendarRows.filter((item) => item.dataPrevistaRecebimento).length}{" "}
+          comissão(ões) com data prevista · clique no dia para ver o detalhe.
+        </p>
+      )}
 
       <ComissaoLancamentoDialog
         open={dialogOpen}
