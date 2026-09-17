@@ -221,7 +221,13 @@ function Page() {
         );
       if (!inPeriodo) return false;
       if (!query) return true;
-      return [item.corretor, item.cliente, item.empreendimento, item.equipe]
+      return [
+        item.corretor,
+        item.cliente,
+        item.empreendimento,
+        item.equipe,
+        item.observacao ?? "",
+      ]
         .map((value) => relationName(value, "").toLowerCase())
         .some((value) => value.includes(query));
     });
@@ -767,6 +773,10 @@ function Page() {
                       {statusLabel(detail.status)}
                     </Badge>
                   }
+                />
+                <DetailField
+                  label="Observação"
+                  value={detail.observacao?.trim() || "—"}
                 />
               </div>
             </FormSection>

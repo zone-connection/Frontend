@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -88,6 +89,7 @@ export type ComissaoFormState = {
   percentualPremiacaoImobiliaria: string;
   percentualPremiacaoGerente: string;
   status: ComissaoStatus;
+  observacao: string;
 };
 
 const EMPTY_FORM: ComissaoFormState = {
@@ -112,6 +114,7 @@ const EMPTY_FORM: ComissaoFormState = {
   percentualPremiacaoImobiliaria: "",
   percentualPremiacaoGerente: "",
   status: "pendente",
+  observacao: "",
 };
 
 const STATUS_OPTIONS: { value: ComissaoStatus; label: string }[] = [
@@ -192,6 +195,7 @@ function toForm(comissao: Comissao): ComissaoFormState {
       comissao.percentualPremiacaoGerente ?? "",
     ),
     status: comissao.status,
+    observacao: comissao.observacao ?? "",
   };
 }
 
@@ -460,6 +464,7 @@ export function ComissaoLancamentoDialog({
         ...percentages,
         ...premiacaoPayload,
       };
+      const observacao = form.observacao.trim();
       const saved =
         mode === "edit" && editing
           ? await updateComissao(editing.id, {
@@ -467,11 +472,18 @@ export function ComissaoLancamentoDialog({
               ...premiacaoPayload,
               dataPrevistaRecebimento: form.dataPrevistaRecebimento,
               status: form.status,
+              observacao,
             })
           : isAvulsa
             ? via === "titulo"
-              ? (await createTituloComissaoAvulsa(avulsaPayload)).comissao
-              : await createComissaoComVendaAvulsa(avulsaPayload)
+              ? (await createTituloComissaoAvulsa({
+                  ...avulsaPayload,
+                  observacao,
+                })).comissao
+              : await createComissaoComVendaAvulsa({
+                  ...avulsaPayload,
+                  observacao,
+                })
             : via === "titulo"
               ? (
                   await createTituloComissao({
@@ -479,6 +491,7 @@ export function ComissaoLancamentoDialog({
                     dataPrevistaRecebimento: form.dataPrevistaRecebimento,
                     ...percentages,
                     ...premiacaoPayload,
+                    observacao,
                   })
                 ).comissao
               : await createComissao({
@@ -486,6 +499,7 @@ export function ComissaoLancamentoDialog({
                   dataPrevistaRecebimento: form.dataPrevistaRecebimento,
                   ...percentages,
                   ...premiacaoPayload,
+                  observacao,
                 });
       onOpenChange(false);
       toast.success(
@@ -830,6 +844,18 @@ export function ComissaoLancamentoDialog({
                 Nesta data as fatias entram em Contas a receber e no fluxo como
                 previsão. Ao marcar como paga, o fluxo registra o recebimento.
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="comissao-observacao">Observação</Label>
+              <Textarea
+                id="comissao-observacao"
+                value={form.observacao}
+                onChange={(event) =>
+                  setField("observacao", event.target.value.slice(0, 2000))
+                }
+                placeholder="Notas internas sobre este lançamento (opcional)"
+                rows={3}
+              />
             </div>
           </FormSection>
 

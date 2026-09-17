@@ -109,6 +109,7 @@ export type Comissao = {
   valorPremiacaoGerente?: number;
   valorPremiacaoRestante?: number;
   status: ComissaoStatus;
+  observacao?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -151,6 +152,7 @@ export type CreateComissaoInput = ComissaoPercentuais &
     documentacaoId: string;
     dataPrevistaRecebimento: string;
     status?: ComissaoStatus;
+    observacao?: string;
   };
 
 export type CreateComissaoVendaAvulsaInput = ComissaoPercentuais &
@@ -163,6 +165,7 @@ export type CreateComissaoVendaAvulsaInput = ComissaoPercentuais &
     empreendimentoId?: string;
     dataPrevistaRecebimento: string;
     status?: ComissaoStatus;
+    observacao?: string;
   };
 
 export type CreateTituloComissaoResponse = {
@@ -174,6 +177,7 @@ export type UpdateComissaoInput = Partial<ComissaoPercentuais> &
   Partial<ComissaoPremiacao> & {
     dataPrevistaRecebimento?: string;
     status?: ComissaoStatus;
+    observacao?: string;
   };
 
 export type VisaoGeralResponse = {

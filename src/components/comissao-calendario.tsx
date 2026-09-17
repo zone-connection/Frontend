@@ -311,7 +311,13 @@ export function filterComissoesCalendario(
     if (opts.equipe !== "todos" && relationName(item.equipe) !== opts.equipe)
       return false;
     if (!query) return true;
-    return [item.corretor, item.cliente, item.empreendimento, item.equipe]
+    return [
+      item.corretor,
+      item.cliente,
+      item.empreendimento,
+      item.equipe,
+      item.observacao ?? "",
+    ]
       .map((value) => relationName(value, "").toLowerCase())
       .some((value) => value.includes(query));
   });
