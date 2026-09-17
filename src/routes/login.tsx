@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError } from "@/lib/api";
 import { signIn } from "@/lib/auth";
 import { signInPortal } from "@/lib/portal-auth";
+import { signInParceiro } from "@/lib/parceiros-auth";
 import { getWhatsAppUrl } from "@/lib/env";
 import { defaultRouteForRole } from "@/lib/permissions";
 import { toast } from "sonner";
@@ -218,16 +219,23 @@ function LoginPage() {
           navigate({ to: "/portal" });
           return;
         } catch (portalError) {
-          if (
-            portalError instanceof ApiError &&
-            (portalError.status === 400 || portalError.status === 403)
-          ) {
-            toast.message("Esta conta é do portal do proprietário.");
-            navigate({
-              to: "/portal/login",
-              search: { email: email.trim() },
-            });
+          try {
+            const me = await signInParceiro(email, password);
+            toast.success(`Olá, ${me.nome.split(" ")[0]}`);
+            navigate({ to: "/parceiros" });
             return;
+          } catch {
+            if (
+              portalError instanceof ApiError &&
+              (portalError.status === 400 || portalError.status === 403)
+            ) {
+              toast.message("Esta conta é do portal do proprietário.");
+              navigate({
+                to: "/portal/login",
+                search: { email: email.trim() },
+              });
+              return;
+            }
           }
         }
       }
@@ -416,6 +424,16 @@ function LoginPage() {
               Proprietário de imóvel?{" "}
               <Link
                 to="/portal/login"
+                search={email.trim() ? { email: email.trim() } : undefined}
+                className="font-medium text-brand-accent transition-colors hover:text-brand-dark"
+              >
+                Acessar o portal
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-sm text-text-muted">
+              Corretor parceiro?{" "}
+              <Link
+                to="/parceiros/login"
                 search={email.trim() ? { email: email.trim() } : undefined}
                 className="font-medium text-brand-accent transition-colors hover:text-brand-dark"
               >

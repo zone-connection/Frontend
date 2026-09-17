@@ -30,7 +30,8 @@ export type TenantModuleKey =
   | "comercial"
   | "captacao"
   | "imoveisUsados"
-  | "locacao";
+  | "locacao"
+  | "parcerias";
 
 export type TenantModuleDef = {
   key: TenantModuleKey;
@@ -60,6 +61,7 @@ export const TENANT_MODULE_GROUPS: TenantModuleGroup[] = [
       { key: "captacao", label: "Captação de Imóveis" },
       { key: "imoveisUsados", label: "Venda de Imóveis Usados" },
       { key: "locacao", label: "Locação" },
+      { key: "parcerias", label: "Corretores parceiros" },
     ],
   },
   {
@@ -142,6 +144,7 @@ export const ROUTE_MODULE_KEY: Record<string, TenantModuleKey> = {
   "/captacao": "captacao",
   "/imoveis-usados": "imoveisUsados",
   "/locacao": "locacao",
+  "/parcerias": "parcerias",
 };
 
 export const TENANT_OPERATION_KEYS = [
@@ -149,27 +152,29 @@ export const TENANT_OPERATION_KEYS = [
   "captacao",
   "imoveisUsados",
   "locacao",
+  "parcerias",
 ] as const;
 
 const OPERATION_DEFAULTS: Record<
-  "comercial" | "captacao" | "imoveisUsados" | "locacao",
+  "comercial" | "captacao" | "imoveisUsados" | "locacao" | "parcerias",
   boolean
 > = {
   comercial: true,
   captacao: false,
   imoveisUsados: false,
   locacao: false,
+  parcerias: false,
 };
 
 export function isTenantOperationKey(
   key: string,
-): key is "comercial" | "captacao" | "imoveisUsados" | "locacao" {
+): key is "comercial" | "captacao" | "imoveisUsados" | "locacao" | "parcerias" {
   return (TENANT_OPERATION_KEYS as readonly string[]).includes(key);
 }
 
 export function isTenantOperationEnabled(
   modules: Record<string, boolean> | null | undefined,
-  key: "comercial" | "captacao" | "imoveisUsados" | "locacao",
+  key: "comercial" | "captacao" | "imoveisUsados" | "locacao" | "parcerias",
 ): boolean {
   if (typeof modules?.[key] === "boolean") return modules[key] === true;
   return OPERATION_DEFAULTS[key];

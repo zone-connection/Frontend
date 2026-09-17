@@ -50,6 +50,13 @@ const CARDS: Array<{
     description: "Gerencie locatários, contratos e operações de locação.",
     icon: KeyRound,
   },
+  {
+    key: "parcerias",
+    title: "Corretores parceiros",
+    description:
+      "Convide corretores de outras imobiliárias para ver estoque, indicar clientes e acompanhar o repasse.",
+    icon: Users,
+  },
 ];
 
 export function ConfigModulosOperacaoPanel() {

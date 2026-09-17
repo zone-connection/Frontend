@@ -289,6 +289,15 @@ const NAV_SECTIONS: {
         ],
       },
       {
+        id: "parcerias",
+        label: "Parceiros",
+        icon: Handshake,
+        children: [
+          { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
+          { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
+        ],
+      },
+      {
         id: "imoveis-usados",
         label: "Venda de Usados",
         icon: Store,

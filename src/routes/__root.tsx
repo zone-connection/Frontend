@@ -235,7 +235,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.ico?v=11" sizes="any" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var pub=p==="/"||p==="/login"||p==="/demonstracao"||p==="/termos"||p==="/privacidade"||p.indexOf("/produtos/")===0||p.indexOf("/portal")===0;if(pub){document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light";return}var m=localStorage.getItem("crm_theme_zone_light_v1");if(!m){localStorage.setItem("crm_theme_zone_light_v1","1");localStorage.setItem("crm_theme","light")}var t=localStorage.getItem("crm_theme");if(t==="dark"){document.documentElement.classList.add("dark");document.documentElement.style.colorScheme="dark"}else{document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light"}}catch(e){}})();`,
+            __html: `(function(){try{var p=location.pathname;var pub=p==="/"||p==="/login"||p==="/demonstracao"||p==="/termos"||p==="/privacidade"||p.indexOf("/produtos/")===0||p.indexOf("/portal")===0||p.indexOf("/parceiros")===0;if(pub){document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light";return}var m=localStorage.getItem("crm_theme_zone_light_v1");if(!m){localStorage.setItem("crm_theme_zone_light_v1","1");localStorage.setItem("crm_theme","light")}var t=localStorage.getItem("crm_theme");if(t==="dark"){document.documentElement.classList.add("dark");document.documentElement.style.colorScheme="dark"}else{document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light"}}catch(e){}})();`,
           }}
         />
       </head>

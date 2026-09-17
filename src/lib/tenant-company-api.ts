@@ -60,6 +60,7 @@ export type TenantOperationModules = {
   captacao: boolean;
   imoveisUsados: boolean;
   locacao: boolean;
+  parcerias: boolean;
 };
 
 export type TenantModulesResponse = {
@@ -78,6 +79,7 @@ export async function updateTenantOperationModules(input: {
   captacao?: boolean;
   imoveisUsados?: boolean;
   locacao?: boolean;
+  parcerias?: boolean;
   hideClientesNav?: boolean;
   adminVerClientesCorretor?: boolean;
   gerenteVerLeadsGerais?: boolean;

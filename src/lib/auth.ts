@@ -175,7 +175,8 @@ function revalidateSessionInBackground(): void {
       if (
         typeof window !== "undefined" &&
         !window.location.pathname.startsWith("/login") &&
-        !window.location.pathname.startsWith("/portal")
+        !window.location.pathname.startsWith("/portal") &&
+        !window.location.pathname.startsWith("/parceiros")
       ) {
         window.location.assign("/login");
       }

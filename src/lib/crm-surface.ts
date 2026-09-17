@@ -14,6 +14,7 @@ export function isPublicSurfacePath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (pathname.startsWith("/produtos/")) return true;
   if (pathname.startsWith("/portal")) return true;
+  if (pathname.startsWith("/parceiros")) return true;
   if (pathname.startsWith("/publico")) return true;
   return false;
 }
