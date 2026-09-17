@@ -845,18 +845,6 @@ export function ComissaoLancamentoDialog({
                 previsão. Ao marcar como paga, o fluxo registra o recebimento.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="comissao-observacao">Observação</Label>
-              <Textarea
-                id="comissao-observacao"
-                value={form.observacao}
-                onChange={(event) =>
-                  setField("observacao", event.target.value.slice(0, 2000))
-                }
-                placeholder="Notas internas sobre este lançamento (opcional)"
-                rows={3}
-              />
-            </div>
           </FormSection>
 
           <FormSection title="Percentuais">
@@ -1079,6 +1067,21 @@ export function ComissaoLancamentoDialog({
                 />
               </div>
             )}
+          </FormSection>
+
+          <FormSection title="Observação">
+            <div className="space-y-2">
+              <Label htmlFor="comissao-observacao">Observação</Label>
+              <Textarea
+                id="comissao-observacao"
+                value={form.observacao}
+                onChange={(event) =>
+                  setField("observacao", event.target.value.slice(0, 2000))
+                }
+                placeholder="Notas internas sobre este lançamento (opcional)"
+                rows={3}
+              />
+            </div>
           </FormSection>
 
           <FormSection title="Prévia do cálculo" className="bg-muted/20">
