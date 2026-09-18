@@ -190,8 +190,8 @@ const MAX_HISTORICO_TEXTO = 400;
 
 /** Largura da coluna (w-72) + gap (gap-3) — um passo de scroll. */
 const COLUMN_STEP_PX = 288 + 12;
-/** Cards visíveis por coluna; o restante entra com “Carregar mais”. */
-const FUNIL_CARDS_PER_COLUMN = 40;
+/** Cards visíveis por coluna; cada clique em “Carregar mais” acrescenta este lote. */
+const FUNIL_CARDS_PER_COLUMN = 100;
 
 const FUNIL_GRADIENT_BTN =
   "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110";
@@ -1602,7 +1602,10 @@ export function ComercialFunilBoard({
                       }))
                     }
                   >
-                    Carregar mais ({hiddenCount})
+                    Carregar mais 100
+                    {hiddenCount > FUNIL_CARDS_PER_COLUMN
+                      ? ` · restam ${hiddenCount}`
+                      : ` (${hiddenCount})`}
                   </Button>
                 ) : null}
             </FunilColumnShell>
