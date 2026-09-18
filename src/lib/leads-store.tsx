@@ -22,12 +22,9 @@ import {
   updateLeadStageApi,
   type CreateLeadInput,
   type LeadAssignee,
+  type PaginatedLeads,
   type UpdateLeadInput,
 } from "@/lib/leads-api";
-import {
-  fetchDocumentacoes,
-  type Documentacao,
-} from "@/lib/documentacao-api";
 import { prependLostLeadToCache, invalidateLostLeadsCache } from "@/lib/lost-leads-cache";
 import {
   prependLostClienteToCache,
@@ -36,40 +33,30 @@ import {
 import { createTempId } from "@/lib/utils";
 
 const LEGACY_STORAGE_KEY = "crm_mock_leads";
+const LEADS_PAGE_SIZE = 200;
+const LEADS_FETCH_CONCURRENCY = 2;
 
 export type { LeadAssignee };
 
-/** Status 1/2 mais recente por lead (Documentação). */
-function latestDocStatusByLeadId(docs: Documentacao[]) {
-  const map = new Map<
-    string,
-    { status1: string; status2: string; updatedAt: string }
-  >();
-  for (const doc of docs) {
-    if (!doc.leadId) continue;
-    const prev = map.get(doc.leadId);
-    if (!prev || doc.updatedAt > prev.updatedAt) {
-      map.set(doc.leadId, {
-        status1: doc.status1,
-        status2: doc.status2,
-        updatedAt: doc.updatedAt,
+async function fetchRemainingLeadPages(totalPages: number) {
+  if (totalPages <= 1) return [] as PaginatedLeads[];
+  const pages: PaginatedLeads[] = new Array(totalPages - 1);
+  let next = 2;
+  const worker = async () => {
+    while (next <= totalPages) {
+      const page = next;
+      next += 1;
+      pages[page - 2] = await fetchLeads({
+        page,
+        limit: LEADS_PAGE_SIZE,
+        sort: "created_desc",
       });
     }
-  }
-  return map;
-}
-
-function applyDocStatusToLead(
-  lead: Lead,
-  byLead: Map<string, { status1: string; status2: string; updatedAt: string }>,
-): Lead {
-  const fromDoc = byLead.get(lead.id);
-  if (!fromDoc) return lead;
-  return {
-    ...lead,
-    documentacaoStatus1: fromDoc.status1,
-    documentacaoStatus2: fromDoc.status2,
   };
+  await Promise.all(
+    Array.from({ length: LEADS_FETCH_CONCURRENCY }, () => worker()),
+  );
+  return pages;
 }
 
 type LeadsContextValue = {
@@ -178,9 +165,9 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     if (!opts?.silent) setLoading(true);
     setError(null);
     try {
-      const pageSize = 200;
+      const pageSize = LEADS_PAGE_SIZE;
       const [first, team] = await Promise.all([
-        fetchLeads({ page: 1, limit: pageSize }),
+        fetchLeads({ page: 1, limit: pageSize, sort: "created_desc" }),
         fetchLeadAssignees(),
       ]);
       setAssignees(
@@ -190,24 +177,10 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       setLoading(false);
 
       const totalPages = Math.max(1, first.meta.totalPages);
-      const [rest, docs] = await Promise.all([
-        totalPages > 1
-          ? Promise.all(
-              Array.from({ length: totalPages - 1 }, (_, i) =>
-                fetchLeads({ page: i + 2, limit: pageSize }),
-              ),
-            )
-          : Promise.resolve([]),
-        fetchDocumentacoes().catch(() => [] as Documentacao[]),
-      ]);
+      const rest = await fetchRemainingLeadPages(totalPages);
       const all = [...first.data];
-      for (const page of rest) all.push(...page.data);
-      const docStatusByLead = latestDocStatusByLeadId(docs);
-      setLeads(
-        all
-          .map(mapApiLead)
-          .map((lead) => applyDocStatusToLead(lead, docStatusByLead)),
-      );
+      for (const page of rest) all.push(...(page?.data ?? []));
+      setLeads(all.map(mapApiLead));
     } catch (err) {
       const message =
         err instanceof ApiError

@@ -190,6 +190,8 @@ const MAX_HISTORICO_TEXTO = 400;
 
 /** Largura da coluna (w-72) + gap (gap-3) — um passo de scroll. */
 const COLUMN_STEP_PX = 288 + 12;
+/** Cards visíveis por coluna; o restante entra com “Carregar mais”. */
+const FUNIL_CARDS_PER_COLUMN = 40;
 
 const FUNIL_GRADIENT_BTN =
   "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110";
@@ -269,6 +271,9 @@ export function ComercialFunilBoard({
     useState<MonitoramentoFiltro>("todos");
   const [corretorFilterOpen, setCorretorFilterOpen] = useState(false);
   const [recoveringStages, setRecoveringStages] = useState(false);
+  const [visibleByStage, setVisibleByStage] = useState<Record<string, number>>(
+    {},
+  );
 
   function decorateLeadMonitoramento(lead: Lead): Lead {
     if (!funilAtivo || !lead.monitoramento) return lead;
@@ -1379,6 +1384,10 @@ export function ComercialFunilBoard({
             : leads.filter((l) =>
                 leadMatchesStage(l.stage, stage.id, funnelStageIds),
               );
+          const cap =
+            visibleByStage[stage.id] ?? FUNIL_CARDS_PER_COLUMN;
+          const visibleLeads = stageLeads.slice(0, cap);
+          const hiddenCount = stageLeads.length - visibleLeads.length;
           const total = stageLeads.reduce((s, l) => s + (l.renda ?? 0), 0);
           return (
             <FunilColumnShell
@@ -1391,7 +1400,7 @@ export function ComercialFunilBoard({
               orphan={isOrphanColumn}
               active={!isOrphanColumn && activeDropStage === stage.id}
             >
-                {stageLeads.map((l) => (
+                {visibleLeads.map((l) => (
                   <Card
                     key={l.id}
                     data-dragging-card={dragging === l.id ? "" : undefined}
@@ -1580,6 +1589,22 @@ export function ComercialFunilBoard({
                     </div>
                   </Card>
                 ))}
+                {hiddenCount > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-full text-xs"
+                    onClick={() =>
+                      setVisibleByStage((prev) => ({
+                        ...prev,
+                        [stage.id]: cap + FUNIL_CARDS_PER_COLUMN,
+                      }))
+                    }
+                  >
+                    Carregar mais ({hiddenCount})
+                  </Button>
+                ) : null}
             </FunilColumnShell>
           );
         })}
