@@ -231,9 +231,9 @@ export function LeadsDistribuirDialog({
         <DialogHeader>
           <DialogTitle>Distribuir leads</DialogTitle>
           <DialogDescription>
-            Envie leads do pool do admin (sem equipe e sem corretor). Por
-            equipes: o lead vai para o pool da equipe; por corretores: já fica
-            com um corretor.
+            Envie leads do pool do admin (sem equipe e sem corretor), incluindo
+            os de retrabalho. Por equipes: o lead vai para o pool da equipe; por
+            corretores: já fica com um corretor.
           </DialogDescription>
         </DialogHeader>
 

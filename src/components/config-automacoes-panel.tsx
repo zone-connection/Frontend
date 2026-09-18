@@ -403,10 +403,9 @@ export function ConfigAutomacoesPanel() {
                       Liberação após atraso
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Retrabalho desvincula o corretor e deixa o lead no funil
-                      e em Leads, destacado. Com Caça-lead ligado, a tela
-                      aparece na barra lateral para todo o tenant; se o
-                      administrador desligar, some para todos.
+                      Retrabalho desvincula o corretor e devolve o lead ao pool
+                      para redistribuir (botão Distribuir ou automático para
+                      quem estiver online).
                     </p>
                   </div>
                 </div>
@@ -519,10 +518,10 @@ export function ConfigAutomacoesPanel() {
                       Distribuição para corretores online
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Leads do pool Chegaram (sem equipe e sem corretor) são
-                      enviados sozinhos para corretores e trainees ativos que
-                      estiverem online no CRM. Quem tem menos leads na carteira
-                      recebe primeiro.
+                      Leads do pool sem equipe e sem corretor — inclusive
+                      Retrabalho — vão sozinhos para corretores e trainees
+                      ativos que estiverem online no CRM. Quem tem menos leads
+                      na carteira recebe primeiro.
                     </p>
                   </div>
                 </div>
