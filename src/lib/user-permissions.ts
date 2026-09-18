@@ -85,6 +85,7 @@ export const PERMISSION_MODULES = [
   { key: "imoveis", label: "Imóveis", routes: ["/imoveis"], group: "catalogo" },
   { key: "corretores", label: "Ranking", routes: ["/corretores"], group: "gestao" },
   { key: "atrasos", label: "Atrasos", routes: ["/atrasos"], group: "gestao" },
+  { key: "presenca", label: "Presença", routes: ["/presenca"], group: "gestao" },
   { key: "metas", label: "Metas", routes: ["/metas"], group: "gestao" },
   { key: "analise", label: "Análise", routes: ["/resultado"], group: "gestao" },
   {
@@ -197,6 +198,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/vendas",
     "/configuracoes",
     "/financeiro",
+    "/presenca",
   ],
   admin: [
     "/dashboard",
@@ -211,6 +213,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/clientes",
     "/corretores",
     "/atrasos",
+    "/presenca",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -241,6 +244,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/clientes",
     "/corretores",
     "/atrasos",
+    "/presenca",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -265,6 +269,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/treinamento",
     "/clientes",
     "/clientes-perdidos",
+    "/presenca",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -277,6 +282,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
   analista: [
     "/caca-lead",
     "/resultado",
+    "/presenca",
     "/documentacao",
     "/contratos",
     "/imoveis",
@@ -297,6 +303,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/despesas",
     "/financeiro/comissao",
     "/financeiro/funcionarios",
+    "/presenca",
     "/perfil",
   ],
   treinee: [
@@ -310,6 +317,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/treinamento",
     "/clientes",
     "/clientes-perdidos",
+    "/presenca",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -320,7 +328,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/configuracoes",
     "/perfil",
   ],
-  assistente: ["/perfil", "/caca-lead"],
+  assistente: ["/perfil", "/caca-lead", "/presenca"],
 };
 
 const GERENTE_BRONZE_ROUTES = [
@@ -334,6 +342,7 @@ const GERENTE_BRONZE_ROUTES = [
   "/triagem",
   "/construtoras",
   "/documentacao",
+  "/presenca",
   "/contratos",
   "/financeiro/comissao",
   "/configuracoes",

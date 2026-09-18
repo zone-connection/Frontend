@@ -31,7 +31,8 @@ export type TenantModuleKey =
   | "captacao"
   | "imoveisUsados"
   | "locacao"
-  | "parcerias";
+  | "parcerias"
+  | "presenca";
 
 export type TenantModuleDef = {
   key: TenantModuleKey;
@@ -91,6 +92,7 @@ export const TENANT_MODULE_GROUPS: TenantModuleGroup[] = [
       },
       { key: "equipes", label: "Equipes" },
       { key: "corretores", label: "Ranking" },
+      { key: "presenca", label: "Presença" },
       { key: "documentacao", label: "Documentação" },
       { key: "analise", label: "Análise" },
       { key: "metas", label: "Metas" },
@@ -132,6 +134,7 @@ export const ROUTE_MODULE_KEY: Record<string, TenantModuleKey> = {
   "/usuarios": "usuarios",
   "/equipes": "equipes",
   "/corretores": "corretores",
+  "/presenca": "presenca",
   "/documentacao": "documentacao",
   "/vendas": "documentacao",
   "/resultado": "analise",
@@ -250,12 +253,14 @@ const SOLO_ENABLED = new Set<TenantModuleKey>([
   "propostas",
   "contratos",
   "metas",
+  "presenca",
   "financeiro",
 ]);
 
 const ADMIN_TOGGLE_KEYS: TenantModuleKey[] = [
   "equipes",
   "corretores",
+  "presenca",
   "documentacao",
   "analise",
   "metas",

@@ -44,6 +44,7 @@ import {
   Library,
   Receipt,
   TriangleAlert,
+  ClipboardCheck,
   KeyRound,
   type LucideIcon,
 } from "lucide-react";
@@ -339,6 +340,7 @@ const NAV_SECTIONS: {
       { to: "/guia", label: "Guia", icon: BookOpen },
       { to: "/corretores", label: "Ranking", icon: UsersRound },
       { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
+      { to: "/presenca", label: "Presença", icon: ClipboardCheck },
       { to: "/metas", label: "Metas", icon: Target },
       { to: "/resultado", label: "Análise", icon: SearchCheck },
       { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },

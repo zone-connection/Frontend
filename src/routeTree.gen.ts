@@ -43,6 +43,7 @@ import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppParceriasRouteImport } from './routes/_app.parcerias'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppPermissoesRouteImport } from './routes/_app.permissoes'
+import { Route as AppPresencaRouteImport } from './routes/_app.presenca'
 import { Route as AppPropostasRouteImport } from './routes/_app.propostas'
 import { Route as AppResultadoRouteImport } from './routes/_app.resultado'
 import { Route as AppTaxaConversaoRouteImport } from './routes/_app.taxa-conversao'
@@ -274,6 +275,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
 const AppPermissoesRoute = AppPermissoesRouteImport.update({
   id: '/permissoes',
   path: '/permissoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPresencaRoute = AppPresencaRouteImport.update({
+  id: '/presenca',
+  path: '/presenca',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPropostasRoute = AppPropostasRouteImport.update({
@@ -643,6 +649,7 @@ export interface FileRoutesByFullPath {
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
+  '/presenca': typeof AppPresencaRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
@@ -739,6 +746,7 @@ export interface FileRoutesByTo {
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
+  '/presenca': typeof AppPresencaRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
@@ -834,6 +842,7 @@ export interface FileRoutesById {
   '/_app/parcerias': typeof AppParceriasRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/permissoes': typeof AppPermissoesRoute
+  '/_app/presenca': typeof AppPresencaRoute
   '/_app/propostas': typeof AppPropostasRoute
   '/_app/resultado': typeof AppResultadoRoute
   '/_app/taxa-conversao': typeof AppTaxaConversaoRoute
@@ -1124,6 +1133,7 @@ export interface FileRouteTypes {
     | '/_app/parcerias'
     | '/_app/perfil'
     | '/_app/permissoes'
+    | '/_app/presenca'
     | '/_app/propostas'
     | '/_app/resultado'
     | '/_app/taxa-conversao'
@@ -1443,6 +1453,13 @@ declare module '@tanstack/react-router' {
       path: '/permissoes'
       fullPath: '/permissoes'
       preLoaderRoute: typeof AppPermissoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/presenca': {
+      id: '/_app/presenca'
+      path: '/presenca'
+      fullPath: '/presenca'
+      preLoaderRoute: typeof AppPresencaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/propostas': {
@@ -2064,6 +2081,7 @@ interface AppRouteChildren {
   AppParceriasRoute: typeof AppParceriasRouteWithChildren
   AppPerfilRoute: typeof AppPerfilRoute
   AppPermissoesRoute: typeof AppPermissoesRoute
+  AppPresencaRoute: typeof AppPresencaRoute
   AppPropostasRoute: typeof AppPropostasRoute
   AppResultadoRoute: typeof AppResultadoRoute
   AppTaxaConversaoRoute: typeof AppTaxaConversaoRoute
@@ -2102,6 +2120,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppParceriasRoute: AppParceriasRouteWithChildren,
   AppPerfilRoute: AppPerfilRoute,
   AppPermissoesRoute: AppPermissoesRoute,
+  AppPresencaRoute: AppPresencaRoute,
   AppPropostasRoute: AppPropostasRoute,
   AppResultadoRoute: AppResultadoRoute,
   AppTaxaConversaoRoute: AppTaxaConversaoRoute,
