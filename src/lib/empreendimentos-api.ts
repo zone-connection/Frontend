@@ -54,15 +54,43 @@ export type Empreendimento = {
   vitrine?: EmpreendimentoVitrine | null;
 };
 
+export type EmpreendimentoTipologia = {
+  nome: string;
+  areaM2: number | null;
+  quartos: number | null;
+  suites: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  valor: number | null;
+  pavimento: string | null;
+};
+
 export type EmpreendimentoVitrine = {
   headline: string | null;
   descricao: string | null;
   diferenciais: string[];
   lazer: string[];
+  infraestrutura?: string[];
+  detalhesUnidade?: string[];
   numero: string | null;
   bairro: string | null;
   estado: string | null;
   cep: string | null;
+  website?: string | null;
+  tourVirtual?: string | null;
+  lancamento?: string | null;
+  unidades?: number | null;
+  andares?: number | null;
+  nomeCondominio?: string | null;
+  suites?: number | null;
+  areaMax?: number | null;
+  valorMax?: number | null;
+  valorM2?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  atualizadoEm?: string | null;
+  plantas?: string[];
+  tipologias?: EmpreendimentoTipologia[];
 };
 
 export type CreateEmpreendimentoInput = {
@@ -201,6 +229,10 @@ export const IMAGE_UPLOAD_ACCEPT = "image/jpeg,image/png,image/webp";
 export function empreendimentoImagens(item: Empreendimento): string[] {
   if (item.imagens?.length) return item.imagens.slice(0, EMPREENDIMENTO_MAX_IMAGES);
   return item.imagemUrl ? [item.imagemUrl] : [];
+}
+
+export function empreendimentoCapa(item: Empreendimento): string | null {
+  return item.imagemUrl?.trim() || empreendimentoImagens(item)[0] || null;
 }
 
 export function empreendimentoLocalidadeNome(item: Empreendimento) {

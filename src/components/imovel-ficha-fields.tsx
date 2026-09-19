@@ -71,7 +71,7 @@ function toggle(list: string[], value: string, on: boolean) {
   return list.filter((item) => item !== value);
 }
 
-function AmenityChips({
+export function AmenityChips({
   title,
   hint,
   options,

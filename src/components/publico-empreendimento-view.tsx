@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { brl } from "@/lib/crm-types";
+import { EmpreendimentoOruloFicha } from "@/components/empreendimento-orulo-ficha";
 import type { EmpreendimentoPublico } from "@/lib/empreendimentos-api";
 import { env, getWhatsAppUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
@@ -86,8 +87,11 @@ export function PublicoEmpreendimentoView({
     : null;
 
   const descricao = vitrine?.descricao?.trim() || "";
-  const diferenciais = vitrine?.diferenciais ?? [];
+  const diferenciais = vitrine?.detalhesUnidade?.length
+    ? vitrine.detalhesUnidade
+    : (vitrine?.diferenciais ?? []);
   const lazer = vitrine?.lazer ?? [];
+  const infra = vitrine?.infraestrutura ?? [];
   const hasAddress =
     Boolean(item.endereco) ||
     Boolean(vitrine?.numero) ||
@@ -272,7 +276,15 @@ export function PublicoEmpreendimentoView({
               ) : null}
               {item.areaM2 != null ? (
                 <span className="flex items-center gap-2 text-sm">
-                  <Ruler className="h-4 w-4" /> {item.areaM2} m²
+                  <Ruler className="h-4 w-4" />{" "}
+                  {vitrine?.areaMax != null && vitrine.areaMax !== item.areaM2
+                    ? `${item.areaM2} a ${vitrine.areaMax} m²`
+                    : `${item.areaM2} m²`}
+                </span>
+              ) : null}
+              {vitrine?.suites != null ? (
+                <span className="flex items-center gap-2 text-sm">
+                  {vitrine.suites} suíte(s)
                 </span>
               ) : null}
             </div>
@@ -295,7 +307,7 @@ export function PublicoEmpreendimentoView({
 
             {diferenciais.length > 0 ? (
               <div>
-                <h2 className="text-lg font-semibold">Diferenciais</h2>
+                <h2 className="text-lg font-semibold">Detalhes do imóvel</h2>
                 <ul className="mt-3 space-y-1.5 text-sm text-zinc-600">
                   {diferenciais.map((line) => (
                     <li key={line}>• {line}</li>
@@ -320,7 +332,32 @@ export function PublicoEmpreendimentoView({
                 </ul>
               </div>
             ) : null}
+
+            {infra.length > 0 ? (
+              <div>
+                <h2 className="text-lg font-semibold">Infraestrutura</h2>
+                <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                  {infra.map((line) => (
+                    <li
+                      key={line}
+                      className="flex items-center gap-2 text-sm text-zinc-600"
+                    >
+                      <Check className="h-4 w-4 shrink-0" style={{ color: accent }} />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </section>
+        </div>
+
+        <div className="mt-10">
+          <EmpreendimentoOruloFicha
+            vitrine={vitrine}
+            fotos={photos.length}
+            tipo={item.tipo}
+          />
         </div>
 
         {hasAddress ? (

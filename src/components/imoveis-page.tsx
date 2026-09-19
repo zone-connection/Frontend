@@ -72,6 +72,7 @@ import {
   deleteEmpreendimentoImagem,
   EMPREENDIMENTO_MAX_IMAGES,
   empreendimentoHasLitoral,
+  empreendimentoCapa,
   empreendimentoImagens,
   empreendimentoLocalidadeNome,
   empreendimentoStatusLabel,
@@ -82,6 +83,7 @@ import {
   uploadEmpreendimentoImagem,
   type Empreendimento,
   type EmpreendimentoMatchesResult,
+  type EmpreendimentoTipologia,
 } from "@/lib/empreendimentos-api";
 import { brl } from "@/lib/crm-types";
 import {
@@ -123,8 +125,12 @@ import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   fetchCaptacaoImoveis,
   formatBrl,
+  IMOVEL_CARACTERISTICAS_DIFERENCIAIS,
+  IMOVEL_DETALHES_IMOVEL,
+  IMOVEL_LOCALIZACAO_INFRA,
   type Imovel,
 } from "@/lib/captacao-api";
+import { AmenityChips } from "@/components/imovel-ficha-fields";
 import {
   Building2,
   Car,
@@ -152,6 +158,7 @@ import {
   Wallet,
   MessageCircle,
   Globe,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchNotificacoes } from "@/lib/notificacoes-api";
@@ -260,6 +267,8 @@ type EmpreendimentoFormTab =
   | "status"
   | "tags"
   | "previsao"
+  | "ficha"
+  | "caracteristicas"
   | "vitrine"
   | "observacao";
 
@@ -287,10 +296,28 @@ type EmpreendimentoForm = {
   vitrineDescricao: string;
   vitrineDiferenciais: string;
   vitrineLazer: string;
+  vitrineLazerItems: string[];
+  vitrineInfra: string[];
+  vitrineDetalhes: string[];
   vitrineNumero: string;
   vitrineBairro: string;
   vitrineEstado: string;
   vitrineCep: string;
+  vitrineWebsite: string;
+  vitrineTour: string;
+  vitrineLancamento: string;
+  vitrineUnidades: string;
+  vitrineAndares: string;
+  vitrineNomeCondominio: string;
+  vitrineSuites: string;
+  vitrineAreaMax: string;
+  vitrineValorMax: string;
+  vitrineValorM2: string;
+  vitrinePlantas: string[];
+  vitrineTipologias: EmpreendimentoTipologia[];
+  vitrineLatitude: string;
+  vitrineLongitude: string;
+  vitrineAtualizadoEm: string;
 };
 
 function emptyEmpreendimentoForm(): EmpreendimentoForm {
@@ -318,10 +345,28 @@ function emptyEmpreendimentoForm(): EmpreendimentoForm {
     vitrineDescricao: "",
     vitrineDiferenciais: "",
     vitrineLazer: "",
+    vitrineLazerItems: [],
+    vitrineInfra: [],
+    vitrineDetalhes: [],
     vitrineNumero: "",
     vitrineBairro: "",
     vitrineEstado: "",
     vitrineCep: "",
+    vitrineWebsite: "",
+    vitrineTour: "",
+    vitrineLancamento: "",
+    vitrineUnidades: "",
+    vitrineAndares: "",
+    vitrineNomeCondominio: "",
+    vitrineSuites: "",
+    vitrineAreaMax: "",
+    vitrineValorMax: "",
+    vitrineValorM2: "",
+    vitrinePlantas: [],
+    vitrineTipologias: [],
+    vitrineLatitude: "",
+    vitrineLongitude: "",
+    vitrineAtualizadoEm: "",
   };
 }
 
@@ -356,10 +401,41 @@ function formFromEmpreendimento(item: Empreendimento): EmpreendimentoForm {
     vitrineDescricao: item.vitrine?.descricao ?? "",
     vitrineDiferenciais: (item.vitrine?.diferenciais ?? []).join("\n"),
     vitrineLazer: (item.vitrine?.lazer ?? []).join("\n"),
+    vitrineLazerItems: item.vitrine?.lazer ?? [],
+    vitrineInfra: item.vitrine?.infraestrutura ?? [],
+    vitrineDetalhes:
+      item.vitrine?.detalhesUnidade?.length
+        ? item.vitrine.detalhesUnidade
+        : (item.vitrine?.diferenciais ?? []),
     vitrineNumero: item.vitrine?.numero ?? "",
     vitrineBairro: item.vitrine?.bairro ?? "",
     vitrineEstado: item.vitrine?.estado ?? "",
     vitrineCep: item.vitrine?.cep ?? "",
+    vitrineWebsite: item.vitrine?.website ?? "",
+    vitrineTour: item.vitrine?.tourVirtual ?? "",
+    vitrineLancamento: item.vitrine?.lancamento?.slice(0, 10) ?? "",
+    vitrineUnidades:
+      item.vitrine?.unidades != null ? String(item.vitrine.unidades) : "",
+    vitrineAndares:
+      item.vitrine?.andares != null ? String(item.vitrine.andares) : "",
+    vitrineNomeCondominio: item.vitrine?.nomeCondominio ?? "",
+    vitrineSuites:
+      item.vitrine?.suites != null ? String(item.vitrine.suites) : "",
+    vitrineAreaMax:
+      item.vitrine?.areaMax != null ? String(item.vitrine.areaMax) : "",
+    vitrineValorMax:
+      item.vitrine?.valorMax != null
+        ? formatMoneyInput(item.vitrine.valorMax)
+        : "",
+    vitrineValorM2:
+      item.vitrine?.valorM2 != null ? String(Math.round(item.vitrine.valorM2)) : "",
+    vitrinePlantas: item.vitrine?.plantas ?? [],
+    vitrineTipologias: item.vitrine?.tipologias ?? [],
+    vitrineLatitude:
+      item.vitrine?.latitude != null ? String(item.vitrine.latitude) : "",
+    vitrineLongitude:
+      item.vitrine?.longitude != null ? String(item.vitrine.longitude) : "",
+    vitrineAtualizadoEm: item.vitrine?.atualizadoEm ?? "",
   };
 }
 
@@ -725,18 +801,38 @@ export function ImoveisPage({
         vitrine: {
           headline: form.vitrineHeadline.trim() || null,
           descricao: form.vitrineDescricao.trim() || null,
-          diferenciais: form.vitrineDiferenciais
-            .split(/\r?\n/)
-            .map((line) => line.trim())
-            .filter(Boolean),
-          lazer: form.vitrineLazer
-            .split(/\r?\n/)
-            .map((line) => line.trim())
-            .filter(Boolean),
+          diferenciais: form.vitrineDetalhes,
+          lazer: form.vitrineLazerItems,
+          infraestrutura: form.vitrineInfra,
+          detalhesUnidade: form.vitrineDetalhes,
           numero: form.vitrineNumero.trim() || null,
           bairro: form.vitrineBairro.trim() || null,
           estado: form.vitrineEstado.trim() || null,
           cep: form.vitrineCep.trim() || null,
+          website: form.vitrineWebsite.trim() || null,
+          tourVirtual: form.vitrineTour.trim() || null,
+          lancamento: form.vitrineLancamento.trim() || null,
+          unidades: form.vitrineUnidades.trim()
+            ? Number.parseInt(form.vitrineUnidades, 10)
+            : null,
+          andares: form.vitrineAndares.trim()
+            ? Number.parseInt(form.vitrineAndares, 10)
+            : null,
+          nomeCondominio: form.vitrineNomeCondominio.trim() || null,
+          suites: form.vitrineSuites.trim()
+            ? Number.parseInt(form.vitrineSuites, 10)
+            : null,
+          areaMax: parseAreaM2(form.vitrineAreaMax),
+          valorMax: (() => {
+            const parsed = parseOptionalMoneyInput(form.vitrineValorMax);
+            return parsed != null ? Math.round(parsed) : null;
+          })(),
+          valorM2: parseAreaM2(form.vitrineValorM2),
+          latitude: parseAreaM2(form.vitrineLatitude),
+          longitude: parseAreaM2(form.vitrineLongitude),
+          atualizadoEm: form.vitrineAtualizadoEm.trim() || null,
+          plantas: form.vitrinePlantas,
+          tipologias: form.vitrineTipologias,
         },
       };
 
@@ -2043,29 +2139,22 @@ export function ImoveisPage({
                   <Building2 className="h-10 w-10 text-muted-foreground/40" />
                 </div>
                 {(() => {
-                  const covers = empreendimentoImagens(item);
-                  if (covers.length === 0) return null;
+                  const capa = empreendimentoCapa(item);
+                  if (!capa) return null;
                   return (
-                    <div
-                      className={
-                        covers.length > 1
-                          ? "relative grid h-full grid-cols-2"
-                          : "relative h-full"
-                      }
-                    >
-                      {covers.map((src) => (
-                        <img
-                          key={src}
-                          src={src}
-                          alt={`Foto do empreendimento ${item.nome}`}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                          onError={(event) => {
-                            event.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <img
+                      src={capa}
+                      alt=""
+                      width={520}
+                      height={280}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="relative h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
                   );
                 })()}
                 <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
@@ -2266,8 +2355,13 @@ export function ImoveisPage({
                 {item.fotoUrl ? (
                   <img
                     src={item.fotoUrl}
-                    alt={item.titulo}
+                    alt=""
+                    width={520}
+                    height={280}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
@@ -2698,6 +2792,20 @@ export function ImoveisPage({
               >
                 <CalendarClock className="h-3.5 w-3.5" />
                 Previsão
+              </TabsTrigger>
+              <TabsTrigger
+                value="ficha"
+                className="gap-1.5 rounded-full px-3"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Ficha
+              </TabsTrigger>
+              <TabsTrigger
+                value="caracteristicas"
+                className="gap-1.5 rounded-full px-3"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Características
               </TabsTrigger>
               <TabsTrigger
                 value="vitrine"
@@ -3296,6 +3404,408 @@ export function ImoveisPage({
           </FormSection>
             </TabsContent>
 
+            <TabsContent value="ficha" className="mt-4">
+          <FormSection
+            icon={<FileText className="h-4 w-4" />}
+            title="Ficha completa"
+            description="Campos da página Órulo: faixas, tipologias, tour, mapa e dados do condomínio."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-suites">Suítes a partir de</Label>
+                <Input
+                  id="imovel-suites"
+                  inputMode="numeric"
+                  value={form.vitrineSuites}
+                  onChange={(event) =>
+                    setField("vitrineSuites", event.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-area-max">Metragem máxima (m²)</Label>
+                <Input
+                  id="imovel-area-max"
+                  inputMode="decimal"
+                  value={form.vitrineAreaMax}
+                  onChange={(event) =>
+                    setField("vitrineAreaMax", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-valor-max">Valor máximo (R$)</Label>
+                <Input
+                  id="imovel-valor-max"
+                  inputMode="numeric"
+                  value={form.vitrineValorMax}
+                  onChange={(event) =>
+                    setField("vitrineValorMax", maskMoneyInput(event.target.value))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-valor-m2">Valor por m²</Label>
+                <Input
+                  id="imovel-valor-m2"
+                  inputMode="numeric"
+                  value={form.vitrineValorM2}
+                  onChange={(event) =>
+                    setField("vitrineValorM2", event.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-unidades">Número de unidades</Label>
+                <Input
+                  id="imovel-unidades"
+                  inputMode="numeric"
+                  value={form.vitrineUnidades}
+                  onChange={(event) =>
+                    setField("vitrineUnidades", event.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-andares">Andares</Label>
+                <Input
+                  id="imovel-andares"
+                  inputMode="numeric"
+                  value={form.vitrineAndares}
+                  onChange={(event) =>
+                    setField("vitrineAndares", event.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-lancamento">Lançamento</Label>
+                <Input
+                  id="imovel-lancamento"
+                  type="date"
+                  value={form.vitrineLancamento}
+                  onChange={(event) =>
+                    setField("vitrineLancamento", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-condo">Nome do condomínio</Label>
+                <Input
+                  id="imovel-condo"
+                  value={form.vitrineNomeCondominio}
+                  onChange={(event) =>
+                    setField("vitrineNomeCondominio", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="imovel-website">Website</Label>
+                  {/^https?:\/\//i.test(form.vitrineWebsite.trim()) ? (
+                    <a
+                      href={form.vitrineWebsite.trim()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary underline"
+                    >
+                      Testar link
+                    </a>
+                  ) : null}
+                </div>
+                <Input
+                  id="imovel-website"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineWebsite}
+                  onChange={(event) =>
+                    setField("vitrineWebsite", event.target.value)
+                  }
+                  placeholder="https://www.empreendimento.com.br"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cole o link do site oficial. Na ficha e na página pública ele
+                  vira um botão “abrir site”. Se o imóvel veio da Órulo, o link
+                  já entra na sincronização quando existir.
+                </p>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="imovel-tour">Tour virtual 360°</Label>
+                  {/^https?:\/\//i.test(form.vitrineTour.trim()) ? (
+                    <a
+                      href={form.vitrineTour.trim()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary underline"
+                    >
+                      Testar tour
+                    </a>
+                  ) : null}
+                </div>
+                <Input
+                  id="imovel-tour"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineTour}
+                  onChange={(event) => setField("vitrineTour", event.target.value)}
+                  placeholder="https://tour.exemplo.com/empreendimento"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cole o link do tour (Matterport, Órulo, YouTube 360° ou o
+                  player da construtora). O sistema não grava o vídeo: só abre
+                  esse endereço em outra aba. Sem link, a ficha mostra “não
+                  habilitado”.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-lat">Latitude</Label>
+                <Input
+                  id="imovel-lat"
+                  value={form.vitrineLatitude}
+                  onChange={(event) =>
+                    setField("vitrineLatitude", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="imovel-lng">Longitude</Label>
+                <Input
+                  id="imovel-lng"
+                  value={form.vitrineLongitude}
+                  onChange={(event) =>
+                    setField("vitrineLongitude", event.target.value)
+                  }
+                />
+              </div>
+            </div>
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Tipologias disponíveis</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      vitrineTipologias: [
+                        ...prev.vitrineTipologias,
+                        {
+                          nome: "Apartamento",
+                          areaM2: null,
+                          quartos: null,
+                          suites: null,
+                          banheiros: null,
+                          vagas: null,
+                          valor: null,
+                          pavimento: null,
+                        },
+                      ],
+                    }))
+                  }
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Incluir
+                </Button>
+              </div>
+              {form.vitrineTipologias.map((row, index) => (
+                <div
+                  key={`tipo-${index}`}
+                  className="grid gap-2 rounded-xl border p-3 sm:grid-cols-4"
+                >
+                  <Input
+                    value={row.nome}
+                    placeholder="Nome"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index ? { ...item, nome: event.target.value } : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <Input
+                    value={row.areaM2 ?? ""}
+                    placeholder="m²"
+                    inputMode="decimal"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? { ...item, areaM2: parseAreaM2(event.target.value) }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <Input
+                    value={row.quartos ?? ""}
+                    placeholder="Quartos"
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                quartos: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <Input
+                    value={row.valor != null ? formatMoneyInput(row.valor) : ""}
+                    placeholder="Valor"
+                    onChange={(event) =>
+                      setForm((prev) => {
+                        const parsed = parseOptionalMoneyInput(event.target.value);
+                        return {
+                          ...prev,
+                          vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                            i === index
+                              ? {
+                                  ...item,
+                                  valor: parsed != null ? Math.round(parsed) : null,
+                                }
+                              : item,
+                          ),
+                        };
+                      })
+                    }
+                  />
+                  <Input
+                    value={row.suites ?? ""}
+                    placeholder="Suítes"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                suites: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <Input
+                    value={row.banheiros ?? ""}
+                    placeholder="Banheiros"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                banheiros: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <Input
+                    value={row.vagas ?? ""}
+                    placeholder="Vagas"
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                vagas: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={row.pavimento ?? ""}
+                      placeholder="Pavimento"
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                            i === index
+                              ? { ...item, pavimento: event.target.value || null }
+                              : item,
+                          ),
+                        }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          vitrineTipologias: prev.vitrineTipologias.filter(
+                            (_, i) => i !== index,
+                          ),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FormSection>
+            </TabsContent>
+
+            <TabsContent value="caracteristicas" className="mt-4">
+          <FormSection
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Características"
+            description="Toque para marcar. Os grupos seguem a ficha de visão geral."
+          >
+            <div className="space-y-4">
+              <AmenityChips
+                title="Características e diferenciais"
+                hint="Lazer do condomínio"
+                options={IMOVEL_CARACTERISTICAS_DIFERENCIAIS}
+                value={form.vitrineLazerItems}
+                onChange={(next) => setField("vitrineLazerItems", next)}
+              />
+              <AmenityChips
+                title="Localização e infraestrutura"
+                hint="Segurança e acesso"
+                options={IMOVEL_LOCALIZACAO_INFRA}
+                value={form.vitrineInfra}
+                onChange={(next) => setField("vitrineInfra", next)}
+              />
+              <AmenityChips
+                title="Detalhes do imóvel"
+                hint="Ambientes da unidade"
+                options={IMOVEL_DETALHES_IMOVEL}
+                value={form.vitrineDetalhes}
+                onChange={(next) => setField("vitrineDetalhes", next)}
+              />
+            </div>
+          </FormSection>
+            </TabsContent>
+
             <TabsContent value="vitrine" className="mt-4">
           <FormSection
             icon={<Globe className="h-4 w-4" />}
@@ -3328,36 +3838,10 @@ export function ImoveisPage({
                   maxLength={8000}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-diferenciais">
-                    Diferenciais (um por linha)
-                  </Label>
-                  <Textarea
-                    id="imovel-vitrine-diferenciais"
-                    value={form.vitrineDiferenciais}
-                    onChange={(event) =>
-                      setField("vitrineDiferenciais", event.target.value)
-                    }
-                    placeholder={"Varanda com parapeto em vidro\nPiso vinílico"}
-                    rows={6}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-lazer">
-                    Área de lazer (um por linha)
-                  </Label>
-                  <Textarea
-                    id="imovel-vitrine-lazer"
-                    value={form.vitrineLazer}
-                    onChange={(event) =>
-                      setField("vitrineLazer", event.target.value)
-                    }
-                    placeholder={"Piscina\nEspaço grill\nPlayground"}
-                    rows={6}
-                  />
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Lazer, infraestrutura e ambientes da unidade ficam na aba
+                Características.
+              </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="imovel-vitrine-numero">Número</Label>

@@ -19,6 +19,7 @@ import {
 } from "@/lib/empreendimentos-api";
 import { fetchOruloComercial, fetchOruloOAuthUrl, type OruloComercial } from "@/lib/orulo-api";
 import { getSession } from "@/lib/auth";
+import { EmpreendimentoOruloFicha } from "@/components/empreendimento-orulo-ficha";
 import { Building2, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -174,12 +175,18 @@ function EmpreendimentoDetalhePage() {
               <Building2 className="h-10 w-10 text-primary/35" />
             </div>
           ) : (
-            covers.map((src) => (
+            covers.slice(0, 8).map((src, index) => (
               <img
                 key={src}
                 src={src}
                 alt={item.nome}
+                width={1024}
+                height={576}
+                sizes="(max-width: 640px) 100vw, 50vw"
                 className="max-h-72 w-full rounded-xl object-cover"
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={index === 0 ? "high" : "low"}
               />
             ))
           )}
@@ -217,8 +224,33 @@ function EmpreendimentoDetalhePage() {
               value={item.areaM2 != null ? `${item.areaM2} m²` : null}
             />
             <Field label="Quartos" value={item.quartos} />
+            <Field label="Suítes" value={item.vitrine?.suites} />
             <Field label="Banheiros" value={item.banheiros} />
             <Field label="Vagas" value={item.vagas} />
+            <Field
+              label="Metragem máxima"
+              value={
+                item.vitrine?.areaMax != null
+                  ? `${item.vitrine.areaMax} m²`
+                  : null
+              }
+            />
+            <Field
+              label="Valor máximo"
+              value={
+                item.vitrine?.valorMax != null
+                  ? brl(item.vitrine.valorMax)
+                  : null
+              }
+            />
+            <Field
+              label="Valor por m²"
+              value={
+                item.vitrine?.valorM2 != null
+                  ? brl(Math.round(item.vitrine.valorM2))
+                  : null
+              }
+            />
           </CardContent>
         </Card>
 
@@ -246,6 +278,13 @@ function EmpreendimentoDetalhePage() {
             </CardContent>
           </Card>
         ) : null}
+
+        <EmpreendimentoOruloFicha
+          vitrine={item.vitrine}
+          codigo={item.oruloBuildingId}
+          fotos={covers.length}
+          tipo={item.tipo}
+        />
 
         {item.observacao?.trim() ? (
           <Card>
