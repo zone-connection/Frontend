@@ -62,7 +62,9 @@ export type EmpreendimentoTipologia = {
   banheiros: number | null;
   vagas: number | null;
   valor: number | null;
+  valorM2?: number | null;
   pavimento: string | null;
+  plantaUrl?: string | null;
 };
 
 export type EmpreendimentoVitrine = {
@@ -320,6 +322,18 @@ export async function uploadEmpreendimentoImagem(
   const data = new FormData();
   data.append("file", file);
   return apiFetch<Empreendimento>(`/empreendimentos/${id}/imagens`, {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function uploadEmpreendimentoPlanta(
+  id: string,
+  file: File,
+): Promise<{ url: string }> {
+  const data = new FormData();
+  data.append("file", file);
+  return apiFetch<{ url: string }>(`/empreendimentos/${id}/planta`, {
     method: "POST",
     body: data,
   });

@@ -42,8 +42,10 @@ export function tipologiasVisiveis(
       banheiros: item.banheiros ?? null,
       vagas: item.vagas ?? null,
       valor: item.valorReferencia ?? null,
+      valorM2: null,
       pavimento:
         item.vitrine?.andares != null ? String(item.vitrine.andares) : null,
+      plantaUrl: null,
     },
   ];
 }

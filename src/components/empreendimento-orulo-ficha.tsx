@@ -185,7 +185,8 @@ export function EmpreendimentoOruloFicha({
                   <th className="pb-2 pr-3 font-medium">Suítes</th>
                   <th className="pb-2 pr-3 font-medium">Banheiros</th>
                   <th className="pb-2 pr-3 font-medium">Vagas</th>
-                  <th className="pb-2 font-medium">Valor</th>
+                  <th className="pb-2 pr-3 font-medium">Valor</th>
+                  <th className="pb-2 font-medium">Valor m²</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,8 +205,11 @@ export function EmpreendimentoOruloFicha({
                     <td className="py-2 pr-3">{row.suites ?? "—"}</td>
                     <td className="py-2 pr-3">{row.banheiros ?? "—"}</td>
                     <td className="py-2 pr-3">{row.vagas ?? "—"}</td>
-                    <td className="py-2">
+                    <td className="py-2 pr-3">
                       {row.valor != null ? brl(row.valor) : "—"}
+                    </td>
+                    <td className="py-2">
+                      {row.valorM2 != null ? brl(row.valorM2) : "—"}
                     </td>
                   </tr>
                 ))}

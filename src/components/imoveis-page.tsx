@@ -81,6 +81,7 @@ import {
   fetchEmpreendimentos,
   updateEmpreendimento,
   uploadEmpreendimentoImagem,
+  uploadEmpreendimentoPlanta,
   type Empreendimento,
   type EmpreendimentoMatchesResult,
   type EmpreendimentoTipologia,
@@ -299,9 +300,12 @@ const TIPOS_UNIDADE_OPCOES = [
   "Frente mar",
 ] as const;
 
-type TipologiaFormRow = Omit<EmpreendimentoTipologia, "valor"> & {
+type TipologiaFormRow = Omit<EmpreendimentoTipologia, "valor" | "valorM2"> & {
   key: string;
   valor: string;
+  valorM2: string;
+  plantaFile: File | null;
+  plantaPreview: string | null;
 };
 
 function newTipologiaKey() {
@@ -318,24 +322,45 @@ function emptyTipologia(): TipologiaFormRow {
     banheiros: null,
     vagas: null,
     valor: "",
+    valorM2: "",
     pavimento: null,
+    plantaUrl: null,
+    plantaFile: null,
+    plantaPreview: null,
   };
 }
 
 function tipologiaFromApi(row: EmpreendimentoTipologia): TipologiaFormRow {
   return {
+    ...emptyTipologia(),
     ...row,
     key: newTipologiaKey(),
     valor: row.valor != null ? maskReaisInput(String(Math.round(row.valor))) : "",
+    valorM2:
+      row.valorM2 != null ? maskReaisInput(String(Math.round(row.valorM2))) : "",
+    plantaUrl: row.plantaUrl ?? null,
+    plantaFile: null,
+    plantaPreview: null,
   };
 }
 
 function tipologiaToApi(row: TipologiaFormRow): EmpreendimentoTipologia {
   const parsed = parseOptionalMoneyInput(row.valor);
-  const { key: _key, ...rest } = row;
+  const parsedM2 = parseOptionalMoneyInput(row.valorM2);
   return {
-    ...rest,
+    nome: row.nome,
+    areaM2: row.areaM2,
+    quartos: row.quartos,
+    suites: row.suites,
+    banheiros: row.banheiros,
+    vagas: row.vagas,
     valor: parsed != null ? Math.round(parsed) : null,
+    valorM2: parsedM2 != null ? Math.round(parsedM2) : null,
+    pavimento: row.pavimento,
+    plantaUrl:
+      row.plantaUrl && /^https?:\/\//i.test(row.plantaUrl)
+        ? row.plantaUrl
+        : null,
   };
 }
 
@@ -879,15 +904,17 @@ export function ImoveisPage({
         );
       }
 
-      const tipologias = form.vitrineTipologias
-        .filter(
-          (row) =>
-            row.nome.trim() ||
-            row.areaM2 != null ||
-            row.quartos != null ||
-            row.valor.trim(),
-        )
-        .map(tipologiaToApi);
+      const rawTipologias = form.vitrineTipologias.filter(
+        (row) =>
+          row.nome.trim() ||
+          row.areaM2 != null ||
+          row.quartos != null ||
+          row.valor.trim() ||
+          row.valorM2.trim() ||
+          row.plantaUrl ||
+          row.plantaFile,
+      );
+      let tipologias = rawTipologias.map(tipologiaToApi);
       const areas = tipologias
         .map((row) => row.areaM2)
         .filter((value): value is number => value != null);
@@ -952,11 +979,26 @@ export function ImoveisPage({
             const parsed = parseOptionalMoneyInput(form.vitrineValorMax);
             return parsed != null ? Math.round(parsed) : null;
           })(),
-          valorM2: parseAreaM2(form.vitrineValorM2),
+          valorM2: (() => {
+            const fromTip = tipologias
+              .map((row) => row.valorM2)
+              .filter((value): value is number => value != null);
+            if (fromTip.length) return Math.min(...fromTip);
+            return parseAreaM2(form.vitrineValorM2);
+          })(),
           latitude: parseAreaM2(form.vitrineLatitude),
           longitude: parseAreaM2(form.vitrineLongitude),
           atualizadoEm: form.vitrineAtualizadoEm.trim() || null,
-          plantas: form.vitrinePlantas,
+          plantas: [
+            ...new Set(
+              [
+                ...tipologias
+                  .map((row) => row.plantaUrl)
+                  .filter((url): url is string => Boolean(url)),
+                ...form.vitrinePlantas,
+              ],
+            ),
+          ],
           tipologias,
           tiposUnidade: [
             ...new Set(tipologias.map((row) => row.nome.trim()).filter(Boolean)),
@@ -964,7 +1006,33 @@ export function ImoveisPage({
         },
       };
 
+      async function attachPlantas(id: string) {
+        const next: EmpreendimentoTipologia[] = [];
+        for (let i = 0; i < rawTipologias.length; i++) {
+          const row = rawTipologias[i];
+          const api = { ...tipologias[i] };
+          if (row.plantaFile) {
+            const uploaded = await uploadEmpreendimentoPlanta(id, row.plantaFile);
+            api.plantaUrl = uploaded.url;
+          }
+          next.push(api);
+        }
+        tipologias = next;
+        payload.vitrine.tipologias = next;
+        payload.vitrine.plantas = [
+          ...new Set([
+            ...next
+              .map((row) => row.plantaUrl)
+              .filter((url): url is string => Boolean(url)),
+            ...form.vitrinePlantas,
+          ]),
+        ];
+      }
+
       if (editingId) {
+        if (rawTipologias.some((row) => row.plantaFile)) {
+          await attachPlantas(editingId);
+        }
         await updateEmpreendimento(editingId, payload);
         toast.success("Empreendimento atualizado.");
       } else {
@@ -993,6 +1061,10 @@ export function ImoveisPage({
           vitrine: payload.vitrine,
         });
         try {
+          if (rawTipologias.some((row) => row.plantaFile)) {
+            await attachPlantas(created.id);
+            await updateEmpreendimento(created.id, { vitrine: payload.vitrine });
+          }
           for (const file of pendingFiles) {
             await uploadEmpreendimentoImagem(created.id, file);
           }
@@ -3688,7 +3760,81 @@ export function ImoveisPage({
                     placeholder="Ex.: 200000"
                   />
                 </FormField>
+                <FormField label="Valor do m² (R$)" htmlFor={`tipologia-valorm2-${row.key}`}>
+                  <Input
+                    id={`tipologia-valorm2-${row.key}`}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={row.valorM2}
+                    onChange={(event) => {
+                      const valorM2 = maskReaisInput(event.target.value);
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index ? { ...item, valorM2 } : item,
+                        ),
+                      }));
+                    }}
+                    placeholder="Ex.: 8500"
+                  />
+                </FormField>
               </div>
+              <ImageUploadField
+                label="Planta desta tipologia"
+                hint="Uma foto da planta baixa deste tipo de unidade."
+                images={
+                  row.plantaPreview || row.plantaUrl
+                    ? [row.plantaPreview || row.plantaUrl || ""]
+                    : []
+                }
+                max={1}
+                shape="logo"
+                slotLabels={["Adicionar planta"]}
+                onAdd={(files) => {
+                  const file = files[0];
+                  if (!file) return;
+                  const error = assertImageFile(file);
+                  if (error) {
+                    toast.error(error);
+                    return;
+                  }
+                  const preview = URL.createObjectURL(file);
+                  if (row.plantaPreview) URL.revokeObjectURL(row.plantaPreview);
+                  setForm((prev) => ({
+                    ...prev,
+                    vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                      i === index
+                        ? {
+                            ...item,
+                            plantaFile: file,
+                            plantaPreview: preview,
+                          }
+                        : item,
+                    ),
+                  }));
+                }}
+                onRemove={() => {
+                  if (row.plantaPreview) URL.revokeObjectURL(row.plantaPreview);
+                  const removed = row.plantaUrl;
+                  setForm((prev) => ({
+                    ...prev,
+                    vitrinePlantas: removed
+                      ? prev.vitrinePlantas.filter((url) => url !== removed)
+                      : prev.vitrinePlantas,
+                    vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                      i === index
+                        ? {
+                            ...item,
+                            plantaFile: null,
+                            plantaPreview: null,
+                            plantaUrl: null,
+                          }
+                        : item,
+                    ),
+                  }));
+                }}
+              />
               {form.vitrineTipologias.length > 1 ? (
                 <Button
                   type="button"

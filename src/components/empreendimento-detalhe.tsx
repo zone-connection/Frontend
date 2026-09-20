@@ -140,7 +140,16 @@ export function EmpreendimentoDetalhe({
     vitrine?.detalhesUnidade?.length
       ? vitrine.detalhesUnidade
       : [];
-  const plantas = vitrine?.plantas ?? [];
+  const plantas = [
+    ...new Set(
+      [
+        ...(vitrine?.plantas ?? []),
+        ...tipologias
+          .map((row) => row.plantaUrl)
+          .filter((url): url is string => Boolean(url)),
+      ],
+    ),
+  ];
   const local = empreendimentoLocalidadeNome(item);
   const enderecoLinha = [
     local,
@@ -554,12 +563,20 @@ export function EmpreendimentoDetalhe({
                       </div>
                       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         {row.areaM2 != null ? <span>{row.areaM2} m²</span> : null}
+                        {row.valorM2 != null ? <span>{brl(row.valorM2)}/m²</span> : null}
                         {row.quartos != null ? <span>{row.quartos} quartos</span> : null}
                         {row.suites != null ? <span>{row.suites} suítes</span> : null}
                         {row.banheiros != null ? <span>{row.banheiros} banheiros</span> : null}
                         {row.vagas != null ? <span>{row.vagas} vagas</span> : null}
                         {row.pavimento ? <span>{row.pavimento}</span> : null}
                       </div>
+                      {row.plantaUrl ? (
+                        <img
+                          src={row.plantaUrl}
+                          alt={`Planta ${row.nome || "da tipologia"}`}
+                          className="mt-3 h-36 w-full rounded-xl border border-dashed border-border bg-white object-contain p-2"
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>
