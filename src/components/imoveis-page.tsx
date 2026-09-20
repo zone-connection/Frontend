@@ -1207,7 +1207,9 @@ export function ImoveisPage({
       EMPREENDIMENTO_MAX_IMAGES - quickImages.length - pendingFiles.length;
     const picked = valid.slice(0, Math.max(0, remaining));
     if (picked.length === 0) {
-      toast.error("Limite de 2 imagens por empreendimento.");
+      toast.error(
+        `Cada empreendimento pode ter no máximo ${EMPREENDIMENTO_MAX_IMAGES} imagens.`,
+      );
       return;
     }
 
