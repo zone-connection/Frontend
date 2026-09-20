@@ -281,6 +281,7 @@ function EmpreendimentoDetalhePage() {
 
         <EmpreendimentoOruloFicha
           vitrine={item.vitrine}
+          catalogo={item}
           codigo={item.oruloBuildingId}
           fotos={covers.length}
           tipo={item.tipo}

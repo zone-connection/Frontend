@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
@@ -85,10 +85,12 @@ import {
   type EmpreendimentoMatchesResult,
   type EmpreendimentoTipologia,
 } from "@/lib/empreendimentos-api";
+import { tipologiasVisiveis } from "@/lib/empreendimento-tipologias";
 import { brl } from "@/lib/crm-types";
 import {
   formatMoneyInput,
   maskMoneyInput,
+  maskReaisInput,
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import { useCatalog } from "@/lib/catalog-store";
@@ -149,6 +151,8 @@ import {
   Home,
   CircleDot,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   FileText,
   StickyNote,
@@ -263,14 +267,106 @@ function withExtraLabels(labels: string[], extras: string[]) {
 type EmpreendimentoFormTab =
   | "identidade"
   | "localidade"
-  | "tipo"
-  | "status"
-  | "tags"
-  | "previsao"
-  | "ficha"
+  | "classificacao"
+  | "unidade"
+  | "prazos"
   | "caracteristicas"
   | "vitrine"
   | "observacao";
+
+const EMPREENDIMENTO_FORM_STEPS: Array<{
+  id: EmpreendimentoFormTab;
+  label: string;
+}> = [
+  { id: "identidade", label: "Identidade" },
+  { id: "localidade", label: "Local" },
+  { id: "classificacao", label: "Tipo" },
+  { id: "unidade", label: "Tipologia" },
+  { id: "prazos", label: "Prazos" },
+  { id: "caracteristicas", label: "Itens" },
+  { id: "vitrine", label: "Vitrine" },
+  { id: "observacao", label: "Notas" },
+];
+
+const TIPOS_UNIDADE_OPCOES = [
+  "Com varanda",
+  "Sem varanda",
+  "Garden",
+  "Cobertura",
+  "Térreo",
+  "Duplex",
+  "Studio",
+  "Frente mar",
+] as const;
+
+type TipologiaFormRow = Omit<EmpreendimentoTipologia, "valor"> & {
+  key: string;
+  valor: string;
+};
+
+function newTipologiaKey() {
+  return `tipologia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function emptyTipologia(): TipologiaFormRow {
+  return {
+    key: newTipologiaKey(),
+    nome: "",
+    areaM2: null,
+    quartos: null,
+    suites: null,
+    banheiros: null,
+    vagas: null,
+    valor: "",
+    pavimento: null,
+  };
+}
+
+function tipologiaFromApi(row: EmpreendimentoTipologia): TipologiaFormRow {
+  return {
+    ...row,
+    key: newTipologiaKey(),
+    valor: row.valor != null ? maskReaisInput(String(Math.round(row.valor))) : "",
+  };
+}
+
+function tipologiaToApi(row: TipologiaFormRow): EmpreendimentoTipologia {
+  const parsed = parseOptionalMoneyInput(row.valor);
+  const { key: _key, ...rest } = row;
+  return {
+    ...rest,
+    valor: parsed != null ? Math.round(parsed) : null,
+  };
+}
+
+function FormField({
+  label,
+  htmlFor,
+  hint,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  hint?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("min-w-0 space-y-1.5", className)}>
+      <Label
+        htmlFor={htmlFor}
+        className="text-xs font-medium text-muted-foreground"
+      >
+        {label}
+      </Label>
+      {children}
+      {hint ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
 
 type EmpreendimentoForm = {
   nome: string;
@@ -314,7 +410,8 @@ type EmpreendimentoForm = {
   vitrineValorMax: string;
   vitrineValorM2: string;
   vitrinePlantas: string[];
-  vitrineTipologias: EmpreendimentoTipologia[];
+  vitrineTipologias: TipologiaFormRow[];
+  vitrineTiposUnidade: string[];
   vitrineLatitude: string;
   vitrineLongitude: string;
   vitrineAtualizadoEm: string;
@@ -363,7 +460,8 @@ function emptyEmpreendimentoForm(): EmpreendimentoForm {
     vitrineValorMax: "",
     vitrineValorM2: "",
     vitrinePlantas: [],
-    vitrineTipologias: [],
+    vitrineTipologias: [emptyTipologia()],
+    vitrineTiposUnidade: [],
     vitrineLatitude: "",
     vitrineLongitude: "",
     vitrineAtualizadoEm: "",
@@ -384,7 +482,11 @@ function formFromEmpreendimento(item: Empreendimento): EmpreendimentoForm {
     tipo: item.tipo ?? "",
     status: item.status ?? "",
     tags: item.tags ?? [],
-    previsaoEntrega: item.previsaoEntrega?.slice(0, 7) ?? "",
+    previsaoEntrega: item.previsaoEntrega
+      ? item.previsaoEntrega.length >= 10
+        ? item.previsaoEntrega.slice(0, 10)
+        : `${item.previsaoEntrega.slice(0, 7)}-01`
+      : "",
     areaM2: item.areaM2 != null ? String(item.areaM2) : "",
     quartos: item.quartos != null ? String(item.quartos) : "",
     vagas: item.vagas != null ? String(item.vagas) : "",
@@ -430,7 +532,11 @@ function formFromEmpreendimento(item: Empreendimento): EmpreendimentoForm {
     vitrineValorM2:
       item.vitrine?.valorM2 != null ? String(Math.round(item.vitrine.valorM2)) : "",
     vitrinePlantas: item.vitrine?.plantas ?? [],
-    vitrineTipologias: item.vitrine?.tipologias ?? [],
+    vitrineTipologias: (() => {
+      const rows = tipologiasVisiveis(item).map(tipologiaFromApi);
+      return rows.length ? rows : [emptyTipologia()];
+    })(),
+    vitrineTiposUnidade: item.vitrine?.tiposUnidade ?? [],
     vitrineLatitude:
       item.vitrine?.latitude != null ? String(item.vitrine.latitude) : "",
     vitrineLongitude:
@@ -448,6 +554,10 @@ function parseAreaM2(value: string) {
 
 function formatPrevisao(iso: string | null | undefined) {
   if (!iso) return "";
+  if (iso.length >= 10) {
+    const [year, month, day] = iso.slice(0, 10).split("-");
+    if (year && month && day) return `${day}/${month}/${year}`;
+  }
   const [year, month] = iso.slice(0, 7).split("-");
   if (!year || !month) return iso;
   return `${month}/${year}`;
@@ -769,13 +879,26 @@ export function ImoveisPage({
         );
       }
 
-      const areaM2 = parseAreaM2(form.areaM2);
-      const quartos = form.quartos.trim()
-        ? Number.parseInt(form.quartos, 10)
-        : null;
-      const vagas = form.vagas.trim()
-        ? Number.parseInt(form.vagas, 10)
-        : null;
+      const tipologias = form.vitrineTipologias
+        .filter(
+          (row) =>
+            row.nome.trim() ||
+            row.areaM2 != null ||
+            row.quartos != null ||
+            row.valor.trim(),
+        )
+        .map(tipologiaToApi);
+      const areas = tipologias
+        .map((row) => row.areaM2)
+        .filter((value): value is number => value != null);
+      const areaM2 =
+        areas.length > 0 ? Math.min(...areas) : parseAreaM2(form.areaM2);
+      const quartos =
+        tipologias.find((row) => row.quartos != null)?.quartos ??
+        (form.quartos.trim() ? Number.parseInt(form.quartos, 10) : null);
+      const vagas =
+        tipologias.find((row) => row.vagas != null)?.vagas ??
+        (form.vagas.trim() ? Number.parseInt(form.vagas, 10) : null);
       const valorParsed = parseOptionalMoneyInput(form.valorReferencia);
       const valorReferencia =
         valorParsed != null ? Math.round(valorParsed) : null;
@@ -819,10 +942,12 @@ export function ImoveisPage({
             ? Number.parseInt(form.vitrineAndares, 10)
             : null,
           nomeCondominio: form.vitrineNomeCondominio.trim() || null,
-          suites: form.vitrineSuites.trim()
-            ? Number.parseInt(form.vitrineSuites, 10)
-            : null,
-          areaMax: parseAreaM2(form.vitrineAreaMax),
+          suites:
+            tipologias.find((row) => row.suites != null)?.suites ??
+            (form.vitrineSuites.trim()
+              ? Number.parseInt(form.vitrineSuites, 10)
+              : null),
+          areaMax: areas.length > 0 ? Math.max(...areas) : parseAreaM2(form.vitrineAreaMax),
           valorMax: (() => {
             const parsed = parseOptionalMoneyInput(form.vitrineValorMax);
             return parsed != null ? Math.round(parsed) : null;
@@ -832,7 +957,10 @@ export function ImoveisPage({
           longitude: parseAreaM2(form.vitrineLongitude),
           atualizadoEm: form.vitrineAtualizadoEm.trim() || null,
           plantas: form.vitrinePlantas,
-          tipologias: form.vitrineTipologias,
+          tipologias,
+          tiposUnidade: [
+            ...new Set(tipologias.map((row) => row.nome.trim()).filter(Boolean)),
+          ],
         },
       };
 
@@ -2728,21 +2856,23 @@ export function ImoveisPage({
             resetImageState();
           }
         }}
-        className="max-w-3xl"
+        className="max-w-4xl"
         icon={<Building2 className="w-5 h-5" />}
         title={editingId ? "Editar empreendimento" : "Novo empreendimento"}
-        description="Cadastre os dados do catálogo e o conteúdo da página pública compartilhada."
+        description="Cada dado uma vez: local, unidade, itens e textos da vitrine."
         footer={
-          <FormDialogActions>
+          <FormDialogActions hint="Salva o empreendimento no catálogo. O que estiver vazio não aparece na página pública.">
             <Button
               type="button"
               variant="outline"
+              className="rounded-xl"
               onClick={() => setQuickOpen(false)}
             >
               Cancelar
             </Button>
             <Button
               type="button"
+              className="rounded-xl"
               disabled={quickSaving}
               onClick={() => void handleQuickSave()}
             >
@@ -2752,82 +2882,74 @@ export function ImoveisPage({
           </FormDialogActions>
         }
       >
-        <FormDialogBody className="bg-muted/40">
+        <FormDialogBody className="bg-muted/40 [&_input]:h-10 [&_input]:rounded-xl [&_input]:border-border/80 [&_input]:bg-background [&_input]:shadow-sm [&_textarea]:rounded-xl [&_textarea]:border-border/80 [&_textarea]:bg-background [&_textarea]:shadow-sm [&_button[role=combobox]]:h-10 [&_button[role=combobox]]:rounded-xl">
           <Tabs
             value={formTab}
             onValueChange={(value) =>
               setFormTab(value as EmpreendimentoFormTab)
             }
           >
-            <TabsList className="mb-1 flex h-auto w-full flex-wrap justify-start gap-1 rounded-full bg-muted p-1">
-              <TabsTrigger
-                value="identidade"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <Palette className="h-3.5 w-3.5" />
-                Identidade
-              </TabsTrigger>
-              <TabsTrigger
-                value="localidade"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                Localidade
-              </TabsTrigger>
-              <TabsTrigger value="tipo" className="gap-1.5 rounded-full px-3">
-                <Layers className="h-3.5 w-3.5" />
-                Tipo
-              </TabsTrigger>
-              <TabsTrigger value="status" className="gap-1.5 rounded-full px-3">
-                <CircleDot className="h-3.5 w-3.5" />
-                Status
-              </TabsTrigger>
-              <TabsTrigger value="tags" className="gap-1.5 rounded-full px-3">
-                <Tag className="h-3.5 w-3.5" />
-                Tags
-              </TabsTrigger>
-              <TabsTrigger
-                value="previsao"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <CalendarClock className="h-3.5 w-3.5" />
-                Previsão
-              </TabsTrigger>
-              <TabsTrigger
-                value="ficha"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Ficha
-              </TabsTrigger>
-              <TabsTrigger
-                value="caracteristicas"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Características
-              </TabsTrigger>
-              <TabsTrigger
-                value="vitrine"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Página pública
-              </TabsTrigger>
-              <TabsTrigger
-                value="observacao"
-                className="gap-1.5 rounded-full px-3"
-              >
-                <StickyNote className="h-3.5 w-3.5" />
-                Observação
-              </TabsTrigger>
-            </TabsList>
+            <nav className="space-y-3">
+              <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+                {EMPREENDIMENTO_FORM_STEPS.map((item, index) => {
+                  const active = item.id === formTab;
+                  const currentIndex = EMPREENDIMENTO_FORM_STEPS.findIndex(
+                    (step) => step.id === formTab,
+                  );
+                  const done = index < currentIndex;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setFormTab(item.id)}
+                      className={cn(
+                        "flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : done
+                            ? "border-primary/30 bg-primary/5 text-foreground"
+                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
+                          active
+                            ? "bg-white/20 text-primary-foreground"
+                            : done
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${
+                      ((EMPREENDIMENTO_FORM_STEPS.findIndex(
+                        (item) => item.id === formTab,
+                      ) +
+                        1) /
+                        EMPREENDIMENTO_FORM_STEPS.length) *
+                      100
+                    }%`,
+                  }}
+                />
+              </div>
+            </nav>
 
             <TabsContent value="identidade" className="mt-4">
           <FormSection
             icon={<Palette className="h-4 w-4" />}
             title="Identidade"
-            description="Nome, construtora, cor e fotos do empreendimento."
+            description="Nome, construtora, cor de destaque e fotos do catálogo."
           >
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -2915,8 +3037,8 @@ export function ImoveisPage({
             <TabsContent value="localidade" className="mt-4">
           <FormSection
             icon={<MapPin className="h-4 w-4" />}
-            title="Localidade"
-            description="Região de atuação e endereço do empreendimento."
+            title="Local"
+            description="Um único endereço para o catálogo, o mapa e a página pública."
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -2969,19 +3091,81 @@ export function ImoveisPage({
                 ) : null}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="imovel-endereco">Endereço</Label>
+                <Label htmlFor="imovel-endereco">Rua / logradouro</Label>
                 <Input
                   id="imovel-endereco"
                   value={form.endereco}
                   onChange={(event) => setField("endereco", event.target.value)}
-                  placeholder="Bairro, rua ou referência"
+                  placeholder="Rua, avenida ou referência"
                 />
               </div>
+              <FormField label="Número" htmlFor="imovel-vitrine-numero">
+                <Input
+                  id="imovel-vitrine-numero"
+                  value={form.vitrineNumero}
+                  onChange={(event) =>
+                    setField("vitrineNumero", event.target.value)
+                  }
+                  placeholder="1000"
+                  maxLength={20}
+                />
+              </FormField>
+              <FormField label="Bairro" htmlFor="imovel-vitrine-bairro">
+                <Input
+                  id="imovel-vitrine-bairro"
+                  value={form.vitrineBairro}
+                  onChange={(event) =>
+                    setField("vitrineBairro", event.target.value)
+                  }
+                  placeholder="Várzea"
+                  maxLength={80}
+                />
+              </FormField>
+              <FormField label="Estado" htmlFor="imovel-vitrine-estado">
+                <Input
+                  id="imovel-vitrine-estado"
+                  value={form.vitrineEstado}
+                  onChange={(event) =>
+                    setField("vitrineEstado", event.target.value)
+                  }
+                  placeholder="Pernambuco"
+                  maxLength={40}
+                />
+              </FormField>
+              <FormField label="CEP" htmlFor="imovel-vitrine-cep">
+                <Input
+                  id="imovel-vitrine-cep"
+                  value={form.vitrineCep}
+                  onChange={(event) =>
+                    setField("vitrineCep", event.target.value)
+                  }
+                  placeholder="50741-430"
+                  maxLength={12}
+                />
+              </FormField>
+              <FormField label="Latitude" htmlFor="imovel-lat">
+                <Input
+                  id="imovel-lat"
+                  value={form.vitrineLatitude}
+                  onChange={(event) =>
+                    setField("vitrineLatitude", event.target.value)
+                  }
+                />
+              </FormField>
+              <FormField label="Longitude" htmlFor="imovel-lng">
+                <Input
+                  id="imovel-lng"
+                  value={form.vitrineLongitude}
+                  onChange={(event) =>
+                    setField("vitrineLongitude", event.target.value)
+                  }
+                />
+              </FormField>
             </div>
           </FormSection>
             </TabsContent>
 
-            <TabsContent value="tipo" className="mt-4">
+            <TabsContent value="classificacao" className="mt-4 space-y-4">
           <FormSection
             icon={<Layers className="h-4 w-4" />}
             title="Tipo"
@@ -3084,9 +3268,7 @@ export function ImoveisPage({
               </p>
             ) : null}
           </FormSection>
-            </TabsContent>
 
-            <TabsContent value="status" className="mt-4">
           <FormSection
             icon={<CircleDot className="h-4 w-4" />}
             title="Status"
@@ -3189,9 +3371,7 @@ export function ImoveisPage({
               </p>
             ) : null}
           </FormSection>
-            </TabsContent>
 
-            <TabsContent value="tags" className="mt-4">
           <FormSection
             icon={<Tag className="h-4 w-4" />}
             title="Tags"
@@ -3299,57 +3479,285 @@ export function ImoveisPage({
           </FormSection>
             </TabsContent>
 
-            <TabsContent value="previsao" className="mt-4">
+            <TabsContent value="unidade" className="mt-4 space-y-4">
+          <FormSection
+            icon={<Home className="h-4 w-4" />}
+            title="Condomínio"
+            description="Nome do empreendimento no condomínio, se houver."
+          >
+            <FormField label="Condomínio" htmlFor="imovel-condo">
+              <Input
+                id="imovel-condo"
+                value={form.vitrineNomeCondominio}
+                onChange={(event) =>
+                  setField("vitrineNomeCondominio", event.target.value)
+                }
+              />
+            </FormField>
+          </FormSection>
+          {form.vitrineTipologias.map((row, index) => (
+            <FormSection
+              key={row.key}
+              icon={<Layers className="h-4 w-4" />}
+              title={`Tipologia ${index + 1}`}
+              description="Cada bloco é um tipo de unidade diferente."
+            >
+              <div className="flex flex-wrap gap-1.5">
+                {TIPOS_UNIDADE_OPCOES.map((option) => {
+                  const active = row.nome === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          vitrineTipologias: prev.vitrineTipologias.map(
+                            (item, i) =>
+                              i === index ? { ...item, nome: option } : item,
+                          ),
+                        }))
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/80 bg-background text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField label="Nome do tipo" htmlFor={`tipologia-nome-${index}`}>
+                  <Input
+                    id={`tipologia-nome-${index}`}
+                    value={row.nome}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index ? { ...item, nome: event.target.value } : item,
+                        ),
+                      }))
+                    }
+                    placeholder="Ex.: Com varanda"
+                  />
+                </FormField>
+                <FormField label="Metragem (m²)">
+                  <Input
+                    inputMode="decimal"
+                    value={row.areaM2 ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? { ...item, areaM2: parseAreaM2(event.target.value) }
+                            : item,
+                        ),
+                      }))
+                    }
+                    placeholder="Ex.: 68"
+                  />
+                </FormField>
+                <FormField label="Quartos">
+                  <Input
+                    inputMode="numeric"
+                    value={row.quartos ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                quartos: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                    placeholder="Ex.: 3"
+                  />
+                </FormField>
+                <FormField label="Vagas">
+                  <Input
+                    inputMode="numeric"
+                    value={row.vagas ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                vagas: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                    placeholder="Ex.: 2"
+                  />
+                </FormField>
+                <FormField label="Suítes">
+                  <Input
+                    inputMode="numeric"
+                    value={row.suites ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                suites: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                </FormField>
+                <FormField label="Banheiros">
+                  <Input
+                    inputMode="numeric"
+                    value={row.banheiros ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                banheiros: event.target.value
+                                  ? Number.parseInt(event.target.value, 10)
+                                  : null,
+                              }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                </FormField>
+                <FormField label="Andares / pavimento">
+                  <Input
+                    value={row.pavimento ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          i === index
+                            ? { ...item, pavimento: event.target.value || null }
+                            : item,
+                        ),
+                      }))
+                    }
+                  />
+                </FormField>
+                <FormField label="Valor desta unidade (R$)" htmlFor={`tipologia-valor-${row.key}`}>
+                  <Input
+                    id={`tipologia-valor-${row.key}`}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    name={`tipologia-valor-${row.key}`}
+                    value={typeof row.valor === "number" ? maskReaisInput(String(row.valor)) : row.valor}
+                    onChange={(event) => {
+                      const valor = maskReaisInput(event.target.value);
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
+                          (row.key && item.key === row.key) || i === index
+                            ? { ...item, valor }
+                            : item,
+                        ),
+                      }));
+                    }}
+                    placeholder="Ex.: 200000"
+                  />
+                </FormField>
+              </div>
+              {form.vitrineTipologias.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="rounded-xl text-destructive"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      vitrineTipologias: prev.vitrineTipologias.filter(
+                        (_, i) => i !== index,
+                      ),
+                    }))
+                  }
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Remover tipologia
+                </Button>
+              ) : null}
+            </FormSection>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={() =>
+              setForm((prev) => ({
+                ...prev,
+                vitrineTipologias: [...prev.vitrineTipologias, emptyTipologia()],
+              }))
+            }
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar outra tipologia
+          </Button>
+            </TabsContent>
+
+            <TabsContent value="prazos" className="mt-4">
           <FormSection
             icon={<CalendarClock className="h-4 w-4" />}
-            title="Previsão, metragem e valor"
-            description="Entrega, área, quartos e o valor a partir do qual o empreendimento é vendido."
+            title="Prazos e valores"
+            description="Entrega, lançamento, preço e renda sugerida."
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="imovel-previsao">Previsão de entrega</Label>
                 <Input
                   id="imovel-previsao"
-                  type="month"
+                  type="date"
                   value={form.previsaoEntrega}
                   onChange={(event) =>
                     setField("previsaoEntrega", event.target.value)
                   }
                 />
+                <p className="text-xs text-muted-foreground">
+                  Quando as chaves devem ser entregues.
+                </p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="imovel-area">Metragem (m²)</Label>
+                <Label htmlFor="imovel-lancamento">Lançamento</Label>
                 <Input
-                  id="imovel-area"
-                  inputMode="decimal"
-                  value={form.areaM2}
-                  onChange={(event) => setField("areaM2", event.target.value)}
-                  placeholder="Ex.: 68"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-quartos">Quartos</Label>
-                <Input
-                  id="imovel-quartos"
-                  inputMode="numeric"
-                  value={form.quartos}
+                  id="imovel-lancamento"
+                  type="date"
+                  value={form.vitrineLancamento}
                   onChange={(event) =>
-                    setField("quartos", event.target.value.replace(/\D/g, ""))
+                    setField("vitrineLancamento", event.target.value)
                   }
-                  placeholder="Ex.: 3"
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-vagas">Vagas</Label>
-                <Input
-                  id="imovel-vagas"
-                  inputMode="numeric"
-                  value={form.vagas}
-                  onChange={(event) =>
-                    setField("vagas", event.target.value.replace(/\D/g, ""))
-                  }
-                  placeholder="Ex.: 2"
-                />
+                <p className="text-xs text-muted-foreground">
+                  Data comercial em que o empreendimento foi ou será lançado
+                  no mercado.
+                </p>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="imovel-valor">A partir de (R$)</Label>
@@ -3400,39 +3808,6 @@ export function ImoveisPage({
                   Renda mínima sugerida. Aparece no card e no filtro de renda.
                 </p>
               </div>
-            </div>
-          </FormSection>
-            </TabsContent>
-
-            <TabsContent value="ficha" className="mt-4">
-          <FormSection
-            icon={<FileText className="h-4 w-4" />}
-            title="Ficha completa"
-            description="Campos da página Órulo: faixas, tipologias, tour, mapa e dados do condomínio."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-suites">Suítes a partir de</Label>
-                <Input
-                  id="imovel-suites"
-                  inputMode="numeric"
-                  value={form.vitrineSuites}
-                  onChange={(event) =>
-                    setField("vitrineSuites", event.target.value.replace(/\D/g, ""))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-area-max">Metragem máxima (m²)</Label>
-                <Input
-                  id="imovel-area-max"
-                  inputMode="decimal"
-                  value={form.vitrineAreaMax}
-                  onChange={(event) =>
-                    setField("vitrineAreaMax", event.target.value)
-                  }
-                />
-              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="imovel-valor-max">Valor máximo (R$)</Label>
                 <Input
@@ -3455,321 +3830,6 @@ export function ImoveisPage({
                   }
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-unidades">Número de unidades</Label>
-                <Input
-                  id="imovel-unidades"
-                  inputMode="numeric"
-                  value={form.vitrineUnidades}
-                  onChange={(event) =>
-                    setField("vitrineUnidades", event.target.value.replace(/\D/g, ""))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-andares">Andares</Label>
-                <Input
-                  id="imovel-andares"
-                  inputMode="numeric"
-                  value={form.vitrineAndares}
-                  onChange={(event) =>
-                    setField("vitrineAndares", event.target.value.replace(/\D/g, ""))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-lancamento">Lançamento</Label>
-                <Input
-                  id="imovel-lancamento"
-                  type="date"
-                  value={form.vitrineLancamento}
-                  onChange={(event) =>
-                    setField("vitrineLancamento", event.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-condo">Nome do condomínio</Label>
-                <Input
-                  id="imovel-condo"
-                  value={form.vitrineNomeCondominio}
-                  onChange={(event) =>
-                    setField("vitrineNomeCondominio", event.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="imovel-website">Website</Label>
-                  {/^https?:\/\//i.test(form.vitrineWebsite.trim()) ? (
-                    <a
-                      href={form.vitrineWebsite.trim()}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-primary underline"
-                    >
-                      Testar link
-                    </a>
-                  ) : null}
-                </div>
-                <Input
-                  id="imovel-website"
-                  type="url"
-                  inputMode="url"
-                  value={form.vitrineWebsite}
-                  onChange={(event) =>
-                    setField("vitrineWebsite", event.target.value)
-                  }
-                  placeholder="https://www.empreendimento.com.br"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Cole o link do site oficial. Na ficha e na página pública ele
-                  vira um botão “abrir site”. Se o imóvel veio da Órulo, o link
-                  já entra na sincronização quando existir.
-                </p>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="imovel-tour">Tour virtual 360°</Label>
-                  {/^https?:\/\//i.test(form.vitrineTour.trim()) ? (
-                    <a
-                      href={form.vitrineTour.trim()}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-primary underline"
-                    >
-                      Testar tour
-                    </a>
-                  ) : null}
-                </div>
-                <Input
-                  id="imovel-tour"
-                  type="url"
-                  inputMode="url"
-                  value={form.vitrineTour}
-                  onChange={(event) => setField("vitrineTour", event.target.value)}
-                  placeholder="https://tour.exemplo.com/empreendimento"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Cole o link do tour (Matterport, Órulo, YouTube 360° ou o
-                  player da construtora). O sistema não grava o vídeo: só abre
-                  esse endereço em outra aba. Sem link, a ficha mostra “não
-                  habilitado”.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-lat">Latitude</Label>
-                <Input
-                  id="imovel-lat"
-                  value={form.vitrineLatitude}
-                  onChange={(event) =>
-                    setField("vitrineLatitude", event.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imovel-lng">Longitude</Label>
-                <Input
-                  id="imovel-lng"
-                  value={form.vitrineLongitude}
-                  onChange={(event) =>
-                    setField("vitrineLongitude", event.target.value)
-                  }
-                />
-              </div>
-            </div>
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Tipologias disponíveis</Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      vitrineTipologias: [
-                        ...prev.vitrineTipologias,
-                        {
-                          nome: "Apartamento",
-                          areaM2: null,
-                          quartos: null,
-                          suites: null,
-                          banheiros: null,
-                          vagas: null,
-                          valor: null,
-                          pavimento: null,
-                        },
-                      ],
-                    }))
-                  }
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Incluir
-                </Button>
-              </div>
-              {form.vitrineTipologias.map((row, index) => (
-                <div
-                  key={`tipo-${index}`}
-                  className="grid gap-2 rounded-xl border p-3 sm:grid-cols-4"
-                >
-                  <Input
-                    value={row.nome}
-                    placeholder="Nome"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index ? { ...item, nome: event.target.value } : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    value={row.areaM2 ?? ""}
-                    placeholder="m²"
-                    inputMode="decimal"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index
-                            ? { ...item, areaM2: parseAreaM2(event.target.value) }
-                            : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    value={row.quartos ?? ""}
-                    placeholder="Quartos"
-                    inputMode="numeric"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index
-                            ? {
-                                ...item,
-                                quartos: event.target.value
-                                  ? Number.parseInt(event.target.value, 10)
-                                  : null,
-                              }
-                            : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    value={row.valor != null ? formatMoneyInput(row.valor) : ""}
-                    placeholder="Valor"
-                    onChange={(event) =>
-                      setForm((prev) => {
-                        const parsed = parseOptionalMoneyInput(event.target.value);
-                        return {
-                          ...prev,
-                          vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                            i === index
-                              ? {
-                                  ...item,
-                                  valor: parsed != null ? Math.round(parsed) : null,
-                                }
-                              : item,
-                          ),
-                        };
-                      })
-                    }
-                  />
-                  <Input
-                    value={row.suites ?? ""}
-                    placeholder="Suítes"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index
-                            ? {
-                                ...item,
-                                suites: event.target.value
-                                  ? Number.parseInt(event.target.value, 10)
-                                  : null,
-                              }
-                            : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    value={row.banheiros ?? ""}
-                    placeholder="Banheiros"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index
-                            ? {
-                                ...item,
-                                banheiros: event.target.value
-                                  ? Number.parseInt(event.target.value, 10)
-                                  : null,
-                              }
-                            : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    value={row.vagas ?? ""}
-                    placeholder="Vagas"
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                          i === index
-                            ? {
-                                ...item,
-                                vagas: event.target.value
-                                  ? Number.parseInt(event.target.value, 10)
-                                  : null,
-                              }
-                            : item,
-                        ),
-                      }))
-                    }
-                  />
-                  <div className="flex gap-2">
-                    <Input
-                      value={row.pavimento ?? ""}
-                      placeholder="Pavimento"
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          vitrineTipologias: prev.vitrineTipologias.map((item, i) =>
-                            i === index
-                              ? { ...item, pavimento: event.target.value || null }
-                              : item,
-                          ),
-                        }))
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          vitrineTipologias: prev.vitrineTipologias.filter(
-                            (_, i) => i !== index,
-                          ),
-                        }))
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
             </div>
           </FormSection>
             </TabsContent>
@@ -3777,7 +3837,7 @@ export function ImoveisPage({
             <TabsContent value="caracteristicas" className="mt-4">
           <FormSection
             icon={<Sparkles className="h-4 w-4" />}
-            title="Características"
+            title="Itens e diferenciais"
             description="Toque para marcar. Os grupos seguem a ficha de visão geral."
           >
             <div className="space-y-4">
@@ -3806,112 +3866,163 @@ export function ImoveisPage({
           </FormSection>
             </TabsContent>
 
-            <TabsContent value="vitrine" className="mt-4">
+            <TabsContent value="vitrine" className="mt-4 space-y-4">
           <FormSection
             icon={<Globe className="h-4 w-4" />}
-            title="Página pública"
-            description="Textos e endereço extra que aparecem no site compartilhado. Deixe em branco o que não quiser exibir."
+            title="Textos da vitrine"
+            description="O que o cliente lê no site compartilhado. Deixe em branco o que não quiser exibir."
           >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="imovel-vitrine-headline">Título de destaque</Label>
+            <FormField label="Título de destaque" htmlFor="imovel-vitrine-headline">
+              <Input
+                id="imovel-vitrine-headline"
+                value={form.vitrineHeadline}
+                onChange={(event) =>
+                  setField("vitrineHeadline", event.target.value)
+                }
+                placeholder="Ex.: O lugar perfeito para viver bem"
+                maxLength={120}
+              />
+            </FormField>
+            <FormField
+              label="Descrição"
+              htmlFor="imovel-vitrine-descricao"
+              hint="Lazer, infraestrutura e ambientes ficam no passo Itens."
+            >
+              <Textarea
+                id="imovel-vitrine-descricao"
+                value={form.vitrineDescricao}
+                onChange={(event) =>
+                  setField("vitrineDescricao", event.target.value)
+                }
+                placeholder="Apresente o empreendimento para o cliente final."
+                rows={7}
+                maxLength={8000}
+              />
+            </FormField>
+          </FormSection>
+          <FormSection
+            icon={<Globe className="h-4 w-4" />}
+            title="Links da vitrine"
+            description="O endereço fica no passo Local. Aqui só entram site e tour."
+          >
+            <FormField
+              label="Website"
+              htmlFor="imovel-website"
+              hint="Cole o link do site oficial."
+            >
+              <div className="space-y-1.5">
+                {/^https?:\/\//i.test(form.vitrineWebsite.trim()) ? (
+                  <a
+                    href={form.vitrineWebsite.trim()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    Testar link
+                  </a>
+                ) : null}
                 <Input
-                  id="imovel-vitrine-headline"
-                  value={form.vitrineHeadline}
+                  id="imovel-website"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineWebsite}
                   onChange={(event) =>
-                    setField("vitrineHeadline", event.target.value)
+                    setField("vitrineWebsite", event.target.value)
                   }
-                  placeholder="Ex.: O lugar perfeito para viver bem"
-                  maxLength={120}
+                  placeholder="https://www.empreendimento.com.br"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="imovel-vitrine-descricao">Descrição</Label>
-                <Textarea
-                  id="imovel-vitrine-descricao"
-                  value={form.vitrineDescricao}
-                  onChange={(event) =>
-                    setField("vitrineDescricao", event.target.value)
-                  }
-                  placeholder="Apresente o empreendimento para o cliente final."
-                  rows={8}
-                  maxLength={8000}
+            </FormField>
+            <FormField
+              label="Tour virtual 360°"
+              htmlFor="imovel-tour"
+              hint="Cole o link do tour. Sem link, a ficha mostra “não habilitado”."
+            >
+              <div className="space-y-1.5">
+                {/^https?:\/\//i.test(form.vitrineTour.trim()) ? (
+                  <a
+                    href={form.vitrineTour.trim()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    Testar tour
+                  </a>
+                ) : null}
+                <Input
+                  id="imovel-tour"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineTour}
+                  onChange={(event) => setField("vitrineTour", event.target.value)}
+                  placeholder="https://tour.exemplo.com/empreendimento"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Lazer, infraestrutura e ambientes da unidade ficam na aba
-                Características.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-numero">Número</Label>
-                  <Input
-                    id="imovel-vitrine-numero"
-                    value={form.vitrineNumero}
-                    onChange={(event) =>
-                      setField("vitrineNumero", event.target.value)
-                    }
-                    placeholder="1000"
-                    maxLength={20}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-bairro">Bairro</Label>
-                  <Input
-                    id="imovel-vitrine-bairro"
-                    value={form.vitrineBairro}
-                    onChange={(event) =>
-                      setField("vitrineBairro", event.target.value)
-                    }
-                    placeholder="Varzea"
-                    maxLength={80}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-estado">Estado</Label>
-                  <Input
-                    id="imovel-vitrine-estado"
-                    value={form.vitrineEstado}
-                    onChange={(event) =>
-                      setField("vitrineEstado", event.target.value)
-                    }
-                    placeholder="Pernambuco"
-                    maxLength={40}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imovel-vitrine-cep">CEP</Label>
-                  <Input
-                    id="imovel-vitrine-cep"
-                    value={form.vitrineCep}
-                    onChange={(event) =>
-                      setField("vitrineCep", event.target.value)
-                    }
-                    placeholder="50741-430"
-                    maxLength={12}
-                  />
-                </div>
-              </div>
-            </div>
+            </FormField>
           </FormSection>
             </TabsContent>
 
             <TabsContent value="observacao" className="mt-4">
           <FormSection
             icon={<StickyNote className="h-4 w-4" />}
-            title="Observação"
-            description="Notas internas para o time."
+            title="Notas internas"
+            description="Só o time vê. Não entra no anúncio da página pública."
           >
             <Textarea
               id="imovel-observacao"
+              className="min-h-24"
               value={form.observacao}
               onChange={(event) => setField("observacao", event.target.value)}
-              placeholder="Regras da construtora, diferenciais, observações comerciais…"
-              rows={4}
+              placeholder="Combinado com a construtora, pendência de documentação…"
+              rows={6}
               maxLength={2000}
             />
           </FormSection>
             </TabsContent>
+
+            <div className="mt-4 flex items-center justify-between gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                className="rounded-xl"
+                disabled={formTab === EMPREENDIMENTO_FORM_STEPS[0].id}
+                onClick={() => {
+                  const index = EMPREENDIMENTO_FORM_STEPS.findIndex(
+                    (item) => item.id === formTab,
+                  );
+                  const prev = EMPREENDIMENTO_FORM_STEPS[index - 1];
+                  if (prev) setFormTab(prev.id);
+                }}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Voltar
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                {EMPREENDIMENTO_FORM_STEPS.findIndex((item) => item.id === formTab) +
+                  1}{" "}
+                de {EMPREENDIMENTO_FORM_STEPS.length}
+              </span>
+              <Button
+                type="button"
+                variant={
+                  formTab === EMPREENDIMENTO_FORM_STEPS.at(-1)?.id
+                    ? "outline"
+                    : "default"
+                }
+                className="rounded-xl"
+                disabled={formTab === EMPREENDIMENTO_FORM_STEPS.at(-1)?.id}
+                onClick={() => {
+                  const index = EMPREENDIMENTO_FORM_STEPS.findIndex(
+                    (item) => item.id === formTab,
+                  );
+                  const next = EMPREENDIMENTO_FORM_STEPS[index + 1];
+                  if (next) setFormTab(next.id);
+                }}
+              >
+                Continuar
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
           </Tabs>
         </FormDialogBody>
       </FormDialogShell>

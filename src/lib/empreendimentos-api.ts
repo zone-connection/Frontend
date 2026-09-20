@@ -91,6 +91,7 @@ export type EmpreendimentoVitrine = {
   atualizadoEm?: string | null;
   plantas?: string[];
   tipologias?: EmpreendimentoTipologia[];
+  tiposUnidade?: string[];
 };
 
 export type CreateEmpreendimentoInput = {

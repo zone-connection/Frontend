@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { brl } from "@/lib/crm-types";
 import type { EmpreendimentoVitrine } from "@/lib/empreendimentos-api";
+import { tipologiasVisiveis } from "@/lib/empreendimento-tipologias";
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return null;
@@ -46,65 +47,82 @@ function Chips({ title, items }: { title: string; items: string[] }) {
 
 export function EmpreendimentoOruloFicha({
   vitrine,
+  catalogo,
   codigo,
   fotos,
   tipo,
 }: {
   vitrine?: EmpreendimentoVitrine | null;
+  catalogo?: {
+    areaM2?: number | null;
+    quartos?: number | null;
+    banheiros?: number | null;
+    vagas?: number | null;
+    valorReferencia?: number | null;
+  };
   codigo?: number | string | null;
   fotos?: number;
   tipo?: string | null;
 }) {
-  if (!vitrine) return null;
-  const condo = vitrine.lazer ?? [];
-  const infra = vitrine.infraestrutura ?? [];
+  const tipologias = tipologiasVisiveis({
+    areaM2: catalogo?.areaM2 ?? null,
+    quartos: catalogo?.quartos ?? null,
+    banheiros: catalogo?.banheiros ?? null,
+    vagas: catalogo?.vagas ?? null,
+    valorReferencia: catalogo?.valorReferencia ?? null,
+    vitrine,
+  });
+  if (!vitrine && tipologias.length === 0) return null;
+  const condo = vitrine?.lazer ?? [];
+  const infra = vitrine?.infraestrutura ?? [];
   const unidade =
-    vitrine.detalhesUnidade?.length
+    vitrine?.detalhesUnidade?.length
       ? vitrine.detalhesUnidade
-      : (vitrine.diferenciais ?? []);
-  const tipologias = vitrine.tipologias ?? [];
-  const plantas = vitrine.plantas ?? [];
+      : (vitrine?.diferenciais ?? []);
+  const tiposUnidade =
+    vitrine?.tiposUnidade?.length
+      ? vitrine.tiposUnidade
+      : tipologias.map((row) => row.nome).filter(Boolean);
+  const plantas = vitrine?.plantas ?? [];
   const hasOutras =
-    Boolean(vitrine.lancamento) ||
-    Boolean(vitrine.unidades) ||
-    Boolean(vitrine.andares) ||
-    Boolean(vitrine.nomeCondominio) ||
-    Boolean(vitrine.atualizadoEm) ||
+    Boolean(vitrine?.lancamento) ||
+    Boolean(vitrine?.unidades) ||
+    Boolean(vitrine?.nomeCondominio) ||
+    Boolean(vitrine?.atualizadoEm) ||
     Boolean(codigo) ||
     Boolean(fotos);
 
   const hasMap =
-    vitrine.latitude != null && vitrine.longitude != null;
+    vitrine?.latitude != null && vitrine?.longitude != null;
 
   if (
-    !vitrine.descricao &&
-    !vitrine.website &&
-    !vitrine.tourVirtual &&
+    !vitrine?.descricao &&
+    !vitrine?.website &&
+    !vitrine?.tourVirtual &&
     !hasOutras &&
     !hasMap &&
     !condo.length &&
     !infra.length &&
     !unidade.length &&
+    !tiposUnidade.length &&
     !tipologias.length &&
     !plantas.length &&
-    vitrine.suites == null &&
-    vitrine.areaMax == null &&
-    vitrine.valorMax == null &&
-    vitrine.valorM2 == null
+    vitrine?.valorMax == null &&
+    vitrine?.valorM2 == null
   ) {
     return null;
   }
 
   return (
     <div className="space-y-4">
-      {vitrine.website || vitrine.tourVirtual || tipo ? (
+      {vitrine?.website || vitrine?.tourVirtual || tipo ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Mídia e links</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label="Tipo" value={tipo} />
-            {vitrine.website ? (
+            {vitrine?.website ? (
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Website
@@ -119,7 +137,7 @@ export function EmpreendimentoOruloFicha({
                 </a>
               </div>
             ) : null}
-            {vitrine.tourVirtual ? (
+            {vitrine?.tourVirtual ? (
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Tour virtual 360°
@@ -155,7 +173,7 @@ export function EmpreendimentoOruloFicha({
       {tipologias.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Tipologias disponíveis</CardTitle>
+            <CardTitle className="text-base">Tipologias</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
@@ -174,7 +192,7 @@ export function EmpreendimentoOruloFicha({
                 {tipologias.map((row, index) => (
                   <tr key={`${row.nome}-${index}`} className="border-t">
                     <td className="py-2 pr-3">
-                      {row.nome}
+                      {row.nome || "Unidade"}
                       {row.pavimento ? (
                         <span className="block text-xs text-muted-foreground">
                           {row.pavimento}
@@ -193,6 +211,15 @@ export function EmpreendimentoOruloFicha({
                 ))}
               </tbody>
             </table>
+          </CardContent>
+        </Card>
+      ) : tiposUnidade.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tipos de unidade</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chips title="Variações" items={tiposUnidade} />
           </CardContent>
         </Card>
       ) : null}
@@ -223,26 +250,32 @@ export function EmpreendimentoOruloFicha({
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label="Código" value={codigo != null ? String(codigo) : null} />
             <Field label="Fotos" value={fotos != null ? String(fotos) : null} />
-            <Field label="Lançamento" value={formatDate(vitrine.lancamento)} />
-            <Field label="Unidades" value={vitrine.unidades} />
-            <Field label="Andares" value={vitrine.andares} />
-            <Field label="Condomínio" value={vitrine.nomeCondominio} />
-            <Field label="Suítes a partir de" value={vitrine.suites} />
+            <Field label="Lançamento" value={formatDate(vitrine?.lancamento)} />
+            <Field label="Unidades" value={vitrine?.unidades} />
+            <Field label="Andares" value={vitrine?.andares} />
+            <Field label="Condomínio" value={vitrine?.nomeCondominio} />
+            <Field label="Suítes a partir de" value={vitrine?.suites} />
             <Field
               label="Metragem máxima"
-              value={vitrine.areaMax != null ? `${vitrine.areaMax} m²` : null}
+              value={
+                vitrine?.areaMax != null ? `${vitrine.areaMax} m²` : null
+              }
             />
             <Field
               label="Valor máximo"
-              value={vitrine.valorMax != null ? brl(vitrine.valorMax) : null}
+              value={vitrine?.valorMax != null ? brl(vitrine.valorMax) : null}
             />
             <Field
               label="Valor por m²"
-              value={vitrine.valorM2 != null ? brl(Math.round(vitrine.valorM2)) : null}
+              value={
+                vitrine?.valorM2 != null
+                  ? brl(Math.round(vitrine.valorM2))
+                  : null
+              }
             />
             <Field
               label="Atualizado em"
-              value={formatDate(vitrine.atualizadoEm)}
+              value={formatDate(vitrine?.atualizadoEm)}
             />
           </CardContent>
         </Card>
@@ -258,7 +291,7 @@ export function EmpreendimentoOruloFicha({
               title="Mapa do empreendimento"
               className="h-64 w-full rounded-xl border-0"
               loading="lazy"
-              src={`https://maps.google.com/maps?q=${vitrine.latitude},${vitrine.longitude}&z=15&output=embed`}
+              src={`https://maps.google.com/maps?q=${vitrine?.latitude},${vitrine?.longitude}&z=15&output=embed`}
             />
           </CardContent>
         </Card>

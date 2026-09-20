@@ -355,6 +355,7 @@ export function PublicoEmpreendimentoView({
         <div className="mt-10">
           <EmpreendimentoOruloFicha
             vitrine={vitrine}
+            catalogo={item}
             fotos={photos.length}
             tipo={item.tipo}
           />

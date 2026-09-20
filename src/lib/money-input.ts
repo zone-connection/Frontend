@@ -39,3 +39,12 @@ export function maskMoneyInput(raw: string): string {
   if (!Number.isFinite(cents) || cents === 0) return "";
   return formatMoneyInput(cents / 100);
 }
+
+/** Máscara de reais inteiros: "250000" → "250.000". Não usa centavos. */
+export function maskReaisInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 13);
+  if (!digits) return "";
+  const value = Number(digits);
+  if (!Number.isFinite(value)) return "";
+  return value.toLocaleString("pt-BR");
+}
