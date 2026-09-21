@@ -237,13 +237,19 @@ function TenantsPage() {
     void loadItems();
   }, [loadItems]);
 
-  const realCount = items.filter((item) => !item.isTest).length;
-  const testCount = items.filter((item) => item.isTest).length;
+  const activeItems = useMemo(
+    () => items.filter((item) => item.status === "ativo"),
+    [items],
+  );
+  const realCount = activeItems.filter((item) => !item.isTest).length;
+  const testCount = activeItems.filter((item) => item.isTest).length;
   const visibleItems = useMemo(() => {
-    if (listFilter === "reais") return items.filter((item) => !item.isTest);
-    if (listFilter === "teste") return items.filter((item) => item.isTest);
-    return items;
-  }, [items, listFilter]);
+    if (listFilter === "reais")
+      return activeItems.filter((item) => !item.isTest);
+    if (listFilter === "teste")
+      return activeItems.filter((item) => item.isTest);
+    return activeItems;
+  }, [activeItems, listFilter]);
   const pager = useTablePager(visibleItems, listFilter);
 
   function openCreate() {
@@ -768,7 +774,7 @@ function TenantsPage() {
           <TabsTrigger value="todos" className="rounded-full px-4">
             Todos
             <span className="ml-1.5 text-[11px] text-muted-foreground">
-              {items.length}
+              {activeItems.length}
             </span>
           </TabsTrigger>
         </TabsList>
@@ -1212,7 +1218,7 @@ function TenantsPage() {
                     {form.plano === "solo"
                       ? "Solo tem recorte fixo: CRM com Funil (sem Clientes, usuários e permissões no menu), fechamento, metas e financeiro enxuto. Usuário extra cadastra em Configurações."
                       : form.plano === "bronze"
-                      ? "Bronze inclui apenas o CRM operacional (Usuários e Configurações ficam para o admin)."
+                      ? "Bronze inclui o CRM operacional, Usuários, Configurações e um cadastro simples de vendas (sem Documentação)."
                       : form.plano === "prata"
                         ? "Prata: escolha Administrativo ou Financeiro (não os dois). Analista só com Administrativo."
                         : "Marque os módulos ativos para este tenant. Desmarcados ficam ocultos no menu."}

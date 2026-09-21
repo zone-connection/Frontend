@@ -71,12 +71,13 @@ import {
 } from "@/lib/money-input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
   FILTER_BAR_SURFACE,
   FILTER_CONTROL,
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
+import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
+import { CadastroVendasBronzePage } from "@/components/cadastro-vendas-bronze-page";
 
 export const Route = createFileRoute("/_app/vendas")({
   head: () => ({ meta: [{ title: "Vendas — Zone Connection" }] }),
@@ -147,6 +148,14 @@ const APPLY_FILTERS_BTN =
 const APPLY_FILTERS_STYLE = BRAND_GRADIENT_STYLE;
 
 function VendasPage() {
+  const user = getSession();
+  if (user?.tenant?.plano === "bronze") {
+    return <CadastroVendasBronzePage />;
+  }
+  return <VendasDocumentacaoPage />;
+}
+
+function VendasDocumentacaoPage() {
   const user = getSession();
   const isSolo = user?.tenant?.plano === "solo";
   const canView = canViewModule(user, "vendas");

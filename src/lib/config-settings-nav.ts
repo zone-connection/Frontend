@@ -30,6 +30,7 @@ export type ConfigNavFlags = {
   showCatalog: boolean;
   showImoveis: boolean;
   showMetas: boolean;
+  showFinanceiro: boolean;
   isSolo: boolean;
 };
 
@@ -143,7 +144,9 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
     if (flags.showAutomacoes) {
       operacaoItems.push({ id: "automacoes", label: "Automações" });
     }
-    operacaoItems.push({ id: "financeiro", label: "Financeiro" });
+    if (flags.showFinanceiro) {
+      operacaoItems.push({ id: "financeiro", label: "Financeiro" });
+    }
   } else if (flags.showFunil) {
     operacaoItems.push({ id: "funil", label: "Funis" });
     if (flags.showAutomacoes) {

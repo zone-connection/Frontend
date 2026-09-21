@@ -39,6 +39,7 @@ import {
   Headset,
   BookOpen,
   BookMarked,
+  Newspaper,
   GraduationCap,
   Handshake,
   Library,
@@ -62,6 +63,8 @@ import {
 } from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
+import { NovoBadge } from "@/components/novo-badge";
+import { isNavPathNovo, isPageNovo } from "@/lib/novidades";
 import { ApiError } from "@/lib/api";
 import {
   fetchNotificacoes,
@@ -362,6 +365,13 @@ const NAV_SECTIONS: {
     label: "Conta",
     icon: CircleUser,
     items: [{ to: "/perfil", label: "Perfil", icon: UserIcon }],
+  },
+  {
+    id: "novidades",
+    label: "Novidades",
+    icon: Newspaper,
+    standalone: true,
+    items: [{ to: "/novidades", label: "Novidades", icon: Newspaper }],
   },
   {
     id: "guia-sistema",
@@ -961,7 +971,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     style={{ color: tone.accent }}
                   />
                   {!collapsedView && (
-                    <span className="flex-1 truncate">{section.label}</span>
+                    <>
+                      <span className="flex-1 truncate">{section.label}</span>
+                      {isNavPathNovo(standaloneLeaf.to) ? <NovoBadge compact /> : null}
+                    </>
                   )}
                 </Link>
               </div>
@@ -1038,7 +1051,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                     className={childClass(active)}
                                   >
                                     <ChildIcon className="size-3.5 shrink-0 stroke-[1.6]" />
-                                    <span className="truncate">{child.label}</span>
+                                    <span className="min-w-0 flex-1 truncate">{child.label}</span>
+                                    {isNavPathNovo(child.to) ? <NovoBadge compact /> : null}
                                   </Link>
                                 );
                               })}
@@ -1073,6 +1087,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           ) : null}
                         </span>
                         <span className="flex-1 truncate">{item.label}</span>
+                        {isNavPathNovo(item.to) ? <NovoBadge compact /> : null}
                         {isAgenda && showAgendaBadge ? (
                           <Badge
                             className={cn(
@@ -1433,6 +1448,13 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   const { brandName } = useTenantTheme();
+  const pageNovo = useRouterState({
+    select: (s) =>
+      isPageNovo(
+        s.location.pathname,
+        s.location.search as Record<string, unknown>,
+      ),
+  });
   return (
     <div
       data-guia="page-header"
@@ -1447,6 +1469,7 @@ export function PageHeader({
           <h1 className="text-xl font-semibold tracking-tight wrap-break-word text-module-title sm:text-2xl">
             {title}
           </h1>
+          {pageNovo ? <NovoBadge /> : null}
           <ModuloAjudaButton />
         </div>
         {description && (

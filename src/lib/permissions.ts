@@ -127,6 +127,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/triagem",
     "/documentacao",
     "/contratos",
+    "/vendas",
     "/parcerias",
     "/construtoras",
     "/financeiro/comissao",
@@ -177,6 +178,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/triagem",
     "/documentacao",
     "/contratos",
+    "/vendas",
     "/parcerias",
     "/financeiro/comissao",
     "/construtoras",
@@ -199,6 +201,7 @@ const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/triagem",
   "/construtoras",
   "/documentacao",
+  "/vendas",
   "/presenca",
   "/contratos",
     "/financeiro/comissao",
@@ -219,6 +222,7 @@ export function canAccessRoute(
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
   if (path === "/perfil") return true;
+  if (path === "/novidades") return true;
   if (path === "/caca-lead") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;

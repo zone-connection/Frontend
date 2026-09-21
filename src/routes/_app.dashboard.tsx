@@ -398,7 +398,8 @@ type PanelHref =
   | "/agenda"
   | "/metas"
   | "/funil"
-  | "/corretores";
+  | "/corretores"
+  | "/taxa-conversao";
 
 function PanelLink({
   to,
@@ -473,6 +474,29 @@ function DashboardAdminView() {
   const [loading, setLoading] = useState(true);
   const isPlatformAdmin = user?.role === "super_admin";
   const isSolo = user?.tenant?.plano === "solo";
+  const modules = user?.tenant?.modules ?? null;
+  const plano = user?.tenant?.plano ?? null;
+  const dashCan = (path: string) =>
+    Boolean(
+      user &&
+        canAccessRoute(
+          user.role,
+          path,
+          modules,
+          plano,
+          user.permissions ?? null,
+        ),
+    );
+  const showDoc = isPlatformAdmin || dashCan("/documentacao");
+  const showVendas = isPlatformAdmin || dashCan("/vendas");
+  const showComissao =
+    isPlatformAdmin || (canSeeComissao(user) && dashCan("/financeiro/comissao"));
+  const showRanking = !isSolo && dashCan("/corretores");
+  const showEquipes = !isSolo && !isPlatformAdmin && dashCan("/equipes");
+  const showMetas = isPlatformAdmin || dashCan("/metas");
+  const showPerdidos = isPlatformAdmin || dashCan("/leads-perdidos");
+  const showAgenda = isPlatformAdmin || dashCan("/agenda");
+  const showFunil = isPlatformAdmin || dashCan("/funil");
 
   const anosDisponiveis = useMemo(() => {
     const list: number[] = [];
@@ -635,10 +659,16 @@ function DashboardAdminView() {
         inset="muted"
         guia="dashboard-kpis"
         title="Entrada do mês"
-        description={`Novos leads e VGV em ${mesLabel}.`}
+        description={`Novos leads${showVendas ? " e VGV" : ""} em ${mesLabel}.`}
         action={<PanelLink to="/leads">Ver leads</PanelLink>}
       >
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div
+          className={
+            showVendas
+              ? "grid grid-cols-2 gap-3 xl:grid-cols-4"
+              : "grid grid-cols-2 gap-3 xl:grid-cols-3"
+          }
+        >
           <FinanceKpiCard
             label="Novos leads (mês)"
             value={summary.entradas.mes.valor}
@@ -665,6 +695,7 @@ function DashboardAdminView() {
             format="number"
             variant="dash"
           />
+          {showVendas ? (
           <FinanceKpiCard
             label="VGV vendido (mês)"
             value={summary.conversao.vgv.valor}
@@ -674,6 +705,7 @@ function DashboardAdminView() {
             tone="teal"
             variant="dash"
           />
+          ) : null}
         </div>
       </PagePanel>
 
@@ -690,8 +722,12 @@ function DashboardAdminView() {
         <div
           className={
             isPlatformAdmin
-              ? "grid grid-cols-2 gap-3 xl:grid-cols-3"
-              : "grid grid-cols-2 gap-3 xl:grid-cols-4"
+              ? showDoc || showVendas
+                ? "grid grid-cols-2 gap-3 xl:grid-cols-3"
+                : "grid grid-cols-2 gap-3"
+              : showDoc || showVendas
+                ? "grid grid-cols-2 gap-3 xl:grid-cols-4"
+                : "grid grid-cols-2 gap-3 xl:grid-cols-3"
           }
         >
           {isPlatformAdmin ? null : (
@@ -723,6 +759,7 @@ function DashboardAdminView() {
             format="number"
             variant="dash"
           />
+          {showDoc ? (
           <FinanceKpiCard
             label={
               isPlatformAdmin ? "Taxa de conversão" : "Conversão (doc → venda)"
@@ -735,11 +772,30 @@ function DashboardAdminView() {
             format="percent"
             variant="dash"
           />
+          ) : showVendas ? (
+          <FinanceKpiCard
+            label="Vendas no mês"
+            value={summary.conversao.vendas.valor}
+            evolucaoPct={summary.conversao.vendas.evolucaoPct}
+            valorMesAnterior={summary.conversao.vendas.valorMesAnterior}
+            icon={Goal}
+            tone="teal"
+            format="number"
+            variant="dash"
+          />
+          ) : null}
         </div>
       </PagePanel>
 
-      {isPlatformAdmin ? null : (
-      <div className="grid gap-4 xl:grid-cols-2">
+      {isPlatformAdmin ? null : showDoc || showComissao ? (
+      <div
+        className={
+          showDoc && showComissao
+            ? "grid gap-4 xl:grid-cols-2"
+            : "grid gap-4"
+        }
+      >
+        {showDoc ? (
         <PagePanel
           inset="muted"
           title="Pipeline de documentação"
@@ -752,7 +808,9 @@ function DashboardAdminView() {
             emAnalise={summary.documentacaoPipeline.emAnalise.valor}
           />
         </PagePanel>
+        ) : null}
 
+        {showComissao ? (
         <PagePanel
           inset="muted"
           guia="dashboard-comissao"
@@ -807,24 +865,43 @@ function DashboardAdminView() {
             />
           </div>
         </PagePanel>
+        ) : null}
       </div>
-      )}
+      ) : null}
 
       {isSolo || isPlatformAdmin ? (
+        showDoc || showVendas ? (
         <PagePanel
           inset="muted"
-          title="Documentações"
+          title={showDoc ? "Documentações" : "Vendas"}
           description={`Resumo de ${mesLabel}.`}
-          action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+          action={
+            <PanelLink to={showDoc ? "/documentacao" : "/vendas"}>
+              {showDoc ? "Ver documentação" : "Ver vendas"}
+            </PanelLink>
+          }
         >
           <DashDocResumo
             aprovadas={summary.documentacaoPipeline.aprovadas.valor}
             vendas={summary.conversao.vendas.valor}
             vgv={summary.conversao.vgv.valor}
+            showAprovacoes={showDoc}
           />
         </PagePanel>
-      ) : (
-      <section className="grid min-w-0 gap-4 xl:grid-cols-3">
+        ) : null
+      ) : showRanking || showEquipes || showDoc || showVendas ? (
+      <section
+        className={
+          [showRanking, showEquipes, showDoc || showVendas].filter(Boolean)
+            .length >= 3
+            ? "grid min-w-0 gap-4 xl:grid-cols-3"
+            : [showRanking, showEquipes, showDoc || showVendas].filter(Boolean)
+                  .length === 2
+              ? "grid min-w-0 gap-4 xl:grid-cols-2"
+              : "grid min-w-0 gap-4"
+        }
+      >
+        {showRanking ? (
         <PagePanel
           inset="muted"
           title="Ranking de corretores"
@@ -854,7 +931,9 @@ function DashboardAdminView() {
             </>
           )}
         </PagePanel>
+        ) : null}
 
+        {showEquipes ? (
         <PagePanel
           inset="muted"
           title="Carteira por equipe"
@@ -875,26 +954,40 @@ function DashboardAdminView() {
             />
           )}
         </PagePanel>
+        ) : null}
 
+        {showDoc || showVendas ? (
         <PagePanel
           inset="muted"
-          title="Documentações"
+          title={showDoc ? "Documentações" : "Vendas"}
           description={`Resumo de ${mesLabel}.`}
-          action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
+          action={
+            <PanelLink to={showDoc ? "/documentacao" : "/vendas"}>
+              {showDoc ? "Ver documentação" : "Ver vendas"}
+            </PanelLink>
+          }
         >
           <DashDocResumo
             aprovadas={summary.documentacaoPipeline.aprovadas.valor}
             vendas={summary.conversao.vendas.valor}
             vgv={summary.conversao.vgv.valor}
+            showAprovacoes={showDoc}
           />
         </PagePanel>
+        ) : null}
       </section>
-      )}
+      ) : null}
 
+      {showFunil || showDoc || showVendas || isPlatformAdmin ? (
       <section
         data-guia="dashboard-funil"
-        className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]"
+        className={
+          showFunil && (showDoc || showVendas || isPlatformAdmin)
+            ? "grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]"
+            : "grid min-w-0 gap-4"
+        }
       >
+        {showFunil ? (
         <PagePanel
           inset="muted"
           title="Funil geral"
@@ -909,28 +1002,46 @@ function DashboardAdminView() {
             <FunnelWashBars data={funnelData} />
           )}
         </PagePanel>
+        ) : null}
 
+        {showDoc || showVendas || isPlatformAdmin ? (
         <PagePanel
           inset="muted"
           title="Conversão do mês"
           description={
             isPlatformAdmin
               ? "% de conversão do mês (vs mês anterior)."
-              : "% das documentações do mês que viraram venda (vs mês anterior)."
+              : showDoc
+                ? "% das documentações do mês que viraram venda (vs mês anterior)."
+                : "Vendas do mês (vs mês anterior)."
           }
           action={
-            <PanelLink to={isPlatformAdmin ? "/taxa-conversao" : "/documentacao"}>
-              {isPlatformAdmin ? "Ver conversão" : "Ver documentação"}
+            <PanelLink
+              to={
+                isPlatformAdmin
+                  ? "/taxa-conversao"
+                  : showDoc
+                    ? "/documentacao"
+                    : "/vendas"
+              }
+            >
+              {isPlatformAdmin
+                ? "Ver conversão"
+                : showDoc
+                  ? "Ver documentação"
+                  : "Ver vendas"}
             </PanelLink>
           }
         >
           <div className="space-y-2">
             <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+              {isPlatformAdmin || showDoc ? (
               <WashTile tone="teal" className="flex justify-center p-2 sm:w-28 sm:shrink-0">
                 <ConversionRing value={summary.conversao.taxa.valor} />
               </WashTile>
+              ) : null}
               <div className="w-full min-w-0 flex-1 space-y-1.5">
-                {isPlatformAdmin ? null : (
+                {isPlatformAdmin || !showDoc ? null : (
                   <WashTile tone="sky" className="flex items-center gap-2.5 py-1.5">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white ring-2 ring-white/70">
                       <FileText className="size-3.5" />
@@ -1007,9 +1118,19 @@ function DashboardAdminView() {
             ) : null}
           </div>
         </PagePanel>
+        ) : null}
       </section>
+      ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      {showPerdidos || showAgenda ? (
+      <section
+        className={
+          showPerdidos && showAgenda
+            ? "grid gap-4 lg:grid-cols-2"
+            : "grid gap-4"
+        }
+      >
+        {showPerdidos ? (
         <PagePanel
           inset="muted"
           title="Leads perdidos — motivos"
@@ -1068,7 +1189,9 @@ function DashboardAdminView() {
             </div>
           </div>
         </PagePanel>
+        ) : null}
 
+        {showAgenda ? (
         <PagePanel
           inset="muted"
           title="Agenda de hoje"
@@ -1158,8 +1281,11 @@ function DashboardAdminView() {
             </>
           )}
         </PagePanel>
+        ) : null}
       </section>
+      ) : null}
 
+      {showMetas ? (
       <PagePanel
         inset="muted"
         title="Metas vs realizado"
@@ -1223,7 +1349,7 @@ function DashboardAdminView() {
                 </div>
               </WashTile>
 
-              {isPlatformAdmin ? null : (
+              {isPlatformAdmin || !showEquipes ? null : (
                 <WashTile tone="violet" className="space-y-3">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-violet-800 dark:text-violet-200">
                     Por equipe
@@ -1300,21 +1426,31 @@ function DashboardAdminView() {
           )}
         </div>
       </PagePanel>
+      ) : null}
     </div>
   );
 }
 
 function DashboardCorretorView() {
   const user = getSession();
-  const canOpenDocumentacao = user
-    ? canAccessRoute(
-        user.role,
-        "/documentacao",
-        user.tenant?.modules ?? null,
-        user.tenant?.plano ?? null,
-        user.permissions ?? null,
-      )
-    : false;
+  const modules = user?.tenant?.modules ?? null;
+  const plano = user?.tenant?.plano ?? null;
+  const dashCan = (path: string) =>
+    Boolean(
+      user &&
+        canAccessRoute(
+          user.role,
+          path,
+          modules,
+          plano,
+          user.permissions ?? null,
+        ),
+    );
+  const canOpenDocumentacao = dashCan("/documentacao");
+  const showVendas = dashCan("/vendas");
+  const showComissao = canSeeComissao(user) && dashCan("/financeiro/comissao");
+  const showFunil = dashCan("/funil");
+  const showAgenda = dashCan("/agenda");
   const { funnelStages, stageByPapel } = useCatalog();
   const [summary, setSummary] = useState<DashboardCorretor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1453,18 +1589,30 @@ function DashboardCorretorView() {
         </div>
       </PagePanel>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {canOpenDocumentacao || showVendas || showComissao ? (
+      <div
+        className={
+          (canOpenDocumentacao || showVendas) && showComissao
+            ? "grid gap-4 xl:grid-cols-2"
+            : "grid gap-4"
+        }
+      >
+        {canOpenDocumentacao || showVendas ? (
         <PagePanel
           inset="muted"
-          title="Documentação e vendas"
+          title={canOpenDocumentacao ? "Documentação e vendas" : "Vendas"}
           description={`Resultado da sua carteira em ${mesLabel}.`}
           action={
             canOpenDocumentacao ? (
               <PanelLink to="/documentacao">Ver documentação</PanelLink>
+            ) : showVendas ? (
+              <PanelLink to="/vendas">Ver vendas</PanelLink>
             ) : undefined
           }
         >
           <div className="grid grid-cols-2 gap-3">
+            {canOpenDocumentacao ? (
+              <>
             <FinanceKpiCard
               label="Documentações registradas"
               value={summary.documentacao.registrados}
@@ -1481,6 +1629,8 @@ function DashboardCorretorView() {
               format="number"
               variant="dash"
             />
+              </>
+            ) : null}
             <FinanceKpiCard
               label="Vendas registradas"
               value={summary.documentacao.vendidos}
@@ -1498,8 +1648,9 @@ function DashboardCorretorView() {
             />
           </div>
         </PagePanel>
+        ) : null}
 
-        {canSeeComissao(user) ? (
+        {showComissao ? (
         <PagePanel
           inset="muted"
           guia="dashboard-comissao"
@@ -1540,23 +1691,23 @@ function DashboardCorretorView() {
         </PagePanel>
         ) : null}
       </div>
+      ) : null}
 
+      {showFunil || canOpenDocumentacao ? (
       <section
         data-guia="dashboard-funil"
-        className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,1fr)]"
+        className={
+          showFunil && canOpenDocumentacao
+            ? "grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,1fr)]"
+            : "grid gap-4"
+        }
       >
+        {showFunil ? (
         <PagePanel
           title="Funil atual"
           description="Seus leads ativos nas etapas do funil de vendas."
           action={
-            user &&
-            canAccessRoute(
-              user.role,
-              "/funil",
-              user.tenant?.modules ?? null,
-              user.tenant?.plano ?? null,
-              user.permissions ?? null,
-            ) ? (
+            dashCan("/funil") ? (
               <PanelLink to="/funil">Ver funil</PanelLink>
             ) : (
               <PanelLink to="/leads">Ver leads</PanelLink>
@@ -1568,6 +1719,8 @@ function DashboardCorretorView() {
             emptyLabel="Nenhum lead ativo no funil."
           />
         </PagePanel>
+        ) : null}
+        {canOpenDocumentacao ? (
         <PagePanel title="Status das análises">
           <div className="space-y-3">
             {analiseData.map((item) => (
@@ -1583,8 +1736,11 @@ function DashboardCorretorView() {
             ))}
           </div>
         </PagePanel>
+        ) : null}
       </section>
+      ) : null}
 
+      {showAgenda ? (
       <PagePanel
         title="Minha agenda de hoje"
         description={`${summary.agenda.totalHoje} compromisso${summary.agenda.totalHoje === 1 ? "" : "s"} marcado${summary.agenda.totalHoje === 1 ? "" : "s"} para hoje.`}
@@ -1613,6 +1769,7 @@ function DashboardCorretorView() {
           />
         </div>
       </PagePanel>
+      ) : null}
     </div>
   );
 }

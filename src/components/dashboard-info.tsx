@@ -231,19 +231,25 @@ export function DashDocResumo({
   vendas,
   vgv,
   extra,
+  showAprovacoes = true,
 }: {
   aprovadas: number;
   vendas: number;
   vgv: number;
   extra?: ReactNode;
+  showAprovacoes?: boolean;
 }) {
   const rows = [
-    {
-      label: "Aprovações",
-      value: aprovadas.toLocaleString("pt-BR"),
-      icon: FileText,
-      tone: "bg-sky-500/12 text-sky-600",
-    },
+    ...(showAprovacoes
+      ? [
+          {
+            label: "Aprovações",
+            value: aprovadas.toLocaleString("pt-BR"),
+            icon: FileText,
+            tone: "bg-sky-500/12 text-sky-600",
+          },
+        ]
+      : []),
     {
       label: "Viraram venda",
       value: vendas.toLocaleString("pt-BR"),

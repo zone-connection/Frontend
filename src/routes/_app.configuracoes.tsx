@@ -344,6 +344,17 @@ function Config() {
         user.permissions ?? null,
       ),
   );
+  const showFinanceiro = Boolean(
+    user &&
+      !isPlatformAdmin &&
+      canAccessRoute(
+        user.role,
+        "/financeiro",
+        user.tenant?.modules ?? null,
+        user.tenant?.plano ?? null,
+        user.permissions ?? null,
+      ),
+  );
   const { catalog, loading, error, addItem, updateItem, removeItem } =
     useCatalog();
 
@@ -358,6 +369,7 @@ function Config() {
       showCatalog: showCatalogTabs,
       showImoveis,
       showMetas,
+      showFinanceiro,
       isSolo,
     }),
     [
@@ -370,6 +382,7 @@ function Config() {
       showCatalogTabs,
       showImoveis,
       showMetas,
+      showFinanceiro,
       isSolo,
     ],
   );
@@ -669,7 +682,7 @@ function Config() {
           <ConfigUsuarioExtraPanel />
         ) : null}
 
-        {selection.item === "financeiro" ? (
+        {selection.item === "financeiro" && showFinanceiro ? (
           <div className="space-y-4">
               <Card>
                 <CardHeader>

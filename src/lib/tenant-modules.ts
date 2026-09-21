@@ -19,6 +19,7 @@ export type TenantModuleKey =
   | "usuarios"
   | "equipes"
   | "corretores"
+  | "presenca"
   | "documentacao"
   | "analise"
   | "metas"
@@ -32,7 +33,7 @@ export type TenantModuleKey =
   | "imoveisUsados"
   | "locacao"
   | "parcerias"
-  | "presenca";
+  | "vendas";
 
 export type TenantModuleDef = {
   key: TenantModuleKey;
@@ -79,6 +80,7 @@ export const TENANT_MODULE_GROUPS: TenantModuleGroup[] = [
       { key: "clientesPerdidos", label: "Perda de cliente" },
       { key: "construtoras", label: "Construtoras" },
       { key: "leadsPerdidos", label: "Leads Perdidos" },
+      { key: "vendas", label: "Vendas" },
     ],
   },
   {
@@ -136,7 +138,7 @@ export const ROUTE_MODULE_KEY: Record<string, TenantModuleKey> = {
   "/corretores": "corretores",
   "/presenca": "presenca",
   "/documentacao": "documentacao",
-  "/vendas": "documentacao",
+  "/vendas": "vendas",
   "/resultado": "analise",
   "/metas": "metas",
   "/propostas": "propostas",
@@ -252,6 +254,7 @@ const SOLO_ENABLED = new Set<TenantModuleKey>([
   "documentacao",
   "propostas",
   "contratos",
+  "vendas",
   "metas",
   "presenca",
   "financeiro",
@@ -351,6 +354,7 @@ export function normalizeModulesForPlano(
   if (plano === "bronze") {
     for (const key of ADMIN_TOGGLE_KEYS) next[key] = false;
     next.financeiro = false;
+    next.vendas = true;
   } else if (plano === "prata") {
     const adminOn = ADMIN_TOGGLE_KEYS.every((k) => next[k] !== false);
     const financeOn = next.financeiro === true;
@@ -362,6 +366,9 @@ export function normalizeModulesForPlano(
     } else if (adminOn) {
       next.financeiro = false;
     }
+    next.vendas = next.documentacao !== false;
+  } else {
+    next.vendas = next.documentacao !== false;
   }
 
   for (const key of TENANT_OPERATION_KEYS) {

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { NovoBadge } from "@/components/novo-badge";
+import { isConfigItemNovo } from "@/lib/novidades";
 import type {
   ConfigItem,
   ConfigNavModule,
@@ -89,7 +91,10 @@ export function ConfigSettingsLayout({
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {it.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    {it.label}
+                    {isConfigItemNovo(it.id) ? <NovoBadge compact /> : null}
+                  </span>
                 </button>
               );
             })}
