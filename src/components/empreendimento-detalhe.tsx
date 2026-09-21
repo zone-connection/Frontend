@@ -159,6 +159,23 @@ export function EmpreendimentoDetalhe({
   ]
     .filter(Boolean)
     .join(" · ");
+  const mapaQuery =
+    vitrine?.latitude != null && vitrine?.longitude != null
+      ? `${vitrine.latitude},${vitrine.longitude}`
+      : [
+          item.endereco,
+          vitrine?.numero,
+          vitrine?.bairro,
+          local,
+          item.cidade,
+          vitrine?.estado,
+          vitrine?.cep,
+        ]
+          .filter(Boolean)
+          .join(", ");
+  const mapaHref = mapaQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapaQuery)}`
+    : null;
   const areaLabel =
     item.areaM2 != null &&
     vitrine?.areaMax != null &&
@@ -452,6 +469,36 @@ export function EmpreendimentoDetalhe({
                 Website
               </a>
             ) : null}
+            {vitrine?.bookUrl ? (
+              <a
+                href={vitrine.bookUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
+              >
+                Book
+              </a>
+            ) : null}
+            {vitrine?.tabelaValoresUrl ? (
+              <a
+                href={vitrine.tabelaValoresUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
+              >
+                Tabela de valores
+              </a>
+            ) : null}
+            {mapaHref ? (
+              <a
+                href={mapaHref}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
+              >
+                Abrir no mapa
+              </a>
+            ) : null}
           </div>
         </div>
       </section>
@@ -639,10 +686,10 @@ export function EmpreendimentoDetalhe({
                   <Info label="Bairro" value={vitrine?.bairro} modo={modo} />
                   <Info label="Estado" value={vitrine?.estado} modo={modo} />
                   <Info label="CEP" value={vitrine?.cep} modo={modo} />
-                  {vitrine?.latitude != null ? (
+                  {mapaHref ? (
                     <a
                       className="mt-3 inline-flex items-center gap-1 text-primary underline"
-                      href={`https://www.google.com/maps?q=${vitrine.latitude},${vitrine.longitude}`}
+                      href={mapaHref}
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -715,6 +762,27 @@ export function EmpreendimentoDetalhe({
                 <Button asChild variant="outline" size="sm" className="rounded-full">
                   <a href={vitrine.tourVirtual} target="_blank" rel="noreferrer">
                     <View className="mr-1.5 h-4 w-4" /> Tour 360°
+                  </a>
+                </Button>
+              ) : null}
+              {vitrine?.bookUrl ? (
+                <Button asChild variant="outline" size="sm" className="rounded-full">
+                  <a href={vitrine.bookUrl} target="_blank" rel="noreferrer">
+                    <FileText className="mr-1.5 h-4 w-4" /> Book
+                  </a>
+                </Button>
+              ) : null}
+              {vitrine?.tabelaValoresUrl ? (
+                <Button asChild variant="outline" size="sm" className="rounded-full">
+                  <a href={vitrine.tabelaValoresUrl} target="_blank" rel="noreferrer">
+                    <FileText className="mr-1.5 h-4 w-4" /> Tabela de valores
+                  </a>
+                </Button>
+              ) : null}
+              {mapaHref ? (
+                <Button asChild variant="outline" size="sm" className="rounded-full">
+                  <a href={mapaHref} target="_blank" rel="noreferrer">
+                    <MapPin className="mr-1.5 h-4 w-4" /> Abrir no mapa
                   </a>
                 </Button>
               ) : null}

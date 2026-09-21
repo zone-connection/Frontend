@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 
 export function empreendimentoTipoLabel(tipo: string | null | undefined) {
   return tipo?.trim() || "";
@@ -80,6 +80,8 @@ export type EmpreendimentoVitrine = {
   cep: string | null;
   website?: string | null;
   tourVirtual?: string | null;
+  bookUrl?: string | null;
+  tabelaValoresUrl?: string | null;
   lancamento?: string | null;
   unidades?: number | null;
   andares?: number | null;
@@ -333,10 +335,31 @@ export async function uploadEmpreendimentoPlanta(
 ): Promise<{ url: string }> {
   const data = new FormData();
   data.append("file", file);
-  return apiFetch<{ url: string }>(`/empreendimentos/${id}/planta`, {
-    method: "POST",
-    body: data,
-  });
+  try {
+    return await apiFetch<{ url: string }>(`/empreendimentos/${id}/planta`, {
+      method: "POST",
+      body: data,
+    });
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== 404) throw err;
+    const before = await fetchEmpreendimento(id);
+    const after = await uploadEmpreendimentoImagem(id, file);
+    const known = new Set(empreendimentoImagens(before));
+    const urls = empreendimentoImagens(after);
+    const url = urls.find((item) => !known.has(item)) ?? urls.at(-1);
+    if (!url) {
+      throw new ApiError("Não foi possível enviar a planta.", 500);
+    }
+    const index = urls.lastIndexOf(url);
+    if (index >= 0) {
+      try {
+        await deleteEmpreendimentoImagem(id, index);
+      } catch {
+        // A URL já vale na tipologia; a foto só some da galeria quando o delete roda.
+      }
+    }
+    return { url };
+  }
 }
 
 export async function deleteEmpreendimentoImagem(

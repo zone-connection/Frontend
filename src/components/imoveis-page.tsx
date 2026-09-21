@@ -426,6 +426,8 @@ type EmpreendimentoForm = {
   vitrineCep: string;
   vitrineWebsite: string;
   vitrineTour: string;
+  vitrineBook: string;
+  vitrineTabela: string;
   vitrineLancamento: string;
   vitrineUnidades: string;
   vitrineAndares: string;
@@ -476,6 +478,8 @@ function emptyEmpreendimentoForm(): EmpreendimentoForm {
     vitrineCep: "",
     vitrineWebsite: "",
     vitrineTour: "",
+    vitrineBook: "",
+    vitrineTabela: "",
     vitrineLancamento: "",
     vitrineUnidades: "",
     vitrineAndares: "",
@@ -540,6 +544,8 @@ function formFromEmpreendimento(item: Empreendimento): EmpreendimentoForm {
     vitrineCep: item.vitrine?.cep ?? "",
     vitrineWebsite: item.vitrine?.website ?? "",
     vitrineTour: item.vitrine?.tourVirtual ?? "",
+    vitrineBook: item.vitrine?.bookUrl ?? "",
+    vitrineTabela: item.vitrine?.tabelaValoresUrl ?? "",
     vitrineLancamento: item.vitrine?.lancamento?.slice(0, 10) ?? "",
     vitrineUnidades:
       item.vitrine?.unidades != null ? String(item.vitrine.unidades) : "",
@@ -961,6 +967,8 @@ export function ImoveisPage({
           cep: form.vitrineCep.trim() || null,
           website: form.vitrineWebsite.trim() || null,
           tourVirtual: form.vitrineTour.trim() || null,
+          bookUrl: form.vitrineBook.trim() || null,
+          tabelaValoresUrl: form.vitrineTabela.trim() || null,
           lancamento: form.vitrineLancamento.trim() || null,
           unidades: form.vitrineUnidades.trim()
             ? Number.parseInt(form.vitrineUnidades, 10)
@@ -4051,7 +4059,7 @@ export function ImoveisPage({
           <FormSection
             icon={<Globe className="h-4 w-4" />}
             title="Links da vitrine"
-            description="O endereço fica no passo Local. Aqui só entram site e tour."
+            description="O endereço fica no passo Local. Aqui entram site, tour, book e tabela."
           >
             <FormField
               label="Website"
@@ -4104,6 +4112,60 @@ export function ImoveisPage({
                   value={form.vitrineTour}
                   onChange={(event) => setField("vitrineTour", event.target.value)}
                   placeholder="https://tour.exemplo.com/empreendimento"
+                />
+              </div>
+            </FormField>
+            <FormField
+              label="Book do empreendimento"
+              htmlFor="imovel-book"
+              hint="PDF, Drive ou página do book comercial."
+            >
+              <div className="space-y-1.5">
+                {/^https?:\/\//i.test(form.vitrineBook.trim()) ? (
+                  <a
+                    href={form.vitrineBook.trim()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    Testar book
+                  </a>
+                ) : null}
+                <Input
+                  id="imovel-book"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineBook}
+                  onChange={(event) => setField("vitrineBook", event.target.value)}
+                  placeholder="https://drive.google.com/..."
+                />
+              </div>
+            </FormField>
+            <FormField
+              label="Tabela de valores (PDF)"
+              htmlFor="imovel-tabela"
+              hint="Link do PDF da tabela de preços."
+            >
+              <div className="space-y-1.5">
+                {/^https?:\/\//i.test(form.vitrineTabela.trim()) ? (
+                  <a
+                    href={form.vitrineTabela.trim()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline"
+                  >
+                    Testar tabela
+                  </a>
+                ) : null}
+                <Input
+                  id="imovel-tabela"
+                  type="url"
+                  inputMode="url"
+                  value={form.vitrineTabela}
+                  onChange={(event) =>
+                    setField("vitrineTabela", event.target.value)
+                  }
+                  placeholder="https://drive.google.com/.../tabela.pdf"
                 />
               </div>
             </FormField>
