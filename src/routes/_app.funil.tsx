@@ -493,19 +493,28 @@ export function ComercialFunilBoard({
   useEffect(() => {
     if (!openLeadId || loading) return;
     if (dismissedOpenLeadId.current === openLeadId) return;
-    dismissedOpenLeadId.current = null;
-    const found = allLeads.find((l) => l.id === openLeadId);
-    if (!found) return;
-    const scoped =
-      !isClientesFunil &&
-      user &&
-      !isLeadInAtrasoScope(user, found, teamScope)
-        ? null
-        : found;
-    if (!scoped) return;
-    const decorated = decorateLeadMonitoramento(scoped);
-    setDetailLead(decorated);
-  }, [openLeadId, allLeads, funilAtivo, isClientesFunil, loading, teamScope, user]);
+    let cancelled = false;
+
+    async function openFromSearch(id: string) {
+      let found = allLeads.find((l) => l.id === id) ?? null;
+      if (!found) {
+        try {
+          found = mapApiLead(await fetchLeadById(id));
+          applyLead(found);
+        } catch {
+          return;
+        }
+      }
+      if (cancelled || !found) return;
+      dismissedOpenLeadId.current = null;
+      setDetailLead(decorateLeadMonitoramento(found));
+    }
+
+    void openFromSearch(openLeadId);
+    return () => {
+      cancelled = true;
+    };
+  }, [openLeadId, allLeads, applyLead, funilAtivo, loading]);
 
   useEffect(() => {
     if (!detailLead?.monitoramento || !funilAtivo) return;

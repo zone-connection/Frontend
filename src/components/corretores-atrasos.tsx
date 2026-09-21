@@ -276,8 +276,9 @@ function CorretorAtrasoCard({
                 <Link
                   to="/funil"
                   search={{ lead: lead.id }}
+                  preload={false}
                   className={cn(
-                    "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors",
+                    "group flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:brightness-[0.98]",
                     principal.wash,
                   )}
                 >
