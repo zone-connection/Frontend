@@ -491,30 +491,34 @@ export function ComercialFunilBoard({
   const dismissedOpenLeadId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!openLeadId || loading) return;
+    if (!openLeadId) return;
     if (dismissedOpenLeadId.current === openLeadId) return;
     let cancelled = false;
 
     async function openFromSearch(id: string) {
-      let found = allLeads.find((l) => l.id === id) ?? null;
-      if (!found) {
-        try {
-          found = mapApiLead(await fetchLeadById(id));
-          applyLead(found);
-        } catch {
-          return;
-        }
+      const cached = allLeads.find((l) => l.id === id);
+      if (cached) {
+        if (cancelled) return;
+        dismissedOpenLeadId.current = null;
+        setDetailLead(decorateLeadMonitoramento(cached));
+        return;
       }
-      if (cancelled || !found) return;
-      dismissedOpenLeadId.current = null;
-      setDetailLead(decorateLeadMonitoramento(found));
+      try {
+        const found = mapApiLead(await fetchLeadById(id));
+        if (cancelled) return;
+        applyLead(found);
+        dismissedOpenLeadId.current = null;
+        setDetailLead(decorateLeadMonitoramento(found));
+      } catch {
+        /* o quadro continua carregando mesmo se a ficha falhar */
+      }
     }
 
     void openFromSearch(openLeadId);
     return () => {
       cancelled = true;
     };
-  }, [openLeadId, allLeads, applyLead, funilAtivo, loading]);
+  }, [openLeadId, applyLead]);
 
   useEffect(() => {
     if (!detailLead?.monitoramento || !funilAtivo) return;
