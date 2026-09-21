@@ -703,6 +703,8 @@ function LeadsPage() {
 
   const isLeadRetrabalho = (l: Lead) =>
     l.origemAtrasoLiberacao === "retrabalho";
+  const temTagRetrabalho = (l: Lead) =>
+    isLeadRetrabalho(l) || l.triagemOrigemHerdada === "retrabalho";
   const isLeadChegou = (l: Lead) =>
     !isLeadRetrabalho(l) &&
     !l.corretorId &&
@@ -3530,7 +3532,7 @@ function LeadsPage() {
                     key={l.id}
                     className={cn(
                       "group cursor-pointer hover:bg-muted/40",
-                      isLeadRetrabalho(l) &&
+                      temTagRetrabalho(l) &&
                         "bg-amber-50/90 hover:bg-amber-100/80 dark:bg-amber-950/25 dark:hover:bg-amber-950/40",
                     )}
                     onClick={() => setDetailLead(l)}
@@ -3684,7 +3686,7 @@ function LeadsPage() {
                     <TableCell
                       className={cn(
                         "sticky right-0 z-10 bg-card text-right group-hover:bg-muted/40 group-data-[state=selected]:bg-muted",
-                        isLeadRetrabalho(l) &&
+                        temTagRetrabalho(l) &&
                           "bg-amber-50/90 group-hover:bg-amber-100/80 dark:bg-amber-950/25 dark:group-hover:bg-amber-950/40",
                       )}
                       onClick={(e) => e.stopPropagation()}

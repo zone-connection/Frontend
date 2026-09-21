@@ -1427,7 +1427,8 @@ export function ComercialFunilBoard({
                       dragging === l.id
                         ? "scale-[0.98] border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none"
                         : "hover:-translate-y-0.5 hover:shadow-md",
-                      l.origemAtrasoLiberacao === "retrabalho" &&
+                      (l.origemAtrasoLiberacao === "retrabalho" ||
+                        l.triagemOrigemHerdada === "retrabalho") &&
                         dragging !== l.id &&
                         "border-amber-400/70 bg-amber-50/90 ring-1 ring-amber-400/30 dark:bg-amber-950/25",
                       isClientesFunil &&
