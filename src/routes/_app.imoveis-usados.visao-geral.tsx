@@ -109,7 +109,9 @@ function UsadosVisaoGeralPage() {
                 tone="emerald"
                 icon={Store}
                 format="number"
-                href="/imoveis"
+                detail="Prévia"
+                href="/imoveis-usados/estoque"
+                search={{ status: "disponivel" }}
               />
               <FinanceKpiCard
                 label="Reservados"
@@ -117,7 +119,9 @@ function UsadosVisaoGeralPage() {
                 tone="orange"
                 icon={Building2}
                 format="number"
-                href="/imoveis"
+                detail="Prévia"
+                href="/imoveis-usados/estoque"
+                search={{ status: "reservado" }}
               />
               <FinanceKpiCard
                 label="Vendidos"
@@ -125,7 +129,9 @@ function UsadosVisaoGeralPage() {
                 tone="blue"
                 icon={Building2}
                 format="number"
-                href="/imoveis"
+                detail="Prévia"
+                href="/imoveis-usados/estoque"
+                search={{ status: "vendido" }}
               />
               <FinanceKpiCard
                 label="Interessados"
@@ -145,6 +151,9 @@ function UsadosVisaoGeralPage() {
                 tone="teal"
                 icon={Calendar}
                 format="number"
+                detail="Prévia"
+                href="/imoveis-usados/visitas"
+                search={{ periodo: "hoje" }}
               />
               <FinanceKpiCard
                 label="Visitas realizadas"
@@ -152,6 +161,9 @@ function UsadosVisaoGeralPage() {
                 tone="emerald"
                 icon={Calendar}
                 format="number"
+                detail="Prévia"
+                href="/imoveis-usados/visitas"
+                search={{ periodo: "realizadas" }}
               />
               <FinanceKpiCard
                 label="Propostas recebidas"
@@ -159,6 +171,9 @@ function UsadosVisaoGeralPage() {
                 tone="blue"
                 icon={FileText}
                 format="number"
+                detail="Prévia"
+                href="/imoveis-usados/propostas"
+                search={{ fila: "todas" }}
               />
               <FinanceKpiCard
                 label="Em negociação"
@@ -166,6 +181,9 @@ function UsadosVisaoGeralPage() {
                 tone="orange"
                 icon={FileText}
                 format="number"
+                detail="Prévia"
+                href="/imoveis-usados/propostas"
+                search={{ fila: "em_analise" }}
               />
               <FinanceKpiCard
                 label="Propostas aceitas"
@@ -173,6 +191,9 @@ function UsadosVisaoGeralPage() {
                 tone="violet"
                 icon={FileText}
                 format="number"
+                detail="Prévia"
+                href="/imoveis-usados/propostas"
+                search={{ fila: "aceita" }}
               />
             </div>
           </OperationSection>

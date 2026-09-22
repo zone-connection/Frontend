@@ -6,6 +6,7 @@ import {
   OverviewFunnelPanel,
   funnelBarsFromFunil,
 } from "@/components/funnel-bar-chart";
+import { OperationSection } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import {
@@ -13,6 +14,7 @@ import {
   type CaptacaoResumo,
 } from "@/lib/captacao-api";
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
+import { useDemoOperacao } from "@/lib/demo-operacao-usados";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 import { Building2, Home, Kanban, Loader2, Plus, Users } from "lucide-react";
@@ -26,6 +28,10 @@ function CaptacaoVisaoGeralPage() {
   const [resumo, setResumo] = useState<CaptacaoResumo | null>(null);
   const [funil, setFunil] = useState<Funil | null>(null);
   const [loading, setLoading] = useState(true);
+  const demo = useDemoOperacao();
+  const paradas = demo.paradas.filter((item) => item.diasSemMovimento >= 7).length;
+  const portal = demo.portal.filter((item) => item.desfecho === "aberto").length;
+  const exclusividade = demo.exclusividades.filter((item) => item.venceEmDias <= 30).length;
 
   useEffect(() => {
     void Promise.all([
@@ -122,6 +128,43 @@ function CaptacaoVisaoGeralPage() {
               href="/imoveis"
             />
           </div>
+          <OperationSection
+            title="Acompanhamento"
+            description="Prévia da fila: paradas, portal do proprietário e exclusividade."
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <FinanceKpiCard
+                label="Captações paradas"
+                value={paradas}
+                tone="orange"
+                icon={Home}
+                format="number"
+                variant="dash"
+                href="/captacao/fila"
+                search={{ aba: "paradas" }}
+              />
+              <FinanceKpiCard
+                label="Avisos do portal"
+                value={portal}
+                tone="teal"
+                icon={Users}
+                format="number"
+                variant="dash"
+                href="/captacao/fila"
+                search={{ aba: "portal" }}
+              />
+              <FinanceKpiCard
+                label="Exclusividade a vencer"
+                value={exclusividade}
+                tone="violet"
+                icon={Kanban}
+                format="number"
+                variant="dash"
+                href="/captacao/fila"
+                search={{ aba: "exclusividade" }}
+              />
+            </div>
+          </OperationSection>
           <OverviewFunnelPanel
             title="Funil de captação"
             description="Todas as etapas do funil ativo, com o volume em cada uma."

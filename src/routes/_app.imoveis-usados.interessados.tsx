@@ -34,6 +34,7 @@ import {
   formatBrl,
   type InteressadoUsado,
 } from "@/lib/imoveis-usados-api";
+import { DemoInteressadosPreview } from "@/components/demo-interessados-preview";
 import { TableFrame } from "@/components/operacao-ui";
 import { TABLE_LUX } from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
@@ -118,7 +119,7 @@ function InteressadosUsadoPage() {
     <>
       <PageHeader
         title="Interessados"
-        description="Compradores de imóveis usados. O vínculo com cada imóvel fica na venda."
+        description="Compradores de imóveis usados. A prévia mostra a ficha com o estoque compatível."
         actions={
           <Button
             size="sm"
@@ -145,6 +146,8 @@ function InteressadosUsadoPage() {
           </Button>
         }
       />
+      <DemoInteressadosPreview />
+      <h2 className="mb-3 text-sm font-semibold">Cadastrados no sistema</h2>
       {loading ? (
         <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />

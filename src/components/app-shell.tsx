@@ -47,6 +47,8 @@ import {
   TriangleAlert,
   ClipboardCheck,
   KeyRound,
+  Timer,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -289,6 +291,7 @@ const NAV_SECTIONS: {
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/captacao/funil", label: "Funil", icon: Kanban },
           { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
+          { to: "/captacao/fila", label: "Acompanhamento", icon: Timer },
           { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
         ],
       },
@@ -308,6 +311,9 @@ const NAV_SECTIONS: {
         children: [
           { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/imoveis-usados/funil", label: "Funil", icon: Kanban },
+          { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
+          { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
+          { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
           { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
         ],
       },
