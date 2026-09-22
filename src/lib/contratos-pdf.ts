@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import type { ContratoTemplateId } from "@/lib/contratos-templates";
 import { DEFAULT_TENANT_LOGO } from "@/lib/tenant-theme";
 
@@ -48,7 +49,7 @@ function safeName(raw: string) {
     .slice(0, 40);
 }
 
-type LoadedLogo = {
+export type LoadedLogo = {
   dataUrl: string;
   format: "PNG" | "JPEG";
   width: number;
@@ -1239,7 +1240,7 @@ async function pdfParentescoCom(
 
 const CONTRACT_MARGIN = 48;
 
-async function loadContractLogo(logoUrl?: string | null) {
+export async function loadContractLogo(logoUrl?: string | null) {
   if (logoUrl?.trim()) {
     const tenantLogo = await loadLogoForPdf(logoUrl);
     if (tenantLogo) return tenantLogo;
@@ -1270,13 +1271,6 @@ function writeRoleLabel(doc: jsPDF, y: number, label: string) {
   doc.setTextColor(...TITLE_BLACK);
   doc.text(label, CONTRACT_MARGIN, y);
   return y + 16;
-}
-
-function rgContratante(values: Values) {
-  const rg = (values.contratanteRg ?? "").trim();
-  const orgao = (values.contratanteRgOrgao ?? "").trim();
-  const text = [rg, orgao].filter(Boolean).join(" ");
-  return text || "____________";
 }
 
 function stampIntermediacaoPages(
@@ -1310,11 +1304,11 @@ function stampIntermediacaoPages(
       doc.restoreGraphicsState();
     }
 
-    doc.setDrawColor(...color);
-    doc.setLineWidth(1.15);
-    doc.rect(16, 16, pageW - 32, pageH - 32);
-    doc.setLineWidth(0.35);
-    doc.rect(21, 21, pageW - 42, pageH - 42);
+    doc.setFillColor(...color);
+    doc.rect(0, 0, pageW, 8, "F");
+    doc.setDrawColor(28, 28, 28);
+    doc.setLineWidth(0.9);
+    doc.rect(10, 16, pageW - 20, pageH - 28);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -1373,6 +1367,113 @@ function writeSignPair(
   return y + 62;
 }
 
+function tint(color: Rgb, towardWhite: number): Rgb {
+  return [
+    Math.round(color[0] + (255 - color[0]) * towardWhite),
+    Math.round(color[1] + (255 - color[1]) * towardWhite),
+    Math.round(color[2] + (255 - color[2]) * towardWhite),
+  ];
+}
+
+function drawSheet(doc: jsPDF, y: number, body: unknown[][]) {
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y > pageH - 110) {
+    doc.addPage();
+    y = 40;
+  }
+  autoTable(doc, {
+    startY: y,
+    margin: { left: CONTRACT_MARGIN, right: CONTRACT_MARGIN, top: 36, bottom: 48 },
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      textColor: [22, 22, 22],
+      lineColor: [214, 222, 226],
+      lineWidth: 0.35,
+      cellPadding: { top: 3, right: 6, bottom: 4, left: 6 },
+      valign: "middle",
+    },
+    body: body as never,
+  });
+  const placed = doc as jsPDF & { lastAutoTable?: { finalY: number } };
+  return (placed.lastAutoTable?.finalY ?? y) + 12;
+}
+
+function partySheet(
+  doc: jsPDF,
+  y: number,
+  color: Rgb,
+  title: string,
+  rows: Array<[string, string] | [string, string, string, string]>,
+) {
+  const label = {
+    textColor: [96, 104, 110] as Rgb,
+    fontStyle: "bold" as const,
+    fontSize: 7.5,
+    cellWidth: 88,
+  };
+  const value = {
+    textColor: [15, 15, 15] as Rgb,
+    fontStyle: "bold" as const,
+    fontSize: 9,
+  };
+  return drawSheet(doc, y, [
+    [
+      {
+        content: title,
+        colSpan: 4,
+        styles: {
+          fillColor: tint(color, 0.9),
+          textColor: color,
+          fontStyle: "bold",
+          fontSize: 9,
+        },
+      },
+    ],
+    ...rows.map((row) =>
+      row.length === 2
+        ? [
+            { content: row[0], styles: label },
+            { content: row[1], colSpan: 3, styles: value },
+          ]
+        : [
+            { content: row[0], styles: label },
+            { content: row[1], styles: value },
+            { content: row[2], styles: { ...label, cellWidth: 100 } },
+            { content: row[3], styles: value },
+          ],
+    ),
+  ]);
+}
+
+function factLabel(text: string, colSpan = 1) {
+  return {
+    content: text,
+    colSpan,
+    styles: {
+      fillColor: [244, 248, 249] as Rgb,
+      textColor: [96, 104, 110] as Rgb,
+      fontStyle: "bold" as const,
+      fontSize: 7.5,
+      cellPadding: { top: 4, bottom: 1, left: 6, right: 6 },
+    },
+  };
+}
+
+function factValue(text: string, colSpan = 1) {
+  return {
+    content: text,
+    colSpan,
+    styles: {
+      textColor: [15, 15, 15] as Rgb,
+      fontStyle: "bold" as const,
+      fontSize: 9,
+      cellPadding: { top: 1, bottom: 5, left: 6, right: 6 },
+    },
+  };
+}
+
 async function pdfIntermediacao(
   values: Values,
   opts?: { logoUrl?: string | null; primaryColor?: string | null },
@@ -1383,7 +1484,7 @@ async function pdfIntermediacao(
     parseHexColor(opts?.primaryColor) ??
     parseHexColor(logo?.primaryHex) ??
     [7, 158, 212];
-  let y = 42;
+  let y = 30;
   if (logo) y = writeLogo(doc, logo, y, true);
   y = writeTitle(
     doc,
@@ -1401,51 +1502,23 @@ async function pdfIntermediacao(
   );
 
   y = writeClauseHeading(doc, y, "CLÁUSULA 1ª – DAS PARTES", color);
-  y = writeRoleLabel(doc, y, "Denominado de CONTRATANTE(s):");
-  y = writeRich(doc, ["Nome: ", { b: v(values, "contratanteNome") }], y);
-  y = writeRich(
-    doc,
-    [
-      "CPF: ",
-      { b: v(values, "contratanteCpf") },
-      "    RG: ",
-      { b: rgContratante(values) },
-    ],
-    y,
-  );
-  y = writeRich(doc, ["Tel.: ", { b: v(values, "contratanteTel") }], y);
-  y = writeRich(doc, ["E-mail: ", { b: v(values, "contratanteEmail") }], y);
-  y = writeRich(
-    doc,
-    [
-      "Endereço: ",
-      { b: v(values, "contratanteEndereco") },
-      "    CEP: ",
-      { b: v(values, "contratanteCep") },
-    ],
-    y,
-  );
-
-  y = writeRoleLabel(doc, y, "Denominado PROPRIETÁRIO:");
-  y = writeRich(doc, ["Nome: ", { b: v(values, "proprietarioNome") }], y);
-  y = writeRich(doc, ["CNPJ/CPF: ", { b: v(values, "proprietarioCnpj") }], y);
-  y = writeRich(doc, ["Endereço: ", { b: v(values, "proprietarioEndereco") }], y);
-  y = writeRich(doc, ["Tel.: ", { b: v(values, "proprietarioTel") }], y);
-
-  y = writeRoleLabel(doc, y, "Denominado CONTRATADA:");
-  y = writeRich(doc, ["Nome: ", { b: v(values, "contratadaNome") }], y);
-  y = writeRich(
-    doc,
-    [
-      "CNPJ: ",
-      { b: v(values, "contratadaCnpj") },
-      "    CRECI: ",
-      { b: v(values, "contratadaCreci") },
-    ],
-    y,
-  );
-  y = writeRich(doc, ["Endereço: ", { b: v(values, "contratadaEndereco") }], y);
-  y = writeRich(doc, ["E-mail: ", { b: v(values, "contratadaEmail") }], y);
+  y = partySheet(doc, y, color, "CONTRATANTE", [
+    ["NOME", v(values, "contratanteNome"), "CPF", v(values, "contratanteCpf")],
+    ["RG", v(values, "contratanteRg"), "ÓRGÃO EMISSOR", v(values, "contratanteRgOrgao")],
+    ["TELEFONE", v(values, "contratanteTel"), "E-MAIL", v(values, "contratanteEmail")],
+    ["ENDEREÇO", v(values, "contratanteEndereco")],
+    ["CEP", v(values, "contratanteCep")],
+  ]);
+  y = partySheet(doc, y, color, "PROPRIETÁRIO", [
+    ["NOME / RAZÃO SOCIAL", v(values, "proprietarioNome"), "CNPJ/CPF", v(values, "proprietarioCnpj")],
+    ["ENDEREÇO", v(values, "proprietarioEndereco")],
+    ["TELEFONE", v(values, "proprietarioTel")],
+  ]);
+  y = partySheet(doc, y, color, "CONTRATADA", [
+    ["IMOBILIÁRIA", v(values, "contratadaNome"), "CNPJ", v(values, "contratadaCnpj")],
+    ["CRECI", v(values, "contratadaCreci"), "E-MAIL", v(values, "contratadaEmail")],
+    ["ENDEREÇO", v(values, "contratadaEndereco")],
+  ]);
 
   y = writeClauseHeading(doc, y, "CLÁUSULA 2ª – OBJETO DO CONTRATO", color);
   y = writeParagraph(
@@ -1453,36 +1526,25 @@ async function pdfIntermediacao(
     y,
     "O presente contrato tem por finalidade a contratação dos serviços profissionais de corretagem da CONTRATADA pelo CONTRATANTE, nos moldes do artigo 726 do Código Civil, e será considerado concluído, quando da assinatura do contrato de promessa de compra e venda entre o CONTRATANTE e o PROPRIETÁRIO do imóvel comercializado.",
   );
-  y = writeRich(doc, ["Construtora: ", { b: v(values, "construtora") }], y);
-  y = writeRich(doc, ["Empreendimento: ", { b: v(values, "empreendimento") }], y);
-  y = writeRich(
-    doc,
+  const unidade = [
+    (values.unidade ?? "").trim(),
+    (values.andar ?? "").trim() ? `Andar ${(values.andar ?? "").trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  y = drawSheet(doc, y, [
+    [factLabel("CONSTRUTORA"), factLabel("EMPREENDIMENTO")],
+    [factValue(v(values, "construtora")), factValue(v(values, "empreendimento"))],
+    [factLabel("BLOCO"), factLabel("UNIDADE")],
+    [factValue(v(values, "bloco")), factValue(unidade || "____________________")],
+    [factLabel("DESCRIÇÃO DO IMÓVEL"), factLabel("VALOR DA UNIDADE")],
     [
-      "Bloco: ",
-      { b: v(values, "bloco") },
-      "    Unidade: ",
-      { b: v(values, "unidade") },
-      ...((values.andar ?? "").trim()
-        ? ["    Andar: ", { b: values.andar.trim() }]
-        : []),
+      factValue(v(values, "descricaoImovel")),
+      factValue(`R$ ${v(values, "precoImovel")}`),
     ],
-    y,
-  );
-  y = writeRich(
-    doc,
-    ["Descrição do imóvel: ", { b: v(values, "descricaoImovel") }],
-    y,
-  );
-  y = writeRich(
-    doc,
-    ["Valor da unidade: R$ ", { b: v(values, "precoImovel") }],
-    y,
-  );
-  y = writeRich(
-    doc,
-    ["Valor da intermediação: R$ ", { b: v(values, "valorIntermediacao") }],
-    y,
-  );
+    [factLabel("VALOR DA INTERMEDIAÇÃO", 2)],
+    [factValue(`R$ ${v(values, "valorIntermediacao")}`, 2)],
+  ]);
 
   y = writeClauseHeading(
     doc,
@@ -1506,23 +1568,23 @@ async function pdfIntermediacao(
     y,
     "3.2 O pagamento dos honorários à CONTRATADA ocorrerá no momento em que o CONTRATANTE assinar o contrato de compra e venda com o PROPRIETÁRIO do imóvel em questão.",
   );
-  y = writeRich(
-    doc,
+  y = drawSheet(doc, y, [
     [
-      "3.3 O pagamento do CONTRATANTE à CONTRATADA será através de transferência bancária: Banco: ",
-      { b: v(values, "banco") },
-      " - Agência: ",
-      { b: v(values, "agencia") },
-      " - Conta: ",
-      { b: v(values, "conta") },
-      " - PIX (CNPJ ou chave): ",
-      { b: v(values, "pix") },
-      " Representante Legal: ",
-      { b: v(values, "representanteLegal") },
-      ".",
+      {
+        content: "DADOS PARA PAGAMENTO",
+        styles: {
+          fillColor: tint(color, 0.9),
+          textColor: color,
+          fontStyle: "bold",
+          fontSize: 9,
+        },
+      },
     ],
-    y,
-  );
+    [`Banco: ${v(values, "banco")}`],
+    [`Agência: ${v(values, "agencia")}    Conta: ${v(values, "conta")}`],
+    [`PIX (CNPJ ou chave): ${v(values, "pix")}`],
+    [`Representante legal: ${v(values, "representanteLegal")}`],
+  ]);
   y = writeParagraph(
     doc,
     y,

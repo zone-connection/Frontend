@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { downloadContratoPdf, resolveContratoBrandHex } from "@/lib/contratos-pdf";
+import { downloadContratoDocx } from "@/lib/contratos-docx";
 import {
   CONTRATO_TEMPLATES,
   applyLeadToContratoForm,
@@ -795,11 +796,12 @@ function ContratosPage() {
     const section = INTERMEDIACAO_SECTIONS.find(
       (item) => item.id === intermediacaoSection,
     );
-    return selected.fields.filter((field) => section?.keys.includes(field.key));
+    return selected.fields.filter((field) =>
+      (section?.keys as readonly string[] | undefined)?.includes(field.key),
+    );
   }, [intermediacaoSection, selected]);
 
-  async function handleGenerate(e: FormEvent) {
-    e.preventDefault();
+  async function exportContract(format: "pdf" | "docx") {
     if (!selected) return;
     if (!canUseContratoTemplate(selected.id)) {
       toast.error("Seu perfil não tem acesso a este modelo.");
@@ -814,19 +816,30 @@ function ContratosPage() {
     }
     setGenerating(true);
     try {
-      await downloadContratoPdf(selected.id as ContratoTemplateId, form, {
+      const brand = {
         logoUrl,
         primaryColor: logoColor ?? tenant?.primaryColor,
-      });
-      toast.success("PDF gerado e baixado.");
+      };
+      if (format === "docx" && selected.id === "intermediacao") {
+        await downloadContratoDocx(form, brand);
+        toast.success("Word gerado e baixado.");
+      } else {
+        await downloadContratoPdf(selected.id as ContratoTemplateId, form, brand);
+        toast.success("PDF gerado e baixado.");
+      }
       setSelected(null);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Não foi possível gerar o PDF.",
+        err instanceof Error ? err.message : "Não foi possível gerar o contrato.",
       );
     } finally {
       setGenerating(false);
     }
+  }
+
+  function handleGenerate(e: FormEvent) {
+    e.preventDefault();
+    void exportContract("pdf");
   }
 
   return (
@@ -932,7 +945,11 @@ function ContratosPage() {
         }}
         icon={<FileText className="size-5" />}
         title={selected?.titulo ?? "Contrato"}
-        description="Preencha os campos. O PDF será baixado ao gerar."
+        description={
+          selected?.id === "intermediacao"
+            ? "Preencha os campos e baixe em PDF ou Word."
+            : "Preencha os campos. O PDF será baixado ao gerar."
+        }
         className={selected?.id === "intermediacao" ? "max-w-3xl" : "max-w-6xl"}
         footer={
           <FormDialogActions>
@@ -945,13 +962,29 @@ function ContratosPage() {
             >
               Cancelar
             </Button>
+            {selected?.id === "intermediacao" ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={SOFT_BTN}
+                disabled={generating}
+                onClick={() => void exportContract("docx")}
+              >
+                {generating ? (
+                  <Loader2 className="mr-1 size-4 animate-spin" />
+                ) : (
+                  <Download className="mr-1 size-4" />
+                )}
+                Baixar Word
+              </Button>
+            ) : null}
             <Button type="submit" form="contrato-form" disabled={generating}>
               {generating ? (
                 <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
                 <Download className="mr-1 size-4" />
               )}
-              Gerar PDF
+              {selected?.id === "intermediacao" ? "Baixar PDF" : "Gerar PDF"}
             </Button>
           </FormDialogActions>
         }
