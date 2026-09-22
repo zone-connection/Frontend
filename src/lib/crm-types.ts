@@ -43,6 +43,8 @@ export interface Lead {
   empreendimentoId?: string | null;
   empreendimento?: { id: string; nome: string; cidade?: string | null } | null;
   stage: StageId;
+  /** Funil comercial ao qual este contato pertence. */
+  funilId?: string | null;
   prioridade: "Alta" | "Média" | "Baixa";
   /** Renda mensal do cliente (opcional). */
   renda: number | null;

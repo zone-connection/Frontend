@@ -136,6 +136,16 @@ export async function updateFunil(
   return apiFetch<Funil>(`/funis/${id}`, { method: "PATCH", body: input });
 }
 
+export async function migrarLeadsFunil(
+  funilId: string,
+  destinoFunilId: string,
+): Promise<{ ok: true; migrados: number; destinoFunilId: string; stage: string }> {
+  return apiFetch(`/funis/${funilId}/migrar-leads`, {
+    method: "POST",
+    body: { destinoFunilId },
+  });
+}
+
 export async function ativarFunil(id: string): Promise<Funil> {
   return apiFetch<Funil>(`/funis/${id}/ativar`, { method: "POST" });
 }

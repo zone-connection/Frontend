@@ -59,6 +59,7 @@ import {
   funilTipoOf,
   parseFunilTipo,
   installFunilEtapasPadrao,
+  migrarLeadsFunil,
   recoverFunilEtapas,
   reorderFunilEtapas,
   updateFunil,
@@ -68,7 +69,7 @@ import {
   type FunilEtapaPapel,
   type FunilTipo,
 } from "@/lib/funis-api";
-import { Check, GripVertical, Loader2, ListRestart, LifeBuoy, MoreHorizontal, Pencil, Plus, Tags, Trash2, Workflow } from "lucide-react";
+import { ArrowRightLeft, Check, GripVertical, Loader2, ListRestart, LifeBuoy, MoreHorizontal, Pencil, Plus, Tags, Trash2, Workflow } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -273,6 +274,8 @@ export function ConfigFunisPanel() {
   const [deleteFunilId, setDeleteFunilId] = useState<string | null>(null);
   const [deleteEtapa, setDeleteEtapa] = useState<FunilEtapa | null>(null);
   const [confirmDefaults, setConfirmDefaults] = useState(false);
+  const [migrateOpen, setMigrateOpen] = useState(false);
+  const [migrateDestinoId, setMigrateDestinoId] = useState("");
   const [draggingEtapaId, setDraggingEtapaId] = useState<string | null>(null);
 
   const tenantModules = getSession()?.tenant?.modules ?? null;
@@ -454,6 +457,27 @@ export function ConfigFunisPanel() {
       toast.error(
         errorMessage(err, "Não foi possível vincular o funil a este tipo."),
       );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleMigrarLeads() {
+    if (!selected || !migrateDestinoId) return;
+    setSaving(true);
+    try {
+      const result = await migrarLeadsFunil(selected.id, migrateDestinoId);
+      const destino = funis.find((f) => f.id === migrateDestinoId);
+      toast.success(
+        result.migrados === 0
+          ? "Este funil não tinha leads para migrar."
+          : result.migrados === 1
+            ? `1 lead migrado para "${destino?.name ?? "o funil de destino"}", na primeira etapa.`
+            : `${result.migrados} leads migrados para "${destino?.name ?? "o funil de destino"}", na primeira etapa.`,
+      );
+      setMigrateOpen(false);
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível migrar os leads."));
     } finally {
       setSaving(false);
     }
@@ -790,9 +814,11 @@ export function ConfigFunisPanel() {
                       ? "Vincule este funil a um tipo de operação para usá-lo no kanban."
                       : selected.ativo
                         ? funilTipoOf(selected) === "comercial"
-                          ? "Ativo no kanban comercial e nos novos leads."
+                          ? "Ativo no kanban. Novos leads entram aqui. Leads dos outros funis permanecem neles."
                           : "Ativo neste tipo de operação."
-                        : "Edite as etapas ou ative este funil para usá-lo."
+                        : funilTipoOf(selected) === "comercial"
+                          ? "Edite as etapas ou ative este funil para usá-lo. Os leads dele continuam aqui."
+                          : "Edite as etapas ou ative este funil para usá-lo."
                     : "Selecione um funil à esquerda para editar as etapas."}
                 </p>
               </div>
@@ -844,13 +870,37 @@ export function ConfigFunisPanel() {
                         Restaurar etapas padrão
                       </DropdownMenuItem>
                       {funilTipoOf(selected) === "comercial" ? (
-                        <DropdownMenuItem
-                          disabled={saving}
-                          onClick={() => void handleRecoverLeadStages()}
-                        >
-                          <LifeBuoy className="h-4 w-4" />
-                          Recuperar etapas dos leads
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem
+                            disabled={saving}
+                            onClick={() => void handleRecoverLeadStages()}
+                          >
+                            <LifeBuoy className="h-4 w-4" />
+                            Recuperar etapas dos leads
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={
+                              saving ||
+                              funis.filter(
+                                (f) =>
+                                  funilTipoOf(f) === "comercial" &&
+                                  f.id !== selected.id,
+                              ).length === 0
+                            }
+                            onClick={() => {
+                              const primeiro = funis.find(
+                                (f) =>
+                                  funilTipoOf(f) === "comercial" &&
+                                  f.id !== selected.id,
+                              );
+                              setMigrateDestinoId(primeiro?.id ?? "");
+                              setMigrateOpen(true);
+                            }}
+                          >
+                            <ArrowRightLeft className="h-4 w-4" />
+                            Migrar leads para outro funil
+                          </DropdownMenuItem>
+                        </>
                       ) : null}
                       {!selected.ativo ? (
                         <>
@@ -1310,6 +1360,62 @@ export function ConfigFunisPanel() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog
+        open={migrateOpen}
+        onOpenChange={(o) => !saving && setMigrateOpen(o)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Migrar leads para outro funil</DialogTitle>
+            <DialogDescription>
+              Todos os leads de &quot;{selected?.name}&quot; saem deste funil e
+              entram na primeira etapa do funil escolhido. Clientes da
+              carteira vinculados a este funil também vão. Eles deixam de
+              aparecer neste quadro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="migrar-destino">Funil de destino</Label>
+            <select
+              id="migrar-destino"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              value={migrateDestinoId}
+              onChange={(e) => setMigrateDestinoId(e.target.value)}
+            >
+              {funis
+                .filter(
+                  (f) =>
+                    funilTipoOf(f) === "comercial" && f.id !== selected?.id,
+                )
+                .map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                    {f.ativo ? " (em uso)" : ""}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={() => setMigrateOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={saving || !migrateDestinoId}
+              onClick={() => void handleMigrarLeads()}
+            >
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Migrar leads
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={Boolean(deleteFunilId)}
         onOpenChange={(o) => !o && setDeleteFunilId(null)}
@@ -1318,8 +1424,9 @@ export function ConfigFunisPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir funil?</AlertDialogTitle>
             <AlertDialogDescription>
-              As etapas deste funil serão removidas. Leads não são apagados:
-              as etapas que eles ainda usam são copiadas para o funil ativo.
+              As etapas deste funil serão removidas. Se ainda houver leads
+              aqui, a exclusão é recusada: migre os leads para outro funil
+              antes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

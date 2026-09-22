@@ -26,6 +26,7 @@ export interface ApiLead {
   cidade: string;
   bairro: string;
   stage: StageId;
+  funilId?: string | null;
   prioridade: Lead["prioridade"];
   renda: number | null;
   tipoRenda: string | null;
@@ -153,6 +154,7 @@ export function mapApiLead(api: ApiLead): Lead {
     empreendimentoId: api.empreendimentoId ?? null,
     empreendimento: api.empreendimento ?? null,
     stage: api.stage,
+    funilId: api.funilId ?? null,
     prioridade: api.prioridade,
     renda: api.renda ?? null,
     tipoRenda: api.tipoRenda ?? null,

@@ -101,6 +101,7 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
+import { leadVisivelNoFunilEmUso } from "@/lib/funil-lead-visibilidade";
 import { fetchFunilAtivo, recoverFunilEtapas, type Funil } from "@/lib/funis-api";
 import { createTriagemEvent } from "@/lib/triagem-api";
 import { TriagemFunilDialog } from "@/components/triagem-funil-dialog";
@@ -391,6 +392,9 @@ export function ComercialFunilBoard({
     }
 
     if (funilAtivo) {
+      list = list.filter((l) =>
+        leadVisivelNoFunilEmUso(l.funilId, funilAtivo.id),
+      );
       list = list.map((l) => decorateLeadMonitoramento(l));
     }
 
