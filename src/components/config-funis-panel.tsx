@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ApiError } from "@/lib/api";
 import { useCatalog } from "@/lib/catalog-store";
+import { useLeads } from "@/lib/leads-store";
 import {
   CATALOG_COLORS,
   DEFAULT_CATALOG_COLOR,
@@ -245,6 +246,7 @@ function moveEtapaById(
 
 export function ConfigFunisPanel() {
   const { refresh: refreshCatalog, applyFunnelEtapas } = useCatalog();
+  const { refresh: refreshLeads } = useLeads();
   const [funis, setFunis] = useState<Funil[]>([]);
   const [tipoFiltro, setTipoFiltro] = useState<FiltroFunil>("comercial");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -468,14 +470,21 @@ export function ConfigFunisPanel() {
     try {
       const result = await migrarLeadsFunil(selected.id, migrateDestinoId);
       const destino = funis.find((f) => f.id === migrateDestinoId);
+      const etapaInicial = destino?.etapas.find((e) => e.slug === result.stage);
+      const etapaNome = etapaInicial?.label ?? "etapa inicial";
       toast.success(
         result.migrados === 0
           ? "Este funil não tinha leads para migrar."
           : result.migrados === 1
-            ? `1 lead migrado para "${destino?.name ?? "o funil de destino"}", na primeira etapa.`
-            : `${result.migrados} leads migrados para "${destino?.name ?? "o funil de destino"}", na primeira etapa.`,
+            ? `1 lead foi para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}".`
+            : `${result.migrados} leads foram para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}".`,
       );
       setMigrateOpen(false);
+      try {
+        await refreshLeads({ silent: true });
+      } catch {
+        // O quadro busca de novo ao abrir o funil.
+      }
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível migrar os leads."));
     } finally {

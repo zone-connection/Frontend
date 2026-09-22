@@ -292,6 +292,7 @@ export function ComercialFunilBoard({
 
   useEffect(() => {
     let cancelled = false;
+    void refreshLeads({ silent: true });
     void fetchFunilAtivo("comercial")
       .then((funil) => {
         if (cancelled) return;
@@ -304,7 +305,7 @@ export function ComercialFunilBoard({
     return () => {
       cancelled = true;
     };
-  }, [applyFunnelEtapas]);
+  }, [applyFunnelEtapas, refreshLeads]);
 
   useEffect(() => {
     if (isSolo || isPlatformAdmin || (user?.role !== "admin" && !isGerente))
