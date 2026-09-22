@@ -124,7 +124,7 @@ type TenantForm = {
   modules: Record<TenantModuleKey, boolean>;
 };
 
-type TenantListFilter = "reais" | "teste" | "todos";
+type TenantListFilter = "reais" | "teste" | "todos" | "inativos";
 
 const emptyTenantForm = (): TenantForm => ({
   name: "",
@@ -241,15 +241,20 @@ function TenantsPage() {
     () => items.filter((item) => item.status === "ativo"),
     [items],
   );
+  const inactiveItems = useMemo(
+    () => items.filter((item) => item.status !== "ativo"),
+    [items],
+  );
   const realCount = activeItems.filter((item) => !item.isTest).length;
   const testCount = activeItems.filter((item) => item.isTest).length;
   const visibleItems = useMemo(() => {
+    if (listFilter === "inativos") return inactiveItems;
     if (listFilter === "reais")
       return activeItems.filter((item) => !item.isTest);
     if (listFilter === "teste")
       return activeItems.filter((item) => item.isTest);
     return activeItems;
-  }, [activeItems, listFilter]);
+  }, [activeItems, inactiveItems, listFilter]);
   const pager = useTablePager(visibleItems, listFilter);
 
   function openCreate() {
@@ -777,6 +782,12 @@ function TenantsPage() {
               {activeItems.length}
             </span>
           </TabsTrigger>
+          <TabsTrigger value="inativos" className="rounded-full px-4">
+            Inativos
+            <span className="ml-1.5 text-[11px] text-muted-foreground">
+              {inactiveItems.length}
+            </span>
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -802,7 +813,11 @@ function TenantsPage() {
               <p>
                 {listFilter === "teste"
                   ? "Nenhum cliente de teste."
-                  : "Nenhum cliente real nesta lista."}
+                  : listFilter === "inativos"
+                    ? "Nenhum cliente inativo."
+                    : listFilter === "reais"
+                      ? "Nenhum cliente real nesta lista."
+                      : "Nenhum cliente ativo nesta lista."}
               </p>
             </div>
           ) : (
