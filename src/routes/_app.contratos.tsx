@@ -174,6 +174,7 @@ const INTERMEDIACAO_SECTIONS = [
       "contratanteNome",
       "contratanteCpf",
       "contratanteRg",
+      "contratanteRgOrgao",
       "contratanteTel",
       "contratanteEmail",
       "contratanteEndereco",
@@ -196,6 +197,7 @@ const INTERMEDIACAO_SECTIONS = [
     keys: [
       "construtora",
       "empreendimento",
+      "bloco",
       "unidade",
       "andar",
       "descricaoImovel",

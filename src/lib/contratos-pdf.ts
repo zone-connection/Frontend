@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { ContratoTemplateId } from "@/lib/contratos-templates";
+import { DEFAULT_TENANT_LOGO } from "@/lib/tenant-theme";
 
 type Values = Record<string, string>;
 
@@ -1236,20 +1237,162 @@ async function pdfParentescoCom(
   doc.save(`parentesco-com-conjuge-${safeName(v(values, "nomeParente"))}.pdf`);
 }
 
-async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  let y = 40;
+const CONTRACT_MARGIN = 48;
+
+async function loadContractLogo(logoUrl?: string | null) {
   if (logoUrl?.trim()) {
-    const logo = await loadLogoForPdf(logoUrl);
-    if (logo) {
-      y = writeLogo(doc, logo, y);
-    }
+    const tenantLogo = await loadLogoForPdf(logoUrl);
+    if (tenantLogo) return tenantLogo;
   }
+  return loadLogoForPdf(DEFAULT_TENANT_LOGO);
+}
+
+function writeClauseHeading(doc: jsPDF, y: number, title: string, color: Rgb) {
+  const pageW = doc.internal.pageSize.getWidth();
+  y = ensureSpace(doc, y, 28);
+  y += 6;
+  doc.setFillColor(...color);
+  doc.rect(CONTRACT_MARGIN, y - 10, 3, 13, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
+  doc.setTextColor(...color);
+  doc.text(title, CONTRACT_MARGIN + 10, y);
+  doc.setDrawColor(...color);
+  doc.setLineWidth(0.45);
+  doc.line(CONTRACT_MARGIN, y + 6, pageW - CONTRACT_MARGIN, y + 6);
+  return y + 20;
+}
+
+function writeRoleLabel(doc: jsPDF, y: number, label: string) {
+  y = ensureSpace(doc, y, 16);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...TITLE_BLACK);
+  doc.text(label, CONTRACT_MARGIN, y);
+  return y + 16;
+}
+
+function rgContratante(values: Values) {
+  const rg = (values.contratanteRg ?? "").trim();
+  const orgao = (values.contratanteRgOrgao ?? "").trim();
+  const text = [rg, orgao].filter(Boolean).join(" ");
+  return text || "____________";
+}
+
+function stampIntermediacaoPages(
+  doc: jsPDF,
+  logo: LoadedLogo | null,
+  color: Rgb,
+  footerLabel: string,
+) {
+  const total = doc.getNumberOfPages();
+  for (let page = 1; page <= total; page += 1) {
+    doc.setPage(page);
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    if (logo) {
+      const maxW = pageW * 0.58;
+      const maxH = pageH * 0.38;
+      const scale = Math.min(maxW / logo.width, maxH / logo.height);
+      const w = logo.width * scale;
+      const h = logo.height * scale;
+      doc.saveGraphicsState();
+      doc.setGState(doc.GState({ opacity: 0.09 }));
+      doc.addImage(
+        logo.dataUrl,
+        logo.format,
+        (pageW - w) / 2,
+        (pageH - h) / 2,
+        w,
+        h,
+      );
+      doc.restoreGraphicsState();
+    }
+
+    doc.setDrawColor(...color);
+    doc.setLineWidth(1.15);
+    doc.rect(16, 16, pageW - 32, pageH - 32);
+    doc.setLineWidth(0.35);
+    doc.rect(21, 21, pageW - 42, pageH - 42);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    doc.text(footerLabel, CONTRACT_MARGIN, pageH - 32);
+    doc.text(`${page} / ${total}`, pageW - CONTRACT_MARGIN, pageH - 32, {
+      align: "right",
+    });
+  }
+}
+
+function writeSignPair(
+  doc: jsPDF,
+  y: number,
+  left: { label: string; name?: string; extra?: string },
+  right: { label: string; name?: string; extra?: string },
+  color: Rgb,
+) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const gap = 28;
+  const colW = (pageW - CONTRACT_MARGIN * 2 - gap) / 2;
+  y = ensureSpace(doc, y, 86);
+  y += 26;
+
+  const draw = (
+    x: number,
+    block: { label: string; name?: string; extra?: string },
+  ) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.7);
+    doc.line(x, y, x + colW, y);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...color);
+    doc.text(block.label, x, y + 13);
+    let lineY = y + 26;
+    if (block.name) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...FILL_BLACK);
+      const nameLines = doc.splitTextToSize(block.name, colW) as string[];
+      doc.text(nameLines, x, lineY);
+      lineY += nameLines.length * 11;
+    }
+    if (block.extra) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...BODY_COLOR);
+      const extraLines = doc.splitTextToSize(block.extra, colW) as string[];
+      doc.text(extraLines, x, lineY);
+    }
+  };
+
+  draw(CONTRACT_MARGIN, left);
+  draw(CONTRACT_MARGIN + colW + gap, right);
+  return y + 62;
+}
+
+async function pdfIntermediacao(
+  values: Values,
+  opts?: { logoUrl?: string | null; primaryColor?: string | null },
+) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const logo = await loadContractLogo(opts?.logoUrl);
+  const color =
+    parseHexColor(opts?.primaryColor) ??
+    parseHexColor(logo?.primaryHex) ??
+    [7, 158, 212];
+  let y = 42;
+  if (logo) y = writeLogo(doc, logo, y, true);
   y = writeTitle(
     doc,
     "CONTRATO DE INTERMEDIAÇÃO PARA COMPRA/VENDA DE IMÓVEL",
     y,
+    color,
   );
+  drawOrnament(doc, y, color);
+  y += 22;
 
   y = writeParagraph(
     doc,
@@ -1257,8 +1400,8 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     "Por este instrumento particular, as partes qualificadas na Cláusula 1ª resolvem, por livre e espontânea vontade, firmar o presente contrato de intermediação para fins de compra/venda de imóvel conforme os termos e condições estabelecidos nas cláusulas seguintes:",
   );
 
-  y = writeParagraph(doc, y, "CLÁUSULA 1ª – DAS PARTES", true);
-  y = writeParagraph(doc, y, "Denominado de CONTRATANTE(s):", true);
+  y = writeClauseHeading(doc, y, "CLÁUSULA 1ª – DAS PARTES", color);
+  y = writeRoleLabel(doc, y, "Denominado de CONTRATANTE(s):");
   y = writeRich(doc, ["Nome: ", { b: v(values, "contratanteNome") }], y);
   y = writeRich(
     doc,
@@ -1266,7 +1409,7 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
       "CPF: ",
       { b: v(values, "contratanteCpf") },
       "    RG: ",
-      { b: v(values, "contratanteRg") },
+      { b: rgContratante(values) },
     ],
     y,
   );
@@ -1283,13 +1426,13 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     y,
   );
 
-  y = writeParagraph(doc, y, "Denominado PROPRIETÁRIO:", true);
+  y = writeRoleLabel(doc, y, "Denominado PROPRIETÁRIO:");
   y = writeRich(doc, ["Nome: ", { b: v(values, "proprietarioNome") }], y);
   y = writeRich(doc, ["CNPJ/CPF: ", { b: v(values, "proprietarioCnpj") }], y);
   y = writeRich(doc, ["Endereço: ", { b: v(values, "proprietarioEndereco") }], y);
   y = writeRich(doc, ["Tel.: ", { b: v(values, "proprietarioTel") }], y);
 
-  y = writeParagraph(doc, y, "Denominado CONTRATADA:", true);
+  y = writeRoleLabel(doc, y, "Denominado CONTRATADA:");
   y = writeRich(doc, ["Nome: ", { b: v(values, "contratadaNome") }], y);
   y = writeRich(
     doc,
@@ -1304,7 +1447,7 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
   y = writeRich(doc, ["Endereço: ", { b: v(values, "contratadaEndereco") }], y);
   y = writeRich(doc, ["E-mail: ", { b: v(values, "contratadaEmail") }], y);
 
-  y = writeParagraph(doc, y, "CLÁUSULA 2ª – OBJETO DO CONTRATO", true);
+  y = writeClauseHeading(doc, y, "CLÁUSULA 2ª – OBJETO DO CONTRATO", color);
   y = writeParagraph(
     doc,
     y,
@@ -1312,16 +1455,27 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
   );
   y = writeRich(doc, ["Construtora: ", { b: v(values, "construtora") }], y);
   y = writeRich(doc, ["Empreendimento: ", { b: v(values, "empreendimento") }], y);
-  y = writeRich(doc, ["Unidade: ", { b: v(values, "unidade") }], y);
-  y = writeRich(doc, ["Andar: ", { b: v(values, "andar") }], y);
   y = writeRich(
     doc,
-    ["Descrição do Imóvel: ", { b: v(values, "descricaoImovel") }],
+    [
+      "Bloco: ",
+      { b: v(values, "bloco") },
+      "    Unidade: ",
+      { b: v(values, "unidade") },
+      ...((values.andar ?? "").trim()
+        ? ["    Andar: ", { b: values.andar.trim() }]
+        : []),
+    ],
     y,
   );
   y = writeRich(
     doc,
-    ["Preço do Imóvel: R$ ", { b: v(values, "precoImovel") }],
+    ["Descrição do imóvel: ", { b: v(values, "descricaoImovel") }],
+    y,
+  );
+  y = writeRich(
+    doc,
+    ["Valor da unidade: R$ ", { b: v(values, "precoImovel") }],
     y,
   );
   y = writeRich(
@@ -1330,11 +1484,11 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     y,
   );
 
-  y = writeParagraph(
+  y = writeClauseHeading(
     doc,
     y,
     "CLÁUSULA 3ª – HONORÁRIOS DE CORRETAGEM – DO PAGAMENTO",
-    true,
+    color,
   );
   y = writeRich(
     doc,
@@ -1361,7 +1515,7 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
       { b: v(values, "agencia") },
       " - Conta: ",
       { b: v(values, "conta") },
-      " - PIX: ",
+      " - PIX (CNPJ ou chave): ",
       { b: v(values, "pix") },
       " Representante Legal: ",
       { b: v(values, "representanteLegal") },
@@ -1375,7 +1529,7 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     "3.4 Serão devidos os honorários de corretagem, independentemente do arrependimento do CONTRATANTE após a assinatura do contrato de compra e venda.",
   );
 
-  y = writeParagraph(doc, y, "CLÁUSULA 4ª – DISPOSIÇÕES GERAIS", true);
+  y = writeClauseHeading(doc, y, "CLÁUSULA 4ª – DISPOSIÇÕES GERAIS", color);
   y = writeParagraph(
     doc,
     y,
@@ -1387,11 +1541,11 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     "4.2 A CONTRATADA poderá firmar parcerias ou com outros corretores de imóveis com vistas à execução do presente contrato.",
   );
 
-  y = writeParagraph(
+  y = writeClauseHeading(
     doc,
     y,
     "CLÁUSULA 5ª – DA IRREVOGABILIDADE E IRRETRATABILIDADE",
-    true,
+    color,
   );
   y = writeParagraph(
     doc,
@@ -1399,11 +1553,11 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     "As partes celebram o presente contrato de forma irrevogável e irretratável, relativo ao serviço de corretagem, ainda que o CONTRATANTE se arrependa e requeira o destrato de compra e venda do imóvel do PROPRIETÁRIO.",
   );
 
-  y = writeParagraph(
+  y = writeClauseHeading(
     doc,
     y,
     "CLÁUSULA 6ª – DA PROTEÇÃO DOS DADOS PESSOAIS",
-    true,
+    color,
   );
   y = writeParagraph(
     doc,
@@ -1416,62 +1570,85 @@ async function pdfIntermediacao(values: Values, logoUrl?: string | null) {
     "6.2 Havendo indícios de descumprimento parcial ou total desta cláusula, os CONTRATADOS estarão sujeitos a responsabilização por danos materiais e morais/extra patrimoniais.",
   );
 
-  y = writeParagraph(doc, y, "CLÁUSULA 7ª – DO FORO DE COMPETÊNCIA", true);
+  y = writeClauseHeading(doc, y, "CLÁUSULA 7ª – DO FORO DE COMPETÊNCIA", color);
+  const cidadeForo = (values.cidade ?? "").trim();
   y = writeParagraph(
     doc,
     y,
-    "Fica eleito o Foro da Comarca de Recife, Estado de Pernambuco, que será o competente para dirimir quaisquer questões oriundas do presente acordo, renunciando as partes a qualquer outro, por mais privilegiado que seja.",
+    cidadeForo
+      ? `Fica eleito o Foro da Comarca de ${cidadeForo}, que será o competente para dirimir quaisquer questões oriundas do presente acordo, renunciando as partes a qualquer outro, por mais privilegiado que seja.`
+      : "Fica eleito o Foro da Comarca de Recife, Estado de Pernambuco, que será o competente para dirimir quaisquer questões oriundas do presente acordo, renunciando as partes a qualquer outro, por mais privilegiado que seja.",
   );
   y = writeParagraph(
     doc,
     y,
-    "E para maior de todo o conteúdo aqui exposto, assinam o presente contrato em 03 (três) vias.",
+    "E, para firmeza de todo o conteúdo aqui exposto, assinam o presente contrato em 03 (três) vias de igual teor.",
   );
 
-  y = writeRich(
-    doc,
-    [
-      { b: v(values, "cidade") },
-      ", ",
-      { b: formatDateBr(values.data) },
-    ],
+  y = ensureSpace(doc, y, 24);
+  y += 8;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...FILL_BLACK);
+  doc.text(
+    `${v(values, "cidade")}, ${formatLongDatePt(values.data ?? "")}`,
+    doc.internal.pageSize.getWidth() / 2,
     y,
+    { align: "center" },
+  );
+  y += 6;
+
+  const contratadaExtra = [
+    `CNPJ: ${v(values, "contratadaCnpj")}`,
+    (values.contratadaCreci ?? "").trim()
+      ? `CRECI: ${values.contratadaCreci.trim()}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("  ");
+
+  y = writeSignPair(
+    doc,
+    y,
+    {
+      label: "CONTRATANTE",
+      name: v(values, "contratanteNome"),
+      extra: `CPF: ${v(values, "contratanteCpf")}`,
+    },
+    {
+      label: "CONTRATADO",
+      name: v(values, "contratadaNome"),
+      extra: contratadaExtra,
+    },
+    color,
+  );
+  y = writeRoleLabel(doc, y, "TESTEMUNHAS");
+  y = writeSignPair(
+    doc,
+    y,
+    {
+      label: "TESTEMUNHA 1",
+      name: values.testemunha1Nome?.trim() || undefined,
+      extra: values.testemunha1Cpf?.trim()
+        ? `CPF: ${values.testemunha1Cpf.trim()}`
+        : "CPF:",
+    },
+    {
+      label: "TESTEMUNHA 2",
+      name: values.testemunha2Nome?.trim() || undefined,
+      extra: values.testemunha2Cpf?.trim()
+        ? `CPF: ${values.testemunha2Cpf.trim()}`
+        : "CPF:",
+    },
+    color,
   );
 
-  y = writeSignature(
+  const footerName = (values.contratadaNome ?? "").trim();
+  stampIntermediacaoPages(
     doc,
-    y,
-    "CONTRATANTE",
-    v(values, "contratanteNome"),
-    `CPF: ${v(values, "contratanteCpf")}`,
-  );
-  y = writeSignature(
-    doc,
-    y,
-    "CONTRATADO",
-    v(values, "contratadaNome"),
-    [
-      `CNPJ: ${v(values, "contratadaCnpj")}`,
-      v(values, "contratadaCreci")
-        ? `CRECI: ${v(values, "contratadaCreci")}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("  "),
-  );
-  y = writeSignature(
-    doc,
-    y,
-    "TESTEMUNHA 1",
-    values.testemunha1Nome?.trim() || undefined,
-    values.testemunha1Cpf?.trim() ? `CPF: ${values.testemunha1Cpf}` : undefined,
-  );
-  y = writeSignature(
-    doc,
-    y,
-    "TESTEMUNHA 2",
-    values.testemunha2Nome?.trim() || undefined,
-    values.testemunha2Cpf?.trim() ? `CPF: ${values.testemunha2Cpf}` : undefined,
+    logo,
+    color,
+    footerName || "Contrato de intermediação",
   );
 
   doc.save(
@@ -1634,7 +1811,7 @@ export async function downloadContratoPdf(
       await pdfParentescoCom(values, opts);
       break;
     case "intermediacao":
-      await pdfIntermediacao(values, opts?.logoUrl);
+      await pdfIntermediacao(values, opts);
       break;
     case "recibo-pagamento":
       await pdfReciboPagamento(values, opts);

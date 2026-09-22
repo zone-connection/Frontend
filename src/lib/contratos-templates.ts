@@ -365,6 +365,13 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
         placeholder: "00.000.000-0",
       },
       {
+        key: "contratanteRgOrgao",
+        label: "Contratante — órgão emissor do RG",
+        type: "text",
+        required: false,
+        placeholder: "SDS-PE",
+      },
+      {
         key: "contratanteTel",
         label: "Contratante — telefone",
         type: "phone",
@@ -425,10 +432,18 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
         required: false,
       },
       {
-        key: "unidade",
-        label: "Unidade (bloco/apto)",
+        key: "bloco",
+        label: "Bloco",
         type: "text",
         required: false,
+        placeholder: "A",
+      },
+      {
+        key: "unidade",
+        label: "Unidade",
+        type: "text",
+        required: false,
+        placeholder: "1101",
       },
       { key: "andar", label: "Andar", type: "text", required: false },
       {
@@ -439,7 +454,7 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
       },
       {
         key: "precoImovel",
-        label: "Preço do imóvel (R$)",
+        label: "Valor da unidade (R$)",
         type: "money",
         required: false,
       },
@@ -479,9 +494,10 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
       },
       {
         key: "pix",
-        label: "PIX",
+        label: "PIX (CNPJ ou chave)",
         type: "text",
         required: false,
+        placeholder: "CNPJ da conta",
       },
       {
         key: "representanteLegal",
