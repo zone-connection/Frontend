@@ -57,11 +57,19 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { SOFT_BTN } from "@/lib/soft-btn";
+import { ListasDocumentosPanel } from "@/components/listas-documentos-panel";
 
 /** Modelos que o corretor não pode emitir. */
 const TEMPLATES_BLOQUEADOS_CORRETOR: ReadonlySet<ContratoTemplateId> = new Set([
   "recibo-pagamento",
 ]);
+
+function canManageListasDocumentos() {
+  const session = getSession();
+  if (!session) return false;
+  if (session.role === "admin" || session.role === "gerente") return true;
+  return session.role === "super_admin" && Boolean(session.tenantId);
+}
 
 function canUseContratoTemplate(templateId: ContratoTemplateId): boolean {
   const role = getSession()?.role;
@@ -861,6 +869,8 @@ function ContratosPage() {
           Escolha o modelo — os dados do lead entram automaticamente.
         </div>
       ) : null}
+
+      {canManageListasDocumentos() ? <ListasDocumentosPanel /> : null}
 
       <PagePanel
         inset="muted"
