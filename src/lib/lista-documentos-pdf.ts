@@ -116,35 +116,29 @@ function drawHeader(
   doc.setFillColor(...palette.header);
   doc.circle(pageW + 20, 20, 36, "F");
 
-  const plateX = 28;
-  const plateY = 26;
-  const plateW = logo ? 118 : 210;
-  const plateH = logo ? 48 : 36;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(plateX, plateY, plateW, plateH, 8, 8, "F");
+  const logoX = 28;
+  const logoY = 28;
+  let logoBottom = logoY;
   if (logo) {
-    const scale = Math.min((plateW - 16) / logo.width, (plateH - 12) / logo.height);
+    const maxW = 118;
+    const maxH = 48;
+    const scale = Math.min(maxW / logo.width, maxH / logo.height);
     const w = logo.width * scale;
     const h = logo.height * scale;
-    doc.addImage(
-      logo.dataUrl,
-      logo.format,
-      plateX + (plateW - w) / 2,
-      plateY + (plateH - h) / 2,
-      w,
-      h,
-    );
+    doc.addImage(logo.dataUrl, logo.format, logoX, logoY, w, h);
+    logoBottom = logoY + h;
   } else {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...palette.header);
-    const lines = doc.splitTextToSize(brandName, plateW - 16);
-    doc.text(lines, plateX + 8, plateY + 22);
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    const lines = doc.splitTextToSize(brandName, 220);
+    doc.text(lines, logoX, logoY + 16);
+    logoBottom = logoY + 16 + lines.length * 16;
   }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(255, 255, 255);
-  doc.text(brandName.toUpperCase(), 28, plateY + plateH + 18);
+  doc.text(brandName.toUpperCase(), 28, logoBottom + 16);
 }
 
 export async function downloadListaDocumentoPdf(input: ListaDocumentoPdfInput) {

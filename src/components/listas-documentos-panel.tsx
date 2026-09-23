@@ -498,15 +498,11 @@ function ListaPreview({
           className="pointer-events-none absolute -right-6 -top-8 size-32 rounded-full opacity-40"
           style={{ background: palette.accent }}
         />
-        <div className={cn("inline-flex items-center rounded-xl bg-white px-3 py-2")}>
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-8 max-w-[140px] object-contain" />
-          ) : (
-            <span className="text-sm font-semibold" style={{ color: palette.header }}>
-              {brandName}
-            </span>
-          )}
-        </div>
+        {logoUrl ? (
+          <img src={logoUrl} alt="" className="h-10 max-w-[160px] object-contain object-left" />
+        ) : (
+          <p className="text-sm font-semibold text-white">{brandName}</p>
+        )}
         <p className="mt-3 text-[11px] font-semibold tracking-[0.14em]">{brandName.toUpperCase()}</p>
       </div>
       <div className="space-y-3 px-6 py-5">
