@@ -870,8 +870,6 @@ function ContratosPage() {
         </div>
       ) : null}
 
-      {canManageListasDocumentos() ? <ListasDocumentosPanel /> : null}
-
       <PagePanel
         inset="muted"
         title="Biblioteca de contratos"
@@ -899,6 +897,7 @@ function ContratosPage() {
       </PagePanel>
 
       <div className="space-y-5">
+        {canManageListasDocumentos() ? <ListasDocumentosPanel /> : null}
         {gruposVisiveis.map((group) => (
           <PagePanel
             key={group.id}

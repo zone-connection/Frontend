@@ -31,11 +31,11 @@ import { useTenantTheme } from "@/lib/tenant-theme";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRight,
   ChevronDown,
   ChevronUp,
   ClipboardList,
   Download,
-  Eye,
   Loader2,
   Pencil,
   Plus,
@@ -51,6 +51,39 @@ type Draft = {
   aviso: string;
   itens: ListaDocumentoItemDraft[];
 };
+
+const LISTA_CARD: Record<string, { accent: string; accentBg: string; descricao: string }> = {
+  clt: {
+    accent: "text-sky-600 dark:text-sky-400",
+    accentBg: "bg-sky-500/10",
+    descricao: "Documentos de renda CLT para a análise de crédito.",
+  },
+  autonomo: {
+    accent: "text-amber-600 dark:text-amber-400",
+    accentBg: "bg-amber-500/10",
+    descricao: "Documentos de autônomo ou profissional liberal para a análise de crédito.",
+  },
+  pensionista: {
+    accent: "text-violet-600 dark:text-violet-400",
+    accentBg: "bg-violet-500/10",
+    descricao: "Documentos de pensionista ou aposentado para a análise de crédito.",
+  },
+  servidor: {
+    accent: "text-emerald-600 dark:text-emerald-400",
+    accentBg: "bg-emerald-500/10",
+    descricao: "Documentos de servidor público para a análise de crédito.",
+  },
+};
+
+function listaCardMeta(lista: ListaDocumento) {
+  return (
+    LISTA_CARD[lista.chave ?? ""] ?? {
+      accent: "text-primary",
+      accentBg: "bg-primary/10",
+      descricao: "Lista de documentos para enviar ao cliente.",
+    }
+  );
+}
 
 function draftFrom(lista?: ListaDocumento): Draft {
   if (!lista) {
@@ -201,7 +234,7 @@ export function ListasDocumentosPanel() {
     <>
       <PagePanel
         title="Listas de documentos"
-        description="Tipos de renda para enviar ao cliente. O PDF usa a logo e a cor da imobiliária."
+        description="Listas prontas para baixar e enviar ao cliente. O PDF usa a logo e a cor da imobiliária."
         inset="muted"
         action={
           <Button size="sm" onClick={() => setDraft(draftFrom())}>
@@ -218,38 +251,42 @@ export function ListasDocumentosPanel() {
         ) : erro ? (
           <p className="py-4 text-sm text-muted-foreground">{erro}</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {listas.map((lista) => (
-              <article
-                key={lista.id}
-                className="flex h-full flex-col rounded-2xl border border-black/5 bg-card p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]"
-              >
-                <div
-                  className="mb-3 flex size-11 items-center justify-center rounded-xl"
-                  style={{ background: palette.tint, color: palette.accent }}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {listas.map((lista) => {
+              const meta = listaCardMeta(lista);
+              return (
+                <button
+                  key={lista.id}
+                  type="button"
+                  onClick={() => setPreview(lista)}
+                  className={cn(
+                    "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
+                    "hover:border-primary/35 hover:bg-primary/4 hover:shadow-md",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
                 >
-                  <ClipboardList className="size-5" />
-                </div>
-                <h3 className="text-[15px] font-semibold leading-snug">{lista.nome}</h3>
-                <p className="mt-1 flex-1 text-xs text-muted-foreground">
-                  {lista.itens.length} documento{lista.itens.length === 1 ? "" : "s"}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" className={SOFT_BTN} onClick={() => setPreview(lista)}>
-                    <Eye className="mr-1 size-3.5" />
-                    Ver
-                  </Button>
-                  <Button size="sm" variant="outline" className={SOFT_BTN} onClick={() => setDraft(draftFrom(lista))}>
-                    <Pencil className="mr-1 size-3.5" />
-                    Editar
-                  </Button>
-                  <Button size="sm" disabled={downloading} onClick={() => void baixar(lista)}>
-                    <Download className="mr-1 size-3.5" />
-                    PDF
-                  </Button>
-                </div>
-              </article>
-            ))}
+                  <div
+                    className={cn(
+                      "mb-3 flex size-11 items-center justify-center rounded-xl",
+                      meta.accentBg,
+                      meta.accent,
+                    )}
+                  >
+                    <ClipboardList className="size-5" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold leading-snug text-foreground">
+                    {lista.nome}
+                  </h3>
+                  <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">
+                    {meta.descricao}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition group-hover:gap-2">
+                    Gerar PDF
+                    <ArrowRight className="size-3.5" />
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </PagePanel>
@@ -264,6 +301,19 @@ export function ListasDocumentosPanel() {
             <Button variant="outline" className={SOFT_BTN} onClick={() => setPreview(null)}>
               Fechar
             </Button>
+            {preview ? (
+              <Button
+                variant="outline"
+                className={SOFT_BTN}
+                onClick={() => {
+                  setDraft(draftFrom(preview));
+                  setPreview(null);
+                }}
+              >
+                <Pencil className="mr-1 size-4" />
+                Editar
+              </Button>
+            ) : null}
             {preview ? (
               <Button disabled={downloading} onClick={() => void baixar(preview)}>
                 {downloading ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Download className="mr-1 size-4" />}
