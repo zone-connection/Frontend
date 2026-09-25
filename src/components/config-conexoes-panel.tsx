@@ -41,6 +41,13 @@ import {
   syncOrulo,
   type OruloStatus,
 } from "@/lib/orulo-api";
+import {
+  connectGrupoZap,
+  disconnectGrupoZap,
+  fetchGrupoZapStatus,
+  updateGrupoZapDisplayAddress,
+  type GrupoZapStatus,
+} from "@/lib/grupozap-api";
 
 type Props = {
   selectingMeta?: boolean;
@@ -57,6 +64,7 @@ export function ConfigConexoesPanel({
       <IaConexoesCard />
       <GoogleConexoesCard />
       <OruloConexoesCard callbackCode={oruloCallbackCode} />
+      <GrupoZapConexoesCard />
     </div>
   );
 }
@@ -892,5 +900,228 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const DISPLAY_ADDRESS_OPTIONS = [
+  { value: "Neighborhood", label: "Só o bairro" },
+  { value: "Street", label: "Rua, sem número" },
+  { value: "All", label: "Endereço completo" },
+] as const;
+
+function GrupoZapConexoesCard() {
+  const user = getSession();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [status, setStatus] = useState<GrupoZapStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchGrupoZapStatus()
+      .then((next) => {
+        if (!cancelled) setStatus(next);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function copy(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Endereço copiado.");
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  }
+
+  async function handleConnect() {
+    setBusy(true);
+    try {
+      const next = await connectGrupoZap();
+      setStatus(next);
+      toast.success("Grupo OLX conectado. Cadastre as URLs no Canal Pro.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível conectar o Grupo OLX.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setBusy(true);
+    try {
+      const next = await disconnectGrupoZap();
+      setStatus(next);
+      toast.success("Grupo OLX desconectado.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível desconectar o Grupo OLX.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisplay(value: GrupoZapStatus["displayAddress"]) {
+    setBusy(true);
+    try {
+      const next = await updateGrupoZapDisplayAddress(value);
+      setStatus(next);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível salvar a exibição do endereço.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+        <CardTitle className="text-base">OLX, ZAP e Viva Real</CardTitle>
+        {status?.connected ? (
+          <Badge>Conectado</Badge>
+        ) : (
+          <Badge variant="secondary">Desconectado</Badge>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p className="text-muted-foreground">
+          Publica os imóveis disponíveis para venda no Canal Pro e recebe os
+          contatos no funil. A chave de segurança vem do Grupo OLX na
+          homologação (<code>GRUPOZAP_SECRET_KEY</code>).
+        </p>
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : status?.connected ? (
+          <div className="space-y-3">
+            {!status.secretConfigured ? (
+              <p className="text-amber-700">
+                A SECRET_KEY ainda não está no servidor. Os webhooks respondem
+                indisponível até ela ser configurada.
+              </p>
+            ) : null}
+            <UrlRow label="Feed de anúncios (XML)" value={status.feedUrl} onCopy={copy} />
+            <UrlRow label="Webhook de leads" value={status.leadUrl} onCopy={copy} />
+            <UrlRow label="Webhook do relatório" value={status.reportUrl} onCopy={copy} />
+            <p className="text-muted-foreground">
+              {status.publishableCount} imóvel(is) pronto(s) para o XML. O
+              portal exige CEP, preço, área, banheiros quando o tipo pede, e no
+              mínimo 5 fotos JPG.
+            </p>
+            {isAdmin ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="grupozap-address">O que o portal mostra do endereço</Label>
+                <select
+                  id="grupozap-address"
+                  className="flex h-9 w-full rounded-full border border-input bg-transparent px-3 text-sm"
+                  value={status.displayAddress}
+                  disabled={busy}
+                  onChange={(event) =>
+                    void handleDisplay(
+                      event.target.value as GrupoZapStatus["displayAddress"],
+                    )
+                  }
+                >
+                  {DISPLAY_ADDRESS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {status.blocked.length > 0 ? (
+              <ul className="space-y-1 text-muted-foreground">
+                {status.blocked.slice(0, 8).map((item) => (
+                  <li key={item.imovelId}>
+                    <span className="text-foreground">{item.titulo}</span>
+                    {": "}
+                    {item.reasons[0]}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {status.issues.length > 0 ? (
+              <ul className="space-y-1 text-muted-foreground">
+                {status.issues.slice(0, 8).map((issue) => (
+                  <li key={`${issue.imovelId}-${issue.message}`}>
+                    {issue.level === "error" ? "Erro" : "Aviso"} no anúncio:{" "}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {isAdmin ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void handleDisconnect()}
+              >
+                {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+                Desconectar
+              </Button>
+            ) : null}
+          </div>
+        ) : isAdmin ? (
+          <Button type="button" disabled={busy} onClick={() => void handleConnect()}>
+            {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+            Conectar Grupo OLX
+          </Button>
+        ) : (
+          <p className="text-muted-foreground">
+            Peça ao administrador para conectar o Grupo OLX.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UrlRow({
+  label,
+  value,
+  onCopy,
+}: {
+  label: string;
+  value: string | null;
+  onCopy: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="font-medium">{label}</p>
+      {value ? (
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs">
+            {value}
+          </code>
+          <Button type="button" variant="outline" size="sm" onClick={() => onCopy(value)}>
+            Copiar
+          </Button>
+        </div>
+      ) : (
+        <p className="text-muted-foreground">
+          Defina BACKEND_PUBLIC_URL na API para montar o endereço público.
+        </p>
+      )}
+    </div>
   );
 }
