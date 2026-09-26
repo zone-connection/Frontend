@@ -1329,207 +1329,534 @@ async function buildPropostaPdfClienteResumido(
   p: Proposta,
   brand?: PropostaPdfBrand,
 ) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 42;
-  const contentW = pageW - margin * 2;
-  const companyName = brand?.company?.name?.trim() || "IMOBILIÁRIA";
+  const sidebarW = 118;
+  const mainX = sidebarW + 18;
+  const mainRight = pageW - 18;
+  const mainW = mainRight - mainX;
+  const companyName = brand?.company?.name?.trim() || "Imobiliária";
   const logo = brand?.logoUrl ? await loadLogoForPdf(brand.logoUrl) : null;
   const C = buildPaletteFromLogo(
     logo?.dark ?? null,
     logo?.accent ?? null,
     brand?.primaryColor,
   );
-  let y = 44;
+  const pageBg: Rgb = [244, 246, 250];
+  const rowAlt: Rgb = [241, 245, 250];
+  const danger: Rgb = [214, 54, 78];
+  const person: Rgb = [18, 158, 114];
+  const personSoft: Rgb = [226, 246, 236];
+  const cardTint = mixRgb(C.gold, C.white, 0.9);
+  const mutedLine: Rgb = [186, 194, 206];
+  const ink: Rgb = [14, 22, 38];
+  const inkSoft: Rgb = [27, 42, 68];
+  const contentBottom = pageH - 36;
 
-  const sectionIcon = (
-    type: "company" | "client" | "payment",
-    x: number,
-    top: number,
-  ) => {
-    doc.setDrawColor(...C.white);
-    doc.setLineWidth(1.1);
-    if (type === "company") {
-      doc.rect(x + 3, top + 7, 12, 10);
-      doc.line(x + 2, top + 7, x + 9, top + 2);
-      doc.line(x + 9, top + 2, x + 16, top + 7);
-      doc.line(x + 10, top + 17, x + 10, top + 11);
-    } else if (type === "client") {
-      doc.circle(x + 9, top + 6, 3, "S");
-      doc.roundedRect(x + 3, top + 11, 12, 7, 3, 3, "S");
-    } else {
-      doc.circle(x + 9, top + 10, 7, "S");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("$", x + 9, top + 13, { align: "center" });
+  const propertyBits = [
+    p.empreendimento?.nome?.trim(),
+    p.unidade?.trim() ? `Un. ${p.unidade.trim()}` : "",
+  ].filter((bit): bit is string => Boolean(bit));
+  const imobiliariaSub = propertyBits.length
+    ? propertyBits.join("  ·  ")
+    : "PROPOSTA COMERCIAL";
+
+  const paymentLines = compositionLines(p);
+  const rows = paymentLines.length
+    ? paymentLines
+    : [{ label: "NENHUMA COMPOSIÇÃO INFORMADA", value: 0 }];
+
+  function paymentCells(line: CompositionLine): [string, string, string, string] {
+    if (!paymentLines.length) return ["—", line.label, "—", "—"];
+    if (line.detail?.includes("×")) {
+      const [qtyRaw, unitRaw] = line.detail.split("×").map((part) => part.trim());
+      return [qtyRaw || "1", line.label, unitRaw || brl(line.value), brl(line.value)];
     }
-  };
-
-  // Moldura e detalhes decorativos, usando as cores identificadas na logo.
-  doc.setDrawColor(...C.gold);
-  doc.setLineWidth(1.3);
-  doc.roundedRect(14, 14, pageW - 28, pageH - 28, 8, 8, "S");
-  doc.setDrawColor(...C.navy);
-  doc.setLineWidth(0.45);
-  doc.roundedRect(20, 20, pageW - 40, pageH - 40, 6, 6, "S");
-  doc.setFillColor(...C.goldSoft);
-  doc.triangle(pageW - 104, 20, pageW - 20, 20, pageW - 20, 104, "F");
-  doc.setFillColor(...C.gold);
-  doc.triangle(pageW - 72, 20, pageW - 20, 20, pageW - 20, 72, "F");
-  doc.setFillColor(...C.goldSoft);
-  doc.triangle(20, pageH - 104, 20, pageH - 20, 104, pageH - 20, "F");
-  doc.setFillColor(...C.gold);
-  doc.triangle(20, pageH - 72, 20, pageH - 20, 72, pageH - 20, "F");
-
-  // Cabeçalho da imobiliária.
-  const logoMaxW = 82;
-  const logoMaxH = 54;
-  let headerX = margin;
-  if (logo) {
-    const scale = Math.min(logoMaxW / logo.width, logoMaxH / logo.height, 1);
-    const logoW = Math.max(32, logo.width * scale);
-    const logoH = Math.max(24, logo.height * scale);
-    doc.addImage(logo.dataUrl, logo.format, headerX, y, logoW, logoH);
-    headerX += logoW + 15;
+    if (line.detail?.includes("·")) {
+      const count = line.detail.split("·").filter((part) => part.trim()).length;
+      return [String(count || 1), line.label, "valores variados", brl(line.value)];
+    }
+    return ["1", line.label, brl(line.value), brl(line.value)];
   }
-  doc.setDrawColor(...C.gold);
-  doc.setLineWidth(1);
-  doc.line(headerX, y + 4, headerX, y + 48);
-  headerX += 14;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(...C.gold);
-  doc.text("PROPOSTA DE COMPRA", headerX, y + 21);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...C.navy);
-  doc.text(companyName.toUpperCase(), headerX, y + 38);
-  doc.setFontSize(7);
-  doc.setTextColor(...C.muted);
-  doc.text(
-    `${new Date().toLocaleDateString("pt-BR")}  ·  ${pdfText(p.codigo, "----")}`,
-    headerX,
-    y + 49,
-  );
-  y += 73;
 
-  const section = (
-    title: string,
-    type: "company" | "client" | "payment",
-    top: number,
-  ) => {
-    doc.setFillColor(...C.navy);
-    doc.roundedRect(margin, top, contentW, 23, 4, 4, "F");
-    sectionIcon(type, margin + 6, top + 1);
+  function paintPage() {
+    doc.setFillColor(...pageBg);
+    doc.rect(0, 0, pageW, pageH, "F");
+    doc.setFillColor(...ink);
+    doc.rect(0, 0, sidebarW, pageH, "F");
+
+    doc.setFillColor(...inkSoft);
+    doc.circle(-8, pageH + 8, 72, "F");
+    doc.setDrawColor(...C.gold);
+    doc.setLineWidth(1.15);
+    doc.circle(-18, pageH + 24, 108, "S");
+    doc.setLineWidth(0.6);
+    doc.circle(8, pageH + 46, 78, "S");
+
+    doc.setFillColor(...pageBg);
+    doc.rect(sidebarW, 0, pageW - sidebarW, pageH, "F");
+
+    const pad = 16;
+    let cursor = 22;
+    if (logo) {
+      const maxW = sidebarW - pad * 2;
+      const maxH = 46;
+      const scale = Math.min(maxW / logo.width, maxH / logo.height);
+      const logoW = logo.width * scale;
+      const logoH = logo.height * scale;
+      doc.addImage(
+        logo.dataUrl,
+        logo.format,
+        (sidebarW - logoW) / 2,
+        cursor,
+        logoW,
+        logoH,
+      );
+      cursor += logoH + 10;
+    } else {
+      doc.setFillColor(...C.gold);
+      doc.circle(sidebarW / 2, cursor + 16, 16, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(...ink);
+      doc.text(
+        companyName.slice(0, 1).toUpperCase(),
+        sidebarW / 2,
+        cursor + 21,
+        { align: "center" },
+      );
+      cursor += 42;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...C.white);
+    const sideName = doc.splitTextToSize(companyName, sidebarW - 28);
+    doc.text(sideName.slice(0, 3), sidebarW / 2, cursor + 8, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    const lead = "Mais que imóveis, realizamos ";
+    const accentWord = "conexões.";
+    const leadW = doc.getTextWidth(lead);
+    doc.setFont("helvetica", "bold");
+    const accentW = doc.getTextWidth(accentWord);
+    const phraseH = leadW + accentW;
+    const textX = 28;
+    const textY = Math.min(pageH - 148, pageH / 2 + phraseH / 2);
+    doc.setDrawColor(...C.gold);
+    doc.setLineWidth(1.4);
+    doc.line(textX - 10, textY + 2, textX - 10, textY - phraseH - 2);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.white);
+    doc.text(lead, textX, textY, { angle: 90 });
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...C.gold);
+    doc.text(accentWord, textX, textY - leadW, { angle: 90 });
+
+    const footY = pageH - 18;
+    doc.setDrawColor(...mutedLine);
+    doc.setLineWidth(0.7);
+    doc.line(mainX, footY - 4, mainX + 22, footY - 4);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 128, 140);
+    doc.setCharSpace(0.45);
+    const footName =
+      doc.splitTextToSize(companyName.toUpperCase(), mainW * 0.42)[0] ??
+      companyName;
+    doc.text(footName, mainX + 28, footY - 1);
+    doc.setCharSpace(0);
+    const rightLabel = "Transparência em cada etapa.";
+    doc.setFont("helvetica", "normal");
+    const rightW = doc.getTextWidth(rightLabel);
+    doc.text(rightLabel, mainRight, footY - 1, { align: "right" });
+    doc.line(mainRight - rightW - 34, footY - 4, mainRight - rightW - 8, footY - 4);
+    doc.setLineWidth(0.6);
+  }
+
+  function drawSkyline(x: number, y: number, w: number, h: number) {
+    doc.setFillColor(18, 24, 46);
+    roundedRect(doc, x, y, w, h, 12, "F");
+    doc.setFillColor(255, 186, 132);
+    doc.circle(x + 54, y + 38, 26, "F");
+    doc.setFillColor(255, 222, 190);
+    doc.circle(x + 46, y + 32, 14, "F");
+
+    const base = y + h - 16;
+    const far: Rgb = [62, 76, 118];
+    const near: Rgb = [14, 20, 40];
+    const blocks: Array<{
+      dx: number;
+      dw: number;
+      dh: number;
+      tone: Rgb;
+      lit?: boolean;
+    }> = [
+      { dx: 18, dw: 16, dh: 30, tone: far },
+      { dx: 36, dw: 12, dh: 20, tone: far },
+      { dx: 50, dw: 28, dh: 58, tone: near, lit: true },
+      { dx: 80, dw: 14, dh: 44, tone: near, lit: true },
+      { dx: 96, dw: 18, dh: 26, tone: far },
+    ];
+    const sy = (h - 30) / 62;
+    for (const block of blocks) {
+      const bh = block.dh * sy;
+      doc.setFillColor(...block.tone);
+      doc.roundedRect(x + block.dx, base - bh, block.dw, bh, 1.2, 1.2, "F");
+      if (!block.lit) continue;
+      doc.setFillColor(246, 208, 122);
+      const cols = Math.max(1, Math.floor((block.dw - 5) / 5));
+      const rowsN = Math.max(1, Math.floor((bh - 8) / 7));
+      for (let row = 0; row < rowsN; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if ((row + col) % 3 === 0) continue;
+          doc.rect(
+            x + block.dx + 2.4 + col * 5,
+            base - bh + 4 + row * 7,
+            1.5,
+            2.1,
+            "F",
+          );
+        }
+      }
+    }
+
+    doc.setFillColor(...C.gold);
+    doc.rect(x + w - 112, y + 18, 2, 30, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...C.white);
-    doc.text(title, margin + 28, top + 15);
-    return top + 29;
-  };
-
-  y = section("IDENTIFICAÇÃO DA IMOBILIÁRIA", "company", y);
-  doc.setDrawColor(...C.gold);
-  doc.setLineWidth(0.55);
-  doc.roundedRect(margin, y, contentW, 35, 3, 3, "S");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...C.navy);
-  doc.text(companyName.toUpperCase(), margin + 10, y + 16);
-  const companyMeta = [brand?.company?.creci, brand?.company?.telefone]
-    .filter(Boolean)
-    .join("  ·  ");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...C.muted);
-  doc.text(companyMeta || "PROPOSTA COMERCIAL", margin + 10, y + 27);
-  y += 46;
-
-  y = section("PROPONENTE", "client", y);
-  doc.setDrawColor(...C.gold);
-  doc.roundedRect(margin, y, contentW, 40, 3, 3, "S");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...C.muted);
-  doc.text("NOME DO CLIENTE", margin + 10, y + 13);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...C.navy);
-  doc.text(pdfText(p.clienteNome, "----"), margin + 10, y + 30);
-  y += 52;
-
-  const columns = [0.13, 0.42, 0.23, 0.22];
-  const headers = ["QTD", "DESCRIÇÃO", "VALOR", "SUBTOTAL"];
-  y = section("PLANO DE PAGAMENTO", "payment", y);
-  let x = margin;
-  headers.forEach((header, index) => {
-    const width =
-      index === headers.length - 1
-        ? pageW - margin - x
-        : Math.round(contentW * columns[index]!);
-    doc.setFillColor(...C.gold);
-    doc.rect(x, y, width, 19, "F");
-    doc.setDrawColor(...C.gold);
-    doc.rect(x, y, width, 19, "S");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...C.white);
-    doc.text(header, x + width / 2, y + 13, { align: "center" });
-    x += width;
-  });
-  y += 19;
-
-  const lines = compositionLines(p);
-  if (!lines.length) lines.push({ label: "----", value: 0 });
-  for (const line of lines) {
-    x = margin;
-    const quantity = line.detail?.match(/^(\d+)\s×/)?.[1] ?? "1";
-    const unitValue =
-      line.detail?.match(/×\s(R\$\s[\d.,]+)/)?.[1] ?? brl(line.value);
-    const values = [quantity, line.label, unitValue, brl(line.value)];
-    values.forEach((value, index) => {
-      const width =
-        index === values.length - 1
-          ? pageW - margin - x
-          : Math.round(contentW * columns[index]!);
-      doc.setDrawColor(...C.gold);
-      doc.rect(x, y, width, 19, "S");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...C.navy);
-      doc.text(value, index === 1 ? x + 6 : x + width / 2, y + 13, {
-        align: index === 1 ? "left" : "center",
-      });
-      x += width;
+    const caption = doc.splitTextToSize(
+      "Seu próximo imóvel começa com uma boa proposta.",
+      96,
+    );
+    doc.text(caption.slice(0, 4), x + w - 12, y + 26, {
+      align: "right",
+      lineHeightFactor: 1.28,
     });
-    y += 19;
   }
 
-  const total = propostaComposicaoTotal(p);
-  const desconto = p.desconto ?? 0;
-  const valorNegociado = propostaValorLiquido(p);
-  const summaryW = 230;
-  const summaryX = pageW - margin - summaryW;
-  y += 14;
-  const summaryRows: Array<[string, string]> = [
-    ["TOTAL DA COMPOSIÇÃO", brl(total)],
-    ["DESCONTO DO IMÓVEL", desconto > 0 ? `- ${brl(desconto)}` : brl(0)],
-    ["VALOR NEGOCIADO", brl(valorNegociado)],
-  ];
-  summaryRows.forEach(([label, value]) => {
-    doc.setDrawColor(...C.gold);
-    doc.rect(summaryX, y, summaryW, 24, "S");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...C.navy);
-    doc.text(label, summaryX + 8, y + 15);
+  function drawBuildingMark(x: number, y: number) {
+    doc.setFillColor(...mixRgb(C.gold, C.white, 0.78));
+    roundedRect(doc, x, y, 30, 30, 8, "F");
+    const base = y + 23;
+    doc.setFillColor(...ink);
+    doc.rect(x + 5, base - 8, 5, 8, "F");
+    doc.rect(x + 11.5, base - 15, 7, 15, "F");
+    doc.rect(x + 19.5, base - 10, 5.5, 10, "F");
+    doc.setFillColor(...C.gold);
+    doc.rect(x + 13.2, base - 12, 1.4, 1.6, "F");
+    doc.rect(x + 15.4, base - 12, 1.4, 1.6, "F");
+    doc.rect(x + 13.2, base - 8.6, 1.4, 1.6, "F");
+    doc.rect(x + 15.4, base - 8.6, 1.4, 1.6, "F");
+    doc.rect(x + 6.3, base - 5.4, 1.3, 1.4, "F");
+    doc.rect(x + 21, base - 7, 1.3, 1.4, "F");
+  }
+
+  function drawPersonMark(x: number, y: number) {
+    doc.setFillColor(...personSoft);
+    roundedRect(doc, x, y, 30, 30, 8, "F");
+    doc.setFillColor(...person);
+    doc.circle(x + 15, y + 11, 3.5, "F");
+    doc.ellipse(x + 15, y + 22, 6.2, 4.2, "F");
+  }
+
+  function drawLayersMark(x: number, y: number) {
+    doc.setFillColor(...ink);
+    roundedRect(doc, x, y, 26, 26, 8, "F");
+    doc.setDrawColor(...C.white);
+    doc.setLineWidth(1.1);
+    doc.ellipse(x + 13, y + 8, 6.2, 2.1, "S");
+    doc.line(x + 6.8, y + 8, x + 6.8, y + 16.5);
+    doc.line(x + 19.2, y + 8, x + 19.2, y + 16.5);
+    doc.ellipse(x + 13, y + 16.5, 6.2, 2.1, "S");
+    doc.ellipse(x + 13, y + 12.2, 6.2, 2.1, "S");
+    doc.setLineWidth(0.6);
+  }
+
+  function drawWalletMark(x: number, y: number) {
+    doc.setDrawColor(...C.white);
+    doc.setLineWidth(1.15);
+    doc.roundedRect(x + 6, y + 9, 18, 12, 2.5, 2.5, "S");
+    doc.line(x + 8.5, y + 13, x + 21.5, y + 13);
+    doc.setFillColor(...C.white);
+    doc.circle(x + 19.5, y + 16.6, 1.15, "F");
+    doc.setLineWidth(0.6);
+  }
+
+  function drawHeader(top: number) {
+    const heroW = 258;
+    const heroH = 104;
+    const heroX = mainRight - heroW;
+    drawSkyline(heroX, top, heroW, heroH);
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...C.navy);
-    doc.text(value, summaryX + summaryW - 8, y + 15, { align: "right" });
-    y += 24;
-  });
+    doc.setFontSize(8);
+    doc.setTextColor(130, 140, 156);
+    doc.setCharSpace(1.05);
+    doc.text("PROPOSTA DE COMPRA", mainX, top + 16);
+    doc.setCharSpace(0);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...ink);
+    const titleW = Math.max(120, heroX - mainX - 16);
+    const nameLines = doc.splitTextToSize(companyName, titleW);
+    doc.text(nameLines.slice(0, 2), mainX, top + 40);
+    const afterName = top + 40 + Math.max(1, nameLines.slice(0, 2).length) * 20;
+
+    doc.setFontSize(8);
+    doc.setTextColor(96, 106, 122);
+    doc.setCharSpace(0.85);
+    doc.text("PROPOSTA COMERCIAL", mainX, afterName);
+    doc.setCharSpace(0);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(120, 128, 140);
+    doc.text(
+      `${formatPropostaDate(p.createdAt)}    ·    ${pdfText(p.codigo, "----")}`,
+      mainX,
+      afterName + 16,
+    );
+    return top + heroH;
+  }
+
+  function drawIdentityCards(top: number) {
+    const gap = 10;
+    const cardW = (mainW - gap) / 2;
+    const cardH = 74;
+    doc.setFillColor(...cardTint);
+    roundedRect(doc, mainX, top, cardW, cardH, 12, "F");
+    drawBuildingMark(mainX + 14, top + 22);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 130, 148);
+    doc.setCharSpace(0.45);
+    doc.text("IDENTIFICAÇÃO DA IMOBILIÁRIA", mainX + 54, top + 26);
+    doc.setCharSpace(0);
+    doc.setFontSize(12);
+    doc.setTextColor(...ink);
+    const agency = doc.splitTextToSize(companyName, cardW - 72);
+    doc.text(agency.slice(0, 1), mainX + 54, top + 44);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(110, 118, 132);
+    const sub = doc.splitTextToSize(imobiliariaSub, cardW - 72);
+    doc.text(sub.slice(0, 1), mainX + 54, top + 58);
+
+    const rightX = mainX + cardW + gap;
+    doc.setFillColor(248, 249, 252);
+    doc.setDrawColor(226, 230, 236);
+    doc.setLineWidth(0.7);
+    roundedRect(doc, rightX, top, cardW, cardH, 12, "FD");
+    drawPersonMark(rightX + 14, top + 22);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 130, 148);
+    doc.setCharSpace(0.5);
+    doc.text("PROPONENTE", rightX + 54, top + 24);
+    doc.setCharSpace(0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(140, 148, 160);
+    doc.text("NOME DO CLIENTE", rightX + 54, top + 36);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(...ink);
+    const client = doc.splitTextToSize(
+      pdfText(p.clienteNome, "----"),
+      cardW - 72,
+    );
+    doc.text(client.slice(0, 1), rightX + 54, top + 54);
+    return top + cardH;
+  }
+
+  function drawPayment(
+    top: number,
+    slice: CompositionLine[],
+    withTotals: boolean,
+    rowH: number,
+  ) {
+    const pad = 12;
+    const titleH = 36;
+    const headH = 22;
+    const totalH = withTotals ? 58 : 0;
+    const cardH =
+      pad +
+      titleH +
+      headH +
+      slice.length * rowH +
+      (withTotals ? 10 + totalH : 0) +
+      pad;
+
+    doc.setFillColor(226, 230, 236);
+    roundedRect(doc, mainX + 1.2, top + 2, mainW, cardH, 14, "F");
+    doc.setFillColor(...C.white);
+    doc.setDrawColor(226, 230, 236);
+    doc.setLineWidth(0.6);
+    roundedRect(doc, mainX, top, mainW, cardH, 14, "FD");
+
+    drawLayersMark(mainX + 14, top + 14);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...ink);
+    doc.text("PLANO DE PAGAMENTO", mainX + 48, top + 24);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(130, 138, 150);
+    doc.text("Condições e valores da proposta", mainX + 48, top + 36);
+
+    let y = top + pad + titleH;
+    const fractions = [0.1, 0.46, 0.22, 0.22];
+    const headers = ["QTD", "DESCRIÇÃO", "VALOR", "SUBTOTAL"];
+    const tableX = mainX + pad;
+    const tableW = mainW - pad * 2;
+    const colW = fractions.map((fraction, index) => {
+      if (index === fractions.length - 1) {
+        const used = fractions
+          .slice(0, -1)
+          .reduce((sum, value) => sum + Math.round(tableW * value), 0);
+        return tableW - used;
+      }
+      return Math.round(tableW * fraction);
+    });
+
+    let x = tableX;
+    headers.forEach((header, index) => {
+      const width = colW[index]!;
+      doc.setFillColor(...ink);
+      doc.rect(x, y, width, headH, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...C.white);
+      const align = index === 1 ? "left" : index === 0 ? "center" : "right";
+      const textX =
+        index === 1 ? x + 8 : index === 0 ? x + width / 2 : x + width - 8;
+      doc.text(header, textX, y + 14, { align });
+      x += width;
+    });
+    y += headH;
+
+    slice.forEach((line, index) => {
+      const cells = paymentCells(line);
+      x = tableX;
+      doc.setFillColor(...(index % 2 === 0 ? C.white : rowAlt));
+      doc.rect(x, y, tableW, rowH, "F");
+      cells.forEach((cell, cellIndex) => {
+        const width = colW[cellIndex]!;
+        doc.setFont("helvetica", cellIndex === 1 ? "bold" : "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...ink);
+        const align =
+          cellIndex === 1 ? "left" : cellIndex === 0 ? "center" : "right";
+        const textX =
+          cellIndex === 1
+            ? x + 8
+            : cellIndex === 0
+              ? x + width / 2
+              : x + width - 8;
+        const shown =
+          cellIndex === 1
+            ? (doc.splitTextToSize(cell, width - 14)[0] ?? cell)
+            : cell;
+        doc.text(shown, textX, y + rowH * 0.68, { align });
+        x += width;
+      });
+      y += rowH;
+    });
+
+    if (!withTotals) return;
+
+    y += 10;
+    const barH = totalH;
+    const split = tableX + tableW * 0.52;
+    doc.setFillColor(...ink);
+    roundedRect(doc, tableX, y, tableW, barH, 12, "F");
+    doc.setFillColor(...C.white);
+    roundedRect(doc, split, y, tableX + tableW - split, barH, 12, "F");
+    doc.rect(split, y, 16, barH, "F");
+    doc.setDrawColor(226, 230, 236);
+    doc.setLineWidth(0.6);
+    doc.line(split, y + 12, split, y + barH - 12);
+
+    doc.setFillColor(...inkSoft);
+    roundedRect(doc, tableX + 10, y + (barH - 30) / 2, 30, 30, 8, "F");
+    drawWalletMark(tableX + 10, y + (barH - 30) / 2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(196, 204, 218);
+    doc.setCharSpace(0.35);
+    doc.text("TOTAL DA COMPOSIÇÃO", tableX + 48, y + 22);
+    doc.setCharSpace(0);
+    doc.setFontSize(15);
+    doc.setTextColor(...C.white);
+    const totalLabel = brl(propostaComposicaoTotal(p));
+    doc.text(totalLabel, tableX + 48, y + 42);
+
+    const desconto = p.desconto ?? 0;
+    const negociado = propostaValorLiquido(p);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 128, 140);
+    doc.text("DESCONTO DO IMÓVEL", split + 16, y + 22);
+    doc.setFontSize(10);
+    if (desconto > 0) {
+      doc.setTextColor(...danger);
+      doc.text(`- ${brl(desconto)}`, tableX + tableW - 14, y + 22, {
+        align: "right",
+      });
+    } else {
+      doc.setTextColor(...ink);
+      doc.text(brl(0), tableX + tableW - 14, y + 22, { align: "right" });
+    }
+    doc.setDrawColor(230, 234, 240);
+    doc.line(split + 16, y + barH / 2, tableX + tableW - 14, y + barH / 2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 128, 140);
+    doc.text("VALOR NEGOCIADO", split + 16, y + 42);
+    doc.setFontSize(11);
+    doc.setTextColor(...ink);
+    doc.text(brl(negociado), tableX + tableW - 14, y + 42, { align: "right" });
+  }
+
+  paintPage();
+  let y = 18;
+  y = drawHeader(y) + 12;
+  y = drawIdentityCards(y) + 12;
+
+  const rowH = 18;
+  const overhead = 12 + 36 + 22 + 12;
+  const totalsBlock = 10 + 58;
+  let pending = rows;
+  let pageStart = y;
+  let guard = 0;
+  while (pending.length && guard < 8) {
+    guard += 1;
+    const room = contentBottom - pageStart;
+    const withTotals = Math.floor((room - overhead - totalsBlock) / rowH);
+    if (withTotals >= pending.length && withTotals > 0) {
+      drawPayment(pageStart, pending, true, rowH);
+      break;
+    }
+    if (pending.length === 1) {
+      doc.addPage();
+      paintPage();
+      pageStart = 18;
+      continue;
+    }
+    const plain = Math.max(1, Math.floor((room - overhead) / rowH));
+    const count = Math.min(plain, pending.length - 1);
+    drawPayment(pageStart, pending.slice(0, count), false, rowH);
+    pending = pending.slice(count);
+    doc.addPage();
+    paintPage();
+    pageStart = 18;
+  }
 
   return doc.output("blob");
 }

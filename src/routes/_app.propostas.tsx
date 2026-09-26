@@ -124,6 +124,7 @@ import {
   propostaComposicaoTotal,
   propostaDiferenca,
   propostaStatusClass,
+  propostaValorLiquido,
   updateProposta,
   type CreatePropostaInput,
   type Proposta,
@@ -140,6 +141,11 @@ import {
   type PropostaPdfBrand,
 } from "@/lib/proposta-pdf";
 import { useTenantTheme } from "@/lib/tenant-theme";
+import {
+  ordenarLinhasRelatorio,
+  PropostaRelatorioSheet,
+  type RelatorioLinha,
+} from "@/components/proposta-relatorio-sheet";
 import {
   formatPhone,
   isValidPhone,
@@ -360,90 +366,116 @@ function OptionalField({
   );
 }
 
+function linhasDoFormulario(form: FormState): RelatorioLinha[] {
+  const linhas: RelatorioLinha[] = [];
+  for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (
+      PROPOSTA_INFORMATIVA_KEYS.includes(
+        key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
+      )
+    ) {
+      continue;
+    }
+    const value = moneyOrZero(form[key]);
+    if (value <= 0) continue;
+    linhas.push({
+      qtd: "1",
+      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      valor: brl(value),
+      subtotal: brl(value),
+    });
+  }
+  for (const key of PROPOSTA_LISTA_KEYS) {
+    const parcela = form[key];
+    const qtd = parseQuantidade(parcela.quantidade);
+    const valor = moneyOrZero(parcela.valor);
+    if (!qtd || valor <= 0) continue;
+    linhas.push({
+      qtd: String(qtd),
+      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      valor: brl(valor),
+      subtotal: brl(qtd * valor),
+    });
+  }
+  return ordenarLinhasRelatorio(linhas);
+}
+
+function linhasDaProposta(p: Proposta): RelatorioLinha[] {
+  const linhas: RelatorioLinha[] = [];
+  for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (
+      PROPOSTA_INFORMATIVA_KEYS.includes(
+        key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
+      )
+    ) {
+      continue;
+    }
+    const value = p[key];
+    if (value == null || value <= 0) continue;
+    linhas.push({
+      qtd: "1",
+      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      valor: brl(value),
+      subtotal: brl(value),
+    });
+  }
+  for (const key of PROPOSTA_LISTA_KEYS) {
+    const values = p[key] ?? [];
+    if (!values.length) continue;
+    const resumo = parcelasResumo(values);
+    linhas.push({
+      qtd: String(resumo.quantidade),
+      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      valor: resumo.equal ? brl(resumo.valorUnitario) : "Valores variados",
+      subtotal: brl(resumo.subtotal),
+    });
+  }
+  return ordenarLinhasRelatorio(linhas);
+}
+
 function PropostaFormPreview({
   form,
   total,
+  companyName,
+  logoUrl,
+  codigo,
+  data,
+  subtitulo,
+  accent,
 }: {
   form: FormState;
   total: number;
+  companyName: string;
+  logoUrl?: string | null;
+  codigo: string;
+  data: string;
+  subtitulo: string;
+  accent?: string | null;
 }) {
-  const line = (label: string, value: string) => (
-    <div className="border-b px-4 py-2 last:border-b-0">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className="truncate text-sm font-medium">
-        {value.trim() || "----"}
-      </div>
-    </div>
-  );
+  const desconto = moneyOrZero(form.desconto);
+  const negociado = Math.max(0, moneyOrZero(form.valor) - desconto);
 
   return (
-    <aside className="sticky top-0 space-y-3 rounded-xl border bg-background p-4 shadow-sm">
-      <div className="flex items-center justify-between border-b pb-2">
-        <div>
-          <div className="text-sm font-semibold">Prévia do relatório</div>
-          <div className="text-xs text-muted-foreground">
-            Atualizada enquanto você preenche
-          </div>
-        </div>
-        <FileText className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="aspect-210/297 min-h-112.5 overflow-hidden rounded border bg-card text-foreground">
-        <div className="border-b px-4 py-3">
-          <div className="text-sm font-bold">PROPOSTA DE COMPRA</div>
-          <div className="text-xs text-muted-foreground">
-            {form.clienteNome || "Cliente não informado"}
-          </div>
-        </div>
-        <div className="border-b px-4 py-1.5 text-xs font-bold">
-          IDENTIFICAÇÃO DO IMÓVEL
-        </div>
-        <div className="grid grid-cols-2">
-          {line("Unidade", form.unidade)}
-          {line("Valor contratual", form.valor ? `R$ ${form.valor}` : "")}
-        </div>
-        <div className="border-y px-4 py-1.5 text-xs font-bold">
-          PROPONENTE 01
-        </div>
-        <div className="grid grid-cols-2">
-          {line("Nome completo", form.clienteNome)}
-          {line("CPF", form.clienteCpf ? formatCpfCnpj(form.clienteCpf) : "")}
-          {line("Celular", form.clienteTelefone)}
-          {line("E-mail", form.clienteEmail)}
-        </div>
-        <div className="border-y px-4 py-1.5 text-xs font-bold">ENDEREÇO</div>
-        <div className="grid grid-cols-2">
-          {line("Endereço", form.clienteEnderecoResidencial)}
-          {line(
-            "Cidade / UF",
-            [form.clienteCidadeResidencial, form.clienteUfResidencial]
-              .filter(Boolean)
-              .join(" / "),
-          )}
-        </div>
-        <div className="border-y px-4 py-1.5 text-xs font-bold">
-          PLANO DE PAGAMENTO
-        </div>
-        <div className="px-4 py-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total da composição</span>
-            <strong>{brl(total)}</strong>
-          </div>
-          <div className="mt-1 flex justify-between">
-            <span className="text-muted-foreground">Valor negociado</span>
-            <strong>{form.valor ? `R$ ${form.valor}` : "----"}</strong>
-          </div>
-          {form.parcelaCaixa ? (
-            <div className="mt-2 flex justify-between border-t pt-2 text-xs">
-              <span className="text-muted-foreground">
-                Parcela Caixa (informativo)
-              </span>
-              <strong>R$ {form.parcelaCaixa}</strong>
-            </div>
-          ) : null}
+    <aside className="sticky top-0 space-y-2">
+      <div>
+        <div className="text-sm font-semibold">Prévia do relatório</div>
+        <div className="text-xs text-muted-foreground">
+          Atualizada enquanto você preenche
         </div>
       </div>
+      <PropostaRelatorioSheet
+        companyName={companyName}
+        logoUrl={logoUrl}
+        codigo={codigo}
+        data={data}
+        clienteNome={form.clienteNome}
+        subtituloImobiliaria={subtitulo}
+        linhas={linhasDoFormulario(form)}
+        total={total}
+        desconto={desconto}
+        valorNegociado={negociado}
+        accent={accent}
+      />
     </aside>
   );
 }
@@ -1668,7 +1700,7 @@ function Page() {
             </span>
           ) : undefined
         }
-        className="max-w-2xl"
+        className="max-w-6xl"
         footer={
           selected ? (
             <FormDialogActions>
@@ -1734,6 +1766,26 @@ function Page() {
       >
         {selected && (
           <FormDialogBody>
+            <PropostaRelatorioSheet
+              companyName={tenant?.name?.trim() || "Imobiliária"}
+              logoUrl={logoUrl}
+              codigo={selected.codigo}
+              data={formatPropostaDate(selected.createdAt)}
+              clienteNome={selected.clienteNome}
+              subtituloImobiliaria={
+                [
+                  selected.empreendimento?.nome,
+                  selected.unidade ? `Un. ${selected.unidade}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "PROPOSTA COMERCIAL"
+              }
+              linhas={linhasDaProposta(selected)}
+              total={propostaComposicaoTotal(selected)}
+              desconto={selected.desconto ?? 0}
+              valorNegociado={propostaValorLiquido(selected)}
+              accent={tenant?.primaryColor}
+            />
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3 py-2.5">
               <span className="text-xs text-muted-foreground">
                 Exportar ou enviar ao cliente
@@ -2848,7 +2900,35 @@ function Page() {
             ) : null}
           </form>
           <div className="hidden lg:block lg:self-start">
-            <PropostaFormPreview form={form} total={formTotal} />
+            <PropostaFormPreview
+              form={form}
+              total={formTotal}
+              companyName={tenant?.name?.trim() || "Imobiliária"}
+              logoUrl={logoUrl}
+              accent={tenant?.primaryColor}
+              codigo={
+                (editingId
+                  ? items.find((item) => item.id === editingId)?.codigo
+                  : undefined) ?? "NOVA PROPOSTA"
+              }
+              data={
+                editingId
+                  ? formatPropostaDate(
+                      items.find((item) => item.id === editingId)?.createdAt,
+                    )
+                  : new Date().toLocaleDateString("pt-BR")
+              }
+              subtitulo={
+                [
+                  empreendimentos.find(
+                    (item) => item.id === form.empreendimentoId,
+                  )?.nome,
+                  form.unidade.trim() ? `Un. ${form.unidade.trim()}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "PROPOSTA COMERCIAL"
+              }
+            />
           </div>
         </FormDialogBody>
       </FormDialogShell>
