@@ -472,12 +472,22 @@ export function ConfigFunisPanel() {
       const destino = funis.find((f) => f.id === migrateDestinoId);
       const etapaInicial = destino?.etapas.find((e) => e.slug === result.stage);
       const etapaNome = etapaInicial?.label ?? "etapa inicial";
+      if (result.migrados > 0 && destino) {
+        setFunis((prev) =>
+          prev.map((f) =>
+            funilTipoOf(f) === "comercial"
+              ? { ...f, ativo: f.id === destino.id }
+              : f,
+          ),
+        );
+        applyFunnelEtapas(destino.etapas);
+      }
       toast.success(
         result.migrados === 0
           ? "Este funil não tinha leads para migrar."
           : result.migrados === 1
-            ? `1 lead foi para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}".`
-            : `${result.migrados} leads foram para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}".`,
+            ? `1 lead foi para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}". Esse funil está no kanban.`
+            : `${result.migrados} leads foram para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}". Esse funil está no kanban.`,
       );
       setMigrateOpen(false);
       try {
@@ -1378,9 +1388,9 @@ export function ConfigFunisPanel() {
             <DialogTitle>Migrar leads para outro funil</DialogTitle>
             <DialogDescription>
               Todos os leads de &quot;{selected?.name}&quot; saem deste funil e
-              entram na primeira etapa do funil escolhido. Clientes da
-              carteira vinculados a este funil também vão. Eles deixam de
-              aparecer neste quadro.
+              entram na primeira etapa do funil escolhido. Esse funil passa a
+              ser o do kanban, para os leads aparecerem lá. Clientes da
+              carteira vinculados a este funil também vão.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
