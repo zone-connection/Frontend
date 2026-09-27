@@ -408,22 +408,30 @@ export function fetchPortalVisitas(id: string) {
   }>(`/portal-proprietario/imoveis/${id}/visitas`);
 }
 
+export type PortalProposta = {
+  id: string;
+  origem?: "crm" | "usado";
+  numero: string;
+  codigo?: string | null;
+  valor: number | null;
+  desconto?: number | null;
+  status: string;
+  data: string;
+  interessadoNome: string;
+  unidade?: string | null;
+  empreendimentoNome?: string | null;
+  composicao?: Array<{ label: string; valor: number }>;
+  negociacao: {
+    status: string;
+    valorInicial: number | null;
+    ultimaContraproposta: number | null;
+  } | null;
+};
+
 export function fetchPortalPropostas(id: string) {
-  return portalFetch<
-    Array<{
-      id: string;
-      numero: string;
-      valor: number | null;
-      status: string;
-      data: string;
-      interessadoNome: string;
-      negociacao: {
-        status: string;
-        valorInicial: number | null;
-        ultimaContraproposta: number | null;
-      } | null;
-    }>
-  >(`/portal-proprietario/imoveis/${id}/propostas`);
+  return portalFetch<PortalProposta[]>(
+    `/portal-proprietario/imoveis/${id}/propostas`,
+  );
 }
 
 export function fetchPortalFechamento(id: string) {
@@ -526,7 +534,6 @@ export async function fetchPortalPropostasCarteira() {
   const dash = await fetchPortalDashboard();
   const rows = await Promise.all(
     dash.imoveis.map(async (imovel) => {
-      if (!imovel.temComercializacao) return { imovel, propostas: [] };
       const propostas = await fetchPortalPropostas(imovel.id);
       return { imovel, propostas };
     }),

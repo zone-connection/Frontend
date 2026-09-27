@@ -280,6 +280,13 @@ export function canAccessRoute(
     return true;
   }
 
+  if (
+    (path === "/propostas" || path.startsWith("/propostas/")) &&
+    (role === "corretor" || role === "treinee" || role === "analista")
+  ) {
+    return modules?.corretoresCriamPropostas === true;
+  }
+
   const roleRoutes =
     role === "gerente" && plano === "bronze"
       ? GERENTE_BRONZE_ROUTES

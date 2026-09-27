@@ -34,6 +34,7 @@ import {
   View,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
 
 const TEMAS = [
   { id: "sistema", cor: "#079ed4" },
@@ -701,6 +702,11 @@ export function EmpreendimentoDetalhe({
               </div>
             </Panel>
           ) : null}
+
+          <PropostasDoAlvo
+            empreendimentoId={item.id}
+            titulo="Propostas deste empreendimento"
+          />
 
           {show(modo, Boolean(item.observacao?.trim())) ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">

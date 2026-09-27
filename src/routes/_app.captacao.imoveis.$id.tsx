@@ -25,6 +25,7 @@ import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
 import { fichaToPayload, imovelToFicha } from "@/lib/imovel-ficha";
 import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
 import { Building2, Loader2, Pencil, Trash2 } from "lucide-react";
+import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/imoveis/$id")({
@@ -160,6 +161,7 @@ function ImovelDetalhePage() {
           <ImovelFichaVisao imovel={item} />
         </CardContent>
       </Card>
+      <PropostasDoAlvo imovelId={item.id} titulo="Propostas deste imóvel" />
       {item.descricao ? (
         <Card>
           <CardHeader>

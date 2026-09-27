@@ -125,6 +125,7 @@ import {
   propostaDiferenca,
   propostaStatusClass,
   propostaValorLiquido,
+  rotuloPropostaVinculo,
   updateProposta,
   type CreatePropostaInput,
   type Proposta,
@@ -146,6 +147,7 @@ import {
   PropostaRelatorioSheet,
   type RelatorioLinha,
 } from "@/components/proposta-relatorio-sheet";
+import { PropostaVinculosPanel } from "@/components/proposta-vinculos-panel";
 import {
   formatPhone,
   isValidPhone,
@@ -561,7 +563,7 @@ function leadPickerLabel(lead: Lead): string {
 }
 
 function shareToast() {
-  toast.message("PDF do cliente baixado", {
+  toast.message("Relatório visual baixado", {
     description:
       "Anexe o arquivo na conversa ou no e-mail que acabou de abrir.",
   });
@@ -588,13 +590,13 @@ function PropostaActionMenus({
 }) {
   const handlePdfCliente = () => {
     void downloadPropostaPdfCliente(proposta, brand).then(() => {
-      toast.success("PDF para cliente baixado");
+      toast.success("Relatório visual baixado");
     });
   };
 
   const handlePdfCorretor = () => {
     void downloadPropostaPdfCorretor(proposta, brand).then(() => {
-      toast.success("PDF para corretor baixado");
+      toast.success("Ficha para assinatura baixada");
     });
   };
 
@@ -620,10 +622,10 @@ function PropostaActionMenus({
   const pdfItems = (
     <>
       <DropdownMenuItem onClick={handlePdfCliente}>
-        PDF para cliente
+        Relatório visual
       </DropdownMenuItem>
       <DropdownMenuItem onClick={handlePdfCorretor}>
-        PDF para corretor
+        Ficha para assinatura
       </DropdownMenuItem>
     </>
   );
@@ -748,6 +750,10 @@ function Page() {
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
   const isGerente = user?.role === "gerente";
+  const propostaSoMinha =
+    user?.role === "corretor" ||
+    user?.role === "treinee" ||
+    user?.role === "analista";
   const canQuickCreateEmpreendimento =
     user?.role === "admin" ||
     user?.role === "gerente" ||
@@ -981,15 +987,16 @@ function Page() {
 
   const visibleLeads = useMemo(() => {
     if (!user) return [];
-    const scoped = !isManager
-      ? leads.filter(
-          (l) => l.corretorId === user.id || l.corretor === user.name,
-        )
-      : leads;
+    const scoped =
+      !isManager || propostaSoMinha
+        ? leads.filter(
+            (l) => l.corretorId === user.id || l.corretor === user.name,
+          )
+        : leads;
     return scoped
       .filter((l) => isLeadAprovado(l, aprovadosPorDoc))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [leads, user, isManager, aprovadosPorDoc]);
+  }, [leads, user, isManager, propostaSoMinha, aprovadosPorDoc]);
 
   const selectedLead = useMemo(() => {
     if (!form.leadId) return null;
@@ -1172,7 +1179,10 @@ function Page() {
   function openCreate() {
     setFormMode("create");
     setEditingId(null);
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      corretorId: propostaSoMinha ? user?.id ?? "" : "",
+    });
     setFormSection("usuario");
     setOpen(true);
   }
@@ -1335,7 +1345,7 @@ function Page() {
       construtoraId: form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
       unidade: form.unidade.trim() || null,
-      corretorId: form.corretorId || null,
+      corretorId: propostaSoMinha ? user?.id ?? null : form.corretorId || null,
       valor,
       entrada: parseMoney(form.entrada),
       apartado: parseMoney(form.apartado),
@@ -1490,7 +1500,7 @@ function Page() {
             ))}
           </SelectContent>
         </Select>
-        {isManager && (
+        {isManager && !propostaSoMinha && (
           <Select value={corretorId} onValueChange={setCorretorId}>
             <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
               <SelectValue placeholder="Corretor" />
@@ -1546,6 +1556,7 @@ function Page() {
               <TableHead>Código</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Empreendimento</TableHead>
+              <TableHead>Vínculos</TableHead>
               <TableHead>Corretor</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Status</TableHead>
@@ -1557,7 +1568,7 @@ function Page() {
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-sm text-muted-foreground"
                 >
                   <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
@@ -1567,7 +1578,7 @@ function Page() {
             ) : sortedRows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-sm text-muted-foreground"
                 >
                   Nenhuma proposta para os filtros selecionados.
@@ -1613,6 +1624,13 @@ function Page() {
                       {p.unidade ? `Un. ${p.unidade}` : "Sem unidade"}
                       {p.construtora ? ` · ${p.construtora.nome}` : ""}
                     </div>
+                  </TableCell>
+                  <TableCell className="max-w-[220px] text-xs text-muted-foreground">
+                    {(p.vinculos ?? []).length === 0
+                      ? "—"
+                      : (p.vinculos ?? [])
+                          .map((vinculo) => rotuloPropostaVinculo(vinculo))
+                          .join(" · ")}
                   </TableCell>
                   <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
                     <div>{p.corretor?.name ?? "—"}</div>
@@ -1785,6 +1803,19 @@ function Page() {
               desconto={selected.desconto ?? 0}
               valorNegociado={propostaValorLiquido(selected)}
               accent={tenant?.primaryColor}
+            />
+            <PropostaVinculosPanel
+              propostaId={selected.id}
+              empreendimentos={empreendimentos}
+              onChanged={() => {
+                void fetchPropostas().then((propostas) => {
+                  setItems(propostas);
+                  setSelected(
+                    (atual) =>
+                      propostas.find((item) => item.id === atual?.id) ?? atual,
+                  );
+                });
+              }}
             />
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3 py-2.5">
               <span className="text-xs text-muted-foreground">
@@ -2703,7 +2734,7 @@ function Page() {
                       placeholder="Ex.: 802"
                     />
                   </div>
-                  {isManager && (
+                  {isManager && !propostaSoMinha && (
                     <div className="space-y-1.5">
                       <Label>Corretor</Label>
                       <Select

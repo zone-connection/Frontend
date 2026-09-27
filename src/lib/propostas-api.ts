@@ -105,7 +105,72 @@ export type Proposta = {
     corretorId: string | null;
     equipe: { id: string; name: string } | null;
   } | null;
+  vinculos?: PropostaVinculoResumo[];
 };
+
+export type PropostaVinculoResumo = {
+  id: string;
+  imovelId?: string | null;
+  empreendimentoId?: string | null;
+  proprietario?: { id: string; nome: string } | null;
+  imovel: {
+    id: string;
+    logradouro: string;
+    numero: string;
+    bairro: string;
+    cidade: string;
+  } | null;
+  empreendimento: { id: string; nome: string; cidade: string | null } | null;
+};
+
+export type PropostaVinculoNotificacao = {
+  id: string;
+  email: string;
+  status: "enviado" | "falhou" | "sem_email" | string;
+  detalhe: string;
+  enviadoEm: string;
+};
+
+export type PropostaVinculo = PropostaVinculoResumo & {
+  propostaId: string;
+  proprietarioId: string | null;
+  corretorId: string | null;
+  corretorNome: string;
+  vinculadoEm: string;
+  removidoEm: string | null;
+  removidoPorNome: string | null;
+  proprietario: { id: string; nome: string; email: string } | null;
+  imovel: {
+    id: string;
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    tipo: string;
+    proprietario: { id: string; nome: string; email: string };
+  } | null;
+  notificacoes: PropostaVinculoNotificacao[];
+};
+
+export function rotuloPropostaVinculo(vinculo: PropostaVinculoResumo) {
+  if (vinculo.imovel) {
+    const endereco = [vinculo.imovel.logradouro, vinculo.imovel.numero]
+      .filter(Boolean)
+      .join(", ");
+    const local = [vinculo.imovel.bairro, vinculo.imovel.cidade]
+      .filter(Boolean)
+      .join(" · ");
+    return [endereco || "Imóvel", local].filter(Boolean).join(" — ");
+  }
+  if (vinculo.empreendimento) {
+    return [vinculo.empreendimento.nome, vinculo.empreendimento.cidade]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  return "Vínculo";
+}
 
 /** Campos simples (um valor). */
 export const PROPOSTA_SIMPLES_KEYS = [
@@ -293,6 +358,37 @@ export async function updateProposta(
 
 export async function deleteProposta(id: string): Promise<void> {
   await apiFetch<{ ok: boolean }>(`/propostas/${id}`, { method: "DELETE" });
+}
+
+export function fetchPropostasDoAlvo(params: {
+  empreendimentoId?: string;
+  imovelId?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params.empreendimentoId) qs.set("empreendimentoId", params.empreendimentoId);
+  if (params.imovelId) qs.set("imovelId", params.imovelId);
+  return apiFetch<Proposta[]>(`/propostas/vinculadas?${qs.toString()}`);
+}
+
+export function fetchPropostaVinculos(propostaId: string) {
+  return apiFetch<PropostaVinculo[]>(`/propostas/${propostaId}/vinculos`);
+}
+
+export function vincularProposta(
+  propostaId: string,
+  body: { imovelId?: string; empreendimentoId?: string },
+) {
+  return apiFetch<PropostaVinculo>(`/propostas/${propostaId}/vinculos`, {
+    method: "POST",
+    body,
+  });
+}
+
+export function removerPropostaVinculo(propostaId: string, vinculoId: string) {
+  return apiFetch<PropostaVinculo>(
+    `/propostas/${propostaId}/vinculos/${vinculoId}`,
+    { method: "DELETE" },
+  );
 }
 
 export function formatPropostaDate(iso: string | null | undefined) {
