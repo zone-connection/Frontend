@@ -89,39 +89,45 @@ export function PropostaRelatorioSheet({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-[#f4f6fb] text-[#12182c] shadow-sm">
       <div className="flex min-h-[540px]">
-        <aside className="relative flex w-[108px] shrink-0 flex-col overflow-hidden bg-[#0b1220] px-3.5 py-5 text-white">
-          <span className="pointer-events-none absolute inset-y-8 right-0 w-px bg-gradient-to-b from-transparent via-sky-300/80 to-transparent" />
-          <span
-            className="pointer-events-none absolute -right-7 -top-8 h-16 w-16 rounded-full border"
-            style={{ borderColor: cor }}
-          />
-          <span
-            className="pointer-events-none absolute right-2 top-3 h-6 w-6 rounded-full opacity-30"
-            style={{ backgroundColor: cor }}
-          />
-          <span className="pointer-events-none absolute left-4 top-36 flex flex-col gap-1.5">
-            <i className="h-1 w-1 rounded-full" style={{ backgroundColor: cor }} />
-            <i className="h-1 w-1 rounded-full bg-white/35" />
-            <i className="h-1 w-1 rounded-full bg-white/20" />
-          </span>
+        <aside className="relative flex w-[124px] shrink-0 flex-col overflow-hidden bg-[#0b1220] px-3.5 py-5 text-white">
+          <span className="pointer-events-none absolute inset-y-10 right-0 w-px bg-gradient-to-b from-transparent via-sky-300/70 to-transparent" />
           <svg
-            className="pointer-events-none absolute bottom-0 left-0 h-40 w-full"
-            viewBox="0 0 108 160"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[250px] w-full"
+            viewBox="0 0 124 280"
             preserveAspectRatio="xMidYMax meet"
             aria-hidden
           >
-            <circle cx="6" cy="168" r="78" fill="none" stroke={cor} strokeWidth="1.2" />
-            <circle cx="20" cy="176" r="52" fill="none" stroke="white" strokeOpacity="0.28" />
-            <circle cx="-8" cy="146" r="34" fill="#16233c" />
-            <rect x="18" y="112" width="12" height="28" rx="1" fill="#243552" />
-            <rect x="32" y="96" width="16" height="44" rx="1" fill="#1b2c49" />
-            <rect x="50" y="106" width="11" height="34" rx="1" fill="#243552" />
-            <rect x="63" y="100" width="18" height="40" rx="1" fill="#15243f" />
-            <rect x="36" y="104" width="2" height="2.5" fill={cor} />
-            <rect x="40" y="104" width="2" height="2.5" fill={cor} />
-            <rect x="36" y="110" width="2" height="2.5" fill="white" fillOpacity="0.7" />
-            <rect x="68" y="108" width="2" height="2.5" fill={cor} />
-            <rect x="72" y="108" width="2" height="2.5" fill={cor} />
+            <circle cx="92" cy="78" r="22" fill={cor} fillOpacity="0.18" />
+            <circle cx="98" cy="74" r="16" fill="#0b1220" />
+            <circle cx="84" cy="80" r="9" fill={cor} />
+            <circle cx="28" cy="58" r="1.2" fill={cor} />
+            <circle cx="48" cy="70" r="0.9" fill="white" fillOpacity="0.8" />
+            <circle cx="64" cy="52" r="1.3" fill={cor} />
+            <circle cx="108" cy="48" r="0.8" fill="white" />
+            <circle cx="36" cy="96" r="0.8" fill="white" fillOpacity="0.7" />
+            <circle cx="18" cy="292" r="70" fill="none" stroke={cor} strokeWidth="1.2" />
+            <circle cx="8" cy="310" r="96" fill="none" stroke="white" strokeOpacity="0.28" />
+            <rect x="8" y="214" width="14" height="58" fill="#243552" />
+            <rect x="24" y="178" width="16" height="94" fill="#1b2c49" />
+            <rect x="42" y="198" width="12" height="74" fill="#243552" />
+            <rect x="56" y="132" width="20" height="140" fill="#16283f" />
+            <rect x="78" y="164" width="14" height="108" fill="#1b2c49" />
+            <rect x="94" y="148" width="22" height="124" fill="#132238" />
+            <rect x="28" y="190" width="2" height="2.4" fill={cor} />
+            <rect x="32" y="190" width="2" height="2.4" fill={cor} />
+            <rect x="28" y="198" width="2" height="2.4" fill="white" fillOpacity="0.75" />
+            <rect x="60" y="146" width="2" height="2.4" fill={cor} />
+            <rect x="65" y="146" width="2" height="2.4" fill={cor} />
+            <rect x="60" y="154" width="2" height="2.4" fill="white" fillOpacity="0.7" />
+            <rect x="65" y="154" width="2" height="2.4" fill={cor} />
+            <rect x="60" y="162" width="2" height="2.4" fill={cor} />
+            <rect x="82" y="176" width="2" height="2.4" fill={cor} />
+            <rect x="86" y="176" width="2" height="2.4" fill="white" fillOpacity="0.7" />
+            <rect x="98" y="160" width="2" height="2.4" fill={cor} />
+            <rect x="103" y="160" width="2" height="2.4" fill={cor} />
+            <rect x="98" y="168" width="2" height="2.4" fill="white" fillOpacity="0.65" />
+            <rect x="103" y="176" width="2" height="2.4" fill={cor} />
+            <rect x="0" y="272" width="124" height="8" fill="#070d18" />
           </svg>
           {logoUrl ? (
             <img
@@ -141,7 +147,7 @@ export function PropostaRelatorioSheet({
             {companyName}
           </p>
           <span className="relative z-10 mt-2 h-px w-8" style={{ backgroundColor: cor }} />
-          <div className="relative z-10 mt-auto mb-36 flex items-center gap-2">
+          <div className="relative z-10 mt-6 flex items-center gap-2">
             <span className="h-28 w-0.5 shrink-0" style={{ backgroundColor: cor }} />
             <p className="text-[9px] leading-tight text-white/85 [writing-mode:vertical-rl] rotate-180">
               Mais que imóveis, realizamos{" "}
@@ -212,14 +218,14 @@ export function PropostaRelatorioSheet({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-lg">
+            <div className="overflow-hidden rounded-lg border border-slate-200/80">
               <table className="w-full border-collapse text-[11px]">
                 <thead>
-                  <tr className="bg-[#162033] text-[9px] tracking-wide text-white">
-                    <th className="w-[12%] px-2 py-1.5 text-center font-semibold">QTD</th>
-                    <th className="px-2 py-1.5 text-left font-semibold">DESCRIÇÃO</th>
-                    <th className="w-[24%] px-2 py-1.5 text-right font-semibold">VALOR</th>
-                    <th className="w-[24%] px-2 py-1.5 text-right font-semibold">
+                  <tr className="bg-[#162033] text-[9px] tracking-[0.08em] text-white">
+                    <th className="w-[14%] px-2 py-2 text-center font-semibold">QTD</th>
+                    <th className="px-2 py-2 text-left font-semibold">DESCRIÇÃO</th>
+                    <th className="w-[24%] px-3 py-2 text-right font-semibold">VALOR</th>
+                    <th className="w-[26%] px-3 py-2 text-right font-semibold">
                       SUBTOTAL
                     </th>
                   </tr>
@@ -231,10 +237,19 @@ export function PropostaRelatorioSheet({
                         key={`${linha.descricao}-${linha.qtd}-${index}`}
                         className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}
                       >
-                        <td className="px-2 py-1.5 text-center font-semibold">{linha.qtd}</td>
-                        <td className="px-2 py-1.5 font-medium">{linha.descricao}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{linha.valor}</td>
-                        <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
+                        <td className="px-2 py-2 text-center">
+                          <span className="inline-flex min-w-6 justify-center rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-[#162033]">
+                            {linha.qtd}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 font-semibold text-[#162033]">
+                          <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-sky-400 align-middle" />
+                          {linha.descricao}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-slate-500">
+                          {linha.valor}
+                        </td>
+                        <td className="px-3 py-2 text-right text-[12px] font-bold tabular-nums text-[#162033]">
                           {linha.subtotal}
                         </td>
                       </tr>
@@ -254,33 +269,35 @@ export function PropostaRelatorioSheet({
             </div>
 
             <div className="mt-3 grid grid-cols-[1.15fr_1fr] overflow-hidden rounded-xl bg-[#162033] text-white">
-              <div className="flex items-center gap-2.5 px-3 py-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+              <div className="flex items-center gap-2.5 px-3 py-3.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
                   <Wallet className="h-4 w-4" />
                 </span>
                 <div>
                   <p className="text-[8px] font-semibold tracking-[0.08em] text-white/60">
                     TOTAL DA COMPOSIÇÃO
                   </p>
-                  <p className="text-base font-bold tabular-nums leading-tight">{brl(total)}</p>
+                  <p className="text-lg font-bold tabular-nums leading-tight">{brl(total)}</p>
                 </div>
               </div>
-              <div className="bg-white px-3 py-2 text-[#162033]">
-                <div className="flex items-center justify-between gap-2 py-1">
+              <div className="flex flex-col justify-center gap-1.5 bg-white px-3 py-2.5 text-[#162033]">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-[8px] font-semibold tracking-wide text-slate-400">
                     DESCONTO DO IMÓVEL
                   </span>
                   <span
-                    className={`text-[11px] font-bold tabular-nums ${desconto > 0 ? "text-rose-600" : "text-[#162033]"}`}
+                    className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${desconto > 0 ? "bg-rose-50 text-rose-600" : "text-[#162033]"}`}
                   >
                     {desconto > 0 ? `- ${brl(desconto)}` : brl(0)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 py-1">
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5">
                   <span className="text-[8px] font-semibold tracking-wide text-slate-400">
                     VALOR NEGOCIADO
                   </span>
-                  <span className="text-xs font-bold tabular-nums">{brl(valorNegociado)}</span>
+                  <span className="border-b-2 border-sky-400 text-sm font-bold tabular-nums">
+                    {brl(valorNegociado)}
+                  </span>
                 </div>
               </div>
             </div>

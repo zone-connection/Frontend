@@ -1332,7 +1332,7 @@ async function buildPropostaPdfClienteResumido(
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const sidebarW = 128;
+  const sidebarW = 136;
   const mainX = sidebarW + 18;
   const mainRight = pageW - 18;
   const mainW = mainRight - mainX;
@@ -1386,49 +1386,64 @@ async function buildPropostaPdfClienteResumido(
     doc.setFillColor(...ink);
     doc.rect(0, 0, sidebarW, pageH, "F");
 
-    const soft = new GState({ opacity: 0.22 });
+    const soft = new GState({ opacity: 0.18 });
     const clear = new GState({ opacity: 1 });
     doc.setGState(soft);
     doc.setFillColor(...C.gold);
-    doc.circle(sidebarW - 8, -6, 42, "F");
-    doc.circle(-16, pageH - 10, 54, "F");
+    doc.circle(108, 318, 28, "F");
     doc.setGState(clear);
+    doc.setFillColor(...ink);
+    doc.circle(118, 312, 24, "F");
+    doc.setFillColor(...C.gold);
+    doc.circle(96, 322, 10, "F");
 
-    doc.setDrawColor(...C.gold);
-    doc.setLineWidth(1.1);
-    doc.circle(sidebarW + 8, 8, 46, "S");
-    doc.circle(-22, pageH + 6, 96, "S");
-    doc.setLineWidth(0.55);
-    doc.setDrawColor(186, 214, 232);
-    doc.circle(-4, pageH + 18, 64, "S");
-    doc.circle(sidebarW - 4, 36, 22, "S");
-
-    doc.setFillColor(...inkSoft);
-    const towers: Array<[number, number, number]> = [
-      [16, 22, 16],
-      [34, 36, 14],
-      [50, 26, 18],
-      [70, 32, 16],
+    const stars: Array<[number, number, number]> = [
+      [28, 292, 1.1],
+      [46, 308, 0.8],
+      [62, 286, 1.3],
+      [78, 304, 0.7],
+      [112, 276, 0.9],
+      [34, 336, 0.8],
+      [88, 348, 1],
     ];
-    const skyBase = pageH - 16;
-    for (const [x, height, width] of towers) {
-      doc.rect(x, skyBase - height, width, height, "F");
-    }
-    doc.setFillColor(...C.gold);
-    doc.rect(38, skyBase - 28, 1.6, 2.2, "F");
-    doc.rect(42, skyBase - 28, 1.6, 2.2, "F");
-    doc.rect(38, skyBase - 22, 1.6, 2.2, "F");
-    doc.rect(74, skyBase - 24, 1.6, 2.2, "F");
-    doc.rect(78, skyBase - 24, 1.6, 2.2, "F");
+    stars.forEach(([sx, sy, radius], index) => {
+      doc.setFillColor(...(index % 2 === 0 ? C.gold : C.white));
+      doc.circle(sx, sy, radius, "F");
+    });
 
-    doc.setFillColor(...C.gold);
-    doc.circle(18, 168, 1.6, "F");
-    doc.circle(18, 178, 1.1, "F");
-    doc.circle(18, 186, 1.1, "F");
     doc.setDrawColor(...C.gold);
-    doc.setLineWidth(1.3);
-    doc.line(sidebarW - 1.2, 72, sidebarW - 1.2, pageH - 118);
+    doc.setLineWidth(1.15);
+    doc.circle(18, pageH - 8, 78, "S");
+    doc.setLineWidth(0.6);
+    doc.setDrawColor(176, 206, 224);
+    doc.circle(4, pageH + 16, 108, "S");
+    doc.circle(sidebarW - 18, pageH - 36, 34, "S");
 
+    const skyBase = pageH - 10;
+    const buildings: Array<[number, number, number, boolean]> = [
+      [8, 16, 62, false],
+      [26, 18, 96, true],
+      [46, 13, 74, false],
+      [61, 22, 148, true],
+      [85, 15, 108, true],
+      [102, 24, 128, true],
+    ];
+    for (const [bx, width, height, lit] of buildings) {
+      doc.setFillColor(...(lit ? inkSoft : ([32, 48, 74] as Rgb)));
+      doc.rect(bx, skyBase - height, width, height, "F");
+      if (!lit) continue;
+      doc.setFillColor(...C.gold);
+      const cols = Math.max(1, Math.floor((width - 4) / 5));
+      const rowsN = Math.max(1, Math.floor((height - 10) / 8));
+      for (let row = 0; row < rowsN; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if ((row + col) % 3 === 0) continue;
+          doc.rect(bx + 2.2 + col * 5, skyBase - height + 6 + row * 8, 1.7, 2.4, "F");
+        }
+      }
+    }
+    doc.setFillColor(10, 16, 30);
+    doc.rect(0, pageH - 8, sidebarW, 8, "F");
     doc.setFillColor(...pageBg);
     doc.rect(sidebarW, 0, pageW - sidebarW, pageH, "F");
 
@@ -1487,8 +1502,8 @@ async function buildPropostaPdfClienteResumido(
     doc.setFont("helvetica", "bold");
     const accentW = doc.getTextWidth(accentWord);
     const phraseH = leadW + accentW;
-    const textX = 28;
-    const textY = Math.min(pageH - 148, pageH / 2 + phraseH / 2);
+    const textX = 36;
+    const textY = Math.min(268, 118 + phraseH);
     doc.setDrawColor(...C.gold);
     doc.setLineWidth(1.4);
     doc.line(textX - 10, textY + 2, textX - 10, textY - phraseH - 2);
@@ -1657,16 +1672,16 @@ async function buildPropostaPdfClienteResumido(
     withTotals: boolean,
     rowH: number,
   ) {
-    const pad = 12;
-    const titleH = 36;
-    const headH = 22;
-    const totalH = withTotals ? 58 : 0;
+    const pad = 14;
+    const titleH = 40;
+    const headH = 26;
+    const totalH = withTotals ? 74 : 0;
     const cardH =
       pad +
       titleH +
       headH +
       slice.length * rowH +
-      (withTotals ? 10 + totalH : 0) +
+      (withTotals ? 12 + totalH : 0) +
       pad;
 
     doc.setFillColor(226, 230, 236);
@@ -1701,18 +1716,19 @@ async function buildPropostaPdfClienteResumido(
       return Math.round(tableW * fraction);
     });
 
+    doc.setFillColor(...ink);
+    roundedRect(doc, tableX, y, tableW, headH, 8, "F");
+    doc.rect(tableX, y + 8, tableW, headH - 8, "F");
     let x = tableX;
     headers.forEach((header, index) => {
       const width = colW[index]!;
-      doc.setFillColor(...ink);
-      doc.rect(x, y, width, headH, "F");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7);
       doc.setTextColor(...C.white);
       const align = index === 1 ? "left" : index === 0 ? "center" : "right";
       const textX =
-        index === 1 ? x + 8 : index === 0 ? x + width / 2 : x + width - 8;
-      doc.text(header, textX, y + 14, { align });
+        index === 1 ? x + 16 : index === 0 ? x + width / 2 : x + width - 10;
+      doc.text(header, textX, y + 17, { align });
       x += width;
     });
     y += headH;
@@ -1722,24 +1738,48 @@ async function buildPropostaPdfClienteResumido(
       x = tableX;
       doc.setFillColor(...(index % 2 === 0 ? C.white : rowAlt));
       doc.rect(x, y, tableW, rowH, "F");
+      doc.setDrawColor(226, 231, 238);
+      doc.setLineWidth(0.4);
+      doc.line(x + 8, y + rowH, x + tableW - 8, y + rowH);
       cells.forEach((cell, cellIndex) => {
         const width = colW[cellIndex]!;
-        doc.setFont("helvetica", cellIndex === 1 ? "bold" : "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(...ink);
-        const align =
-          cellIndex === 1 ? "left" : cellIndex === 0 ? "center" : "right";
-        const textX =
-          cellIndex === 1
-            ? x + 8
-            : cellIndex === 0
-              ? x + width / 2
-              : x + width - 8;
-        const shown =
-          cellIndex === 1
-            ? (doc.splitTextToSize(cell, width - 14)[0] ?? cell)
-            : cell;
-        doc.text(shown, textX, y + rowH * 0.68, { align });
+        const midY = y + rowH * 0.66;
+        if (cellIndex === 0 && cell !== "—") {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          const pillW = Math.max(18, doc.getTextWidth(cell) + 10);
+          const pillH = 13;
+          doc.setFillColor(...mixRgb(C.gold, C.white, 0.84));
+          roundedRect(
+            doc,
+            x + (width - pillW) / 2,
+            y + (rowH - pillH) / 2,
+            pillW,
+            pillH,
+            4,
+            "F",
+          );
+          doc.setTextColor(...ink);
+          doc.text(cell, x + width / 2, midY, { align: "center" });
+        } else if (cellIndex === 1) {
+          doc.setFillColor(...C.gold);
+          doc.circle(x + 10, y + rowH / 2, 1.6, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(...ink);
+          const shown = doc.splitTextToSize(cell, width - 22)[0] ?? cell;
+          doc.text(shown, x + 16, midY);
+        } else if (cellIndex === 2) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(110, 120, 134);
+          doc.text(cell, x + width - 10, midY, { align: "right" });
+        } else {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.setTextColor(...ink);
+          doc.text(cell, x + width - 10, midY, { align: "right" });
+        }
         x += width;
       });
       y += rowH;
@@ -1747,9 +1787,9 @@ async function buildPropostaPdfClienteResumido(
 
     if (!withTotals) return;
 
-    y += 10;
+    y += 12;
     const barH = totalH;
-    const split = tableX + tableW * 0.52;
+    const split = tableX + tableW * 0.5;
     doc.setFillColor(...ink);
     roundedRect(doc, tableX, y, tableW, barH, 12, "F");
     doc.setFillColor(...C.white);
@@ -1757,47 +1797,65 @@ async function buildPropostaPdfClienteResumido(
     doc.rect(split, y, 16, barH, "F");
     doc.setDrawColor(226, 230, 236);
     doc.setLineWidth(0.6);
-    doc.line(split, y + 12, split, y + barH - 12);
+    doc.line(split, y + 14, split, y + barH - 14);
 
     doc.setFillColor(...inkSoft);
-    roundedRect(doc, tableX + 10, y + (barH - 30) / 2, 30, 30, 8, "F");
-    drawWalletMark(tableX + 10, y + (barH - 30) / 2);
+    roundedRect(doc, tableX + 12, y + (barH - 32) / 2, 32, 32, 8, "F");
+    drawWalletMark(tableX + 12, y + (barH - 32) / 2);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(196, 204, 218);
-    doc.setCharSpace(0.35);
-    doc.text("TOTAL DA COMPOSIÇÃO", tableX + 48, y + 22);
+    doc.setCharSpace(0.4);
+    doc.text("TOTAL DA COMPOSIÇÃO", tableX + 52, y + 26);
     doc.setCharSpace(0);
-    doc.setFontSize(15);
+    doc.setFontSize(16);
     doc.setTextColor(...C.white);
-    const totalLabel = brl(propostaComposicaoTotal(p));
-    doc.text(totalLabel, tableX + 48, y + 42);
+    doc.text(brl(propostaComposicaoTotal(p)), tableX + 52, y + 48);
 
     const desconto = p.desconto ?? 0;
     const negociado = propostaValorLiquido(p);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(120, 128, 140);
-    doc.text("DESCONTO DO IMÓVEL", split + 16, y + 22);
+    doc.text("DESCONTO DO IMÓVEL", split + 16, y + 24);
+    const descontoLabel = desconto > 0 ? `- ${brl(desconto)}` : brl(0);
     doc.setFontSize(10);
+    const descontoW = doc.getTextWidth(descontoLabel);
     if (desconto > 0) {
+      doc.setFillColor(255, 228, 232);
+      roundedRect(
+        doc,
+        tableX + tableW - 16 - descontoW - 10,
+        y + 12,
+        descontoW + 12,
+        16,
+        4,
+        "F",
+      );
       doc.setTextColor(...danger);
-      doc.text(`- ${brl(desconto)}`, tableX + tableW - 14, y + 22, {
-        align: "right",
-      });
     } else {
       doc.setTextColor(...ink);
-      doc.text(brl(0), tableX + tableW - 14, y + 22, { align: "right" });
     }
+    doc.text(descontoLabel, tableX + tableW - 16, y + 23.5, { align: "right" });
     doc.setDrawColor(230, 234, 240);
-    doc.line(split + 16, y + barH / 2, tableX + tableW - 14, y + barH / 2);
+    doc.setLineWidth(0.5);
+    doc.line(split + 16, y + barH / 2, tableX + tableW - 16, y + barH / 2);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(120, 128, 140);
-    doc.text("VALOR NEGOCIADO", split + 16, y + 42);
-    doc.setFontSize(11);
+    doc.text("VALOR NEGOCIADO", split + 16, y + 50);
+    doc.setFontSize(13);
     doc.setTextColor(...ink);
-    doc.text(brl(negociado), tableX + tableW - 14, y + 42, { align: "right" });
+    doc.text(brl(negociado), tableX + tableW - 16, y + 50, { align: "right" });
+    const negociadoW = doc.getTextWidth(brl(negociado));
+    doc.setDrawColor(...C.gold);
+    doc.setLineWidth(1.2);
+    doc.line(
+      tableX + tableW - 16 - negociadoW,
+      y + 55,
+      tableX + tableW - 16,
+      y + 55,
+    );
   }
 
   paintPage();
@@ -1805,9 +1863,9 @@ async function buildPropostaPdfClienteResumido(
   y = drawHeader(y) + 12;
   y = drawIdentityCards(y) + 12;
 
-  const rowH = 18;
-  const overhead = 12 + 36 + 22 + 12;
-  const totalsBlock = 10 + 58;
+  const rowH = 22;
+  const overhead = 14 + 40 + 26 + 14;
+  const totalsBlock = 12 + 74;
   let pending = rows;
   let pageStart = y;
   let guard = 0;
