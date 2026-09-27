@@ -286,7 +286,7 @@ export async function deleteTenant(
 /** Gera dados fictícios completos (leads, imóveis, agenda, financeiro…) no tenant. */
 export async function populateTenantDemoData(
   id: string,
-  input: { limparAntes?: boolean } = {},
+  input: { limparAntes?: boolean; volumeExtra?: boolean } = {},
 ): Promise<PopulateDemoDataResult> {
   return apiFetch<PopulateDemoDataResult>(`/tenants/${id}/demo-data`, {
     method: "POST",

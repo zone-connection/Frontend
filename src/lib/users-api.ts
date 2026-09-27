@@ -242,6 +242,28 @@ export async function createUser(input: CreateUserInput): Promise<ApiUser> {
   return apiFetch<ApiUser>("/users", { method: "POST", body: input });
 }
 
+export type ImportUsersResult = {
+  created: number;
+  failed: number;
+  users: Array<{ id: string; name: string; email: string; role: Role }>;
+  errors: Array<{ index: number; nome: string; message: string }>;
+};
+
+export async function importUsers(
+  users: Array<{
+    name: string;
+    email: string;
+    password: string;
+    creci?: string;
+    role: Role;
+  }>,
+): Promise<ImportUsersResult> {
+  return apiFetch<ImportUsersResult>("/users/import", {
+    method: "POST",
+    body: { users },
+  });
+}
+
 export async function updateUser(
   id: string,
   input: UpdateUserInput,

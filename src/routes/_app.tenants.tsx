@@ -201,6 +201,7 @@ function TenantsPage() {
   const [deletingTenant, setDeletingTenant] = useState(false);
   const [demoTarget, setDemoTarget] = useState<Tenant | null>(null);
   const [demoLimparAntes, setDemoLimparAntes] = useState(false);
+  const [demoVolumeExtra, setDemoVolumeExtra] = useState(true);
   const [populatingDemo, setPopulatingDemo] = useState(false);
   const [demoResult, setDemoResult] = useState<PopulateDemoDataResult | null>(
     null,
@@ -643,9 +644,11 @@ function TenantsPage() {
     try {
       const result = await populateTenantDemoData(demoTarget.id, {
         limparAntes: demoLimparAntes,
+        volumeExtra: demoVolumeExtra,
       });
       setDemoTarget(null);
       setDemoLimparAntes(false);
+      setDemoVolumeExtra(true);
       setDemoResult(result);
       toast.success(
         `Dados de demonstração gerados em "${result.tenantName}".`,
@@ -2064,6 +2067,26 @@ function TenantsPage() {
                 reais, o funil e as conexões são mantidos. Sem marcar, os dados
                 novos são apenas somados (registros já existentes são
                 reaproveitados).
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 text-sm">
+            <Checkbox
+              checked={demoVolumeExtra}
+              disabled={populatingDemo}
+              onCheckedChange={(checked) =>
+                setDemoVolumeExtra(checked === true)
+              }
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">
+                Gerar 30% a mais de dados
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Acrescenta cerca de um terço a mais de leads, imóveis,
+                construtoras, agenda, documentações, propostas e financeiro
+                para a demonstração ficar mais cheia.
               </span>
             </span>
           </label>

@@ -43,6 +43,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   FormDialogActions,
   FormDialogBody,
   FormDialogShell,
@@ -74,6 +82,9 @@ import {
   Users,
   IdCard,
   FileText,
+  FileSpreadsheet,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { getSession, type Role, type UserStatus } from "@/lib/auth";
 import {
@@ -109,6 +120,7 @@ import {
   fetchUsers,
   fetchUsersPresenceToday,
   fetchUsersQuota,
+  importUsers,
   normalizeCreciStatus,
   resetUserPassword,
   updateUser,
@@ -136,6 +148,12 @@ import {
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import {
+  downloadUsersImportTemplate,
+  parseUsersFromExcel,
+  USER_IO_COLUMNS,
+  type ParsedImportUser,
+} from "@/lib/users-io";
 
 export const Route = createFileRoute("/_app/usuarios")({
   head: () => ({ meta: [{ title: "Usuários — Zone Connection" }] }),
@@ -468,6 +486,13 @@ function Usuarios() {
   const [userFormSection, setUserFormSection] =
     useState<UserFormSectionId>("identidade");
   const [saving, setSaving] = useState(false);
+  const [importHelpOpen, setImportHelpOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importParsing, setImportParsing] = useState(false);
+  const [importSaving, setImportSaving] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
+  const [importRows, setImportRows] = useState<ParsedImportUser[]>([]);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const [detail, setDetail] = useState<ApiUser | null>(null);
   const [weekPresence, setWeekPresence] = useState<UserPresenceWeek | null>(
@@ -867,6 +892,94 @@ function Usuarios() {
     }
   }
 
+  const importAllowedRoles = useMemo<Role[]>(() => {
+    if (!isAdmin) return ["corretor"];
+    const roles: Role[] = ["corretor", "treinee"];
+    if (canCreateAdmin) roles.push("admin");
+    if (canUseGerente) roles.push("gerente");
+    if (canUseAnalista) roles.push("analista");
+    if (canUseFinanceiro) roles.push("financeiro");
+    if (isSolo) roles.push("assistente");
+    return roles;
+  }, [
+    isAdmin,
+    canCreateAdmin,
+    canUseGerente,
+    canUseAnalista,
+    canUseFinanceiro,
+    isSolo,
+  ]);
+
+  async function handleImportFile(file: File) {
+    setImportParsing(true);
+    setImportFileName(file.name);
+    try {
+      const buffer = await file.arrayBuffer();
+      const rows = parseUsersFromExcel(buffer, importAllowedRoles);
+      if (rows.length === 0) {
+        toast.error("Nenhum usuário encontrado na planilha.");
+        return;
+      }
+      setImportRows(rows);
+      setImportHelpOpen(false);
+      setImportOpen(true);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível ler o arquivo.",
+      );
+    } finally {
+      setImportParsing(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
+  async function confirmImportUsers() {
+    const valid = importRows.filter(
+      (row): row is ParsedImportUser & { role: Role } =>
+        !row.error && Boolean(row.role),
+    );
+    if (valid.length === 0) {
+      toast.error("Nenhum usuário válido para importar.");
+      return;
+    }
+    setImportSaving(true);
+    try {
+      const result = await importUsers(
+        valid.map((row) => ({
+          name: row.name,
+          email: row.email,
+          password: row.password,
+          creci: row.creci || undefined,
+          role: row.role,
+        })),
+      );
+      setImportOpen(false);
+      setImportRows([]);
+      await load({ silent: true });
+      if (result.failed > 0) {
+        const sample = result.errors
+          .slice(0, 3)
+          .map((item) => `${item.nome}: ${item.message}`)
+          .join(" · ");
+        toast.error(
+          `${result.created} importado(s), ${result.failed} com erro.${
+            sample ? ` ${sample}` : ""
+          }`,
+        );
+      } else {
+        toast.success(`${result.created} usuário(s) importado(s).`);
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível importar os usuários.",
+      );
+    } finally {
+      setImportSaving(false);
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -882,19 +995,46 @@ function Usuarios() {
         }
         actions={
           canCreateBroker ? (
-            <Button
-              size="sm"
-              onClick={openCreate}
-              disabled={Boolean(quota && quota.restantes <= 0)}
-              title={
-                quota && quota.restantes <= 0
-                  ? "Limite do plano atingido"
-                  : undefined
-              }
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Novo usuário
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportFile(file);
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setImportHelpOpen(true)}
+                disabled={Boolean(quota && quota.restantes <= 0)}
+                title={
+                  quota && quota.restantes <= 0
+                    ? "Limite do plano atingido"
+                    : undefined
+                }
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Importar
+              </Button>
+              <Button
+                size="sm"
+                onClick={openCreate}
+                disabled={Boolean(quota && quota.restantes <= 0)}
+                title={
+                  quota && quota.restantes <= 0
+                    ? "Limite do plano atingido"
+                    : undefined
+                }
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Novo usuário
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -1312,26 +1452,9 @@ function Usuarios() {
             <FormSection
               icon={<UserPlus className="w-3.5 h-3.5 text-primary" />}
               title="Contato"
-              description="Canais de login, avisos e WhatsApp."
+              description="Avisos, telefone e WhatsApp."
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="usr-email"
-                    className="text-xs text-muted-foreground"
-                  >
-                    E-mail
-                  </Label>
-                  <Input
-                    id="usr-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setField("email", e.target.value)}
-                    placeholder="nome@imob.com"
-                    className="h-10 bg-background"
-                    required
-                  />
-                </div>
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="usr-notify-email"
@@ -1516,7 +1639,57 @@ function Usuarios() {
             <FormSection
               icon={<Shield className="w-3.5 h-3.5 text-primary" />}
               title="Acesso"
+              description="E-mail de login e senha do CRM."
             >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="usr-email"
+                    className="text-xs text-muted-foreground"
+                  >
+                    E-mail
+                  </Label>
+                  <Input
+                    id="usr-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setField("email", e.target.value)}
+                    placeholder="nome@imob.com"
+                    className="h-10 bg-background"
+                    required
+                  />
+                </div>
+                {formMode === "create" ? (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="usr-senha"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Senha inicial
+                    </Label>
+                    <Input
+                      id="usr-senha"
+                      type="text"
+                      autoComplete="new-password"
+                      value={form.password}
+                      onChange={(e) => setField("password", e.target.value)}
+                      placeholder="Ex.: Senha@123"
+                      className="h-10 bg-background"
+                      required
+                    />
+                    <p
+                      className={cn(
+                        "text-[11px]",
+                        form.password && !isStrongPassword(form.password)
+                          ? "text-destructive"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {PASSWORD_HINT}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">
@@ -1633,36 +1806,6 @@ function Usuarios() {
                   </div>
                 </div>
               ) : null}
-              {formMode === "create" && (
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="usr-senha"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Senha inicial
-                  </Label>
-                  <Input
-                    id="usr-senha"
-                    type="text"
-                    autoComplete="new-password"
-                    value={form.password}
-                    onChange={(e) => setField("password", e.target.value)}
-                    placeholder="Ex.: Senha@123"
-                    className="h-10 bg-background"
-                    required
-                  />
-                  <p
-                    className={cn(
-                      "text-[11px]",
-                      form.password && !isStrongPassword(form.password)
-                        ? "text-destructive"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {PASSWORD_HINT}
-                  </p>
-                </div>
-              )}
             </FormSection>
             </div>
           </FormDialogBody>
@@ -2032,6 +2175,179 @@ function Usuarios() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar usuários</DialogTitle>
+            <DialogDescription>
+              Use o modelo abaixo. Uma linha é um usuário.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="overflow-x-auto overflow-y-hidden rounded-md border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/60 text-left">
+                    {USER_IO_COLUMNS.map((column) => (
+                      <th key={column} className="p-2 font-medium">
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t text-muted-foreground">
+                    <td className="p-2">Marina Alves</td>
+                    <td className="p-2">51209-F</td>
+                    <td className="p-2">marina@imob.com</td>
+                    <td className="p-2">Senha@123</td>
+                    <td className="p-2">Corretor</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>
+                <span className="text-foreground">Nome</span>,{" "}
+                <span className="text-foreground">Email</span>,{" "}
+                <span className="text-foreground">Senha</span> e{" "}
+                <span className="text-foreground">Acesso</span> são
+                obrigatórios.
+              </li>
+              <li>CRECI é opcional. Se preencher, o processo fica como recebido.</li>
+              <li>
+                Acesso aceita: Corretor, Gerente, Administrador, Analista,
+                Trainee, Financeiro{isSolo ? " ou Assistente" : ""}.
+              </li>
+              <li>
+                Senha com no mínimo 8 caracteres, maiúscula, minúscula e
+                número.
+              </li>
+            </ul>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => downloadUsersImportTemplate()}
+            >
+              <FileSpreadsheet className="mr-1 h-4 w-4" />
+              Baixar modelo Excel
+            </Button>
+            <Button
+              type="button"
+              disabled={importParsing}
+              onClick={() => importInputRef.current?.click()}
+            >
+              {importParsing ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-1 h-4 w-4" />
+              )}
+              Escolher arquivo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
+          <DialogHeader>
+            <DialogTitle>Confirmar importação</DialogTitle>
+            <DialogDescription>
+              {importFileName ? `Arquivo: ${importFileName}. ` : ""}
+              Formato: Nome, CRECI, Email, Senha e Acesso.
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const validCount = importRows.filter((row) => !row.error).length;
+            const invalidRows = importRows.filter((row) => row.error);
+            return (
+              <>
+                {invalidRows.length > 0 ? (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+                    <p className="font-medium text-destructive">
+                      {invalidRows.length} linha
+                      {invalidRows.length === 1 ? "" : "s"} inválida
+                      {invalidRows.length === 1 ? "" : "s"} — não sobem.
+                    </p>
+                    <ul className="mt-1.5 max-h-28 space-y-0.5 overflow-auto text-xs text-destructive/90">
+                      {invalidRows.slice(0, 8).map((row, index) => (
+                        <li key={`${row.email}-${index}`}>
+                          {row.name || row.email || "Linha"}: {row.error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {validCount} usuário{validCount === 1 ? "" : "s"} pronto
+                    {validCount === 1 ? "" : "s"} para importar.
+                  </p>
+                )}
+                <div className="min-h-0 flex-1 overflow-auto rounded-md border">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="p-2 font-medium">Nome</th>
+                        <th className="p-2 font-medium">CRECI</th>
+                        <th className="p-2 font-medium">Email</th>
+                        <th className="p-2 font-medium">Acesso</th>
+                        <th className="p-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.map((row, index) => (
+                        <tr
+                          key={`${row.email}-${index}`}
+                          className="border-b last:border-0"
+                        >
+                          <td className="p-2">{row.name || "—"}</td>
+                          <td className="p-2">{row.creci || "—"}</td>
+                          <td className="p-2">{row.email || "—"}</td>
+                          <td className="p-2">
+                            {row.role ? ROLE_LABEL[row.role] : "—"}
+                          </td>
+                          <td className="p-2 text-xs">
+                            {row.error ? (
+                              <span className="text-destructive">{row.error}</span>
+                            ) : (
+                              <span className="text-emerald-700">Pronto</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setImportOpen(false)}
+                    disabled={importSaving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={importSaving || validCount === 0}
+                    onClick={() => void confirmImportUsers()}
+                  >
+                    {importSaving ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-1 h-4 w-4" />
+                    )}
+                    Importar {validCount}
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
