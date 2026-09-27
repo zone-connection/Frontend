@@ -153,6 +153,8 @@ import {
   ChevronsUpDown,
   Briefcase,
   LifeBuoy,
+  Users,
+  Settings,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -197,6 +199,9 @@ const FUNIL_CARDS_PER_COLUMN = 100;
 const FUNIL_GRADIENT_BTN =
   "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110";
 const FUNIL_GRADIENT_STYLE = BRAND_GRADIENT_STYLE;
+const FUNIL_FILTER =
+  "h-9 w-auto min-w-0 max-w-64 gap-2 rounded-full border-border/80 bg-card px-3 text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card [&>span]:line-clamp-none [&>span]:flex [&>span]:min-w-0 [&>span]:items-center";
+const FUNIL_FILTER_ON = "border-primary/50 bg-primary/10 text-primary";
 
 export const Route = createFileRoute("/_app/funil")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -1144,8 +1149,7 @@ export function ComercialFunilBoard({
         }
         actionsClassName="lg:max-w-none"
         actions={
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
               {showTeamFilters && isAdmin && (
                 <Select
                   value={filterEquipeId}
@@ -1154,8 +1158,16 @@ export function ComercialFunilBoard({
                     setFilterCorretorId("__all__");
                   }}
                 >
-                  <SelectTrigger className="h-8 w-46 rounded-full bg-background py-0">
-                    <SelectValue placeholder="Equipe" />
+                  <SelectTrigger
+                    className={cn(
+                      FUNIL_FILTER,
+                      filterEquipeId !== "__all__" && FUNIL_FILTER_ON,
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Users className="size-3.5 shrink-0 text-primary" />
+                      <SelectValue placeholder="Equipe" />
+                    </span>
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     <SelectItem value="__all__">Todas as equipes</SelectItem>
@@ -1179,9 +1191,16 @@ export function ComercialFunilBoard({
                       variant="outline"
                       role="combobox"
                       aria-expanded={corretorFilterOpen}
-                      className="h-8 w-46 justify-between rounded-full bg-background font-normal"
+                      className={cn(
+                        FUNIL_FILTER,
+                        "max-w-64 justify-between font-medium",
+                        filterCorretorId !== "__all__" && FUNIL_FILTER_ON,
+                      )}
                     >
-                      <span className="truncate">{selectedCorretorLabel}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CircleUser className="size-3.5 shrink-0 text-primary" />
+                        <span className="truncate">{selectedCorretorLabel}</span>
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1261,17 +1280,17 @@ export function ComercialFunilBoard({
               {!isClientesFunil && isGerente && (
                 <Button
                   type="button"
-                  variant={filterMeusLeads ? "default" : "outline"}
+                  variant="outline"
                   className={cn(
-                    "h-8 rounded-full font-normal",
-                    !filterMeusLeads && "bg-background",
+                    FUNIL_FILTER,
+                    filterMeusLeads && FUNIL_FILTER_ON,
                   )}
                   onClick={() => {
                     setFilterMeusLeads((v) => !v);
                     setFilterCorretorId("__all__");
                   }}
                 >
-                  <Briefcase className="mr-1.5 h-3.5 w-3.5" />
+                  <Briefcase className="size-3.5 shrink-0 text-primary" />
                   Meus leads
                 </Button>
               )}
@@ -1281,13 +1300,21 @@ export function ComercialFunilBoard({
                   setFilterMonitoramento(v as MonitoramentoFiltro)
                 }
               >
-                <SelectTrigger className="h-8 w-52 rounded-full bg-background py-0">
-                  <SelectValue placeholder="Monitoramento" />
+                <SelectTrigger
+                  className={cn(
+                    FUNIL_FILTER,
+                    filterMonitoramento !== "todos" && FUNIL_FILTER_ON,
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Clock className="size-3.5 shrink-0 text-primary" />
+                    <SelectValue placeholder="Prazos" />
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {MONITORAMENTO_FILTRO_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {opt.value === "todos" ? "Todos os prazos" : opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1296,24 +1323,24 @@ export function ComercialFunilBoard({
                 <Button
                   size="sm"
                   asChild
-                  className={cn("h-8 rounded-full", FUNIL_GRADIENT_BTN)}
+                  className={cn("h-9 gap-1.5 rounded-full px-4", FUNIL_GRADIENT_BTN)}
                   style={FUNIL_GRADIENT_STYLE}
                 >
                   <Link
                     to="/configuracoes"
                     search={{ secao: "operacao", item: "funil" }}
                   >
+                    <Settings className="size-3.5" />
                     Configurar funil
                   </Link>
                 </Button>
               )}
-            </div>
-            <div className="flex h-8 items-center overflow-hidden rounded-full border bg-background">
+            <div className="flex h-9 items-center overflow-hidden rounded-full border border-border/80 bg-card shadow-sm">
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 rounded-none"
+                className="h-9 w-9 rounded-none"
                 disabled={!canScrollLeft}
                 aria-label="Coluna anterior"
                 title="Coluna anterior"
@@ -1326,7 +1353,7 @@ export function ComercialFunilBoard({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 rounded-none"
+                className="h-9 w-9 rounded-none"
                 disabled={!canScrollRight}
                 aria-label="Próxima coluna"
                 title="Próxima coluna"

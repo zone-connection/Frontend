@@ -117,13 +117,223 @@ export function navBlockGradient(brandHex: string, sectionId: string) {
   return navBlockSolid(brandHex, sectionId);
 }
 
-function extractLogoHexFromImageData(
+/**
+ * Cores medidas na logo Zone Connection (ciano, teal e azul).
+ * Usadas até a imagem terminar de carregar.
+ */
+export const LOGO_PALETTE_FALLBACK = [
+  "#02b3ee",
+  "#019098",
+  "#017e9d",
+  "#2fa1d6",
+  "#027dc2",
+  "#014a7a",
+] as const;
+
+const SECTION_ORDER = [
+  "operacao",
+  "fechamento",
+  "catalogo",
+  "gestao",
+  "financeiro",
+  "conta",
+  "novidades",
+  "guia-sistema",
+] as const;
+
+export type SidebarTheme = {
+  surface: string;
+  logout: string;
+  bands: Record<string, string>;
+  /** Cor base de cada bloco, para pintar os itens internos. */
+  tones: Record<string, string>;
+};
+
+function mixHex(a: string, b: string, t: number): string {
+  const left = parseHexRgb(a);
+  const right = parseHexRgb(b);
+  if (!left || !right) return a;
+  return toHex(
+    left[0] + (right[0] - left[0]) * t,
+    left[1] + (right[1] - left[1]) * t,
+    left[2] + (right[2] - left[2]) * t,
+  );
+}
+
+function colorAt(colors: string[], t: number): string {
+  if (colors.length <= 1) return colors[0] ?? FALLBACK_BRAND_HEX;
+  const x = clamp(t, 0, 1) * (colors.length - 1);
+  const index = Math.min(Math.floor(x), colors.length - 2);
+  return mixHex(colors[index]!, colors[index + 1]!, x - index);
+}
+
+function paint(hex: string, light: number, minSat = 0.42): string {
+  const rgb = parseHexRgb(hex) ?? parseHexRgb(FALLBACK_BRAND_HEX)!;
+  const hsl = rgbToHsl(...rgb);
+  return toHex(
+    ...hslToRgb(hsl.h, clamp(Math.max(hsl.s, minSat), minSat, 0.88), light),
+  );
+}
+
+/** Mantém o tom da logo e deixa o branco do texto legível. */
+function readableBand(hex: string): string {
+  const rgb = parseHexRgb(hex) ?? parseHexRgb(FALLBACK_BRAND_HEX)!;
+  const hsl = rgbToHsl(...rgb);
+  const light =
+    hsl.l < 0.34 ? 0.38 : hsl.l > 0.58 ? 0.5 : clamp(hsl.l, 0.36, 0.52);
+  return paint(hex, light, 0.5);
+}
+
+/** Fundo e faixas do menu a partir das cores que compõem a logo. */
+export function sidebarThemeFromPalette(colors: string[]): SidebarTheme {
+  const palette = (colors.length ? colors : [...LOGO_PALETTE_FALLBACK]).slice(
+    0,
+    6,
+  );
+  const top = paint(palette[0]!, 0.11, 0.38);
+  const mid = paint(palette[Math.floor(palette.length / 2)]!, 0.13, 0.38);
+  const bottom = paint(palette[palette.length - 1]!, 0.08, 0.38);
+  const bands: Record<string, string> = {};
+  const tones: Record<string, string> = {};
+  SECTION_ORDER.forEach((id, index) => {
+    const t =
+      SECTION_ORDER.length === 1 ? 0 : index / (SECTION_ORDER.length - 1);
+    const base = readableBand(colorAt(palette, t));
+    tones[id] = base;
+    bands[id] = `linear-gradient(90deg, ${base} 0%, ${mixHex(base, "#ffffff", 0.14)} 100%)`;
+  });
+  const accent = palette.reduce((best, hex) => {
+    const current = parseHexRgb(hex);
+    const winner = parseHexRgb(best);
+    if (!current || !winner) return best;
+    const a = rgbToHsl(...current);
+    const b = rgbToHsl(...winner);
+    return a.s * a.l > b.s * b.l ? hex : best;
+  }, palette[0]!);
+  return {
+    surface: `linear-gradient(180deg, ${top} 0%, ${mid} 52%, ${bottom} 100%)`,
+    logout: readableBand(accent),
+    bands,
+    tones,
+  };
+}
+
+export const DEFAULT_SIDEBAR_THEME = sidebarThemeFromPalette([
+  ...LOGO_PALETTE_FALLBACK,
+]);
+
+let logoChromePalette: string[] = [...LOGO_PALETTE_FALLBACK];
+
+/** Pinta botões, filtros, formulários e tabelas com as cores da logo. */
+export function applyLogoChrome(colors: string[]) {
+  logoChromePalette = colors.length ? colors.slice(0, 6) : [...LOGO_PALETTE_FALLBACK];
+  if (typeof document === "undefined") return;
+  const palette = logoChromePalette;
+  const bright = palette[0] ?? "#02b3ee";
+  const mid = palette[Math.min(3, palette.length - 1)] ?? "#027dc2";
+  const deep = palette[palette.length - 1] ?? "#014a7a";
+  const root = document.documentElement;
+  const cta = `linear-gradient(135deg, ${bright} 0%, ${mid} 100%)`;
+  root.style.setProperty("--primary", mid);
+  root.style.setProperty("--primary-foreground", "#ffffff");
+  root.style.setProperty("--ring", mid);
+  root.style.setProperty("--brand-accent", bright);
+  root.style.setProperty("--info", bright);
+  root.style.setProperty("--module-title", deep);
+  root.style.setProperty("--btn-gradient-from", bright);
+  root.style.setProperty("--btn-gradient-to", mid);
+  root.style.setProperty("--btn-gradient-fg", "#ffffff");
+  root.style.setProperty("--background-image-brand-cta", cta);
+  root.style.setProperty(
+    "--background-image-brand-text",
+    `linear-gradient(to right, ${bright}, ${deep})`,
+  );
+  root.style.setProperty(
+    "--table-head-gradient",
+    `linear-gradient(90deg, ${bright} 0%, ${mid} 58%, ${deep} 100%)`,
+  );
+  root.style.setProperty("--table-head-end", deep);
+  root.style.setProperty(
+    "--logo-wash",
+    `color-mix(in srgb, ${mid} 12%, transparent)`,
+  );
+  const kpiBands = [
+    "operacao",
+    "fechamento",
+    "catalogo",
+    "gestao",
+    "financeiro",
+    "conta",
+  ];
+  kpiBands.forEach((id, step) => {
+    const index = Math.max(0, SECTION_ORDER.indexOf(id));
+    const t =
+      SECTION_ORDER.length === 1 ? 0 : index / (SECTION_ORDER.length - 1);
+    root.style.setProperty(
+      `--kpi-seq-${step + 1}`,
+      readableBand(colorAt(palette, t)),
+    );
+  });
+  if (!root.classList.contains("dark")) {
+    root.style.setProperty("--card", "#ffffff");
+    root.style.setProperty(
+      "--accent",
+      `color-mix(in srgb, ${bright} 16%, white)`,
+    );
+    root.style.setProperty("--accent-foreground", deep);
+    root.style.setProperty(
+      "--secondary",
+      `color-mix(in srgb, ${mid} 10%, white)`,
+    );
+    root.style.setProperty("--secondary-foreground", deep);
+  }
+}
+
+/** Reaplica a paleta da logo depois que a aparência sobrescreve as variáveis. */
+export function reapplyLogoChrome() {
+  applyLogoChrome(logoChromePalette);
+}
+
+/** Fundo do menu no tom escuro das cores da logo. */
+export const SIDEBAR_SURFACE = DEFAULT_SIDEBAR_THEME.surface;
+
+/** Faixa do bloco e o tom escuro dos itens internos, na cor da logo. */
+export function navSectionBand(
+  sectionId: string,
+  theme: SidebarTheme = DEFAULT_SIDEBAR_THEME,
+) {
+  const background =
+    theme.bands[sectionId] ??
+    theme.bands.operacao ??
+    DEFAULT_SIDEBAR_THEME.bands.operacao;
+  const base =
+    theme.tones[sectionId] ??
+    theme.tones.operacao ??
+    DEFAULT_SIDEBAR_THEME.tones.operacao ??
+    FALLBACK_BRAND_HEX;
+  return {
+    background,
+    panel: paint(base, 0.16, 0.42),
+    active: mixHex(base, "#ffffff", 0.22),
+  };
+}
+
+type LogoBucket = {
+  score: number;
+  r: number;
+  g: number;
+  b: number;
+  weight: number;
+  h: number;
+  l: number;
+};
+
+/** Separa as cores que de fato compõem a logo, do ciano ao azul escuro. */
+export function extractLogoPalette(
   data: Uint8ClampedArray,
-): string | null {
-  const buckets = new Map<
-    string,
-    { score: number; r: number; g: number; b: number; count: number }
-  >();
+  maxColors = 6,
+): string[] {
+  const buckets = new Map<string, LogoBucket>();
   for (let i = 0; i < data.length; i += 16) {
     const r = data[i] ?? 0;
     const g = data[i + 1] ?? 0;
@@ -133,29 +343,50 @@ function extractLogoHexFromImageData(
     const min = Math.min(r, g, b);
     const sat = max ? (max - min) / max : 0;
     const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
-    if (a < 96 || sat < 0.22 || lum < 0.12 || lum > 0.94) continue;
-    const key = [r, g, b].map((v) => Math.round(v / 24) * 24).join("-");
+    if (a < 80 || sat < 0.18 || lum < 0.07 || lum > 0.92) continue;
+    const { h, l } = rgbToHsl(r, g, b);
+    const key = `${Math.round(h / 10) * 10}-${Math.round(l * 8)}`;
     const score = sat * (a / 255);
     const bucket = buckets.get(key) ?? {
       score: 0,
       r: 0,
       g: 0,
       b: 0,
-      count: 0,
+      weight: 0,
+      h,
+      l,
     };
     bucket.score += score;
     bucket.r += r * score;
     bucket.g += g * score;
     bucket.b += b * score;
-    bucket.count += score;
+    bucket.weight += score;
     buckets.set(key, bucket);
   }
-  const primary = [...buckets.values()].sort((a, b) => b.score - a.score)[0];
-  if (!primary?.count) return null;
-  return toHex(
-    primary.r / primary.count,
-    primary.g / primary.count,
-    primary.b / primary.count,
+
+  const ranked = [...buckets.values()]
+    .filter((bucket) => bucket.weight > 0)
+    .sort((a, b) => b.score - a.score);
+  const picked: LogoBucket[] = [];
+  for (const bucket of ranked) {
+    const close = picked.some((item) => {
+      const hueGap = Math.min(
+        Math.abs(item.h - bucket.h),
+        360 - Math.abs(item.h - bucket.h),
+      );
+      return hueGap < 8 && Math.abs(item.l - bucket.l) < 0.08;
+    });
+    if (close) continue;
+    picked.push(bucket);
+    if (picked.length >= maxColors) break;
+  }
+  picked.sort((a, b) => a.h - b.h || b.l - a.l);
+  return picked.map((bucket) =>
+    toHex(
+      bucket.r / bucket.weight,
+      bucket.g / bucket.weight,
+      bucket.b / bucket.weight,
+    ),
   );
 }
 
@@ -182,8 +413,39 @@ export async function sampleLogoBrandHex(src: string): Promise<string | null> {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(img, 0, 0);
-    return extractLogoHexFromImageData(ctx.getImageData(0, 0, w, h).data);
+    const palette = extractLogoPalette(ctx.getImageData(0, 0, w, h).data);
+    return palette[0] ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Lê todas as cores da logo para montar o menu. */
+export async function sampleLogoPalette(src: string): Promise<string[]> {
+  if (typeof window === "undefined" || !src.trim()) return [];
+  const url =
+    src.startsWith("http") || src.startsWith("data:")
+      ? src
+      : new URL(src, window.location.origin).href;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("logo"));
+      image.src = url;
+    });
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h) return [];
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return [];
+    ctx.drawImage(img, 0, 0);
+    return extractLogoPalette(ctx.getImageData(0, 0, w, h).data);
+  } catch {
+    return [];
   }
 }

@@ -1,3 +1,5 @@
+import { reapplyLogoChrome } from "@/lib/brand-hue";
+
 const STORAGE_KEY = "crm_appearance_v1";
 
 export type AppearanceSlot = "aside" | "primary" | "background" | "gradient";
@@ -444,6 +446,7 @@ export function applyAppearance(prefs: AppearancePrefs) {
       root.style.removeProperty(key);
     }
   }
+  reapplyLogoChrome();
 }
 
 export function setAppearancePrefs(prefs: AppearancePrefs) {

@@ -39,7 +39,6 @@ import {
   Headset,
   BookOpen,
   BookMarked,
-  Newspaper,
   GraduationCap,
   Handshake,
   Library,
@@ -57,11 +56,14 @@ import { canAccessRoute, canSeeComissao } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
-import { useTenantTheme } from "@/lib/tenant-theme";
+import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
 import {
-  FALLBACK_BRAND_HEX,
-  navBlockSolid,
-  sampleLogoBrandHex,
+  applyLogoChrome,
+  DEFAULT_SIDEBAR_THEME,
+  LOGO_PALETTE_FALLBACK,
+  navSectionBand,
+  sampleLogoPalette,
+  sidebarThemeFromPalette,
 } from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
@@ -375,9 +377,9 @@ const NAV_SECTIONS: {
   {
     id: "novidades",
     label: "Novidades",
-    icon: Newspaper,
+    icon: Bell,
     standalone: true,
-    items: [{ to: "/novidades", label: "Novidades", icon: Newspaper }],
+    items: [{ to: "/novidades", label: "Novidades", icon: Bell }],
   },
   {
     id: "guia-sistema",
@@ -403,10 +405,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const { brandName, logoUrl, modules, tenant } = useTenantTheme();
-  const [brandHex, setBrandHex] = useState(
-    tenant?.primaryColor?.trim() || FALLBACK_BRAND_HEX,
-  );
+  const { brandName, logoUrl, modules } = useTenantTheme();
+  const [sidebarTheme, setSidebarTheme] = useState(DEFAULT_SIDEBAR_THEME);
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
@@ -437,19 +437,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const configured = tenant?.primaryColor?.trim();
-    if (configured) {
-      setBrandHex(configured);
-      return;
-    }
+    const src = logoUrl.trim() || DEFAULT_TENANT_LOGO;
     let cancelled = false;
-    void sampleLogoBrandHex(logoUrl).then((hex) => {
-      if (!cancelled && hex) setBrandHex(hex);
-    });
+    void (async () => {
+      let colors = await sampleLogoPalette(src);
+      if (
+        colors.length < 2 &&
+        src !== DEFAULT_TENANT_LOGO
+      ) {
+        colors = await sampleLogoPalette(DEFAULT_TENANT_LOGO);
+      }
+      if (cancelled) return;
+      const palette = colors.length
+        ? colors
+        : [...LOGO_PALETTE_FALLBACK];
+      setSidebarTheme(sidebarThemeFromPalette(palette));
+      applyLogoChrome(palette);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [tenant?.primaryColor, logoUrl]);
+  }, [logoUrl]);
 
   const loadNotificacoes = useCallback(async () => {
     try {
@@ -888,12 +896,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function renderAccountFooter(collapsedView: boolean) {
     return (
-      <div className="border-t border-sidebar-border">
+      <div className="mt-auto border-t border-white/10 px-3 py-3">
+        {canSettings ? (
+          <Link
+            to="/configuracoes"
+            title="Configurações"
+            className="mb-1 flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-xs text-white/75 hover:bg-white/10 hover:text-white"
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            {!collapsedView ? <span>Configurações</span> : null}
+          </Link>
+        ) : null}
         <a
           href={SUPPORT_WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex w-full items-center gap-2 p-3 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-xs text-white/75 hover:bg-white/10 hover:text-white"
           title="Suporte técnico"
         >
           <Headset className="h-4 w-4 shrink-0" />
@@ -902,8 +920,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={handleSignOut}
-          className="flex w-full cursor-pointer items-center gap-2 p-3 text-xs text-[#f87171] hover:bg-[#f87171]/15 hover:text-[#fca5a5]"
-          title="Sair"
+          className={cn(
+            "mt-2 inline-flex cursor-pointer items-center gap-2 rounded-full text-xs font-medium text-white shadow-sm hover:brightness-90",
+            collapsedView ? "size-9 justify-center p-0" : "px-3 py-2",
+          )}
+          title="Sair da conta"
+          style={{ background: sidebarTheme.logout }}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsedView && <span>Sair da conta</span>}
@@ -932,15 +954,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const parentClass =
-      "flex w-full items-center gap-3 px-3 py-2.5 text-[13.5px] font-medium text-white/95 transition-colors hover:bg-white/[0.04]";
+      "flex w-full items-center gap-3 px-3 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:brightness-110";
     const childClass = (active: boolean) =>
       cn(
         "relative flex w-full items-center gap-2.5 rounded-md py-2 pl-2.5 pr-2 text-[12.5px] font-normal transition-colors",
         active
-          ? "bg-white/[0.08] text-white"
-          : "text-white/70 hover:bg-white/[0.04] hover:text-white",
+          ? "text-white"
+          : "text-white/80 hover:bg-white/10 hover:text-white",
       );
-    const treeClass = "ml-[21px] space-y-0.5 border-l border-white/15 pl-2.5";
 
     return (
       <nav className="sidebar-nav-scroll flex-1 overflow-y-auto">
@@ -958,24 +979,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const active =
               pathname === standaloneLeaf.to ||
               pathname.startsWith(`${standaloneLeaf.to}/`);
-            const tone = navBlockSolid(brandHex, section.id);
+            const tone = navSectionBand(section.id, sidebarTheme);
             return (
-              <div
-                key={section.id}
-                className="border-b border-white/10"
-                style={{ borderLeft: tone.borderLeft }}
-              >
+              <div key={section.id} className="border-b border-black/25">
                 <Link
                   to={standaloneLeaf.to}
                   preload="intent"
                   onClick={onNavigate}
                   title={collapsedView ? section.label : undefined}
-                  className={cn(parentClass, active && "bg-white/[0.06] text-white")}
+                  className={cn(parentClass, active && "brightness-110")}
+                  style={{ background: tone.background }}
                 >
-                  <SectionIcon
-                    className="size-4 shrink-0 stroke-[1.6]"
-                    style={{ color: tone.accent }}
-                  />
+                  <SectionIcon className="size-4 shrink-0 stroke-[1.75] text-white" />
                   {!collapsedView && (
                     <>
                       <span className="flex-1 truncate">{section.label}</span>
@@ -987,39 +1002,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           }
 
-          const tone = navBlockSolid(brandHex, section.id);
+          const tone = navSectionBand(section.id, sidebarTheme);
           return (
-            <div
-              key={section.id}
-              className="border-b border-white/10 py-1"
-              style={{ borderLeft: tone.borderLeft }}
-            >
+            <div key={section.id} className="border-b border-black/25">
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 title={collapsedView ? section.label : undefined}
                 className={cn(parentClass, "cursor-pointer")}
+                style={{ background: tone.background }}
               >
-                <SectionIcon
-                  className="size-4 shrink-0 stroke-[1.6]"
-                  style={{ color: tone.accent }}
-                />
+                <SectionIcon className="size-4 shrink-0 stroke-[1.75] text-white" />
                 {!collapsedView && (
                   <>
                     <span className="flex-1 truncate text-left">
                       {section.label}
                     </span>
                     {isOpen ? (
-                      <ChevronDown className="size-4 shrink-0 text-white/50 stroke-[1.6]" />
+                      <ChevronDown className="size-4 shrink-0 text-white/80 stroke-[1.6]" />
                     ) : (
-                      <ChevronRight className="size-4 shrink-0 text-white/50 stroke-[1.6]" />
+                      <ChevronRight className="size-4 shrink-0 text-white/80 stroke-[1.6]" />
                     )}
                   </>
                 )}
               </button>
 
               {isOpen && !collapsedView && (
-                <div className={cn(treeClass, "mb-1.5 mt-0.5")}>
+                <div
+                  className="space-y-0.5 px-2 py-1.5"
+                  style={{ background: tone.panel }}
+                >
                   {section.items.map((item) => {
                     if (isNavGroup(item)) {
                       const groupOpen = !!openGroups[item.id];
@@ -1036,13 +1048,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               {item.label}
                             </span>
                             {groupOpen ? (
-                              <ChevronDown className="size-3.5 shrink-0 text-white/45 stroke-[1.6]" />
+                              <ChevronDown className="size-3.5 shrink-0 text-white/70 stroke-[1.6]" />
                             ) : (
-                              <ChevronRight className="size-3.5 shrink-0 text-white/45 stroke-[1.6]" />
+                              <ChevronRight className="size-3.5 shrink-0 text-white/70 stroke-[1.6]" />
                             )}
                           </button>
                           {groupOpen && (
-                            <div className={cn(treeClass, "mt-0.5")}>
+                            <div className="mt-0.5 space-y-0.5 pl-3">
                               {item.children.map((child) => {
                                 const active =
                                   pathname === child.to ||
@@ -1055,6 +1067,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                     preload="intent"
                                     onClick={onNavigate}
                                     className={childClass(active)}
+                                    style={
+                                      active
+                                        ? { background: tone.active }
+                                        : undefined
+                                    }
                                   >
                                     <ChildIcon className="size-3.5 shrink-0 stroke-[1.6]" />
                                     <span className="min-w-0 flex-1 truncate">{child.label}</span>
@@ -1080,6 +1097,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         preload="intent"
                         onClick={onNavigate}
                         className={childClass(active)}
+                        style={active ? { background: tone.active } : undefined}
                       >
                         <span className="relative shrink-0">
                           <Icon className="size-3.5 stroke-[1.6]" />
@@ -1127,12 +1145,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           collapsed ? "w-16" : "w-64",
-          "hidden md:flex shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 sticky top-0 h-screen flex-col",
+          "hidden md:flex shrink-0 border-r border-white/10 text-white transition-all duration-200 sticky top-0 h-screen flex-col",
         )}
+        style={{ background: sidebarTheme.surface }}
       >
         <div
           className={cn(
-            "flex border-b border-sidebar-border",
+            "flex border-b border-white/10",
             collapsed
               ? "flex-col items-center gap-1 px-1 py-2"
               : "items-center gap-2 px-3 h-14",
@@ -1193,14 +1212,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Drawer do menu mobile */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-transform duration-200 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] text-white border-r border-white/10 flex flex-col transition-transform duration-200 ease-out md:hidden",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
+        style={{ background: sidebarTheme.surface }}
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navegação"
       >
-        <div className="flex items-center gap-2 px-4 h-14 border-b border-sidebar-border">
+        <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10">
           <img
             src={logoUrl}
             alt={brandName}

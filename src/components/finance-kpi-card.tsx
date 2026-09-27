@@ -19,53 +19,73 @@ export type FinanceKpiTone =
   | "blue-5"
   | "blue-6";
 
-const TONE: Record<FinanceKpiTone, { bar: string; icon: string }> = {
-  teal: { bar: "bg-teal-600", icon: "bg-teal-600" },
-  emerald: { bar: "bg-cyan-600", icon: "bg-cyan-600" },
-  orange: { bar: "bg-orange-500", icon: "bg-orange-500" },
-  red: { bar: "bg-red-600", icon: "bg-red-600" },
-  blue: { bar: "bg-blue-600", icon: "bg-blue-600" },
-  violet: { bar: "bg-violet-600", icon: "bg-violet-600" },
-  rose: { bar: "bg-rose-500", icon: "bg-rose-500" },
-  "blue-1": { bar: "bg-[var(--kpi-seq-1,#5BC4E8)]", icon: "bg-[var(--kpi-seq-1,#5BC4E8)]" },
-  "blue-2": { bar: "bg-[var(--kpi-seq-2,#079ED4)]", icon: "bg-[var(--kpi-seq-2,#079ED4)]" },
-  "blue-3": { bar: "bg-[var(--kpi-seq-3,#0689BD)]", icon: "bg-[var(--kpi-seq-3,#0689BD)]" },
-  "blue-4": { bar: "bg-[var(--kpi-seq-4,#057AA8)]", icon: "bg-[var(--kpi-seq-4,#057AA8)]" },
-  "blue-5": { bar: "bg-[var(--kpi-seq-5,#04648A)]", icon: "bg-[var(--kpi-seq-5,#04648A)]" },
-  "blue-6": { bar: "bg-[var(--kpi-seq-6,#034E6E)]", icon: "bg-[var(--kpi-seq-6,#034E6E)]" },
-};
-
-/** Ícone circular do dashboard (referência de cards soltos). */
-const DASH_ICON: Record<FinanceKpiTone, string> = {
-  teal: "bg-teal-500",
-  emerald: "bg-emerald-500",
-  orange: "bg-orange-500",
-  red: "bg-red-500",
-  blue: "bg-sky-500",
-  violet: "bg-violet-500",
-  rose: "bg-rose-500",
-  "blue-1": "bg-[var(--kpi-seq-1,#5BC4E8)]",
-  "blue-2": "bg-[var(--kpi-seq-2,#079ED4)]",
-  "blue-3": "bg-[var(--kpi-seq-3,#0689BD)]",
-  "blue-4": "bg-[var(--kpi-seq-4,#057AA8)]",
-  "blue-5": "bg-[var(--kpi-seq-5,#04648A)]",
-  "blue-6": "bg-[var(--kpi-seq-6,#034E6E)]",
-};
-
-const DASH_WASH: Record<FinanceKpiTone, string> = {
-  teal: "bg-teal-50 border-teal-100/80 dark:bg-teal-950/25 dark:border-teal-900/40",
-  emerald: "bg-emerald-50 border-emerald-100/80 dark:bg-emerald-950/25 dark:border-emerald-900/40",
-  orange: "bg-orange-50 border-orange-100/80 dark:bg-orange-950/25 dark:border-orange-900/40",
-  red: "bg-rose-50 border-rose-100/80 dark:bg-rose-950/25 dark:border-rose-900/40",
-  blue: "bg-sky-50 border-sky-100/80 dark:bg-sky-950/25 dark:border-sky-900/40",
-  violet: "bg-violet-50 border-violet-100/80 dark:bg-violet-950/25 dark:border-violet-900/40",
-  rose: "bg-rose-50 border-rose-100/80 dark:bg-rose-950/25 dark:border-rose-900/40",
-  "blue-1": "bg-sky-50 border-sky-100/80",
-  "blue-2": "bg-sky-50 border-sky-100/80",
-  "blue-3": "bg-sky-50 border-sky-100/80",
-  "blue-4": "bg-sky-50 border-sky-100/80",
-  "blue-5": "bg-sky-50 border-sky-100/80",
-  "blue-6": "bg-sky-50 border-sky-100/80",
+/** Pastel do dashboard: cada indicador guarda a própria cor. */
+const TONE: Record<FinanceKpiTone, { icon: string; bar: string; wash: string }> = {
+  teal: {
+    icon: "bg-teal-500",
+    bar: "bg-teal-500",
+    wash: "border-teal-100/80 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-950/25",
+  },
+  emerald: {
+    icon: "bg-emerald-500",
+    bar: "bg-emerald-500",
+    wash: "border-emerald-100/80 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/25",
+  },
+  blue: {
+    icon: "bg-sky-500",
+    bar: "bg-sky-500",
+    wash: "border-sky-100/80 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-950/25",
+  },
+  orange: {
+    icon: "bg-orange-500",
+    bar: "bg-orange-500",
+    wash: "border-orange-100/80 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/25",
+  },
+  violet: {
+    icon: "bg-violet-500",
+    bar: "bg-violet-500",
+    wash: "border-violet-100/80 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/25",
+  },
+  rose: {
+    icon: "bg-rose-500",
+    bar: "bg-rose-500",
+    wash: "border-rose-100/80 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/25",
+  },
+  red: {
+    icon: "bg-red-500",
+    bar: "bg-red-500",
+    wash: "border-red-100/80 bg-red-50 dark:border-red-900/40 dark:bg-red-950/25",
+  },
+  "blue-1": {
+    icon: "bg-sky-400",
+    bar: "bg-sky-400",
+    wash: "border-sky-100/80 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-950/25",
+  },
+  "blue-2": {
+    icon: "bg-cyan-500",
+    bar: "bg-cyan-500",
+    wash: "border-cyan-100/80 bg-cyan-50 dark:border-cyan-900/40 dark:bg-cyan-950/25",
+  },
+  "blue-3": {
+    icon: "bg-teal-500",
+    bar: "bg-teal-500",
+    wash: "border-teal-100/80 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-950/25",
+  },
+  "blue-4": {
+    icon: "bg-blue-500",
+    bar: "bg-blue-500",
+    wash: "border-blue-100/80 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/25",
+  },
+  "blue-5": {
+    icon: "bg-emerald-500",
+    bar: "bg-emerald-500",
+    wash: "border-emerald-100/80 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/25",
+  },
+  "blue-6": {
+    icon: "bg-rose-500",
+    bar: "bg-rose-500",
+    wash: "border-rose-100/80 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/25",
+  },
 };
 
 function money(n: number) {
@@ -210,14 +230,14 @@ export function FinanceKpiCard({
   const card = (
     <div
       className={cn(
-        "h-full min-w-0 flex flex-col overflow-hidden text-card-foreground",
+        "relative h-full min-w-0 flex flex-col overflow-hidden text-card-foreground",
         isDash
           ? cn(
               "rounded-2xl border shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.06)]",
-              DASH_WASH[tone],
+              t.wash,
             )
           : "rounded-xl border border-border/60 bg-card shadow-sm",
-        !isDash && wash && DASH_WASH[tone],
+        !isDash && wash && t.wash,
         interactive && "transition-shadow hover:shadow-md",
         active && "border-primary/50 ring-2 ring-primary/25 shadow-md",
         className,
@@ -225,9 +245,7 @@ export function FinanceKpiCard({
       title={blurValue ? undefined : display}
     >
       {barOn ? (
-        <div
-          className={cn("w-full shrink-0", compact ? "h-1" : "h-1.5", t.bar)}
-        />
+        <div className={cn("w-full shrink-0", compact ? "h-1" : "h-1.5", t.bar)} />
       ) : null}
       <div
         className={cn(
@@ -243,7 +261,7 @@ export function FinanceKpiCard({
           className={cn(
             "flex items-center justify-center shrink-0 text-white shadow-sm",
             isDash
-              ? cn("size-11 rounded-full ring-4 ring-white/70", DASH_ICON[tone])
+              ? cn("size-11 rounded-full ring-4 ring-white/70", t.icon)
               : cn(
                   "rounded-md",
                   compact ? "w-8 h-8" : "w-8 h-8 sm:w-12 sm:h-12 sm:rounded-lg",

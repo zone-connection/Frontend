@@ -27,9 +27,9 @@ export const FILTER_VISTA_BTN =
 export const FILTER_VISTA_BTN_ACTIVE =
   "rounded-full bg-background text-foreground shadow-sm hover:bg-background hover:text-foreground";
 
-/** Card da lista no estilo Leads Perdidos. */
+/** Lista no mesmo card claro do restante da tela. */
 export const TABLE_SHELL =
-  "overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]";
+  "overflow-hidden rounded-2xl border border-black/5 bg-card text-card-foreground shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]";
 
 export const TABLE_LUX =
   "[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground";
