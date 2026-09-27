@@ -94,9 +94,6 @@ import {
   fetchDocumentacaoCorretores,
   fetchDocumentacoes,
   updateDocumentacao,
-  DEFAULT_DOCUMENTACAO_FONTES,
-  DEFAULT_STATUS1,
-  DEFAULT_STATUS2,
   displayFonte,
   type CreateDocumentacaoInput,
   type Documentacao,
@@ -108,6 +105,7 @@ import {
   isStatusAnalise,
   isStatusVendido,
   matchesDocPipelineStatus,
+  pickCatalogLabel,
   status1Group,
   statusesMatch,
   type DocPipelineStatus,
@@ -309,9 +307,9 @@ const emptyForm = (): FormState => ({
   nome: "",
   construtoraId: "",
   empreendimentoId: "",
-  fonte: "Outro",
-  status1: "Em análise",
-  status2: "Andamento",
+  fonte: "",
+  status1: "",
+  status2: "",
   corretorId: "",
   gerenteId: "",
   createdAt: todayDateInput(),
@@ -616,27 +614,9 @@ function DocumentacaoPage() {
     addItem,
     colorByLabel,
   } = useCatalog();
-  const fonteCatalog = useMemo(
-    () =>
-      documentacaoFontes.length > 0
-        ? documentacaoFontes
-        : [...DEFAULT_DOCUMENTACAO_FONTES],
-    [documentacaoFontes],
-  );
-  const status1Catalog = useMemo(
-    () =>
-      documentacaoStatus1.length > 0
-        ? documentacaoStatus1
-        : [...DEFAULT_STATUS1],
-    [documentacaoStatus1],
-  );
-  const status2Catalog = useMemo(
-    () =>
-      documentacaoStatus2.length > 0
-        ? documentacaoStatus2
-        : [...DEFAULT_STATUS2],
-    [documentacaoStatus2],
-  );
+  const fonteCatalog = documentacaoFontes;
+  const status1Catalog = documentacaoStatus1;
+  const status2Catalog = documentacaoStatus2;
   const canQuickCreateEmpreendimento =
     user?.role === "admin" ||
     user?.role === "gerente" ||
@@ -712,12 +692,8 @@ function DocumentacaoPage() {
     null,
   );
   const [statusLabel, setStatusLabel] = useState("");
-  const [extraStatus1, setExtraStatus1] = useState<string[]>([]);
-  const [extraStatus2, setExtraStatus2] = useState<string[]>([]);
-
   const [fonteOpen, setFonteOpen] = useState(false);
   const [fonteLabel, setFonteLabel] = useState("");
-  const [extraFontes, setExtraFontes] = useState<string[]>([]);
 
   const stageLabel = useCallback(
     (slug: string) => funnelStages.find((s) => s.id === slug)?.name ?? slug,
@@ -817,37 +793,31 @@ function DocumentacaoPage() {
 
   const status1Options = useMemo(() => {
     return dedupeStatusOptions(
-      [
-        ...status1Catalog,
-        ...extraStatus1,
-        ...items.map((i) => i.status1),
-        form.status1,
-      ],
+      [...status1Catalog, form.status1],
       "status1",
     );
-  }, [status1Catalog, extraStatus1, items, form.status1]);
+  }, [status1Catalog, form.status1]);
 
   const status2Options = useMemo(() => {
     return dedupeStatusOptions(
-      [
-        ...status2Catalog,
-        ...extraStatus2,
-        ...items.map((i) => i.status2),
-        form.status2,
-      ],
+      [...status2Catalog, form.status2],
       "status2",
     );
-  }, [status2Catalog, extraStatus2, items, form.status2]);
+  }, [status2Catalog, form.status2]);
 
   const fonteOptions = useMemo(() => {
-    const set = new Set<string>([
-      ...fonteCatalog,
-      ...extraFontes,
-      ...items.map((i) => displayFonte(i.fonte)).filter(Boolean),
-      displayFonte(form.fonte),
-    ]);
-    return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [fonteCatalog, extraFontes, items, form.fonte]);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of [...fonteCatalog, displayFonte(form.fonte)]) {
+      const label = raw?.trim();
+      if (!label) continue;
+      const key = label.toLocaleLowerCase("pt-BR");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(label);
+    }
+    return out;
+  }, [fonteCatalog, form.fonte]);
 
   const loadLookups = useCallback(async () => {
     try {
@@ -1295,6 +1265,9 @@ function DocumentacaoPage() {
     setFormMode("create");
     setEditingId(null);
     const base = emptyForm();
+    base.fonte = pickCatalogLabel(fonteCatalog, ["Outro"]);
+    base.status1 = pickCatalogLabel(status1Catalog, ["Em análise"]);
+    base.status2 = pickCatalogLabel(status2Catalog, ["Andamento"]);
     base.dataAnalise = todayDateInput();
     base.createdAt = todayDateInput();
     if (isSolo && user?.id) {
@@ -1311,6 +1284,25 @@ function DocumentacaoPage() {
     }
     setForm(base);
   }
+
+  useEffect(() => {
+    if (!open || formMode !== "create") return;
+    setForm((prev) => ({
+      ...prev,
+      fonte:
+        prev.fonte && fonteCatalog.includes(prev.fonte)
+          ? prev.fonte
+          : pickCatalogLabel(fonteCatalog, [prev.fonte]),
+      status1:
+        prev.status1 && status1Catalog.includes(prev.status1)
+          ? prev.status1
+          : pickCatalogLabel(status1Catalog, [prev.status1]),
+      status2:
+        prev.status2 && status2Catalog.includes(prev.status2)
+          ? prev.status2
+          : pickCatalogLabel(status2Catalog, [prev.status2]),
+    }));
+  }, [fonteCatalog, status1Catalog, status2Catalog, open, formMode]);
 
   function openCreate() {
     if (!canCreateDoc) return;
@@ -1611,22 +1603,17 @@ function DocumentacaoPage() {
             : "documentacao_status2",
         label,
       });
-    } catch {
-      // se já existir no catálogo, segue só selecionando
-      if (statusOpen === "status1") {
-        setExtraStatus1((prev) =>
-          prev.includes(label) ? prev : [...prev, label],
-        );
-      } else {
-        setExtraStatus2((prev) =>
-          prev.includes(label) ? prev : [...prev, label],
-        );
-      }
+      setField(statusOpen, label);
+      setStatusOpen(null);
+      setStatusLabel("");
+      toast.success("Status salvo no catálogo e selecionado.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível salvar o status no catálogo.",
+      );
     }
-    setField(statusOpen, label);
-    setStatusOpen(null);
-    setStatusLabel("");
-    toast.success("Status adicionado e selecionado.");
   }
 
   async function handleQuickCreateFonte(e: FormEvent) {
@@ -1638,15 +1625,17 @@ function DocumentacaoPage() {
     }
     try {
       await addItem({ type: "documentacao_fonte", label });
-    } catch {
-      setExtraFontes((prev) =>
-        prev.includes(label) ? prev : [...prev, label],
+      setField("fonte", label);
+      setFonteOpen(false);
+      setFonteLabel("");
+      toast.success("Fonte salva no catálogo e selecionada.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível salvar a fonte no catálogo.",
       );
     }
-    setField("fonte", label);
-    setFonteOpen(false);
-    setFonteLabel("");
-    toast.success("Fonte adicionada e selecionada.");
   }
 
   function findLeadForImport(
@@ -3067,12 +3056,12 @@ function DocumentacaoPage() {
                     )}
                   </div>
                   <Select
-                    value={form.fonte}
+                    value={form.fonte || undefined}
                     onValueChange={(v) => setField("fonte", v)}
                     disabled={readOnly}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {fonteOptions.map((label) => (
@@ -3102,7 +3091,7 @@ function DocumentacaoPage() {
                     )}
                   </div>
                   <Select
-                    value={form.status1}
+                    value={form.status1 || undefined}
                     onValueChange={(v) => {
                       setForm((prev) => ({
                         ...prev,
@@ -3117,7 +3106,7 @@ function DocumentacaoPage() {
                     disabled={readOnly}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {status1Options.map((label) => (
@@ -3147,12 +3136,12 @@ function DocumentacaoPage() {
                     )}
                   </div>
                   <Select
-                    value={form.status2}
+                    value={form.status2 || undefined}
                     onValueChange={(v) => setField("status2", v)}
                     disabled={readOnly}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {status2Options.map((label) => (

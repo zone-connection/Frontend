@@ -26,15 +26,15 @@ export function status1Group(
   const n = normalizeDocStatus(status);
   if (!n) return null;
   if (n.startsWith("reprov")) return "reprovado";
+  // Não agrupa "Aprovado c/ restrição" com "Aprovado" (badge usa docCreditoParecer).
   if (
-    n.includes("restric") ||
-    n.includes("restricao") ||
-    n.includes("comrestr")
+    n === "aprovado" ||
+    n === "aprovada" ||
+    n === "aprovados" ||
+    n === "aprovadas"
   ) {
-    // Tratado como parecer especial no badge; grupo base continua "aprovado".
     return "aprovado";
   }
-  if (n.startsWith("aprov")) return "aprovado";
   // Antes de "analise": "preanalise" contém a substring "analise".
   if (
     n.startsWith("preanalise") ||
@@ -258,6 +258,19 @@ export function docPipelineFromStatus1(
   if (status1Group(status1) === "reprovado") return "reprovado";
   if (isStatusAnalise(status1)) return "analise";
   return null;
+}
+
+/** Primeiro rótulo do catálogo que bate com a preferência, senão o primeiro item. */
+export function pickCatalogLabel(
+  options: readonly string[],
+  preferred: readonly string[],
+): string {
+  for (const want of preferred) {
+    const key = normalizeDocStatus(want);
+    const found = options.find((item) => normalizeDocStatus(item) === key);
+    if (found) return found.trim();
+  }
+  return options[0]?.trim() ?? "";
 }
 
 /** Deduplica só grafias iguais. Não junta “Aprovado” com “Aprovado c/ restrição”. */

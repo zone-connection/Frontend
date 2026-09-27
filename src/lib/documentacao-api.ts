@@ -29,6 +29,7 @@ export const DEFAULT_STATUS1 = [
   "Em análise",
   "Aprovado",
   "Aprovado c/ restrição",
+  "Reprovado",
 ] as const;
 
 /** Defaults de Status 2 (andamento comercial). */

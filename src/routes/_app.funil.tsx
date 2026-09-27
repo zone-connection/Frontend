@@ -124,9 +124,6 @@ import {
 import {
   createDocumentacao,
   fetchDocumentacoes,
-  DEFAULT_DOCUMENTACAO_FONTES,
-  DEFAULT_STATUS1,
-  DEFAULT_STATUS2,
 } from "@/lib/documentacao-api";
 import {
   nextCatalogColor,
@@ -164,7 +161,7 @@ import { cn } from "@/lib/utils";
 import { getWhatsAppUrl } from "@/lib/env";
 import { phoneDigits } from "@/lib/phone";
 import { celebrateAfterDocumentacao } from "@/lib/celebrations";
-import { isStatusVendido } from "@/lib/documentacao-status";
+import { isStatusVendido, pickCatalogLabel } from "@/lib/documentacao-status";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
 /** Slug legado (fallback se o funil não tiver papel configurado). */
@@ -2133,23 +2130,9 @@ function AnalistaFunilBoard() {
     documentacaoStatus2,
     addItem,
   } = useCatalog();
-  const fonteOptions =
-    documentacaoFontes.length > 0
-      ? documentacaoFontes
-      : [...DEFAULT_DOCUMENTACAO_FONTES];
-  const status1Options = (() => {
-    const base =
-      documentacaoStatus1.length > 0
-        ? documentacaoStatus1
-        : [...DEFAULT_STATUS1];
-    return base.includes("Em análise")
-      ? base
-      : ["Em análise", ...base];
-  })();
-  const status2Options =
-    documentacaoStatus2.length > 0
-      ? documentacaoStatus2
-      : [...DEFAULT_STATUS2];
+  const fonteOptions = documentacaoFontes;
+  const status1Options = documentacaoStatus1;
+  const status2Options = documentacaoStatus2;
 
   const [items, setItems] = useState<Analise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2214,20 +2197,15 @@ function AnalistaFunilBoard() {
   const skipAutoDocRef = useRef(false);
 
   function defaultDocFonte() {
-    return fonteOptions.includes("Outro")
-      ? "Outro"
-      : (fonteOptions[0] ?? "Outro");
+    return pickCatalogLabel(fonteOptions, ["Outro"]);
   }
 
   function defaultDocStatus1() {
-    if (status1Options.includes("Em análise")) return "Em análise";
-    return status1Options[0] ?? "Em análise";
+    return pickCatalogLabel(status1Options, ["Em análise"]);
   }
 
   function defaultDocStatus2() {
-    return status2Options.includes("Andamento")
-      ? "Andamento"
-      : (status2Options[0] ?? "Andamento");
+    return pickCatalogLabel(status2Options, ["Andamento"]);
   }
 
   async function autoRegisterDoc(item: Analise) {
