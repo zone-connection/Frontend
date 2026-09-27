@@ -247,6 +247,26 @@ export async function updateTenant(
   return apiFetch<Tenant>(`/tenants/${id}`, { method: "PATCH", body: input });
 }
 
+export async function uploadTenantLogo(
+  id: string,
+  file: File,
+): Promise<{ logoUrl: string | null }> {
+  const data = new FormData();
+  data.append("file", file);
+  return apiFetch<{ logoUrl: string | null }>(`/tenants/${id}/logo`, {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function deleteTenantLogo(
+  id: string,
+): Promise<{ logoUrl: string | null }> {
+  return apiFetch<{ logoUrl: string | null }>(`/tenants/${id}/logo`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateTenantAdmin(
   tenantId: string,
   input: { name?: string; email?: string },

@@ -50,6 +50,7 @@ import {
   deleteMetaConnection,
   deleteOzapConnection,
   deleteTenant,
+  deleteTenantLogo,
   fetchTenant,
   fetchTenants,
   populateTenantDemoData,
@@ -59,6 +60,7 @@ import {
   updateOzapConnection,
   updateTenant,
   updateTenantAdmin,
+  uploadTenantLogo,
   type PopulateDemoDataResult,
   type Tenant,
   type TenantAdminUser,
@@ -85,6 +87,10 @@ import {
   type TenantPlano,
 } from "@/lib/tenant-modules";
 import { formatCpfCnpj } from "@/lib/utils";
+import {
+  ImageUploadField,
+  assertImageFile,
+} from "@/components/image-upload-field";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -147,7 +153,6 @@ function connectionLabels(item: Tenant): string[] {
 }
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const LOGO_URL_REGEX = /^https?:\/\/.+/i;
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -207,6 +212,11 @@ function TenantsPage() {
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [editingUserCount, setEditingUserCount] = useState<number | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [pendingLogo, setPendingLogo] = useState<File | null>(null);
+  const [pendingLogoPreview, setPendingLogoPreview] = useState<string | null>(
+    null,
+  );
   const [resettingPassword, setResettingPassword] = useState(false);
   const [credentials, setCredentials] = useState<{
     name: string;
@@ -257,12 +267,33 @@ function TenantsPage() {
   }, [activeItems, inactiveItems, listFilter]);
   const pager = useTablePager(visibleItems, listFilter);
 
+  function clearPendingLogo() {
+    setPendingLogoPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    setPendingLogo(null);
+  }
+
+  function rememberLogo(tenantId: string, logoUrl: string | null) {
+    setForm((prev) => ({ ...prev, logoUrl: logoUrl ?? "" }));
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === tenantId ? { ...item, logoUrl } : item,
+      ),
+    );
+    setDetail((current) =>
+      current?.id === tenantId ? { ...current, logoUrl } : current,
+    );
+  }
+
   function openCreate() {
     setFormMode("create");
     setEditingId(null);
     setEditingAdmin(null);
     setEditingUserCount(null);
     setForm(emptyTenantForm());
+    clearPendingLogo();
     setSlugTouched(false);
     setTenantFormTab("dados");
     setFormOpen(true);
@@ -276,6 +307,7 @@ function TenantsPage() {
     setAdminEmail(item.admin?.email ?? "");
     setEditingUserCount(null);
     setTenantFormTab("dados");
+    clearPendingLogo();
     setForm({
       name: item.name,
       slug: item.slug,
@@ -296,6 +328,7 @@ function TenantsPage() {
       setAdminName(detail.admin?.name ?? "");
       setAdminEmail(detail.admin?.email ?? "");
       setEditingUserCount(detail.userCount);
+      rememberLogo(detail.id, detail.logoUrl);
       setForm({
         name: detail.name,
         slug: detail.slug,
@@ -380,6 +413,57 @@ function TenantsPage() {
     await loadItems();
   }
 
+  async function handleAddLogo(files: File[]) {
+    const file = files[0];
+    if (!file) return;
+    const invalid = assertImageFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    if (editingId && formMode === "edit") {
+      setLogoBusy(true);
+      try {
+        const updated = await uploadTenantLogo(editingId, file);
+        rememberLogo(editingId, updated.logoUrl);
+        toast.success("Logo enviada.");
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível enviar a logo.",
+        );
+      } finally {
+        setLogoBusy(false);
+      }
+      return;
+    }
+    clearPendingLogo();
+    setPendingLogo(file);
+    setPendingLogoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleRemoveLogo() {
+    if (editingId && formMode === "edit" && form.logoUrl.trim() && !pendingLogo) {
+      setLogoBusy(true);
+      try {
+        const updated = await deleteTenantLogo(editingId);
+        rememberLogo(editingId, updated.logoUrl);
+        toast.success("Logo removida.");
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível remover a logo.",
+        );
+      } finally {
+        setLogoBusy(false);
+      }
+      return;
+    }
+    clearPendingLogo();
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const name = form.name.trim();
@@ -396,12 +480,6 @@ function TenantsPage() {
       return;
     }
 
-    const logoUrl = form.logoUrl.trim();
-    if (logoUrl && !LOGO_URL_REGEX.test(logoUrl)) {
-      toast.error("A URL do logo deve começar com http:// ou https://.");
-      return;
-    }
-
     const modules = normalizeModulesForPlano(form.plano, form.modules);
 
     if (formMode === "create") {
@@ -412,13 +490,21 @@ function TenantsPage() {
           slug,
           documento: form.documento,
           status: form.status,
-          logoUrl: logoUrl || null,
           plano: form.plano,
           usuariosExtras: form.usuariosExtras,
           iaBotEnabled: form.iaBotEnabled,
           isTest: form.isTest,
           modules,
         });
+        let logoError: unknown = null;
+        if (pendingLogo) {
+          try {
+            await uploadTenantLogo(created.id, pendingLogo);
+          } catch (err) {
+            logoError = err;
+          }
+          clearPendingLogo();
+        }
         setFormOpen(false);
         setCredentials({
           name: created.admin.name,
@@ -427,6 +513,13 @@ function TenantsPage() {
           slug: created.slug,
         });
         toast.success("Tenant criado com administrador.");
+        if (logoError) {
+          toast.error(
+            logoError instanceof ApiError
+              ? logoError.message
+              : "O cliente foi criado, mas a logo não foi enviada.",
+          );
+        }
         await loadItems();
       } catch (err) {
         toast.error(
@@ -461,7 +554,6 @@ function TenantsPage() {
         name,
         documento: form.documento,
         status: form.status,
-        logoUrl: logoUrl || null,
         plano: form.plano,
         usuariosExtras: form.usuariosExtras,
         iaBotEnabled: form.iaBotEnabled,
@@ -1191,39 +1283,26 @@ function TenantsPage() {
               <TabsContent value="identidade" className="mt-0 space-y-0">
                 <FormSection title="Logo">
                   <p className="text-xs text-muted-foreground -mt-1">
-                    URL da logo da imobiliária. Se vazio, usa a logo da Zone
-                    Connection.
+                    A mesma logo do perfil da imobiliária. Se não houver
+                    arquivo, o CRM usa a logo da Zone Connection.
                   </p>
-                  <div className="space-y-2">
-                    <Label htmlFor="tenant-logo">URL do logo</Label>
-                    <Input
-                      id="tenant-logo"
-                      value={form.logoUrl}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          logoUrl: e.target.value,
-                        }))
-                      }
-                      placeholder="https://..."
-                    />
-                  </div>
-                  {form.logoUrl.trim() ? (
-                    <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
-                      <img
-                        src={form.logoUrl.trim()}
-                        alt="Prévia do logo"
-                        className="h-10 w-10 object-contain"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display =
-                            "none";
-                        }}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        Prévia (se a URL for válida)
-                      </span>
-                    </div>
-                  ) : null}
+                  <ImageUploadField
+                    images={
+                      pendingLogoPreview
+                        ? [pendingLogoPreview]
+                        : form.logoUrl.trim()
+                          ? [form.logoUrl.trim()]
+                          : []
+                    }
+                    max={1}
+                    label="Arquivo da logo"
+                    hint="JPG, PNG ou WebP, máx. 5 MB. O envio vale para a lista de clientes e para o menu da imobiliária."
+                    recommendedSize="800 × 400"
+                    busy={logoBusy}
+                    shape="logo"
+                    onAdd={(files) => void handleAddLogo(files)}
+                    onRemove={() => void handleRemoveLogo()}
+                  />
                 </FormSection>
               </TabsContent>
 
