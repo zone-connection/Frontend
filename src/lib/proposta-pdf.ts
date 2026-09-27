@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import { GState, jsPDF } from "jspdf";
 import { brl } from "@/lib/crm-types";
 import type { TenantBranding } from "@/lib/auth";
 import { phoneDigits, formatPhone } from "@/lib/phone";
@@ -1332,7 +1332,7 @@ async function buildPropostaPdfClienteResumido(
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const sidebarW = 118;
+  const sidebarW = 128;
   const mainX = sidebarW + 18;
   const mainRight = pageW - 18;
   const mainW = mainRight - mainX;
@@ -1386,13 +1386,48 @@ async function buildPropostaPdfClienteResumido(
     doc.setFillColor(...ink);
     doc.rect(0, 0, sidebarW, pageH, "F");
 
-    doc.setFillColor(...inkSoft);
-    doc.circle(-8, pageH + 8, 72, "F");
+    const soft = new GState({ opacity: 0.22 });
+    const clear = new GState({ opacity: 1 });
+    doc.setGState(soft);
+    doc.setFillColor(...C.gold);
+    doc.circle(sidebarW - 8, -6, 42, "F");
+    doc.circle(-16, pageH - 10, 54, "F");
+    doc.setGState(clear);
+
     doc.setDrawColor(...C.gold);
-    doc.setLineWidth(1.15);
-    doc.circle(-18, pageH + 24, 108, "S");
-    doc.setLineWidth(0.6);
-    doc.circle(8, pageH + 46, 78, "S");
+    doc.setLineWidth(1.1);
+    doc.circle(sidebarW + 8, 8, 46, "S");
+    doc.circle(-22, pageH + 6, 96, "S");
+    doc.setLineWidth(0.55);
+    doc.setDrawColor(186, 214, 232);
+    doc.circle(-4, pageH + 18, 64, "S");
+    doc.circle(sidebarW - 4, 36, 22, "S");
+
+    doc.setFillColor(...inkSoft);
+    const towers: Array<[number, number, number]> = [
+      [16, 22, 16],
+      [34, 36, 14],
+      [50, 26, 18],
+      [70, 32, 16],
+    ];
+    const skyBase = pageH - 16;
+    for (const [x, height, width] of towers) {
+      doc.rect(x, skyBase - height, width, height, "F");
+    }
+    doc.setFillColor(...C.gold);
+    doc.rect(38, skyBase - 28, 1.6, 2.2, "F");
+    doc.rect(42, skyBase - 28, 1.6, 2.2, "F");
+    doc.rect(38, skyBase - 22, 1.6, 2.2, "F");
+    doc.rect(74, skyBase - 24, 1.6, 2.2, "F");
+    doc.rect(78, skyBase - 24, 1.6, 2.2, "F");
+
+    doc.setFillColor(...C.gold);
+    doc.circle(18, 168, 1.6, "F");
+    doc.circle(18, 178, 1.1, "F");
+    doc.circle(18, 186, 1.1, "F");
+    doc.setDrawColor(...C.gold);
+    doc.setLineWidth(1.3);
+    doc.line(sidebarW - 1.2, 72, sidebarW - 1.2, pageH - 118);
 
     doc.setFillColor(...pageBg);
     doc.rect(sidebarW, 0, pageW - sidebarW, pageH, "F");
@@ -1434,6 +1469,15 @@ async function buildPropostaPdfClienteResumido(
     doc.setTextColor(...C.white);
     const sideName = doc.splitTextToSize(companyName, sidebarW - 28);
     doc.text(sideName.slice(0, 3), sidebarW / 2, cursor + 8, { align: "center" });
+    const nameBlock = Math.min(3, sideName.length) * 10;
+    doc.setDrawColor(...C.gold);
+    doc.setLineWidth(1.2);
+    doc.line(
+      sidebarW / 2 - 16,
+      cursor + 14 + nameBlock,
+      sidebarW / 2 + 16,
+      cursor + 14 + nameBlock,
+    );
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
@@ -1475,68 +1519,6 @@ async function buildPropostaPdfClienteResumido(
     doc.text(rightLabel, mainRight, footY - 1, { align: "right" });
     doc.line(mainRight - rightW - 34, footY - 4, mainRight - rightW - 8, footY - 4);
     doc.setLineWidth(0.6);
-  }
-
-  function drawSkyline(x: number, y: number, w: number, h: number) {
-    doc.setFillColor(18, 24, 46);
-    roundedRect(doc, x, y, w, h, 12, "F");
-    doc.setFillColor(255, 186, 132);
-    doc.circle(x + 54, y + 38, 26, "F");
-    doc.setFillColor(255, 222, 190);
-    doc.circle(x + 46, y + 32, 14, "F");
-
-    const base = y + h - 16;
-    const far: Rgb = [62, 76, 118];
-    const near: Rgb = [14, 20, 40];
-    const blocks: Array<{
-      dx: number;
-      dw: number;
-      dh: number;
-      tone: Rgb;
-      lit?: boolean;
-    }> = [
-      { dx: 18, dw: 16, dh: 30, tone: far },
-      { dx: 36, dw: 12, dh: 20, tone: far },
-      { dx: 50, dw: 28, dh: 58, tone: near, lit: true },
-      { dx: 80, dw: 14, dh: 44, tone: near, lit: true },
-      { dx: 96, dw: 18, dh: 26, tone: far },
-    ];
-    const sy = (h - 30) / 62;
-    for (const block of blocks) {
-      const bh = block.dh * sy;
-      doc.setFillColor(...block.tone);
-      doc.roundedRect(x + block.dx, base - bh, block.dw, bh, 1.2, 1.2, "F");
-      if (!block.lit) continue;
-      doc.setFillColor(246, 208, 122);
-      const cols = Math.max(1, Math.floor((block.dw - 5) / 5));
-      const rowsN = Math.max(1, Math.floor((bh - 8) / 7));
-      for (let row = 0; row < rowsN; row += 1) {
-        for (let col = 0; col < cols; col += 1) {
-          if ((row + col) % 3 === 0) continue;
-          doc.rect(
-            x + block.dx + 2.4 + col * 5,
-            base - bh + 4 + row * 7,
-            1.5,
-            2.1,
-            "F",
-          );
-        }
-      }
-    }
-
-    doc.setFillColor(...C.gold);
-    doc.rect(x + w - 112, y + 18, 2, 30, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...C.white);
-    const caption = doc.splitTextToSize(
-      "Seu próximo imóvel começa com uma boa proposta.",
-      96,
-    );
-    doc.text(caption.slice(0, 4), x + w - 12, y + 26, {
-      align: "right",
-      lineHeightFactor: 1.28,
-    });
   }
 
   function drawBuildingMark(x: number, y: number) {
@@ -1588,11 +1570,6 @@ async function buildPropostaPdfClienteResumido(
   }
 
   function drawHeader(top: number) {
-    const heroW = 258;
-    const heroH = 104;
-    const heroX = mainRight - heroW;
-    drawSkyline(heroX, top, heroW, heroH);
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(130, 140, 156);
@@ -1603,8 +1580,7 @@ async function buildPropostaPdfClienteResumido(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(...ink);
-    const titleW = Math.max(120, heroX - mainX - 16);
-    const nameLines = doc.splitTextToSize(companyName, titleW);
+    const nameLines = doc.splitTextToSize(companyName, mainW);
     doc.text(nameLines.slice(0, 2), mainX, top + 40);
     const afterName = top + 40 + Math.max(1, nameLines.slice(0, 2).length) * 20;
 
@@ -1622,7 +1598,7 @@ async function buildPropostaPdfClienteResumido(
       mainX,
       afterName + 16,
     );
-    return top + heroH;
+    return afterName + 8;
   }
 
   function drawIdentityCards(top: number) {

@@ -57,36 +57,6 @@ function SkylineMark() {
   );
 }
 
-function HeroSkyline() {
-  const towers = [
-    { h: "42%", w: "14px", tone: "bg-slate-400/80" },
-    { h: "30%", w: "10px", tone: "bg-slate-500/80" },
-    { h: "78%", w: "22px", tone: "bg-[#12182c]", lit: true },
-    { h: "58%", w: "12px", tone: "bg-[#1a2344]", lit: true },
-    { h: "36%", w: "16px", tone: "bg-slate-500/90" },
-  ];
-  return (
-    <div className="absolute inset-x-0 bottom-2 flex items-end gap-1 px-3">
-      {towers.map((tower) => (
-        <div
-          key={`${tower.h}-${tower.w}`}
-          className={`relative rounded-t-sm ${tower.tone}`}
-          style={{ height: tower.h, width: tower.w }}
-        >
-          {tower.lit ? (
-            <span className="absolute inset-1 grid grid-cols-2 gap-0.5">
-              <span className="bg-amber-200/90" />
-              <span className="bg-amber-100/40" />
-              <span className="bg-amber-100/30" />
-              <span className="bg-amber-200/80" />
-            </span>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function PropostaRelatorioSheet({
   companyName,
   logoUrl,
@@ -119,9 +89,40 @@ export function PropostaRelatorioSheet({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-[#f4f6fb] text-[#12182c] shadow-sm">
       <div className="flex min-h-[540px]">
-        <aside className="relative flex w-[92px] shrink-0 flex-col overflow-hidden bg-[#0c1424] px-3 py-4 text-white">
-          <div className="pointer-events-none absolute -left-10 bottom-[-36px] h-28 w-28 rounded-full border border-sky-300/70" />
-          <div className="pointer-events-none absolute -left-6 bottom-[-20px] h-20 w-20 rounded-full bg-[#1a2744]" />
+        <aside className="relative flex w-[108px] shrink-0 flex-col overflow-hidden bg-[#0b1220] px-3.5 py-5 text-white">
+          <span className="pointer-events-none absolute inset-y-8 right-0 w-px bg-gradient-to-b from-transparent via-sky-300/80 to-transparent" />
+          <span
+            className="pointer-events-none absolute -right-7 -top-8 h-16 w-16 rounded-full border"
+            style={{ borderColor: cor }}
+          />
+          <span
+            className="pointer-events-none absolute right-2 top-3 h-6 w-6 rounded-full opacity-30"
+            style={{ backgroundColor: cor }}
+          />
+          <span className="pointer-events-none absolute left-4 top-36 flex flex-col gap-1.5">
+            <i className="h-1 w-1 rounded-full" style={{ backgroundColor: cor }} />
+            <i className="h-1 w-1 rounded-full bg-white/35" />
+            <i className="h-1 w-1 rounded-full bg-white/20" />
+          </span>
+          <svg
+            className="pointer-events-none absolute bottom-0 left-0 h-40 w-full"
+            viewBox="0 0 108 160"
+            preserveAspectRatio="xMidYMax meet"
+            aria-hidden
+          >
+            <circle cx="6" cy="168" r="78" fill="none" stroke={cor} strokeWidth="1.2" />
+            <circle cx="20" cy="176" r="52" fill="none" stroke="white" strokeOpacity="0.28" />
+            <circle cx="-8" cy="146" r="34" fill="#16233c" />
+            <rect x="18" y="112" width="12" height="28" rx="1" fill="#243552" />
+            <rect x="32" y="96" width="16" height="44" rx="1" fill="#1b2c49" />
+            <rect x="50" y="106" width="11" height="34" rx="1" fill="#243552" />
+            <rect x="63" y="100" width="18" height="40" rx="1" fill="#15243f" />
+            <rect x="36" y="104" width="2" height="2.5" fill={cor} />
+            <rect x="40" y="104" width="2" height="2.5" fill={cor} />
+            <rect x="36" y="110" width="2" height="2.5" fill="white" fillOpacity="0.7" />
+            <rect x="68" y="108" width="2" height="2.5" fill={cor} />
+            <rect x="72" y="108" width="2" height="2.5" fill={cor} />
+          </svg>
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -139,8 +140,9 @@ export function PropostaRelatorioSheet({
           <p className="relative z-10 mt-3 text-[10px] font-semibold leading-tight">
             {companyName}
           </p>
-          <div className="relative z-10 mt-auto mb-8 flex items-center gap-2">
-            <span className="h-24 w-0.5 shrink-0" style={{ backgroundColor: cor }} />
+          <span className="relative z-10 mt-2 h-px w-8" style={{ backgroundColor: cor }} />
+          <div className="relative z-10 mt-auto mb-36 flex items-center gap-2">
+            <span className="h-28 w-0.5 shrink-0" style={{ backgroundColor: cor }} />
             <p className="text-[9px] leading-tight text-white/85 [writing-mode:vertical-rl] rotate-180">
               Mais que imóveis, realizamos{" "}
               <span className="font-semibold" style={{ color: cor }}>
@@ -151,33 +153,19 @@ export function PropostaRelatorioSheet({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3 p-3.5">
-          <div className="flex items-stretch gap-3">
-            <div className="min-w-0 flex-1 pt-1">
-              <p className="text-[9px] font-semibold tracking-[0.16em] text-slate-400">
-                PROPOSTA DE COMPRA
-              </p>
-              <h2 className="mt-1 truncate text-lg font-bold leading-tight text-[#162033]">
-                {companyName}
-              </h2>
-              <p className="mt-1 text-[9px] font-semibold tracking-[0.14em] text-slate-500">
-                PROPOSTA COMERCIAL
-              </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {data} · {codigo}
-              </p>
-            </div>
-            <div className="relative h-[104px] w-[46%] max-w-[240px] min-w-[140px] overflow-hidden rounded-xl bg-gradient-to-br from-orange-200 via-indigo-400 to-[#161c33]">
-              <span className="absolute left-6 top-5 h-12 w-12 rounded-full bg-orange-200/90" />
-              <span className="absolute left-4 top-3 h-7 w-7 rounded-full bg-orange-100" />
-              <HeroSkyline />
-              <div className="absolute inset-y-0 right-0 w-[48%] bg-gradient-to-l from-[#12182c]/80 to-transparent" />
-              <div className="absolute right-2 top-3 flex max-w-[108px] gap-1.5">
-                <span className="mt-0.5 h-7 w-0.5 shrink-0" style={{ backgroundColor: cor }} />
-                <p className="text-right text-[10px] font-semibold leading-snug text-white">
-                  Seu próximo imóvel começa com uma boa proposta.
-                </p>
-              </div>
-            </div>
+          <div className="pt-1">
+            <p className="text-[9px] font-semibold tracking-[0.16em] text-slate-400">
+              PROPOSTA DE COMPRA
+            </p>
+            <h2 className="mt-1 truncate text-lg font-bold leading-tight text-[#162033]">
+              {companyName}
+            </h2>
+            <p className="mt-1 text-[9px] font-semibold tracking-[0.14em] text-slate-500">
+              PROPOSTA COMERCIAL
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {data} · {codigo}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
