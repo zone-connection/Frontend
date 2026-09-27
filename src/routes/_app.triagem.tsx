@@ -35,6 +35,7 @@ import {
 } from "@/lib/permissions";
 import { ApiError } from "@/lib/api";
 import { brl, type Lead } from "@/lib/crm-types";
+import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import { useLeads } from "@/lib/leads-store";
 import { getWhatsAppUrl } from "@/lib/env";
 import { phoneDigits } from "@/lib/phone";
@@ -55,8 +56,10 @@ import { useCatalog } from "@/lib/catalog-store";
 import {
   createTriagemEvent,
   fetchTriagemKpis,
+  fetchTriagemLeads,
   type TriagemContact,
   type TriagemKpis,
+  type TriagemLeadsResponse,
   type TriagemOrigem,
 } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
@@ -123,8 +126,37 @@ function leadToContact(l: Lead): TriagemContact {
     corretor: l.corretorId ? { id: l.corretorId, name: l.corretor } : null,
     origemAtrasoLiberacao: l.origemAtrasoLiberacao ?? null,
     triagemOrigemHerdada: l.triagemOrigemHerdada ?? null,
-    updatedAt: l.updatedAt,
+    updatedAt: l.updatedAtIso ?? l.updatedAt,
+    estadoCivil: l.estadoCivil ?? null,
+    tipoRenda: l.tipoRenda ?? null,
   };
+}
+
+function useLeadDetalhe(detalheId: string | null) {
+  const [lead, setLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    if (!detalheId) {
+      setLead(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchLeadById(detalheId)
+      .then((api) => {
+        if (!cancelled) setLead(mapApiLead(api));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLead(null);
+          toast.error("Não foi possível abrir o contato.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detalheId]);
+
+  return lead;
 }
 
 function TriagemPage() {
@@ -174,7 +206,7 @@ function TriagemLeadCard({
   onSelect,
   onDetails,
 }: {
-  lead: Lead;
+  lead: TriagemContact;
   stageName: string;
   stageColor?: string | null;
   active: boolean;
@@ -232,7 +264,7 @@ function TriagemLeadCard({
                   {stageName}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  {formatRelativePt(lead.updatedAtIso ?? lead.updatedAt)}
+                  {formatRelativePt(lead.updatedAt)}
                 </span>
               </div>
             </div>
@@ -373,27 +405,43 @@ function useStageLabel() {
 function CorretorTriagem() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const user = getSession();
-  const { leads: allLeads, refresh } = useLeads();
   const { funnelStages } = useCatalog();
   const stageName = useStageLabel();
   const [kpis, setKpis] = useState<TriagemKpis | null>(null);
+  const [triagemLists, setTriagemLists] = useState<TriagemLeadsResponse>({
+    leads: [],
+    clientes: [],
+  });
+  const [listsLoading, setListsLoading] = useState(true);
 
-  const mine = useMemo(() => {
-    if (!user) return [];
-    return allLeads.filter(
-      (l) => l.corretorId === user.id || l.corretor === user.name,
-    );
-  }, [allLeads, user]);
+  const reloadLists = useCallback(async () => {
+    const data = await fetchTriagemLeads();
+    setTriagemLists(data);
+    return data;
+  }, []);
 
-  const leads = useMemo(
-    () => mine.filter((l) => l.tipo === "lead").map(leadToContact),
-    [mine],
-  );
-  const clientes = useMemo(
-    () => mine.filter((l) => l.tipo === "cliente").map(leadToContact),
-    [mine],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    setListsLoading(true);
+    void reloadLists()
+      .catch((err) => {
+        if (cancelled) return;
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível carregar a triagem.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setListsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadLists]);
+
+  const leads = triagemLists.leads;
+  const clientes = triagemLists.clientes;
 
   useEffect(() => {
     let cancelled = false;
@@ -407,7 +455,7 @@ function CorretorTriagem() {
     return () => {
       cancelled = true;
     };
-  }, [allLeads]);
+  }, []);
 
   const [selectedId, setSelectedId] = useState<string | null>(
     search.leadId ?? null,
@@ -453,7 +501,7 @@ function CorretorTriagem() {
     [clientes, stageFilter],
   );
 
-  // Prefill vindo do funil (?leadId=&stage=) — listas já vêm do store em memória.
+  // Prefill vindo do funil (?leadId=&stage=).
   useEffect(() => {
     if (!search.leadId) return;
     setSelectedId(search.leadId);
@@ -464,6 +512,15 @@ function CorretorTriagem() {
     setCreateTexto("");
     setCreateOpen(true);
   }, [search.leadId, search.stage]);
+
+  useEffect(() => {
+    if (!search.leadId) return;
+    if (clientes.some((c) => c.id === search.leadId)) {
+      setTipoFilter("cliente");
+      setCreateLeadId("");
+      setCreateClienteId(search.leadId);
+    }
+  }, [search.leadId, clientes]);
 
   function selectContact(id: string) {
     setSelectedId(id);
@@ -511,13 +568,13 @@ function CorretorTriagem() {
         origem: "manual",
       });
       prependTriagemHistoryCached(selectedId, created);
-      setEvents((prev) => [
-        created,
-        ...prev.filter((e) => e.id !== created.id),
-      ]);
+      setEvents((prev) => {
+        const ids = new Set(created.map((e) => e.id));
+        return [...created, ...prev.filter((e) => !ids.has(e.id))];
+      });
       setQuickTexto("");
       toast.success("Relato registrado (etapa mantida).");
-      void refresh({ silent: true });
+      void reloadLists();
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -540,11 +597,7 @@ function CorretorTriagem() {
     const all = [...leads, ...clientes];
     return all.find((c) => c.id === selectedId) ?? null;
   }, [leads, clientes, selectedId]);
-  const detalheLead = mine.find((l) => l.id === detalheId) ?? null;
-  const leadMap = useMemo(
-    () => new Map(mine.map((l) => [l.id, l])),
-    [mine],
-  );
+  const detalheLead = useLeadDetalhe(detalheId);
 
   async function submitCreate() {
     const leadId = createLeadId || createClienteId;
@@ -571,14 +624,14 @@ function CorretorTriagem() {
         ...(createStage !== "__none__" ? { stage: createStage } : {}),
       });
       prependTriagemHistoryCached(leadId, created);
-      setEvents((prev) => [
-        created,
-        ...prev.filter((e) => e.id !== created.id),
-      ]);
+      setEvents((prev) => {
+        const ids = new Set(created.map((e) => e.id));
+        return [...created, ...prev.filter((e) => !ids.has(e.id))];
+      });
       toast.success("Relato registrado na triagem.");
       closeCreate();
       setSelectedId(leadId);
-      void refresh({ silent: true });
+      void reloadLists();
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -626,7 +679,7 @@ function CorretorTriagem() {
             <FinanceKpiCard
               label="Em análise"
               value={
-                mine.filter((l) => {
+                [...leads, ...clientes].filter((l) => {
                   const papel = funnelStages.find((s) => s.id === l.stage)?.papel;
                   return papel === "analise";
                 }).length
@@ -724,7 +777,10 @@ function CorretorTriagem() {
               </div>
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-muted/20 p-3">
-              {filteredLeads.length === 0 && (
+              {listsLoading && filteredLeads.length === 0 && (
+                <p className="text-xs text-muted-foreground">Carregando...</p>
+              )}
+              {!listsLoading && filteredLeads.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   {stageFilter !== "__all__"
                     ? "Nenhum lead nesta etapa."
@@ -732,13 +788,11 @@ function CorretorTriagem() {
                 </p>
               )}
               {filteredLeads.map((c) => {
-                const full = leadMap.get(c.id);
-                if (!full) return null;
                 const stage = funnelStages.find((s) => s.id === c.stage);
                 return (
                   <TriagemLeadCard
                     key={c.id}
-                    lead={full}
+                    lead={c}
                     stageName={stageName(c.stage)}
                     stageColor={stage?.color}
                     active={selectedId === c.id}
@@ -761,19 +815,20 @@ function CorretorTriagem() {
               </span>
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-muted/20 p-3">
-              {filteredClientes.length === 0 && (
+              {listsLoading && filteredClientes.length === 0 && (
+                <p className="text-xs text-muted-foreground">Carregando...</p>
+              )}
+              {!listsLoading && filteredClientes.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Nenhum cliente.
                 </p>
               )}
               {filteredClientes.map((c) => {
-                const full = leadMap.get(c.id);
-                if (!full) return null;
                 const stage = funnelStages.find((s) => s.id === c.stage);
                 return (
                   <TriagemLeadCard
                     key={c.id}
-                    lead={full}
+                    lead={c}
                     stageName={stageName(c.stage)}
                     stageColor={stage?.color}
                     active={selectedId === c.id}
@@ -860,7 +915,7 @@ function CorretorTriagem() {
                     setEvents((prev) =>
                       prev.map((e) => (e.id === updated.id ? updated : e)),
                     );
-                    void refresh({ silent: true });
+                    void reloadLists();
                   }}
                 />
               </div>
@@ -1057,6 +1112,42 @@ function ManagerTriagem() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [leadSort, setLeadSort] = useState<"recent" | "name">("recent");
+  const [triagemLists, setTriagemLists] = useState<TriagemLeadsResponse>({
+    leads: [],
+    clientes: [],
+  });
+  const [listsLoading, setListsLoading] = useState(false);
+
+  const reloadLists = useCallback(async (corretorId: string) => {
+    const data = await fetchTriagemLeads(corretorId);
+    setTriagemLists(data);
+    return data;
+  }, []);
+
+  useEffect(() => {
+    if (isPlatformAdmin || !selectedCorretorId) {
+      setTriagemLists({ leads: [], clientes: [] });
+      setListsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setListsLoading(true);
+    void reloadLists(selectedCorretorId)
+      .catch((err) => {
+        if (cancelled) return;
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível carregar a triagem.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setListsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPlatformAdmin, selectedCorretorId, reloadLists]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -1104,16 +1195,22 @@ function ManagerTriagem() {
   }, [allCorretores, corretorIdsNaEquipe, corretorSearch]);
 
   const leads = useMemo(() => {
-    const raw = isPlatformAdmin
-      ? allLeads.filter((l) => l.tipo === tipoFilter)
-      : !selectedCorretorId
-        ? []
-        : allLeads.filter(
-            (l) =>
-              l.tipo === tipoFilter && l.corretorId === selectedCorretorId,
-          );
-    return raw.map(leadToContact);
-  }, [allLeads, isPlatformAdmin, selectedCorretorId, tipoFilter]);
+    if (isPlatformAdmin) {
+      return allLeads
+        .filter((l) => l.tipo === tipoFilter)
+        .map(leadToContact);
+    }
+    if (!selectedCorretorId) return [];
+    return tipoFilter === "cliente"
+      ? triagemLists.clientes
+      : triagemLists.leads;
+  }, [
+    allLeads,
+    isPlatformAdmin,
+    selectedCorretorId,
+    tipoFilter,
+    triagemLists,
+  ]);
 
   const filteredLeads = useMemo(() => {
     const sorted = sortTriagemContacts(
@@ -1121,14 +1218,13 @@ function ManagerTriagem() {
         ? leads
         : leads.filter((l) => l.stage === stageFilter),
     );
-    const byId = new Map(allLeads.map((l) => [l.id, l]));
     return [...sorted].sort((a, b) => {
       if (leadSort === "name") return a.nome.localeCompare(b.nome, "pt-BR");
-      const ta = new Date(byId.get(a.id)?.updatedAtIso ?? a.updatedAt).getTime();
-      const tb = new Date(byId.get(b.id)?.updatedAtIso ?? b.updatedAt).getTime();
-      return tb - ta;
+      return (
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
     });
-  }, [leads, stageFilter, leadSort, allLeads]);
+  }, [leads, stageFilter, leadSort]);
 
   const selectedLead =
     filteredLeads.find((l) => l.id === selectedLeadId) ??
@@ -1137,7 +1233,7 @@ function ManagerTriagem() {
   const selectedCorretor =
     allCorretores.find((c) => c.id === selectedCorretorId) ??
     corretores.find((c) => c.id === selectedCorretorId);
-  const detalheLead = allLeads.find((l) => l.id === detalheId) ?? null;
+  const detalheLead = useLeadDetalhe(detalheId);
 
   const leadStatsByCorretor = useMemo(() => {
     const map = new Map<string, { leads: number; analise: number }>();
@@ -1176,7 +1272,7 @@ function ManagerTriagem() {
     return () => {
       cancelled = true;
     };
-  }, [selectedEquipeId, allLeads]);
+  }, [selectedEquipeId]);
 
   function selectEquipe(id: string) {
     setSelectedEquipeId(id);
@@ -1223,13 +1319,14 @@ function ManagerTriagem() {
         origem: "manual",
       });
       prependTriagemHistoryCached(selectedLeadId, created);
-      setEvents((prev) => [
-        created,
-        ...prev.filter((e) => e.id !== created.id),
-      ]);
+      setEvents((prev) => {
+        const ids = new Set(created.map((e) => e.id));
+        return [...created, ...prev.filter((e) => !ids.has(e.id))];
+      });
       setQuickTexto("");
       toast.success("Relato registrado (etapa mantida).");
       void refresh({ silent: true });
+      if (selectedCorretorId) void reloadLists(selectedCorretorId);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -1517,7 +1614,10 @@ function ManagerTriagem() {
               </Select>
               </div>
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-muted/20 p-3">
-                {filteredLeads.length === 0 && (
+                {listsLoading && filteredLeads.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Carregando...</p>
+                )}
+                {!listsLoading && filteredLeads.length === 0 && (
                   <p className="text-xs text-muted-foreground">
                     {stageFilter !== "__all__"
                       ? `Nenhum ${tipoFilter === "cliente" ? "cliente" : "lead"} nesta etapa.`
@@ -1525,13 +1625,11 @@ function ManagerTriagem() {
                   </p>
                 )}
                 {filteredLeads.map((l) => {
-                  const full = allLeads.find((item) => item.id === l.id);
-                  if (!full) return null;
                   const stage = funnelStages.find((s) => s.id === l.stage);
                   return (
                     <TriagemLeadCard
                       key={l.id}
-                      lead={full}
+                      lead={l}
                       stageName={stageName(l.stage)}
                       stageColor={stage?.color}
                       active={selectedLeadId === l.id}
@@ -1642,6 +1740,7 @@ function ManagerTriagem() {
                       prev.map((e) => (e.id === updated.id ? updated : e)),
                     );
                     void refresh({ silent: true });
+                    if (selectedCorretorId) void reloadLists(selectedCorretorId);
                   }}
                 />
               </div>
@@ -1667,6 +1766,7 @@ function ManagerTriagem() {
         }}
         onUpdated={() => {
           void refresh({ silent: true });
+          if (selectedCorretorId) void reloadLists(selectedCorretorId);
         }}
       />
     </div>

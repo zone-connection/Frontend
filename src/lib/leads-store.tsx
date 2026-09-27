@@ -447,9 +447,19 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useLeads() {
+function useLeadsContext() {
   const ctx = useContext(LeadsContext);
   if (!ctx) throw new Error("useLeads must be used within LeadsProvider");
+  return ctx;
+}
+
+/** Lê o store sem disparar o carregamento paginado de todos os contatos. */
+export function useLeadsSnapshot() {
+  return useLeadsContext();
+}
+
+export function useLeads() {
+  const ctx = useLeadsContext();
   useEffect(() => {
     ctx.requestLeads();
   }, [ctx.requestLeads]);

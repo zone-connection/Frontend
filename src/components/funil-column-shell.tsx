@@ -78,7 +78,7 @@ export function FunilColumnShell({
     <div
       {...rest}
       className={cn(
-        "flex w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-black/[0.06] shadow-[0_10px_28px_-20px_rgba(15,23,42,0.55)] transition-[box-shadow] duration-200 ease-out",
+        "flex w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl border border-black/[0.06] shadow-[0_10px_28px_-20px_rgba(15,23,42,0.55)]",
         FUNNEL_COLUMN_BODY,
         orphan && "border-amber-400/60",
         active &&

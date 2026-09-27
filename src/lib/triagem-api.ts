@@ -14,6 +14,8 @@ export interface TriagemContact {
   interesse: string;
   cidade: string;
   bairro: string;
+  estadoCivil?: string | null;
+  tipoRenda?: string | null;
   corretorId: string | null;
   corretor: { id: string; name: string } | null;
   origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
@@ -62,7 +64,7 @@ export type CreateTriagemInput = {
   stageAnterior?: string;
 };
 
-/** Contatos da tela: corretor = leads+clientes; gestor = leads do corretorId. */
+/** Contatos da tela: corretor = leads+clientes; gestor = leads e clientes do corretorId. */
 export async function fetchTriagemLeads(
   corretorId?: string,
 ): Promise<TriagemLeadsResponse> {
@@ -105,11 +107,12 @@ export async function fetchTriagemKpis(opts?: {
 
 export async function createTriagemEvent(
   input: CreateTriagemInput,
-): Promise<TriagemEvent> {
-  return apiFetch<TriagemEvent>("/triagem", {
+): Promise<TriagemEvent[]> {
+  const res = await apiFetch<TriagemEvent | TriagemEvent[]>("/triagem", {
     method: "POST",
     body: input,
   });
+  return Array.isArray(res) ? res : [res];
 }
 
 export async function updateTriagemEvent(

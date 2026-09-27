@@ -143,11 +143,18 @@ export function HistoryTimeline({
         {events.map((ev, index) => {
           const stageSlug = ev.stageNovo || ev.stageAnterior || fallbackStage;
           const stageName = stageSlug ? stageLabel(stageSlug) : null;
+          const fromStageName = ev.stageAnterior
+            ? stageLabel(ev.stageAnterior)
+            : null;
           const changedStage = Boolean(
             ev.stageAnterior &&
             ev.stageNovo &&
             ev.stageAnterior !== ev.stageNovo,
           );
+          const stagePath =
+            changedStage && fromStageName && stageName
+              ? `${fromStageName} → ${stageName}`
+              : null;
           const isLast = index === events.length - 1;
           const isOwn =
             canEditOwn && session?.id != null && ev.autor.id === session.id;
@@ -223,14 +230,16 @@ export function HistoryTimeline({
                           <Badge
                             variant="secondary"
                             className={cn(
-                              "h-6 w-auto max-w-[10rem] rounded-full px-2.5 text-[11px] font-semibold",
+                              "h-6 w-auto max-w-[16rem] rounded-full px-2.5 text-[11px] font-semibold",
                               "bg-primary/10 text-primary border-transparent",
                             )}
                             title={
-                              changedStage ? stageName : `Manteve ${stageName}`
+                              stagePath ??
+                              (changedStage ? stageName : `Manteve ${stageName}`)
                             }
                           >
-                            {changedStage ? stageName : `Manteve ${stageName}`}
+                            {stagePath ??
+                              (changedStage ? stageName : `Manteve ${stageName}`)}
                           </Badge>
                         )}
                         <Badge variant="outline" className="rounded-full text-[10px]">

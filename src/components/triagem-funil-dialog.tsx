@@ -183,10 +183,10 @@ export function TriagemFunilDialog({
         origem: "manual",
       });
       prependTriagemHistoryCached(lead.id, created);
-      setEvents((prev) => [
-        created,
-        ...prev.filter((e) => e.id !== created.id),
-      ]);
+      setEvents((prev) => {
+        const ids = new Set(created.map((e) => e.id));
+        return [...created, ...prev.filter((e) => !ids.has(e.id))];
+      });
       setQuickTexto("");
       toast.success("Relato registrado. A etapa do funil foi mantida.");
       onLeadTouched?.();

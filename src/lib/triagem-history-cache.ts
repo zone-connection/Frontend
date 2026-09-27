@@ -20,10 +20,15 @@ export function setTriagemHistoryCached(
 
 export function prependTriagemHistoryCached(
   leadId: string,
-  event: TriagemEvent,
+  event: TriagemEvent | TriagemEvent[],
 ) {
+  const incoming = Array.isArray(event) ? event : [event];
+  const ids = new Set(incoming.map((e) => e.id));
   const prev = historyCache.get(leadId) ?? [];
-  historyCache.set(leadId, [event, ...prev.filter((e) => e.id !== event.id)]);
+  historyCache.set(leadId, [
+    ...incoming,
+    ...prev.filter((e) => !ids.has(e.id)),
+  ]);
 }
 
 export function replaceTriagemHistoryCached(

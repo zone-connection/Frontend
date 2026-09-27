@@ -541,12 +541,17 @@ export function ComercialFunilBoard({
     pointerId: number;
     startX: number;
     startY: number;
+    lastX: number;
+    lastY: number;
     offsetX: number;
     offsetY: number;
     width: number;
     activated: boolean;
     longPressTimer: ReturnType<typeof setTimeout> | null;
   } | null>(null);
+  const columnRectsRef = useRef<Array<{ id: StageId; rect: DOMRect }>>([]);
+  const activeDropStageRef = useRef<StageId | null>(null);
+  const dragMoveRafRef = useRef<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -797,6 +802,10 @@ export function ComercialFunilBoard({
     return () => {
       const s = dragSession.current;
       if (s?.longPressTimer != null) clearTimeout(s.longPressTimer);
+      if (dragMoveRafRef.current != null) {
+        cancelAnimationFrame(dragMoveRafRef.current);
+        dragMoveRafRef.current = null;
+      }
       dragSession.current = null;
     };
   }, []);
@@ -813,19 +822,39 @@ export function ComercialFunilBoard({
     };
   }, [dragging]);
 
-  const DRAG_THRESHOLD_PX = 8;
-  const TOUCH_DRAG_DELAY_MS = 200;
+  const DRAG_THRESHOLD_PX = 3;
+  const TOUCH_DRAG_DELAY_MS = 80;
+
+  function cacheColumnRects() {
+    const board = boardRef.current;
+    if (!board) {
+      columnRectsRef.current = [];
+      return;
+    }
+    columnRectsRef.current = Array.from(
+      board.querySelectorAll("[data-funnel-stage]"),
+    ).flatMap((el) => {
+      const id = el.getAttribute("data-funnel-stage");
+      if (!id) return [];
+      return [{ id: id as StageId, rect: el.getBoundingClientRect() }];
+    });
+  }
 
   function stageFromPoint(x: number, y: number): StageId | null {
-    const stack = document.elementsFromPoint(x, y);
-    for (const el of stack) {
-      if (!(el instanceof Element)) continue;
-      if (el.closest("[data-dragging-card]")) continue;
-      const col = el.closest("[data-funnel-stage]");
-      const id = col?.getAttribute("data-funnel-stage");
-      if (id) return id as StageId;
+    const cols = columnRectsRef.current;
+    for (const col of cols) {
+      const { rect } = col;
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return col.id;
+      }
     }
     return null;
+  }
+
+  function setDropStageIfChanged(stage: StageId | null) {
+    if (activeDropStageRef.current === stage) return;
+    activeDropStageRef.current = stage;
+    setActiveDropStage(stage);
   }
 
   function clearDragTimers() {
@@ -842,7 +871,28 @@ export function ComercialFunilBoard({
     if (!s?.activated || !el) return;
     const x = clientX - s.offsetX;
     const y = clientY - s.offsetY;
-    el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(3deg) scale(1.04)`;
+    el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+
+  function flushDragMove() {
+    dragMoveRafRef.current = null;
+    const s = dragSession.current;
+    if (!s?.activated) return;
+    setDropStageIfChanged(stageFromPoint(s.lastX, s.lastY));
+    const board = boardRef.current;
+    if (!board) return;
+    const rect = board.getBoundingClientRect();
+    const edge = 56;
+    const step = 28;
+    let scrolled = false;
+    if (s.lastX < rect.left + edge) {
+      board.scrollLeft -= step;
+      scrolled = true;
+    } else if (s.lastX > rect.right - edge) {
+      board.scrollLeft += step;
+      scrolled = true;
+    }
+    if (scrolled) cacheColumnRects();
   }
 
   function activateCardDrag(leadId: string, target: HTMLElement, pointerId: number) {
@@ -859,33 +909,14 @@ export function ComercialFunilBoard({
     } catch {
       /* pointer already released */
     }
+    cacheColumnRects();
     setDragging(leadId);
-    // Posiciona o overlay após o portal montar.
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        positionDragOverlay(
-          dragSession.current?.startX ?? s.startX,
-          dragSession.current?.startY ?? s.startY,
-        );
-      });
+      const live = dragSession.current;
+      if (!live?.activated) return;
+      positionDragOverlay(live.lastX, live.lastY);
+      setDropStageIfChanged(stageFromPoint(live.lastX, live.lastY));
     });
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try {
-        navigator.vibrate?.(12);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-
-  function autoScrollBoard(clientX: number) {
-    const board = boardRef.current;
-    if (!board) return;
-    const rect = board.getBoundingClientRect();
-    const edge = 56;
-    const step = 18;
-    if (clientX < rect.left + edge) board.scrollLeft -= step;
-    else if (clientX > rect.right - edge) board.scrollLeft += step;
   }
 
   function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, leadId: string) {
@@ -898,6 +929,8 @@ export function ComercialFunilBoard({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
+      lastX: e.clientX,
+      lastY: e.clientY,
       offsetX: 0,
       offsetY: 0,
       width: 0,
@@ -917,6 +950,8 @@ export function ComercialFunilBoard({
     const s = dragSession.current;
     if (!s || s.pointerId !== e.pointerId) return;
 
+    s.lastX = e.clientX;
+    s.lastY = e.clientY;
     const dist = Math.hypot(e.clientX - s.startX, e.clientY - s.startY);
 
     if (!s.activated) {
@@ -936,8 +971,9 @@ export function ComercialFunilBoard({
     if (!dragSession.current?.activated) return;
     e.preventDefault();
     positionDragOverlay(e.clientX, e.clientY);
-    setActiveDropStage(stageFromPoint(e.clientX, e.clientY));
-    autoScrollBoard(e.clientX);
+    if (dragMoveRafRef.current == null) {
+      dragMoveRafRef.current = requestAnimationFrame(flushDragMove);
+    }
   }
 
   function endCardPointer(
@@ -949,7 +985,12 @@ export function ComercialFunilBoard({
 
     const { leadId, activated } = s;
     clearDragTimers();
+    if (dragMoveRafRef.current != null) {
+      cancelAnimationFrame(dragMoveRafRef.current);
+      dragMoveRafRef.current = null;
+    }
     dragSession.current = null;
+    activeDropStageRef.current = null;
     setActiveDropStage(null);
     setDragging(null);
 
@@ -984,15 +1025,17 @@ export function ComercialFunilBoard({
     }
 
     const stageName = funnelStages.find((s) => s.id === stage)?.name ?? stage;
-    // Feedback imediato (a API já atualiza o board de forma otimista no store).
     toast.success(`${lead.nome} movido para ${stageName}`);
-    afterStageAdvanced(lead, stage);
+    const move = updateLeadStage(
+      leadId,
+      stage,
+      isCorretor ? { omitTriagem: true } : undefined,
+    );
+    requestAnimationFrame(() => {
+      afterStageAdvanced(lead, stage);
+    });
     try {
-      await updateLeadStage(
-        leadId,
-        stage,
-        isCorretor ? { omitTriagem: true } : undefined,
-      );
+      await move;
     } catch (err) {
       cancelStageFollowUps();
       toast.error(
@@ -1420,7 +1463,10 @@ export function ComercialFunilBoard({
       <div
         ref={boardRef}
         data-guia="funil-board"
-        className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 scroll-smooth"
+        className={cn(
+          "flex gap-3 overflow-x-auto pb-4 -mx-6 px-6",
+          !dragging && "scroll-smooth",
+        )}
       >
         {boardStages.map((stage) => {
           const isOrphanColumn = stage.id === FORA_DO_FUNIL_STAGE;
@@ -1455,10 +1501,13 @@ export function ComercialFunilBoard({
                     onPointerCancel={(e) => endCardPointer(e, false)}
                     onClick={() => openDetail(l)}
                     className={cn(
-                      "rounded-xl border-black/5 p-3 cursor-grab active:cursor-grabbing touch-manipulation select-none shadow-sm transition-[opacity,box-shadow,transform] duration-200",
+                      "rounded-xl border-black/5 p-3 cursor-grab active:cursor-grabbing touch-manipulation select-none shadow-sm",
+                      dragging
+                        ? "transition-none"
+                        : "transition-[opacity,box-shadow,transform] duration-150",
                       dragging === l.id
-                        ? "scale-[0.98] border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none"
-                        : "hover:-translate-y-0.5 hover:shadow-md",
+                        ? "border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none"
+                        : !dragging && "hover:-translate-y-0.5 hover:shadow-md",
                       (l.origemAtrasoLiberacao === "retrabalho" ||
                         l.triagemOrigemHerdada === "retrabalho") &&
                         dragging !== l.id &&
@@ -1679,7 +1728,7 @@ export function ComercialFunilBoard({
                   transform: "translate3d(-9999px, -9999px, 0)",
                 }}
               >
-                <Card className="animate-in fade-in zoom-in-95 origin-center border-primary/30 bg-card p-3 shadow-2xl shadow-black/25 ring-1 ring-black/5 duration-150">
+                <Card className="border-primary/30 bg-card p-3 shadow-2xl shadow-black/25 ring-1 ring-black/5">
                   <div className="mb-1.5 flex items-start justify-between gap-2">
                     <div className="table-person-name flex min-w-0 items-center gap-1.5 text-sm">
                       <CircleUser
