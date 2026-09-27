@@ -139,7 +139,13 @@ export async function updateFunil(
 export async function migrarLeadsFunil(
   funilId: string,
   destinoFunilId: string,
-): Promise<{ ok: true; migrados: number; destinoFunilId: string; stage: string }> {
+): Promise<{
+  ok: true;
+  migrados: number;
+  ignoradosPerdidos?: number;
+  destinoFunilId: string;
+  stage: string;
+}> {
   return apiFetch(`/funis/${funilId}/migrar-leads`, {
     method: "POST",
     body: { destinoFunilId },

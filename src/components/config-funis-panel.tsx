@@ -482,12 +482,20 @@ export function ConfigFunisPanel() {
         );
         applyFunnelEtapas(destino.etapas);
       }
+      const perdidos = result.ignoradosPerdidos ?? 0;
+      const destinoNome = destino?.name ?? "o funil de destino";
+      const noKanban =
+        result.migrados > 0 ? " Esse funil está no kanban." : "";
+      const avisoPerdidos =
+        perdidos > 0
+          ? ` ${perdidos} que já estavam em Leads Perdidos continuam lá e não entram no quadro.`
+          : "";
       toast.success(
         result.migrados === 0
-          ? "Este funil não tinha leads para migrar."
+          ? `Nenhum lead ativo para migrar.${avisoPerdidos}`
           : result.migrados === 1
-            ? `1 lead foi para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}". Esse funil está no kanban.`
-            : `${result.migrados} leads foram para "${destino?.name ?? "o funil de destino"}", na etapa "${etapaNome}". Esse funil está no kanban.`,
+            ? `1 lead foi para "${destinoNome}", na etapa "${etapaNome}".${noKanban}${avisoPerdidos}`
+            : `${result.migrados} leads foram para "${destinoNome}", na etapa "${etapaNome}".${noKanban}${avisoPerdidos}`,
       );
       setMigrateOpen(false);
       try {
@@ -1387,10 +1395,10 @@ export function ConfigFunisPanel() {
           <DialogHeader>
             <DialogTitle>Migrar leads para outro funil</DialogTitle>
             <DialogDescription>
-              Todos os leads de &quot;{selected?.name}&quot; saem deste funil e
+              Os leads ativos de &quot;{selected?.name}&quot; saem deste funil e
               entram na primeira etapa do funil escolhido. Esse funil passa a
-              ser o do kanban, para os leads aparecerem lá. Clientes da
-              carteira vinculados a este funil também vão.
+              ser o do kanban. Quem já está em Leads Perdidos não entra no
+              quadro. Clientes da carteira vinculados a este funil também vão.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
