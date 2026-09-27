@@ -44,7 +44,12 @@ import {
 } from "@/lib/catalog-colors";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
-import { FILTER_CONTROL } from "@/lib/filter-bar";
+import {
+  FILTER_CONTROL,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+} from "@/lib/filter-bar";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { useCatalog } from "@/lib/catalog-store";
 import {
@@ -425,6 +430,7 @@ function CorretorTriagem() {
   const [createTexto, setCreateTexto] = useState("");
   const [saving, setSaving] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>("__all__");
+  const [tipoFilter, setTipoFilter] = useState<"lead" | "cliente">("lead");
   /** Relato rápido no painel (sem avançar etapa). */
   const [quickTexto, setQuickTexto] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
@@ -665,6 +671,32 @@ function CorretorTriagem() {
               </SelectContent>
             </Select>
           </div>
+          <div className={FILTER_VISTA_WRAP}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                FILTER_VISTA_BTN,
+                tipoFilter === "lead" && FILTER_VISTA_BTN_ACTIVE,
+              )}
+              onClick={() => setTipoFilter("lead")}
+            >
+              Leads
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                FILTER_VISTA_BTN,
+                tipoFilter === "cliente" && FILTER_VISTA_BTN_ACTIVE,
+              )}
+              onClick={() => setTipoFilter("cliente")}
+            >
+              Clientes
+            </Button>
+          </div>
           {stageFilter !== "__all__" && (
             <Button
               type="button"
@@ -680,6 +712,7 @@ function CorretorTriagem() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 max-lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden">
         <div className="flex min-h-0 flex-col gap-4 max-lg:min-h-80 lg:col-span-5">
+          {tipoFilter === "lead" ? (
           <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
             <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-4 pb-2">
               <div>
@@ -719,7 +752,7 @@ function CorretorTriagem() {
               })}
             </div>
           </section>
-
+          ) : (
           <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
             <div className="flex shrink-0 items-center gap-2 px-4 pt-4 pb-2 text-sm font-semibold">
               Clientes
@@ -754,6 +787,7 @@ function CorretorTriagem() {
               })}
             </div>
           </section>
+          )}
         </div>
 
         <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-col overflow-hidden max-lg:min-h-80 lg:col-span-7")}>
@@ -1012,6 +1046,7 @@ function ManagerTriagem() {
   );
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("__all__");
+  const [tipoFilter, setTipoFilter] = useState<"lead" | "cliente">("lead");
   const [kpis, setKpis] = useState<TriagemKpis | null>(null);
   const {
     events,
@@ -1070,14 +1105,15 @@ function ManagerTriagem() {
 
   const leads = useMemo(() => {
     const raw = isPlatformAdmin
-      ? allLeads.filter((l) => l.tipo === "lead")
+      ? allLeads.filter((l) => l.tipo === tipoFilter)
       : !selectedCorretorId
         ? []
         : allLeads.filter(
-            (l) => l.tipo === "lead" && l.corretorId === selectedCorretorId,
+            (l) =>
+              l.tipo === tipoFilter && l.corretorId === selectedCorretorId,
           );
     return raw.map(leadToContact);
-  }, [allLeads, isPlatformAdmin, selectedCorretorId]);
+  }, [allLeads, isPlatformAdmin, selectedCorretorId, tipoFilter]);
 
   const filteredLeads = useMemo(() => {
     const sorted = sortTriagemContacts(
@@ -1415,7 +1451,7 @@ function ManagerTriagem() {
                   <h2 className="text-sm font-semibold">
                     {isPlatformAdmin
                       ? "Empresas"
-                      : `Leads de ${selectedCorretor?.name ?? "—"}`}
+                      : `${tipoFilter === "cliente" ? "Clientes" : "Leads"} de ${selectedCorretor?.name ?? "—"}`}
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     {filteredLeads.length} na etapa
@@ -1441,6 +1477,32 @@ function ManagerTriagem() {
                     ))}
                 </SelectContent>
               </Select>
+              <div className={FILTER_VISTA_WRAP}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    FILTER_VISTA_BTN,
+                    tipoFilter === "lead" && FILTER_VISTA_BTN_ACTIVE,
+                  )}
+                  onClick={() => setTipoFilter("lead")}
+                >
+                  Leads
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    FILTER_VISTA_BTN,
+                    tipoFilter === "cliente" && FILTER_VISTA_BTN_ACTIVE,
+                  )}
+                  onClick={() => setTipoFilter("cliente")}
+                >
+                  Clientes
+                </Button>
+              </div>
               <Select
                 value={leadSort}
                 onValueChange={(v) => setLeadSort(v as "recent" | "name")}
@@ -1458,8 +1520,8 @@ function ManagerTriagem() {
                 {filteredLeads.length === 0 && (
                   <p className="text-xs text-muted-foreground">
                     {stageFilter !== "__all__"
-                      ? "Nenhum lead nesta etapa."
-                      : "Nenhum lead deste corretor."}
+                      ? `Nenhum ${tipoFilter === "cliente" ? "cliente" : "lead"} nesta etapa.`
+                      : `Nenhum ${tipoFilter === "cliente" ? "cliente" : "lead"} deste corretor.`}
                   </p>
                 )}
                 {filteredLeads.map((l) => {
