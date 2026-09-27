@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, ClipboardList, Eye, Home, KeyRound, Landmark, Users } from "lucide-react";
+import { Building2, Eye, Home, KeyRound, Landmark, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +65,6 @@ export function ConfigModulosOperacaoPanel() {
   const [ops, setOps] = useState<TenantOperationModules | null>(null);
   const [adminVerClientes, setAdminVerClientes] = useState(false);
   const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
-  const [corretoresCriamPropostas, setCorretoresCriamPropostas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -79,7 +78,6 @@ export function ConfigModulosOperacaoPanel() {
       setOps(data.operations);
       setAdminVerClientes(data.adminVerClientesCorretor === true);
       setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
-      setCorretoresCriamPropostas(data.corretoresCriamPropostas === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -146,36 +144,6 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar a visibilidade dos gerentes.",
-      );
-    } finally {
-      setSavingKey(null);
-    }
-  }
-
-  async function toggleCorretoresCriamPropostas(checked: boolean) {
-    if (!isAdmin) return;
-    setCorretoresCriamPropostas(checked);
-    setSavingKey("corretoresCriamPropostas");
-    try {
-      const data = await updateTenantOperationModules({
-        corretoresCriamPropostas: checked,
-      });
-      setOps(data.operations);
-      setCorretoresCriamPropostas(data.corretoresCriamPropostas === true);
-      patchSessionTenantModules(data.modules);
-      await fetchMe();
-      await router.invalidate();
-      toast.success(
-        checked
-          ? "Corretores, trainees e analistas podem criar propostas da própria carteira."
-          : "A criação de propostas voltou a ficar só com os gestores.",
-      );
-    } catch (err) {
-      setCorretoresCriamPropostas(!checked);
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível atualizar a criação de propostas.",
       );
     } finally {
       setSavingKey(null);
@@ -279,42 +247,6 @@ export function ConfigModulosOperacaoPanel() {
           );
         })}
         {!isSolo ? <ConfigHideClientesMenuCard /> : null}
-        {isAdmin && !isSolo ? (
-          <Card>
-            <CardHeader className="flex-row items-start gap-3 space-y-0">
-              <div className="rounded-lg border bg-muted/40 p-2">
-                <ClipboardList className="h-5 w-5 text-brand-accent" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <CardTitle className="text-base">
-                  Corretores criam propostas
-                </CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Libera a tela de propostas para corretor, trainee e analista.
-                  Cada um cria só para os próprios leads e clientes, e a
-                  proposta fica vinculada a ele. Gestores continuam vendo as
-                  propostas da equipe e as de cada imóvel ou empreendimento.
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Permitir criação</p>
-                <p className="text-xs text-muted-foreground">
-                  Desligado, esses perfis não veem o menu de propostas.
-                </p>
-              </div>
-              <Switch
-                checked={corretoresCriamPropostas}
-                disabled={savingKey === "corretoresCriamPropostas"}
-                onCheckedChange={(checked) =>
-                  void toggleCorretoresCriamPropostas(checked)
-                }
-                aria-label="Permitir que corretores criem propostas"
-              />
-            </CardContent>
-          </Card>
-        ) : null}
         {isAdmin && !isSolo ? (
           <Card>
             <CardHeader className="flex-row items-start gap-3 space-y-0">

@@ -130,6 +130,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/vendas",
     "/parcerias",
     "/construtoras",
+    "/propostas",
     "/financeiro/comissao",
     "/perfil",
   ],
@@ -138,6 +139,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/resultado",
     "/presenca",
     "/documentacao",
+    "/propostas",
     "/contratos",
     "/imoveis",
     "/treinamento",
@@ -180,6 +182,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/contratos",
     "/vendas",
     "/parcerias",
+    "/propostas",
     "/financeiro/comissao",
     "/construtoras",
     "/configuracoes",
@@ -278,13 +281,6 @@ export function canAccessRoute(
       return false;
     }
     return true;
-  }
-
-  if (
-    (path === "/propostas" || path.startsWith("/propostas/")) &&
-    (role === "corretor" || role === "treinee" || role === "analista")
-  ) {
-    return modules?.corretoresCriamPropostas === true;
   }
 
   const roleRoutes =

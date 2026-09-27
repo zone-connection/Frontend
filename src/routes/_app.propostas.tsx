@@ -1558,6 +1558,7 @@ function Page() {
               <TableHead>Empreendimento</TableHead>
               <TableHead>Vínculos</TableHead>
               <TableHead>Corretor</TableHead>
+              <TableHead>Criado por</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Validade</TableHead>
@@ -1568,7 +1569,7 @@ function Page() {
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="h-24 text-center text-sm text-muted-foreground"
                 >
                   <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
@@ -1578,7 +1579,7 @@ function Page() {
             ) : sortedRows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="h-24 text-center text-sm text-muted-foreground"
                 >
                   Nenhuma proposta para os filtros selecionados.
@@ -1637,6 +1638,9 @@ function Page() {
                     <div className="text-xs normal-case tracking-normal">
                       {equipeName(p)}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {p.autor?.name ?? "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">
                     {brl(p.valor)}
@@ -1715,6 +1719,7 @@ function Page() {
                 {PROPOSTA_STATUS_LABEL[selected.status]}
               </Badge>
               <span>Detalhes da proposta comercial</span>
+              <span>Criada por {selected.autor?.name ?? "—"}</span>
             </span>
           ) : undefined
         }

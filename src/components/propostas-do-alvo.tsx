@@ -85,6 +85,7 @@ export function PropostasDoAlvo({
                 <p className="text-sm font-medium">{item.clienteNome}</p>
                 <p className="text-xs text-muted-foreground">
                   {item.corretor?.name ?? "Sem corretor"}
+                  {item.autor?.name ? ` · Criada por ${item.autor.name}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-3">
