@@ -260,23 +260,17 @@ export function docPipelineFromStatus1(
   return null;
 }
 
-/** Deduplica opções de filtro/form, preservando o primeiro rótulo (catálogo). */
+/** Deduplica só grafias iguais. Não junta “Aprovado” com “Aprovado c/ restrição”. */
 export function dedupeStatusOptions(
   labels: string[],
-  kind: "status1" | "status2",
+  _kind: "status1" | "status2",
 ): string[] {
   const byKey = new Map<string, string>();
   for (const label of labels) {
     if (!label?.trim()) continue;
-    if (kind === "status1") {
-      const group = status1Group(label);
-      const key = group ?? normalizeDocStatus(label);
-      if (!byKey.has(key)) byKey.set(key, label.trim());
-    } else {
-      const group = status2Group(label);
-      const key = group ?? normalizeDocStatus(label);
-      if (!byKey.has(key)) byKey.set(key, label.trim());
-    }
+    const key = normalizeDocStatus(label);
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, label.trim());
   }
-  return [...byKey.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  return [...byKey.values()];
 }
