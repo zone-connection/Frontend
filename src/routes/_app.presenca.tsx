@@ -27,6 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canViewModule } from "@/lib/permissions";
@@ -36,6 +41,7 @@ import {
   fetchPresencaMes,
   updatePresencaTipo,
   upsertPresencaLancamento,
+  type PresencaCelula,
   type PresencaMes,
   type PresencaNatureza,
   type PresencaTipo,
@@ -135,24 +141,16 @@ function Page() {
     setMes(d.getMonth() + 1);
   };
 
-  const onCycle = async (userId: string, day: string, role: string) => {
+  const onPickTipo = async (
+    userId: string,
+    day: string,
+    tipoId: string | null,
+  ) => {
     if (!data?.podeEditar) return;
-    const tipos = tiposParaRole(data.tipos, role);
-    if (tipos.length === 0) {
-      toast.error("Nenhum tipo de presença para esta função.");
-      return;
-    }
-    const current = data.usuarios.find((u) => u.userId === userId)?.dias[day];
-    const idx = current ? tipos.findIndex((t) => t.id === current.tipoId) : -1;
-    const next = idx < 0 ? tipos[0] : idx === tipos.length - 1 ? null : tipos[idx + 1];
     const key = `${userId}|${day}`;
     setSaving(key);
     try {
-      await upsertPresencaLancamento({
-        userId,
-        data: day,
-        tipoId: next?.id ?? null,
-      });
+      await upsertPresencaLancamento({ userId, data: day, tipoId });
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar");
@@ -296,28 +294,15 @@ function Page() {
                       const busy = saving === `${u.userId}|${d}`;
                       return (
                         <td key={d} className="p-0.5">
-                          <button
-                            type="button"
-                            disabled={!data.podeEditar || busy}
-                            title={
-                              data.podeEditar
-                                ? "Clique para alternar o tipo"
-                                : cell?.nome ?? "Sem lançamento"
+                          <PresencaDiaBotao
+                            cell={cell}
+                            tipos={tiposParaRole(data.tipos, u.role)}
+                            podeEditar={data.podeEditar}
+                            busy={busy}
+                            onPick={(tipoId) =>
+                              void onPickTipo(u.userId, d, tipoId)
                             }
-                            onClick={() => void onCycle(u.userId, d, u.role)}
-                            className={cn(
-                              "flex h-8 w-8 items-center justify-center rounded text-[10px] font-semibold",
-                              data.podeEditar && "hover:ring-2 hover:ring-primary/40",
-                              !cell && "bg-muted/40 text-muted-foreground",
-                            )}
-                            style={
-                              cell
-                                ? { backgroundColor: `${cell.cor}22`, color: cell.cor }
-                                : undefined
-                            }
-                          >
-                            {busy ? "…" : cell?.sigla ?? "·"}
-                          </button>
+                          />
                         </td>
                       );
                     })}
@@ -345,7 +330,7 @@ function Page() {
               {data.resumoAnterior.ano}: média {data.resumoAnterior.mediaVieram}{" "}
               presentes/dia.
               {data.podeEditar
-                ? " Clique na célula para ciclar os tipos (e um clique extra limpa)."
+                ? " Clique na célula e escolha o tipo. Use Limpar para apagar o lançamento."
                 : ""}
             </p>
           </Card>
@@ -359,6 +344,94 @@ function Page() {
         onSaved={() => void load()}
       />
     </div>
+  );
+}
+
+function PresencaDiaBotao({
+  cell,
+  tipos,
+  podeEditar,
+  busy,
+  onPick,
+}: {
+  cell: PresencaCelula | null | undefined;
+  tipos: PresencaTipo[];
+  podeEditar: boolean;
+  busy: boolean;
+  onPick: (tipoId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const marca = (
+    <button
+      type="button"
+      disabled={!podeEditar || busy}
+      title={
+        podeEditar
+          ? "Clique para escolher o tipo"
+          : cell?.nome ?? "Sem lançamento"
+      }
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded text-[10px] font-semibold",
+        podeEditar && "hover:ring-2 hover:ring-primary/40",
+        !cell && "bg-muted/40 text-muted-foreground",
+      )}
+      style={
+        cell ? { backgroundColor: `${cell.cor}22`, color: cell.cor } : undefined
+      }
+    >
+      {busy ? "…" : cell?.sigla ?? "·"}
+    </button>
+  );
+
+  if (!podeEditar) return marca;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{marca}</PopoverTrigger>
+      <PopoverContent className="w-52 p-1" align="center" side="bottom">
+        {tipos.length === 0 ? (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            Nenhum tipo para esta função.
+          </p>
+        ) : (
+          tipos.map((tipo) => (
+            <button
+              key={tipo.id}
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                onPick(tipo.id);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted",
+                cell?.tipoId === tipo.id && "bg-muted",
+              )}
+            >
+              <span
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
+                style={{ backgroundColor: `${tipo.cor}22`, color: tipo.cor }}
+              >
+                {tipo.sigla}
+              </span>
+              <span className="min-w-0 truncate">{tipo.nome}</span>
+            </button>
+          ))
+        )}
+        <button
+          type="button"
+          disabled={busy || !cell}
+          onClick={() => {
+            setOpen(false);
+            onPick(null);
+          }}
+          className="mt-0.5 w-full rounded-sm px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted disabled:opacity-40"
+        >
+          Limpar
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
