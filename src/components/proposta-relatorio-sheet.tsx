@@ -18,6 +18,7 @@ const ORDEM = [
   "MORA BEM",
   "MCMV",
   "FINANCIAMENTO",
+  "PARCELA CAIXA (INFORMATIVO)",
 ];
 
 export function ordenarLinhasRelatorio(linhas: RelatorioLinha[]) {

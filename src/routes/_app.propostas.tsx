@@ -375,13 +375,6 @@ function OptionalField({
 function linhasDoFormulario(form: FormState): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
   for (const key of PROPOSTA_SIMPLES_KEYS) {
-    if (
-      PROPOSTA_INFORMATIVA_KEYS.includes(
-        key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
-      )
-    ) {
-      continue;
-    }
     const value = moneyOrZero(form[key]);
     if (value <= 0) continue;
     linhas.push({
@@ -409,13 +402,6 @@ function linhasDoFormulario(form: FormState): RelatorioLinha[] {
 function linhasDaProposta(p: Proposta): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
   for (const key of PROPOSTA_SIMPLES_KEYS) {
-    if (
-      PROPOSTA_INFORMATIVA_KEYS.includes(
-        key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
-      )
-    ) {
-      continue;
-    }
     const value = p[key];
     if (value == null || value <= 0) continue;
     linhas.push({

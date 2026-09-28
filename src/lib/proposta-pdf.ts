@@ -6,7 +6,6 @@ import { formatCpfCnpj } from "@/lib/utils";
 import {
   formatPropostaDate,
   PROPOSTA_COMPOSICAO_LABEL,
-  PROPOSTA_INFORMATIVA_KEYS,
   PROPOSTA_LISTA_KEYS,
   PROPOSTA_SIMPLES_KEYS,
   propostaComposicaoTotal,
@@ -76,6 +75,7 @@ const COMPOSITION_ORDER = [
   "MORA BEM",
   "MCMV",
   "FINANCIAMENTO",
+  "PARCELA CAIXA (INFORMATIVO)",
 ] as const;
 
 type LoadedLogo = {
@@ -280,13 +280,6 @@ function compositionLines(p: Proposta): CompositionLine[] {
   const lines: CompositionLine[] = [];
 
   for (const key of PROPOSTA_SIMPLES_KEYS) {
-    if (
-      PROPOSTA_INFORMATIVA_KEYS.includes(
-        key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
-      )
-    ) {
-      continue;
-    }
     const value = p[key as PropostaSimplesKey];
     if (value == null) continue;
     lines.push({
