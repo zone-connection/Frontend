@@ -1,23 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CalendarOff,
+  Check,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   ClipboardCheck,
   FileDown,
+  Filter,
   Loader2,
   Plus,
   Settings2,
+  UserRound,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { SemConexao } from "@/components/sem-conexao";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +59,14 @@ import {
   type PresencaNatureza,
   type PresencaTipo,
 } from "@/lib/presenca-api";
+import {
+  applyPresencaFiltros,
+  labelPresencaFiltros,
+  PRESENCA_FILTRO_NATUREZA,
+  type PresencaFiltroNatureza,
+} from "@/lib/presenca-filter";
+import { downloadPresencaPdf } from "@/lib/presenca-pdf";
+import { useTenantTheme } from "@/lib/tenant-theme";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/presenca")({
@@ -101,8 +122,22 @@ function pctChange(atual: number, anterior: number) {
   return ((atual - anterior) / anterior) * 100;
 }
 
+function signedDelta(n: number) {
+  if (Math.abs(n) < 0.005) return "0";
+  return `${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function deltaClass(n: number, invert = false) {
+  if (Math.abs(n) < 0.005) return "text-muted-foreground";
+  const good = invert ? n < 0 : n > 0;
+  return good ? "text-emerald-600" : "text-rose-600";
+}
+
 function Page() {
   const user = getSession();
+  const { tenant, logoUrl, brandName } = useTenantTheme();
   const canView = canViewModule(user, "presenca");
   const now = new Date();
   const [ano, setAno] = useState(now.getFullYear());
@@ -112,6 +147,10 @@ function Page() {
   const [saving, setSaving] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [tiposOpen, setTiposOpen] = useState(false);
+  const [userIds, setUserIds] = useState<string[]>([]);
+  const [naturezaFiltro, setNaturezaFiltro] =
+    useState<PresencaFiltroNatureza>("todos");
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!canView) {
@@ -121,7 +160,10 @@ function Page() {
     setLoading(true);
     try {
       const mesData = await fetchPresencaMes(ano, mes);
-      setData(mesData);
+      setData({
+        ...mesData,
+        comparativoUsuarios: mesData.comparativoUsuarios ?? [],
+      });
       setOffline(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) setOffline(true);
@@ -134,6 +176,15 @@ function Page() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!data) return;
+    const valid = new Set(data.usuarios.map((u) => u.userId));
+    setUserIds((prev) => {
+      const next = prev.filter((id) => valid.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [data]);
 
   const shift = (delta: number) => {
     const d = new Date(ano, mes - 1 + delta, 1);
@@ -159,36 +210,51 @@ function Page() {
     }
   };
 
-  const exportPdf = () => {
-    if (!data) return;
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    doc.setFontSize(14);
-    doc.text(`Presença — ${MESES[data.mes - 1]} ${data.ano}`, 40, 36);
-    const head = [
-      ["Nome", "Função", ...data.dias.map((d) => `${d.slice(8)}/${d.slice(5, 7)}`)],
-    ];
-    const body = data.usuarios.map((u) => [
-      u.nome,
-      u.role,
-      ...data.dias.map((d) => u.dias[d]?.sigla ?? ""),
-    ]);
-    autoTable(doc, {
-      startY: 48,
-      head,
-      body,
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [6, 137, 189] },
-    });
-    const y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
-      ?.finalY ?? 60;
-    doc.setFontSize(10);
-    doc.text(
-      `Média de presentes/dia: ${data.resumo.mediaVieram}  ·  Equivalente: ${data.resumo.mediaEquivalente}  ·  vs mês ant.: ${data.resumoAnterior.mediaVieram}`,
-      40,
-      y + 18,
+  const view = useMemo(
+    () => (data ? applyPresencaFiltros(data, userIds, naturezaFiltro) : null),
+    [data, userIds, naturezaFiltro],
+  );
+
+  const filtroLabel = data
+    ? labelPresencaFiltros(data, userIds, naturezaFiltro)
+    : "Equipe completa";
+
+  const toggleUser = (id: string) => {
+    setUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
-    doc.save(`presenca-${data.ano}-${String(data.mes).padStart(2, "0")}.pdf`);
   };
+
+  const exportPdf = () => {
+    if (!view) return;
+    void downloadPresencaPdf(view, {
+      logoUrl,
+      companyName: brandName || tenant?.name,
+      primaryColor: tenant?.primaryColor,
+      filtroLabel,
+    }).catch((err) =>
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível gerar o PDF.",
+      ),
+    );
+  };
+
+  const totalFaltas = (view?.comparativoUsuarios ?? []).reduce(
+    (s, c) => s + c.atual.faltas,
+    0,
+  );
+  const totalFaltasAnt = (view?.comparativoUsuarios ?? []).reduce(
+    (s, c) => s + c.anterior.faltas,
+    0,
+  );
+  const totalJust = (view?.comparativoUsuarios ?? []).reduce(
+    (s, c) => s + c.atual.justificadas,
+    0,
+  );
+  const totalJustAnt = (view?.comparativoUsuarios ?? []).reduce(
+    (s, c) => s + c.anterior.justificadas,
+    0,
+  );
 
   if (!canView) {
     return (
@@ -204,7 +270,7 @@ function Page() {
     <div className="flex flex-col gap-4 p-4 md:p-6">
       <PageHeader
         title="Presença"
-        description="Marque presença, meio período, falta e falta justificada. Compare com o mês anterior."
+        description="Filtre pessoas e tipos de presença, gere o relatório e compare com o mês anterior."
       />
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="icon" onClick={() => shift(-1)}>
@@ -216,9 +282,81 @@ function Page() {
         <Button variant="outline" size="icon" onClick={() => shift(1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="outline" onClick={exportPdf} disabled={!data}>
+        <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              className={cn(
+                "min-w-[180px] justify-between font-medium",
+                userIds.length > 0 && "border-primary/40 bg-primary/5",
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <UserRound className="size-3.5 shrink-0 text-primary" />
+                <span className="truncate">
+                  {userIds.length === 0
+                    ? "Todas as pessoas"
+                    : userIds.length === 1
+                      ? (data?.usuarios.find((u) => u.userId === userIds[0])
+                          ?.nome ?? "1 pessoa")
+                      : `${userIds.length} pessoas`}
+                </span>
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Pesquisar pessoa…" />
+              <CommandList className="max-h-72">
+                <CommandEmpty>Nenhuma pessoa encontrada.</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem
+                    value="todas as pessoas"
+                    onSelect={() => setUserIds([])}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        userIds.length === 0 ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    Todas as pessoas
+                  </CommandItem>
+                  {(data?.usuarios ?? []).map((u) => (
+                    <CommandItem
+                      key={u.userId}
+                      value={`${u.nome} ${u.userId}`}
+                      onSelect={() => toggleUser(u.userId)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          userIds.includes(u.userId)
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                      <span className="min-w-0 truncate">{u.nome}</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        {u.equipe ?? u.role}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <Button
+          variant="outline"
+          onClick={exportPdf}
+          disabled={!view}
+        >
           <FileDown className="mr-2 h-4 w-4" />
-          PDF
+          Gerar relatório
         </Button>
         {data?.podeTipos ? (
           <Button variant="outline" onClick={() => setTiposOpen(true)}>
@@ -227,39 +365,110 @@ function Page() {
           </Button>
         ) : null}
       </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
+        {PRESENCA_FILTRO_NATUREZA.map((opt) => (
+          <Button
+            key={opt.id}
+            type="button"
+            size="sm"
+            variant={naturezaFiltro === opt.id ? "default" : "outline"}
+            className="h-7 rounded-full px-3 text-xs"
+            onClick={() => setNaturezaFiltro(opt.id)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+        {userIds.length > 0 || naturezaFiltro !== "todos" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs text-muted-foreground"
+            onClick={() => {
+              setUserIds([]);
+              setNaturezaFiltro("todos");
+            }}
+          >
+            <X className="mr-1 h-3 w-3" />
+            Limpar filtros
+          </Button>
+        ) : null}
+      </div>
+      {userIds.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {userIds.map((id) => {
+            const u = data?.usuarios.find((x) => x.userId === id);
+            if (!u) return null;
+            return (
+              <Badge
+                key={id}
+                variant="secondary"
+                className="cursor-pointer gap-1 font-normal"
+                onClick={() => toggleUser(id)}
+              >
+                {u.nome}
+                <X className="h-3 w-3" />
+              </Badge>
+            );
+          })}
+        </div>
+      ) : null}
 
       {loading && !data ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : data ? (
+      ) : view ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FinanceKpiCard
               label="Média de pessoas presentes / dia"
-              value={data.resumo.mediaVieram}
+              value={view.resumo.mediaVieram}
               format="number"
               icon={Users}
               tone="emerald"
               evolucaoPct={pctChange(
-                data.resumo.mediaVieram,
-                data.resumoAnterior.mediaVieram,
+                view.resumo.mediaVieram,
+                view.resumoAnterior.mediaVieram,
               )}
-              valorMesAnterior={data.resumoAnterior.mediaVieram}
-              detail="Conta presença e meio período"
+              valorMesAnterior={view.resumoAnterior.mediaVieram}
+              detail={`${filtroLabel} · vs ${MESES[view.resumoAnterior.mes - 1]}`}
             />
             <FinanceKpiCard
               label="Média equivalente (dias)"
-              value={data.resumo.mediaEquivalente}
+              value={view.resumo.mediaEquivalente}
               format="number"
               icon={ClipboardCheck}
               tone="blue"
               evolucaoPct={pctChange(
-                data.resumo.mediaEquivalente,
-                data.resumoAnterior.mediaEquivalente,
+                view.resumo.mediaEquivalente,
+                view.resumoAnterior.mediaEquivalente,
               )}
-              valorMesAnterior={data.resumoAnterior.mediaEquivalente}
+              valorMesAnterior={view.resumoAnterior.mediaEquivalente}
               detail="Presença = 1 · meio período = 0,5"
+            />
+            <FinanceKpiCard
+              label="Faltas no recorte"
+              value={totalFaltas}
+              format="number"
+              icon={CalendarOff}
+              tone="rose"
+              invertEvolucao
+              evolucaoPct={pctChange(totalFaltas, totalFaltasAnt)}
+              valorMesAnterior={totalFaltasAnt}
+              detail={`vs ${MESES[view.resumoAnterior.mes - 1]} ${view.resumoAnterior.ano}`}
+            />
+            <FinanceKpiCard
+              label="Faltas justificadas"
+              value={totalJust}
+              format="number"
+              icon={ClipboardCheck}
+              tone="orange"
+              invertEvolucao
+              evolucaoPct={pctChange(totalJust, totalJustAnt)}
+              valorMesAnterior={totalJustAnt}
+              detail={`vs ${MESES[view.resumoAnterior.mes - 1]} ${view.resumoAnterior.ano}`}
             />
           </div>
 
@@ -270,7 +479,7 @@ function Page() {
                   <th className="sticky left-0 z-10 bg-muted/90 px-3 py-2 text-left min-w-[180px]">
                     Pessoa
                   </th>
-                  {data.dias.map((d) => (
+                  {view.dias.map((d) => (
                     <th key={d} className="px-1 py-2 text-center w-9">
                       <div className="text-[10px] text-muted-foreground">
                         {weekday(d)}
@@ -281,33 +490,155 @@ function Page() {
                 </tr>
               </thead>
               <tbody>
-                {data.usuarios.map((u) => (
-                  <tr key={u.userId} className="border-b">
-                    <td className="sticky left-0 z-10 bg-background px-3 py-1.5">
-                      <div className="font-medium">{u.nome}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {u.equipe ?? u.role}
-                      </div>
+                {view.usuarios.length === 0 ? (
+                  <tr>
+                    <td
+                      className="px-3 py-8 text-center text-muted-foreground"
+                      colSpan={view.dias.length + 1}
+                    >
+                      Nenhuma pessoa neste recorte. Ajuste os filtros.
                     </td>
-                    {data.dias.map((d) => {
-                      const cell = u.dias[d];
-                      const busy = saving === `${u.userId}|${d}`;
-                      return (
-                        <td key={d} className="p-0.5">
-                          <PresencaDiaBotao
-                            cell={cell}
-                            tipos={tiposParaRole(data.tipos, u.role)}
-                            podeEditar={data.podeEditar}
-                            busy={busy}
-                            onPick={(tipoId) =>
-                              void onPickTipo(u.userId, d, tipoId)
-                            }
-                          />
-                        </td>
-                      );
-                    })}
                   </tr>
-                ))}
+                ) : (
+                  view.usuarios.map((u) => (
+                    <tr key={u.userId} className="border-b">
+                      <td className="sticky left-0 z-10 bg-background px-3 py-1.5">
+                        <div className="font-medium">{u.nome}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {u.equipe ?? u.role}
+                        </div>
+                      </td>
+                      {view.dias.map((d) => {
+                        const cell = u.dias[d];
+                        const busy = saving === `${u.userId}|${d}`;
+                        return (
+                          <td key={d} className="p-0.5">
+                            <PresencaDiaBotao
+                              cell={cell}
+                              tipos={tiposParaRole(view.tipos, u.role)}
+                              podeEditar={view.podeEditar}
+                              busy={busy}
+                              onPick={(tipoId) =>
+                                void onPickTipo(u.userId, d, tipoId)
+                              }
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Card>
+
+          <Card className="overflow-auto p-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">
+                  Comparativo com {MESES[view.resumoAnterior.mes - 1]}{" "}
+                  {view.resumoAnterior.ano}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {filtroLabel}. Os totais usam o mesmo grupo de pessoas nos dois
+                  meses.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={exportPdf}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Relatório PDF
+              </Button>
+            </div>
+            <table className="w-full min-w-[720px] text-xs">
+              <thead>
+                <tr className="border-b bg-muted/40 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">Pessoa</th>
+                  <th className="px-2 py-2 text-right">Vieram</th>
+                  <th className="px-2 py-2 text-right">Mês ant.</th>
+                  <th className="px-2 py-2 text-right">Δ</th>
+                  <th className="px-2 py-2 text-right">Equiv.</th>
+                  <th className="px-2 py-2 text-right">Mês ant.</th>
+                  <th className="px-2 py-2 text-right">Δ</th>
+                  <th className="px-2 py-2 text-right">Faltas</th>
+                  <th className="px-2 py-2 text-right">Mês ant.</th>
+                  <th className="px-2 py-2 text-right">Δ</th>
+                  <th className="px-2 py-2 text-right">Just.</th>
+                  <th className="px-2 py-2 text-right">Mês ant.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.comparativoUsuarios.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={12}
+                      className="px-3 py-6 text-center text-muted-foreground"
+                    >
+                      Sem dados para comparar neste recorte.
+                    </td>
+                  </tr>
+                ) : (
+                  view.comparativoUsuarios.map((c) => {
+                    const dPres = c.atual.presentes - c.anterior.presentes;
+                    const dEq = c.atual.equivalente - c.anterior.equivalente;
+                    const dFalta = c.atual.faltas - c.anterior.faltas;
+                    return (
+                      <tr key={c.userId} className="border-b">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{c.nome}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {c.equipe ?? c.role}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 text-right font-medium">
+                          {c.atual.presentes}
+                        </td>
+                        <td className="px-2 py-2 text-right text-muted-foreground">
+                          {c.anterior.presentes}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-2 py-2 text-right font-medium",
+                            deltaClass(dPres),
+                          )}
+                        >
+                          {signedDelta(dPres)}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {c.atual.equivalente}
+                        </td>
+                        <td className="px-2 py-2 text-right text-muted-foreground">
+                          {c.anterior.equivalente}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-2 py-2 text-right font-medium",
+                            deltaClass(dEq),
+                          )}
+                        >
+                          {signedDelta(dEq)}
+                        </td>
+                        <td className="px-2 py-2 text-right">{c.atual.faltas}</td>
+                        <td className="px-2 py-2 text-right text-muted-foreground">
+                          {c.anterior.faltas}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-2 py-2 text-right font-medium",
+                            deltaClass(dFalta, true),
+                          )}
+                        >
+                          {signedDelta(dFalta)}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {c.atual.justificadas}
+                        </td>
+                        <td className="px-2 py-2 text-right text-muted-foreground">
+                          {c.anterior.justificadas}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </Card>
@@ -315,7 +646,7 @@ function Page() {
           <Card className="p-4">
             <div className="mb-2 text-sm font-medium">Pessoas que vieram (por dia)</div>
             <div className="flex flex-wrap gap-1">
-              {data.resumo.porDia.map((d) => (
+              {view.resumo.porDia.map((d) => (
                 <div
                   key={d.data}
                   className="rounded border px-2 py-1 text-center text-[11px]"
@@ -326,10 +657,10 @@ function Page() {
               ))}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Comparação com {MESES[data.resumoAnterior.mes - 1]}{" "}
-              {data.resumoAnterior.ano}: média {data.resumoAnterior.mediaVieram}{" "}
-              presentes/dia.
-              {data.podeEditar
+              Recorte: {filtroLabel}. Comparação com{" "}
+              {MESES[view.resumoAnterior.mes - 1]} {view.resumoAnterior.ano}:
+              média {view.resumoAnterior.mediaVieram} presentes/dia.
+              {view.podeEditar
                 ? " Clique na célula e escolha o tipo. Use Limpar para apagar o lançamento."
                 : ""}
             </p>

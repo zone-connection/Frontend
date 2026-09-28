@@ -51,6 +51,23 @@ export type PresencaResumo = {
   totalVieramDia: number;
 };
 
+export type PresencaPessoaTotais = {
+  presentes: number;
+  equivalente: number;
+  faltas: number;
+  justificadas: number;
+  lancamentos: number;
+};
+
+export type PresencaComparativoUsuario = {
+  userId: string;
+  nome: string;
+  role: string;
+  equipe: string | null;
+  atual: PresencaPessoaTotais;
+  anterior: PresencaPessoaTotais;
+};
+
 export type PresencaMes = {
   ano: number;
   mes: number;
@@ -59,6 +76,7 @@ export type PresencaMes = {
   podeEditar: boolean;
   podeTipos: boolean;
   usuarios: PresencaUsuario[];
+  comparativoUsuarios: PresencaComparativoUsuario[];
   resumo: PresencaResumo;
   resumoAnterior: PresencaResumo & { ano: number; mes: number };
 };
