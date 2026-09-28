@@ -3325,17 +3325,6 @@ function DocumentacaoPage() {
                         />
                       )}
                     </div>
-                    <div className="flex items-center justify-between gap-3 sm:col-span-2">
-                      <Label htmlFor="temDependente">Tem dependente?</Label>
-                      <Switch
-                        id="temDependente"
-                        checked={form.temDependente}
-                        onCheckedChange={(checked) =>
-                          setField("temDependente", checked)
-                        }
-                        disabled={readOnly}
-                      />
-                    </div>
                   </div>
                 </div>
 

@@ -2703,14 +2703,6 @@ function AnalistaFunilBoard() {
                       />
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-3 sm:col-span-2">
-                    <Label htmlFor="doc-tem-dependente">Tem dependente?</Label>
-                    <Switch
-                      id="doc-tem-dependente"
-                      checked={docTemDependente}
-                      onCheckedChange={setDocTemDependente}
-                    />
-                  </div>
                 </div>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
