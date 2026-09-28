@@ -108,8 +108,12 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
-import { fetchDocumentacoes } from "@/lib/documentacao-api";
+import {
+  fetchDocumentacoes,
+  type Documentacao,
+} from "@/lib/documentacao-api";
 import { isStatusAprovadoDoc } from "@/lib/documentacao-status";
+import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import {
   createProposta,
   deleteProposta,
@@ -160,7 +164,7 @@ import {
   maskMoneyInput,
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
-import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
+import { cn, digitsOnly, formatCep, formatCpfCnpj, formatRg } from "@/lib/utils";
 import {
   FILTER_BAR_SHELL,
   FILTER_CLEAR_BTN,
@@ -557,6 +561,69 @@ function isLeadAprovado(lead: Lead, aprovadosPorDoc: Set<string>): boolean {
   return aprovadosPorDoc.has(lead.id);
 }
 
+function isUsableLeadEmail(email?: string | null): boolean {
+  const n = (email ?? "").trim().toLowerCase();
+  if (!n || !n.includes("@")) return false;
+  return (
+    !n.endsWith("@sem-email.local") && !n.endsWith("@sememail.local")
+  );
+}
+
+function pickDocumentacaoDoLead(
+  docs: Documentacao[],
+  leadId: string,
+): Documentacao | undefined {
+  const ofLead = docs.filter((d) => d.leadId === leadId);
+  return ofLead.find((d) => d.vgv != null && d.vgv > 0) ?? ofLead[0];
+}
+
+function patchFormFromLead(
+  current: FormState,
+  lead: Lead,
+  doc?: Documentacao,
+): FormState {
+  const vgv = doc?.vgv ?? lead.orcamentoMax ?? null;
+  return {
+    ...current,
+    leadId: lead.id,
+    clienteNome: lead.nome?.trim() || current.clienteNome,
+    clienteTelefone: lead.telefone
+      ? formatPhone(lead.telefone)
+      : current.clienteTelefone,
+    clienteEmail: isUsableLeadEmail(lead.email)
+      ? lead.email.trim()
+      : current.clienteEmail,
+    clienteCpf: lead.cpf?.trim() ? formatCpfCnpj(lead.cpf) : current.clienteCpf,
+    clienteRg: lead.rg?.trim() ? formatRg(lead.rg) : current.clienteRg,
+    clienteEstadoCivil: lead.estadoCivil?.trim() || current.clienteEstadoCivil,
+    clienteRenda:
+      lead.renda != null ? formatMoneyInput(lead.renda) : current.clienteRenda,
+    clienteEnderecoResidencial:
+      lead.endereco?.trim() || current.clienteEnderecoResidencial,
+    clienteBairroResidencial:
+      lead.bairro?.trim() || current.clienteBairroResidencial,
+    clienteCidadeResidencial:
+      lead.cidade?.trim() || current.clienteCidadeResidencial,
+    clienteCepResidencial: lead.cep?.trim()
+      ? formatCep(lead.cep)
+      : current.clienteCepResidencial,
+    corretorId: lead.corretorId || current.corretorId,
+    construtoraId:
+      lead.construtoraId || doc?.construtoraId || current.construtoraId,
+    empreendimentoId:
+      lead.empreendimentoId ||
+      doc?.empreendimentoId ||
+      current.empreendimentoId,
+    valor: vgv != null ? formatMoneyInput(vgv) : current.valor,
+    entrada:
+      doc?.valorEntrada != null
+        ? formatMoneyInput(doc.valorEntrada)
+        : current.entrada,
+    fgts:
+      doc?.valorFgts != null ? formatMoneyInput(doc.valorFgts) : current.fgts,
+  };
+}
+
 function leadPickerLabel(lead: Lead): string {
   const phone = lead.telefone ? formatPhone(lead.telefone) : "";
   return phone ? `${lead.nome} · ${phone}` : lead.nome;
@@ -784,6 +851,7 @@ function Page() {
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [documentacoes, setDocumentacoes] = useState<Documentacao[]>([]);
   const [aprovadosPorDoc, setAprovadosPorDoc] = useState<Set<string>>(
     () => new Set(),
   );
@@ -865,6 +933,7 @@ function Page() {
         fetchDocumentacoes().catch(() => []),
       ]);
       setItems(propostas);
+      setDocumentacoes(docs);
       setAprovadosPorDoc(
         new Set(
           docs
@@ -1253,18 +1322,29 @@ function Page() {
   }
 
   function onLeadSelect(leadId: string) {
-    const lead = visibleLeads.find((l) => l.id === leadId);
-    setForm((f) => ({
-      ...f,
-      leadId,
-      clienteNome: lead?.nome ?? f.clienteNome,
-      clienteTelefone: lead?.telefone
-        ? formatPhone(lead.telefone)
-        : f.clienteTelefone,
-      corretorId: lead?.corretorId || f.corretorId,
-      construtoraId: lead?.construtoraId || f.construtoraId,
-      empreendimentoId: lead?.empreendimentoId || f.empreendimentoId,
-    }));
+    const listed =
+      visibleLeads.find((l) => l.id === leadId) ??
+      leads.find((l) => l.id === leadId);
+    const doc = pickDocumentacaoDoLead(documentacoes, leadId);
+    if (listed) {
+      setForm((f) => patchFormFromLead(f, listed, doc));
+    } else {
+      setForm((f) => ({ ...f, leadId }));
+    }
+    void fetchLeadById(leadId)
+      .then((api) => {
+        const fresh = mapApiLead(api);
+        setForm((f) =>
+          patchFormFromLead(
+            f,
+            fresh,
+            pickDocumentacaoDoLead(documentacoes, leadId) ?? doc,
+          ),
+        );
+      })
+      .catch(() => {
+        /* mantém o que já veio da lista */
+      });
   }
 
   async function buscarCepResidencial() {
