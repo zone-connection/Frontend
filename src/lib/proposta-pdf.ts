@@ -67,7 +67,6 @@ type CompositionLine = {
 
 const COMPOSITION_ORDER = [
   "SINAL",
-  "APARTADO",
   "PRÉ-CHAVES",
   "PÓS-CHAVES",
   "INTERCALADAS",

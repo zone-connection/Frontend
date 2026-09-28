@@ -175,7 +175,6 @@ export function rotuloPropostaVinculo(vinculo: PropostaVinculoResumo) {
 /** Campos simples (um valor). */
 export const PROPOSTA_SIMPLES_KEYS = [
   "entrada",
-  "apartado",
   "fgts",
   "moraBem",
   "mcmv",
@@ -201,7 +200,6 @@ export const PROPOSTA_COMPOSICAO_LABEL: Record<
   string
 > = {
   entrada: "Sinal",
-  apartado: "Apartado",
   preChaves: "Pré-chaves",
   posChaves: "Pós-chaves",
   intercaladas: "Intercaladas",

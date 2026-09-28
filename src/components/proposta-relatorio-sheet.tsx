@@ -10,7 +10,6 @@ export type RelatorioLinha = {
 
 const ORDEM = [
   "SINAL",
-  "APARTADO",
   "PRÉ-CHAVES",
   "PÓS-CHAVES",
   "INTERCALADAS",
