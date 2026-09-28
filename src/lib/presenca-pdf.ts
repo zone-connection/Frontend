@@ -12,7 +12,7 @@ import {
 const MESES = [
   "Janeiro",
   "Fevereiro",
-  "MarÃ§o",
+  "Março",
   "Abril",
   "Maio",
   "Junho",
@@ -26,14 +26,14 @@ const MESES = [
 
 type Rgb = [number, number, number];
 
-const PAPER: Rgb = [248, 250, 252];
+const PAPER: Rgb = [244, 248, 252];
 const INK: Rgb = [5, 54, 71];
 const MUTED: Rgb = [100, 116, 139];
 const LINE: Rgb = [226, 232, 240];
 const WHITE: Rgb = [255, 255, 255];
 const FALLBACK_ACCENT: Rgb = [2, 125, 194];
-const GREEN: Rgb = [5, 150, 105];
-const ROSE: Rgb = [220, 38, 38];
+const SUCCESS: Rgb = [5, 150, 105];
+const DANGER: Rgb = [220, 38, 38];
 const INFO: Rgb = [2, 179, 238];
 
 function parseHex(hex?: string | null): Rgb | null {
@@ -44,10 +44,6 @@ function parseHex(hex?: string | null): Rgb | null {
     Number.parseInt(raw.slice(2, 4), 16),
     Number.parseInt(raw.slice(4, 6), 16),
   ];
-}
-
-function lum([r, g, b]: Rgb) {
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
 
 function mix(a: Rgb, b: Rgb, t: number): Rgb {
@@ -66,34 +62,21 @@ function cssHex(name: string): string | null {
   return value || null;
 }
 
-function paletteFromTheme(primaryColor?: string | null) {
-  const cssPrimary = parseHex(cssHex("--primary"));
-  const cssBg = parseHex(cssHex("--background"));
-  const cssCard = parseHex(cssHex("--card"));
-  const cssFg = parseHex(cssHex("--foreground"));
-  const cssMuted = parseHex(cssHex("--muted-foreground"));
-  const cssBorder = parseHex(cssHex("--border"));
-  const cssSuccess = parseHex(cssHex("--success"));
-  const cssDanger = parseHex(cssHex("--destructive"));
-  const cssInfo = parseHex(cssHex("--info"));
+function lightPalette(primaryColor?: string | null) {
   const accent =
-    cssPrimary ?? parseHex(primaryColor) ?? FALLBACK_ACCENT;
-  const paper = cssBg ?? mix(PAPER, accent, 0.04);
-  const card = cssCard ?? WHITE;
-  const ink = cssFg ?? INK;
-  const muted = cssMuted ?? MUTED;
-  const line = cssBorder ?? mix(LINE, accent, 0.08);
+    parseHex(cssHex("--primary")) ??
+    parseHex(primaryColor) ??
+    FALLBACK_ACCENT;
   return {
     accent,
-    paper,
-    card,
-    ink,
-    muted,
-    line,
-    success: cssSuccess ?? GREEN,
-    danger: cssDanger ?? ROSE,
-    info: cssInfo ?? INFO,
-    onAccent: lum(accent) > 0.55 ? ink : WHITE,
+    paper: mix(PAPER, accent, 0.05),
+    card: WHITE,
+    ink: INK,
+    muted: MUTED,
+    line: LINE,
+    success: parseHex(cssHex("--success")) ?? SUCCESS,
+    danger: parseHex(cssHex("--destructive")) ?? DANGER,
+    info: parseHex(cssHex("--info")) ?? INFO,
   };
 }
 
@@ -109,21 +92,63 @@ function signed(n: number) {
   return `${n > 0 ? "+" : ""}${num(n)}`;
 }
 
+async function blobToDataUrl(blob: Blob): Promise<string | null> {
+  return await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "") || null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function logoDataUrl(url?: string | null): Promise<string | null> {
   const src = url?.trim();
   if (!src) return null;
   try {
     const res = await fetch(src);
     if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || "") || null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
+    return blobToDataUrl(await res.blob());
   } catch {
     return null;
+  }
+}
+
+async function arrayBufferToBase64(buf: ArrayBuffer) {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step));
+  }
+  return btoa(binary);
+}
+
+let carlitoCache: { regular: string; bold: string } | null = null;
+
+async function loadCarlito() {
+  if (carlitoCache) return carlitoCache;
+  const [regularRes, boldRes] = await Promise.all([
+    fetch("/fonts/Carlito-Regular.ttf"),
+    fetch("/fonts/Carlito-Bold.ttf"),
+  ]);
+  if (!regularRes.ok || !boldRes.ok) throw new Error("Fonte indisponivel");
+  carlitoCache = {
+    regular: await arrayBufferToBase64(await regularRes.arrayBuffer()),
+    bold: await arrayBufferToBase64(await boldRes.arrayBuffer()),
+  };
+  return carlitoCache;
+}
+
+async function registerFont(doc: jsPDF) {
+  try {
+    const fonts = await loadCarlito();
+    doc.addFileToVFS("Carlito-Regular.ttf", fonts.regular);
+    doc.addFont("Carlito-Regular.ttf", "Carlito", "normal");
+    doc.addFileToVFS("Carlito-Bold.ttf", fonts.bold);
+    doc.addFont("Carlito-Bold.ttf", "Carlito", "bold");
+    return "Carlito";
+  } catch {
+    return "helvetica";
   }
 }
 
@@ -139,13 +164,15 @@ export async function downloadPresencaPdf(
   brand?: PresencaPdfBrand | null,
 ) {
   const company = brand?.companyName?.trim() || "Zone Connection";
-  const logo = await logoDataUrl(brand?.logoUrl);
-  const palette = paletteFromTheme(brand?.primaryColor);
-  const { accent, paper, card, ink, muted, line, success, danger, info, onAccent } =
+  const [logo, palette] = await Promise.all([
+    logoDataUrl(brand?.logoUrl),
+    Promise.resolve(lightPalette(brand?.primaryColor)),
+  ]);
+  const { accent, paper, card, ink, muted, line, success, danger, info } =
     palette;
-  const filtro = brand?.filtroLabel?.trim() || "Equipe completa";
 
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const font = await registerFont(doc);
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 22;
@@ -157,20 +184,20 @@ export async function downloadPresencaPdf(
   paint();
 
   const mesNome = MESES[data.mes - 1] ?? "";
-  doc.setFont("helvetica", "bold");
+  doc.setFont(font, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...accent);
-  doc.text("RELATÃ“RIO DE FREQUÃŠNCIA", margin, 28);
+  doc.text("RELATÓRIO DE FREQUÊNCIA", margin, 28);
 
   doc.setTextColor(...ink);
   doc.setFontSize(26);
   doc.text(`${mesNome} ${data.ano}`, margin, 52);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(font, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...muted);
   doc.text(
-    "Acompanhe a frequÃªncia da sua equipe de forma prÃ¡tica e organizada.",
+    "Acompanhe a frequência da sua equipe de forma prática e organizada.",
     margin,
     68,
   );
@@ -184,11 +211,11 @@ export async function downloadPresencaPdf(
   doc.roundedRect(chipX, 22, chipW, 42, 8, 8, "FD");
   doc.setFillColor(...accent);
   doc.roundedRect(chipX + 10, 33, 16, 16, 3, 3, "F");
-  doc.setFont("helvetica", "normal");
+  doc.setFont(font, "normal");
   doc.setFontSize(6.5);
   doc.setTextColor(...muted);
-  doc.text("PerÃ­odo analisado", chipX + 32, 36);
-  doc.setFont("helvetica", "bold");
+  doc.text("Período analisado", chipX + 32, 36);
+  doc.setFont(font, "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(...ink);
   doc.text(periodo, chipX + 32, 50);
@@ -196,7 +223,7 @@ export async function downloadPresencaPdf(
     try {
       doc.addImage(logo, "PNG", chipX - 36, 26, 28, 28);
     } catch {
-      /* logo invÃ¡lida */
+      /* logo invalida */
     }
   }
 
@@ -211,7 +238,7 @@ export async function downloadPresencaPdf(
   const head = [
     [
       "Colaborador",
-      "FunÃ§Ã£o",
+      "Função",
       ...data.dias.map((d) => `${weekdayLabel(d)}\n${Number(d.slice(8))}`),
     ],
   ];
@@ -225,33 +252,35 @@ export async function downloadPresencaPdf(
     startY: tableTop + 10,
     margin: { left: margin + 10, right: margin + 10, bottom: 168 },
     head,
-    body: body.length ? body : [["Nenhuma pessoa neste recorte", "", ...data.dias.map(() => "")]],
+    body: body.length
+      ? body
+      : [["Nenhuma pessoa neste recorte", "", ...data.dias.map(() => "")]],
     theme: "plain",
     styles: {
-      font: "helvetica",
-      fontSize: 6.2,
+      font,
+      fontSize: 6.4,
       cellPadding: { top: 5, bottom: 5, left: 1.5, right: 1.5 },
       textColor: ink,
       halign: "center",
       valign: "middle",
       minCellHeight: 22,
-      overflow: "hidden",
+      overflow: "ellipsize",
     },
     headStyles: {
       fillColor: card,
       textColor: muted,
       fontStyle: "bold",
-      fontSize: 5.4,
+      fontSize: 5.6,
       halign: "center",
       minCellHeight: 22,
     },
     columnStyles: {
       0: {
         halign: "left",
-        cellWidth: 128,
-        cellPadding: { left: 30, right: 4, top: 5, bottom: 5 },
+        cellWidth: 138,
+        cellPadding: { left: 32, right: 4, top: 5, bottom: 5 },
         fontStyle: "bold",
-        fontSize: 7.2,
+        fontSize: 7.4,
         textColor: ink,
       },
       1: {
@@ -287,8 +316,8 @@ export async function downloadPresencaPdf(
         const cy = hook.cell.y + hook.cell.height / 2;
         doc.setFillColor(...rgb);
         doc.circle(cx, cy, 8, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.4);
+        doc.setFont(font, "bold");
+        doc.setFontSize(5.6);
         doc.setTextColor(...WHITE);
         doc.text(presencaInitials(user.nome) || "?", cx, cy + 1.8, {
           align: "center",
@@ -298,14 +327,13 @@ export async function downloadPresencaPdf(
       if (hook.column.index < 2) return;
       const user = data.usuarios[hook.row.index];
       const day = data.dias[hook.column.index - 2];
-      const cell = user?.dias[day];
       drawMark(
         doc,
+        font,
         hook.cell.x + hook.cell.width / 2,
         hook.cell.y + hook.cell.height / 2,
-        cell,
+        user?.dias[day],
         line,
-        card,
       );
     },
   });
@@ -318,12 +346,12 @@ export async function downloadPresencaPdf(
   doc.roundedRect(cardX, tableBottom, cardW, 36, 0, 0, "F");
   doc.setFillColor(...card);
   doc.roundedRect(cardX, tableBottom + 12, cardW, 36, 14, 14, "F");
-  drawLegend(doc, tipos, margin + 18, tableBottom + 30, pageW / 2 - 40, muted);
-  doc.setFont("helvetica", "normal");
+  drawLegend(doc, font, tipos, margin + 18, tableBottom + 30, pageW / 2 - 30);
+  doc.setFont(font, "normal");
   doc.setFontSize(7);
   doc.setTextColor(...muted);
   doc.text(
-    `MÃ©dia de presentes/dia: ${num(data.resumo.mediaVieram)}   Â·   Equivalente: ${num(data.resumo.mediaEquivalente)}   Â·   vs mÃªs ant.: ${num(data.resumoAnterior.mediaVieram)}`,
+    `Média de presentes/dia: ${num(data.resumo.mediaVieram)}   ·   Equivalente: ${num(data.resumo.mediaEquivalente)}   ·   vs mês ant.: ${num(data.resumoAnterior.mediaVieram)}`,
     pageW - margin - 14,
     tableBottom + 32,
     { align: "right" },
@@ -335,14 +363,13 @@ export async function downloadPresencaPdf(
     paint();
     kpiY = 28;
   }
-  drawKpis(doc, data, kpiY, pageW, margin, {
-    card,
-    ink,
-    muted,
-    accent,
+  drawKpis(doc, font, data, kpiY, pageW, margin, {
     success,
-    danger,
+    accent,
     info,
+    danger,
+    muted,
+    ink,
   });
 
   const obsY = kpiY + 78;
@@ -351,17 +378,17 @@ export async function downloadPresencaPdf(
     doc.roundedRect(margin, obsY, pageW - margin * 2, 36, 10, 10, "F");
     doc.setFillColor(...accent);
     doc.circle(margin + 16, obsY + 18, 6, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(font, "bold");
     doc.setFontSize(8);
-    doc.setTextColor(...onAccent);
+    doc.setTextColor(...WHITE);
     doc.text("i", margin + 16, obsY + 20.5, { align: "center" });
     doc.setTextColor(...ink);
-    doc.text("ObservaÃ§Ãµes", margin + 28, obsY + 14);
-    doc.setFont("helvetica", "normal");
+    doc.text("Observações", margin + 28, obsY + 14);
+    doc.setFont(font, "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...muted);
     doc.text(
-      "Os dados de frequÃªncia sÃ£o atualizados diariamente e podem sofrer pequenas variaÃ§Ãµes conforme o fechamento do ponto.",
+      "Os dados de frequência são atualizados diariamente e podem sofrer pequenas variações conforme o fechamento do ponto.",
       margin + 28,
       obsY + 26,
     );
@@ -370,38 +397,36 @@ export async function downloadPresencaPdf(
     doc.line(pageW - margin - 168, obsY + 28, pageW - margin - 132, obsY + 28);
     doc.setFontSize(7);
     doc.setTextColor(...muted);
-    doc.text("GestÃ£o eficiente, melhores resultados.", pageW - margin - 14, obsY + 26, {
+    doc.text("Gestão eficiente, melhores resultados.", pageW - margin - 14, obsY + 26, {
       align: "right",
     });
   }
 
+  const filtro = brand?.filtroLabel?.trim() || "Equipe completa";
   doc.addPage("a4", "landscape");
   paint();
-  doc.setFont("helvetica", "bold");
+  doc.setFont(font, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...accent);
   doc.text("COMPARATIVO POR PESSOA", margin, 28);
   doc.setFontSize(18);
   doc.setTextColor(...ink);
-  doc.text(
-    `${mesNome} ${data.ano}  Ã—  ${MESES[data.resumoAnterior.mes - 1] ?? ""} ${data.resumoAnterior.ano}`,
-    margin,
-    50,
-  );
-  doc.setFont("helvetica", "normal");
+  const mesAnt = MESES[data.resumoAnterior.mes - 1] ?? "";
+  doc.text(`${mesNome} ${data.ano}  ×  ${mesAnt} ${data.resumoAnterior.ano}`, margin, 50);
+  doc.setFont(font, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...muted);
   doc.text(filtro, margin, 64);
-  drawComparativo(doc, data, accent, line, ink, muted, card, margin, 78);
+  drawComparativo(doc, font, data, accent, line, ink, muted, margin, 78);
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) {
     doc.setPage(i);
+    doc.setFont(font, "normal");
     doc.setFontSize(7);
     doc.setTextColor(...muted);
-    doc.setFont("helvetica", "normal");
     doc.text(
-      `${company}  Â·  Gerado em ${new Date().toLocaleString("pt-BR")}  Â·  ${i}/${pages}`,
+      `${company}  ·  Gerado em ${new Date().toLocaleString("pt-BR")}  ·  ${i}/${pages}`,
       pageW / 2,
       pageH - 12,
       { align: "center" },
@@ -413,11 +438,11 @@ export async function downloadPresencaPdf(
 
 function drawMark(
   doc: jsPDF,
+  font: string,
   x: number,
   y: number,
   cell: PresencaCelula | null | undefined,
   line: Rgb,
-  card: Rgb,
 ) {
   if (!cell) {
     doc.setDrawColor(...line);
@@ -425,12 +450,12 @@ function drawMark(
     doc.circle(x, y, 2.4, "S");
     return;
   }
-  const rgb = parseHex(cell.cor) ?? GREEN;
+  const rgb = parseHex(cell.cor) ?? SUCCESS;
   const label = cell.sigla.slice(0, 3);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
+  doc.setFont(font, "bold");
+  doc.setFontSize(6.2);
   const w = Math.max(12, doc.getTextWidth(label) + 6);
-  doc.setFillColor(...mix(rgb, card, 0.78));
+  doc.setFillColor(...mix(rgb, WHITE, 0.84));
   doc.roundedRect(x - w / 2, y - 6, w, 12, 3, 3, "F");
   doc.setTextColor(...rgb);
   doc.text(label, x, y + 2.2, { align: "center" });
@@ -438,23 +463,23 @@ function drawMark(
 
 function drawLegend(
   doc: jsPDF,
+  font: string,
   tipos: PresencaTipo[],
   x: number,
   y: number,
   maxW: number,
-  muted: Rgb,
 ) {
   let cursor = x;
   for (const tipo of tipos) {
-    const rgb = parseHex(tipo.cor) ?? GREEN;
-    doc.setFont("helvetica", "bold");
+    const rgb = parseHex(tipo.cor) ?? SUCCESS;
+    doc.setFont(font, "bold");
     doc.setFontSize(6.5);
     doc.setTextColor(...rgb);
     const siglaW = doc.getTextWidth(tipo.sigla);
     doc.text(tipo.sigla, cursor, y + 1);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(font, "normal");
     doc.setFontSize(6.8);
-    doc.setTextColor(...muted);
+    doc.setTextColor(...MUTED);
     doc.text(tipo.nome, cursor + siglaW + 4, y + 1);
     const w = siglaW + 4 + doc.getTextWidth(tipo.nome) + 12;
     if (cursor + w > x + maxW) break;
@@ -464,18 +489,18 @@ function drawLegend(
 
 function drawKpis(
   doc: jsPDF,
+  font: string,
   data: PresencaMes,
   y: number,
   pageW: number,
   margin: number,
   theme: {
-    card: Rgb;
-    ink: Rgb;
-    muted: Rgb;
-    accent: Rgb;
     success: Rgb;
-    danger: Rgb;
+    accent: Rgb;
     info: Rgb;
+    danger: Rgb;
+    muted: Rgb;
+    ink: Rgb;
   },
 ) {
   const faltas = (data.comparativoUsuarios ?? []).reduce(
@@ -491,35 +516,35 @@ function drawKpis(
   const dFalta = faltas - faltasAnt;
   const cards = [
     {
-      wash: mix(theme.success, theme.card, 0.86),
+      wash: mix(theme.success, WHITE, 0.88),
       icon: theme.success,
-      label: "MÃ©dia de presentes/dia",
+      label: "Média de presentes/dia",
       value: num(data.resumo.mediaVieram),
-      hint: `${signed(dVieram)} vs. mÃªs anterior`,
+      hint: `${signed(dVieram)} vs. mês anterior`,
       hintRgb: dVieram >= 0 ? theme.success : theme.danger,
     },
     {
-      wash: mix(theme.accent, theme.card, 0.86),
+      wash: mix(theme.accent, WHITE, 0.88),
       icon: theme.accent,
       label: "Equivalente (dias)",
       value: num(data.resumo.mediaEquivalente),
-      hint: `${signed(dEq)} vs. mÃªs anterior`,
+      hint: `${signed(dEq)} vs. mês anterior`,
       hintRgb: dEq >= 0 ? theme.success : theme.danger,
     },
     {
-      wash: mix(theme.info, theme.card, 0.86),
+      wash: mix(theme.info, WHITE, 0.88),
       icon: theme.info,
-      label: "MÃªs anterior",
+      label: "Mês anterior",
       value: num(data.resumoAnterior.mediaVieram),
-      hint: "mÃ©dia de presentes no recorte",
+      hint: "média de presentes no recorte",
       hintRgb: theme.muted,
     },
     {
-      wash: mix(theme.danger, theme.card, 0.86),
+      wash: mix(theme.danger, WHITE, 0.88),
       icon: theme.danger,
-      label: "Faltas no mÃªs",
+      label: "Faltas no mês",
       value: String(faltas),
-      hint: `${signed(dFalta)} vs. mÃªs anterior`,
+      hint: `${signed(dFalta)} vs. mês anterior`,
       hintRgb: dFalta > 0 ? theme.danger : theme.success,
     },
   ];
@@ -535,15 +560,15 @@ function drawKpis(
     doc.circle(cx + 22, y + 30, 4, "F");
     doc.circle(cx + 18, y + 38, 3.2, "F");
     doc.circle(cx + 26, y + 38, 3.2, "F");
-    doc.setFont("helvetica", "normal");
+    doc.setFont(font, "normal");
     doc.setFontSize(7.4);
     doc.setTextColor(...theme.muted);
     doc.text(item.label, cx + 44, y + 22);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(font, "bold");
     doc.setFontSize(20);
     doc.setTextColor(...theme.ink);
     doc.text(item.value, cx + 44, y + 42);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(font, "normal");
     doc.setFontSize(7);
     doc.setTextColor(...item.hintRgb);
     doc.text(item.hint, cx + 44, y + 56);
@@ -552,12 +577,12 @@ function drawKpis(
 
 function drawComparativo(
   doc: jsPDF,
+  font: string,
   data: PresencaMes,
   accent: Rgb,
   line: Rgb,
   ink: Rgb,
   muted: Rgb,
-  card: Rgb,
   x: number,
   y: number,
 ) {
@@ -584,16 +609,16 @@ function drawComparativo(
         "Pessoa",
         "Equipe",
         "Vieram",
-        "MÃªs ant.",
-        "Î”",
+        "Mês ant.",
+        "Δ",
         "Equiv.",
-        "MÃªs ant.",
-        "Î”",
+        "Mês ant.",
+        "Δ",
         "Faltas",
-        "MÃªs ant.",
-        "Î”",
+        "Mês ant.",
+        "Δ",
         "Just.",
-        "MÃªs ant.",
+        "Mês ant.",
       ],
     ],
     body: rows.length
@@ -601,7 +626,7 @@ function drawComparativo(
       : [["Nenhuma pessoa no recorte", "", "", "", "", "", "", "", "", "", "", "", ""]],
     theme: "plain",
     styles: {
-      font: "helvetica",
+      font,
       fontSize: 7.2,
       cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
       textColor: ink,
@@ -611,7 +636,7 @@ function drawComparativo(
       lineWidth: 0.3,
     },
     headStyles: {
-      fillColor: mix(accent, card, 0.88),
+      fillColor: mix(accent, WHITE, 0.88),
       textColor: ink,
       fontStyle: "bold",
       fontSize: 6.4,
@@ -621,7 +646,6 @@ function drawComparativo(
       0: { halign: "left", cellWidth: 118, fontStyle: "bold", textColor: ink },
       1: { halign: "left", cellWidth: 70, textColor: muted, fontStyle: "normal" },
     },
-    alternateRowStyles: { fillColor: mix(card, accent, 0.04) },
+    alternateRowStyles: { fillColor: mix(PAPER, WHITE, 0.35) },
   });
 }
-
