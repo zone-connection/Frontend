@@ -556,9 +556,10 @@ function formatDayBr(iso: string) {
   return new Date(iso + "T12:00:00").toLocaleDateString("pt-BR");
 }
 
-/** Só aparece enquanto Status 1 for Em análise; some ao sair. */
+/** Aparece em Em análise e Reprovado; some ao aprovar ou dar perda. */
 function diasEmAnaliseLabel(doc: Documentacao): string | null {
-  if (status1Group(doc.status1) !== "analise") return null;
+  const group = status1Group(doc.status1);
+  if (group !== "analise" && group !== "reprovado") return null;
   const day = toDateInput(doc.dataAnalise) || toDateInput(doc.createdAt);
   if (!day) return null;
   const start = new Date(`${day}T12:00:00`);
