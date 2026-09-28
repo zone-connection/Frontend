@@ -6,6 +6,61 @@ import type {
   PresencaUsuario,
 } from "@/lib/presenca-api";
 
+export const PRESENCA_ROLE_LABEL: Record<string, string> = {
+  admin: "admin",
+  gerente: "gerente",
+  corretor: "corretor",
+  treinee: "trainee",
+  analista: "analista",
+  financeiro: "financeiro",
+  assistente: "assistente",
+  super_admin: "plataforma",
+};
+
+export const PRESENCA_AVATAR_TONES = [
+  "#0284c7",
+  "#7c3aed",
+  "#ea580c",
+  "#059669",
+  "#e11d48",
+  "#4f46e5",
+  "#0f766e",
+  "#c026d3",
+];
+
+export function presencaInitials(nome: string) {
+  return nome
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+export function weekdayLabel(iso: string) {
+  return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][
+    new Date(`${iso}T12:00:00`).getDay()
+  ]!;
+}
+
+export function avatarTone(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return PRESENCA_AVATAR_TONES[h % PRESENCA_AVATAR_TONES.length]!;
+}
+
+export function monthRangeLabel(dias: string[]) {
+  if (!dias.length) return "";
+  const fmt = (iso: string) => {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  };
+  return `${fmt(dias[0]!)} a ${fmt(dias[dias.length - 1]!)}`;
+}
+
 export type PresencaFiltroNatureza =
   | "todos"
   | "veio"
