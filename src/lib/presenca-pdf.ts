@@ -1,6 +1,5 @@
-import { jsPDF } from "jspdf";
+﻿import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { sampleLogoPalette } from "@/lib/brand-hue";
 import type { PresencaCelula, PresencaMes, PresencaTipo } from "@/lib/presenca-api";
 import {
   avatarTone,
@@ -13,7 +12,7 @@ import {
 const MESES = [
   "Janeiro",
   "Fevereiro",
-  "Março",
+  "MarÃ§o",
   "Abril",
   "Maio",
   "Junho",
@@ -27,14 +26,15 @@ const MESES = [
 
 type Rgb = [number, number, number];
 
-const PAPER: Rgb = [244, 248, 252];
-const INK: Rgb = [15, 40, 90];
+const PAPER: Rgb = [248, 250, 252];
+const INK: Rgb = [5, 54, 71];
 const MUTED: Rgb = [100, 116, 139];
 const LINE: Rgb = [226, 232, 240];
 const WHITE: Rgb = [255, 255, 255];
-const NAVY: Rgb = [15, 40, 90];
-const GREEN: Rgb = [16, 185, 129];
 const FALLBACK_ACCENT: Rgb = [2, 125, 194];
+const GREEN: Rgb = [5, 150, 105];
+const ROSE: Rgb = [220, 38, 38];
+const INFO: Rgb = [2, 179, 238];
 
 function parseHex(hex?: string | null): Rgb | null {
   const raw = hex?.trim().replace(/^#/, "");
@@ -58,29 +58,42 @@ function mix(a: Rgb, b: Rgb, t: number): Rgb {
   ];
 }
 
-async function colorsFromAdminLogo(
-  logoUrl?: string | null,
-  primaryColor?: string | null,
-) {
-  const sampled = logoUrl?.trim()
-    ? await sampleLogoPalette(logoUrl.trim())
-    : [];
-  const fromLogo = sampled
-    .map((hex) => parseHex(hex))
-    .filter((rgb): rgb is Rgb => Boolean(rgb));
-  const fallback = parseHex(primaryColor) ?? FALLBACK_ACCENT;
-  const dark =
-    [...fromLogo].sort((a, b) => lum(a) - lum(b))[0] ?? mix(fallback, NAVY, 0.55);
+function cssHex(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || null;
+}
+
+function paletteFromTheme(primaryColor?: string | null) {
+  const cssPrimary = parseHex(cssHex("--primary"));
+  const cssBg = parseHex(cssHex("--background"));
+  const cssCard = parseHex(cssHex("--card"));
+  const cssFg = parseHex(cssHex("--foreground"));
+  const cssMuted = parseHex(cssHex("--muted-foreground"));
+  const cssBorder = parseHex(cssHex("--border"));
+  const cssSuccess = parseHex(cssHex("--success"));
+  const cssDanger = parseHex(cssHex("--destructive"));
+  const cssInfo = parseHex(cssHex("--info"));
   const accent =
-    fromLogo.find((rgb) => lum(rgb) > 0.28 && lum(rgb) < 0.78) ??
-    fromLogo.find((rgb) => rgb !== dark) ??
-    fallback;
-  const title = lum(dark) > 0.42 ? mix(dark, NAVY, 0.7) : dark;
+    cssPrimary ?? parseHex(primaryColor) ?? FALLBACK_ACCENT;
+  const paper = cssBg ?? mix(PAPER, accent, 0.04);
+  const card = cssCard ?? WHITE;
+  const ink = cssFg ?? INK;
+  const muted = cssMuted ?? MUTED;
+  const line = cssBorder ?? mix(LINE, accent, 0.08);
   return {
     accent,
-    title,
-    paper: mix(PAPER, accent, 0.04),
-    line: mix(LINE, accent, 0.08),
+    paper,
+    card,
+    ink,
+    muted,
+    line,
+    success: cssSuccess ?? GREEN,
+    danger: cssDanger ?? ROSE,
+    info: cssInfo ?? INFO,
+    onAccent: lum(accent) > 0.55 ? ink : WHITE,
   };
 }
 
@@ -126,11 +139,10 @@ export async function downloadPresencaPdf(
   brand?: PresencaPdfBrand | null,
 ) {
   const company = brand?.companyName?.trim() || "Zone Connection";
-  const [logo, palette] = await Promise.all([
-    logoDataUrl(brand?.logoUrl),
-    colorsFromAdminLogo(brand?.logoUrl, brand?.primaryColor),
-  ]);
-  const { accent, title, paper, line } = palette;
+  const logo = await logoDataUrl(brand?.logoUrl);
+  const palette = paletteFromTheme(brand?.primaryColor);
+  const { accent, paper, card, ink, muted, line, success, danger, info, onAccent } =
+    palette;
   const filtro = brand?.filtroLabel?.trim() || "Equipe completa";
 
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
@@ -148,17 +160,17 @@ export async function downloadPresencaPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...accent);
-  doc.text("RELATÓRIO DE FREQUÊNCIA", margin, 28);
+  doc.text("RELATÃ“RIO DE FREQUÃŠNCIA", margin, 28);
 
-  doc.setTextColor(...title);
+  doc.setTextColor(...ink);
   doc.setFontSize(26);
   doc.text(`${mesNome} ${data.ano}`, margin, 52);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...muted);
   doc.text(
-    "Acompanhe a frequência da sua equipe de forma prática e organizada.",
+    "Acompanhe a frequÃªncia da sua equipe de forma prÃ¡tica e organizada.",
     margin,
     68,
   );
@@ -166,7 +178,7 @@ export async function downloadPresencaPdf(
   const periodo = monthRangeLabel(data.dias);
   const chipW = 210;
   const chipX = pageW - margin - chipW;
-  doc.setFillColor(...WHITE);
+  doc.setFillColor(...card);
   doc.setDrawColor(...line);
   doc.setLineWidth(0.8);
   doc.roundedRect(chipX, 22, chipW, 42, 8, 8, "FD");
@@ -174,17 +186,17 @@ export async function downloadPresencaPdf(
   doc.roundedRect(chipX + 10, 33, 16, 16, 3, 3, "F");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(...MUTED);
-  doc.text("Período analisado", chipX + 32, 36);
+  doc.setTextColor(...muted);
+  doc.text("PerÃ­odo analisado", chipX + 32, 36);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(...title);
+  doc.setTextColor(...ink);
   doc.text(periodo, chipX + 32, 50);
   if (logo) {
     try {
       doc.addImage(logo, "PNG", chipX - 36, 26, 28, 28);
     } catch {
-      /* logo inválida */
+      /* logo invÃ¡lida */
     }
   }
 
@@ -193,13 +205,13 @@ export async function downloadPresencaPdf(
   const cardW = pageW - margin * 2;
   const tableTop = 84;
 
-  doc.setFillColor(...WHITE);
+  doc.setFillColor(...card);
   doc.roundedRect(cardX, tableTop, cardW, 8, 14, 14, "F");
 
   const head = [
     [
       "Colaborador",
-      "Função",
+      "FunÃ§Ã£o",
       ...data.dias.map((d) => `${weekdayLabel(d)}\n${Number(d.slice(8))}`),
     ],
   ];
@@ -219,15 +231,15 @@ export async function downloadPresencaPdf(
       font: "helvetica",
       fontSize: 6.2,
       cellPadding: { top: 5, bottom: 5, left: 1.5, right: 1.5 },
-      textColor: INK,
+      textColor: ink,
       halign: "center",
       valign: "middle",
       minCellHeight: 22,
       overflow: "hidden",
     },
     headStyles: {
-      fillColor: WHITE,
-      textColor: MUTED,
+      fillColor: card,
+      textColor: muted,
       fontStyle: "bold",
       fontSize: 5.4,
       halign: "center",
@@ -240,12 +252,12 @@ export async function downloadPresencaPdf(
         cellPadding: { left: 30, right: 4, top: 5, bottom: 5 },
         fontStyle: "bold",
         fontSize: 7.2,
-        textColor: title,
+        textColor: ink,
       },
       1: {
         halign: "left",
         cellWidth: 52,
-        textColor: MUTED,
+        textColor: muted,
         fontStyle: "normal",
         fontSize: 7,
       },
@@ -287,7 +299,14 @@ export async function downloadPresencaPdf(
       const user = data.usuarios[hook.row.index];
       const day = data.dias[hook.column.index - 2];
       const cell = user?.dias[day];
-      drawMark(doc, hook.cell.x + hook.cell.width / 2, hook.cell.y + hook.cell.height / 2, cell, line);
+      drawMark(
+        doc,
+        hook.cell.x + hook.cell.width / 2,
+        hook.cell.y + hook.cell.height / 2,
+        cell,
+        line,
+        card,
+      );
     },
   });
 
@@ -295,16 +314,16 @@ export async function downloadPresencaPdf(
     (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
       ?.finalY ?? 120;
 
-  doc.setFillColor(...WHITE);
+  doc.setFillColor(...card);
   doc.roundedRect(cardX, tableBottom, cardW, 36, 0, 0, "F");
-  doc.setFillColor(...WHITE);
+  doc.setFillColor(...card);
   doc.roundedRect(cardX, tableBottom + 12, cardW, 36, 14, 14, "F");
-  drawLegend(doc, tipos, margin + 18, tableBottom + 30, pageW / 2 - 40);
+  drawLegend(doc, tipos, margin + 18, tableBottom + 30, pageW / 2 - 40, muted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...muted);
   doc.text(
-    `Média de presentes/dia: ${num(data.resumo.mediaVieram)}   ·   Equivalente: ${num(data.resumo.mediaEquivalente)}   ·   vs mês ant.: ${num(data.resumoAnterior.mediaVieram)}`,
+    `MÃ©dia de presentes/dia: ${num(data.resumo.mediaVieram)}   Â·   Equivalente: ${num(data.resumo.mediaEquivalente)}   Â·   vs mÃªs ant.: ${num(data.resumoAnterior.mediaVieram)}`,
     pageW - margin - 14,
     tableBottom + 32,
     { align: "right" },
@@ -316,25 +335,33 @@ export async function downloadPresencaPdf(
     paint();
     kpiY = 28;
   }
-  drawKpis(doc, data, kpiY, pageW, margin);
+  drawKpis(doc, data, kpiY, pageW, margin, {
+    card,
+    ink,
+    muted,
+    accent,
+    success,
+    danger,
+    info,
+  });
 
   const obsY = kpiY + 78;
   if (obsY + 40 < pageH - 22) {
-    doc.setFillColor(...WHITE);
+    doc.setFillColor(...card);
     doc.roundedRect(margin, obsY, pageW - margin * 2, 36, 10, 10, "F");
     doc.setFillColor(...accent);
     doc.circle(margin + 16, obsY + 18, 6, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(...WHITE);
+    doc.setTextColor(...onAccent);
     doc.text("i", margin + 16, obsY + 20.5, { align: "center" });
-    doc.setTextColor(...title);
-    doc.text("Observações", margin + 28, obsY + 14);
+    doc.setTextColor(...ink);
+    doc.text("ObservaÃ§Ãµes", margin + 28, obsY + 14);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(...MUTED);
+    doc.setTextColor(...muted);
     doc.text(
-      "Os dados de frequência são atualizados diariamente e podem sofrer pequenas variações conforme o fechamento do ponto.",
+      "Os dados de frequÃªncia sÃ£o atualizados diariamente e podem sofrer pequenas variaÃ§Ãµes conforme o fechamento do ponto.",
       margin + 28,
       obsY + 26,
     );
@@ -342,8 +369,8 @@ export async function downloadPresencaPdf(
     doc.setLineWidth(1.4);
     doc.line(pageW - margin - 168, obsY + 28, pageW - margin - 132, obsY + 28);
     doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.text("Gestão eficiente, melhores resultados.", pageW - margin - 14, obsY + 26, {
+    doc.setTextColor(...muted);
+    doc.text("GestÃ£o eficiente, melhores resultados.", pageW - margin - 14, obsY + 26, {
       align: "right",
     });
   }
@@ -355,26 +382,26 @@ export async function downloadPresencaPdf(
   doc.setTextColor(...accent);
   doc.text("COMPARATIVO POR PESSOA", margin, 28);
   doc.setFontSize(18);
-  doc.setTextColor(...title);
+  doc.setTextColor(...ink);
   doc.text(
-    `${mesNome} ${data.ano}  ×  ${MESES[data.resumoAnterior.mes - 1] ?? ""} ${data.resumoAnterior.ano}`,
+    `${mesNome} ${data.ano}  Ã—  ${MESES[data.resumoAnterior.mes - 1] ?? ""} ${data.resumoAnterior.ano}`,
     margin,
     50,
   );
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...muted);
   doc.text(filtro, margin, 64);
-  drawComparativo(doc, data, accent, line, title, margin, 78);
+  drawComparativo(doc, data, accent, line, ink, muted, card, margin, 78);
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) {
     doc.setPage(i);
     doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
+    doc.setTextColor(...muted);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `${company}  ·  Gerado em ${new Date().toLocaleString("pt-BR")}  ·  ${i}/${pages}`,
+      `${company}  Â·  Gerado em ${new Date().toLocaleString("pt-BR")}  Â·  ${i}/${pages}`,
       pageW / 2,
       pageH - 12,
       { align: "center" },
@@ -390,6 +417,7 @@ function drawMark(
   y: number,
   cell: PresencaCelula | null | undefined,
   line: Rgb,
+  card: Rgb,
 ) {
   if (!cell) {
     doc.setDrawColor(...line);
@@ -397,18 +425,12 @@ function drawMark(
     doc.circle(x, y, 2.4, "S");
     return;
   }
-  if (cell.natureza === "presente") {
-    const rgb = parseHex(cell.cor) ?? GREEN;
-    doc.setFillColor(...rgb);
-    doc.circle(x, y, 3.1, "F");
-    return;
-  }
   const rgb = parseHex(cell.cor) ?? GREEN;
   const label = cell.sigla.slice(0, 3);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.6);
-  const w = Math.max(14, doc.getTextWidth(label) + 8);
-  doc.setFillColor(...mix(rgb, WHITE, 0.82));
+  doc.setFontSize(6);
+  const w = Math.max(12, doc.getTextWidth(label) + 6);
+  doc.setFillColor(...mix(rgb, card, 0.78));
   doc.roundedRect(x - w / 2, y - 6, w, 12, 3, 3, "F");
   doc.setTextColor(...rgb);
   doc.text(label, x, y + 2.2, { align: "center" });
@@ -420,34 +442,42 @@ function drawLegend(
   x: number,
   y: number,
   maxW: number,
+  muted: Rgb,
 ) {
   let cursor = x;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.8);
   for (const tipo of tipos) {
-    const label = tipo.nome;
-    const w = doc.getTextWidth(label) + 16;
-    if (cursor + w > x + maxW) break;
     const rgb = parseHex(tipo.cor) ?? GREEN;
-    if (tipo.natureza === "presente") {
-      doc.setFillColor(...rgb);
-      doc.circle(cursor + 3, y - 1.5, 2.6, "F");
-    } else {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6);
-      doc.setTextColor(...rgb);
-      doc.text(tipo.sigla, cursor, y + 1);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.8);
-      cursor += doc.getTextWidth(tipo.sigla) + 3;
-    }
-    doc.setTextColor(...MUTED);
-    doc.text(label, cursor + 8, y + 1);
-    cursor += w + 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...rgb);
+    const siglaW = doc.getTextWidth(tipo.sigla);
+    doc.text(tipo.sigla, cursor, y + 1);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(...muted);
+    doc.text(tipo.nome, cursor + siglaW + 4, y + 1);
+    const w = siglaW + 4 + doc.getTextWidth(tipo.nome) + 12;
+    if (cursor + w > x + maxW) break;
+    cursor += w;
   }
 }
 
-function drawKpis(doc: jsPDF, data: PresencaMes, y: number, pageW: number, margin: number) {
+function drawKpis(
+  doc: jsPDF,
+  data: PresencaMes,
+  y: number,
+  pageW: number,
+  margin: number,
+  theme: {
+    card: Rgb;
+    ink: Rgb;
+    muted: Rgb;
+    accent: Rgb;
+    success: Rgb;
+    danger: Rgb;
+    info: Rgb;
+  },
+) {
   const faltas = (data.comparativoUsuarios ?? []).reduce(
     (s, c) => s + c.atual.faltas,
     0,
@@ -461,45 +491,45 @@ function drawKpis(doc: jsPDF, data: PresencaMes, y: number, pageW: number, margi
   const dFalta = faltas - faltasAnt;
   const cards = [
     {
-      wash: [232, 250, 240] as Rgb,
-      icon: [16, 185, 129] as Rgb,
-      label: "Média de presentes/dia",
+      wash: mix(theme.success, theme.card, 0.86),
+      icon: theme.success,
+      label: "MÃ©dia de presentes/dia",
       value: num(data.resumo.mediaVieram),
-      hint: `${signed(dVieram)} vs. mês anterior`,
-      hintRgb: dVieram >= 0 ? GREEN : ([244, 63, 94] as Rgb),
+      hint: `${signed(dVieram)} vs. mÃªs anterior`,
+      hintRgb: dVieram >= 0 ? theme.success : theme.danger,
     },
     {
-      wash: [232, 242, 255] as Rgb,
-      icon: [37, 99, 235] as Rgb,
+      wash: mix(theme.accent, theme.card, 0.86),
+      icon: theme.accent,
       label: "Equivalente (dias)",
       value: num(data.resumo.mediaEquivalente),
-      hint: `${signed(dEq)} vs. mês anterior`,
-      hintRgb: dEq >= 0 ? GREEN : ([244, 63, 94] as Rgb),
+      hint: `${signed(dEq)} vs. mÃªs anterior`,
+      hintRgb: dEq >= 0 ? theme.success : theme.danger,
     },
     {
-      wash: [243, 236, 255] as Rgb,
-      icon: [139, 92, 246] as Rgb,
-      label: "Mês anterior",
+      wash: mix(theme.info, theme.card, 0.86),
+      icon: theme.info,
+      label: "MÃªs anterior",
       value: num(data.resumoAnterior.mediaVieram),
-      hint: "média de presentes no recorte",
-      hintRgb: MUTED,
+      hint: "mÃ©dia de presentes no recorte",
+      hintRgb: theme.muted,
     },
     {
-      wash: [255, 236, 238] as Rgb,
-      icon: [244, 63, 94] as Rgb,
-      label: "Faltas no mês",
+      wash: mix(theme.danger, theme.card, 0.86),
+      icon: theme.danger,
+      label: "Faltas no mÃªs",
       value: String(faltas),
-      hint: `${signed(dFalta)} vs. mês anterior`,
-      hintRgb: dFalta > 0 ? ([244, 63, 94] as Rgb) : GREEN,
+      hint: `${signed(dFalta)} vs. mÃªs anterior`,
+      hintRgb: dFalta > 0 ? theme.danger : theme.success,
     },
   ];
   const gap = 10;
   const width = (pageW - margin * 2 - gap * 3) / 4;
-  cards.forEach((card, i) => {
+  cards.forEach((item, i) => {
     const cx = margin + i * (width + gap);
-    doc.setFillColor(...card.wash);
+    doc.setFillColor(...item.wash);
     doc.roundedRect(cx, y, width, 68, 12, 12, "F");
-    doc.setFillColor(...card.icon);
+    doc.setFillColor(...item.icon);
     doc.circle(cx + 22, y + 34, 13, "F");
     doc.setFillColor(...WHITE);
     doc.circle(cx + 22, y + 30, 4, "F");
@@ -507,16 +537,16 @@ function drawKpis(doc: jsPDF, data: PresencaMes, y: number, pageW: number, margi
     doc.circle(cx + 26, y + 38, 3.2, "F");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.4);
-    doc.setTextColor(...MUTED);
-    doc.text(card.label, cx + 44, y + 22);
+    doc.setTextColor(...theme.muted);
+    doc.text(item.label, cx + 44, y + 22);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.setTextColor(...NAVY);
-    doc.text(card.value, cx + 44, y + 42);
+    doc.setTextColor(...theme.ink);
+    doc.text(item.value, cx + 44, y + 42);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
-    doc.setTextColor(...card.hintRgb);
-    doc.text(card.hint, cx + 44, y + 56);
+    doc.setTextColor(...item.hintRgb);
+    doc.text(item.hint, cx + 44, y + 56);
   });
 }
 
@@ -525,7 +555,9 @@ function drawComparativo(
   data: PresencaMes,
   accent: Rgb,
   line: Rgb,
-  title: Rgb,
+  ink: Rgb,
+  muted: Rgb,
+  card: Rgb,
   x: number,
   y: number,
 ) {
@@ -552,16 +584,16 @@ function drawComparativo(
         "Pessoa",
         "Equipe",
         "Vieram",
-        "Mês ant.",
-        "Δ",
+        "MÃªs ant.",
+        "Î”",
         "Equiv.",
-        "Mês ant.",
-        "Δ",
+        "MÃªs ant.",
+        "Î”",
         "Faltas",
-        "Mês ant.",
-        "Δ",
+        "MÃªs ant.",
+        "Î”",
         "Just.",
-        "Mês ant.",
+        "MÃªs ant.",
       ],
     ],
     body: rows.length
@@ -572,23 +604,24 @@ function drawComparativo(
       font: "helvetica",
       fontSize: 7.2,
       cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
-      textColor: INK,
+      textColor: ink,
       halign: "center",
       valign: "middle",
       lineColor: line,
       lineWidth: 0.3,
     },
     headStyles: {
-      fillColor: mix(accent, WHITE, 0.12),
-      textColor: title,
+      fillColor: mix(accent, card, 0.88),
+      textColor: ink,
       fontStyle: "bold",
       fontSize: 6.4,
       halign: "center",
     },
     columnStyles: {
-      0: { halign: "left", cellWidth: 118, fontStyle: "bold", textColor: title },
-      1: { halign: "left", cellWidth: 70, textColor: MUTED, fontStyle: "normal" },
+      0: { halign: "left", cellWidth: 118, fontStyle: "bold", textColor: ink },
+      1: { halign: "left", cellWidth: 70, textColor: muted, fontStyle: "normal" },
     },
-    alternateRowStyles: { fillColor: mix(PAPER, WHITE, 0.4) },
+    alternateRowStyles: { fillColor: mix(card, accent, 0.04) },
   });
 }
+

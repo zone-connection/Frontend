@@ -267,42 +267,42 @@ function Page() {
   if (offline) return <SemConexao onRetry={() => void load()} />;
 
   return (
-    <div className="-m-3 flex flex-col gap-5 bg-sky-50/80 p-4 sm:-m-4 md:-m-6 md:p-6 dark:bg-slate-950/40">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
             Relatório de frequência
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
             {MESES[mes - 1]} {ano}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Acompanhe a frequência da sua equipe de forma prática e organizada.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl bg-white" onClick={() => shift(-1)}>
+          <Button variant="outline" size="icon" className="rounded-xl" onClick={() => shift(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-3 rounded-xl border bg-white px-3 py-2 shadow-sm">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-white">
+          <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2 shadow-sm">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <CalendarDays className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-slate-400">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 Período analisado
               </div>
-              <div className="text-sm font-semibold text-slate-800">
+              <div className="text-sm font-semibold text-foreground">
                 {view ? monthRangeLabel(view.dias) : "—"}
               </div>
             </div>
           </div>
-          <Button variant="outline" size="icon" className="rounded-xl bg-white" onClick={() => shift(1)}>
+          <Button variant="outline" size="icon" className="rounded-xl" onClick={() => shift(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
-            className="rounded-xl bg-white"
+            className="rounded-xl"
             onClick={exportPdf}
             disabled={!view}
           >
@@ -310,7 +310,7 @@ function Page() {
             Gerar relatório
           </Button>
           {data?.podeTipos ? (
-            <Button variant="outline" className="rounded-xl bg-white" onClick={() => setTiposOpen(true)}>
+            <Button variant="outline" className="rounded-xl" onClick={() => setTiposOpen(true)}>
               <Settings2 className="mr-2 h-4 w-4" />
               Tipos
             </Button>
@@ -326,7 +326,7 @@ function Page() {
               variant="outline"
               role="combobox"
               className={cn(
-                "min-w-[180px] justify-between rounded-xl bg-white font-medium",
+                "min-w-[180px] justify-between rounded-xl font-medium",
                 userIds.length > 0 && "border-primary/40 bg-primary/5",
               )}
             >
@@ -387,14 +387,14 @@ function Page() {
             </Command>
           </PopoverContent>
         </Popover>
-        <Filter className="ml-1 h-3.5 w-3.5 text-slate-400" />
+        <Filter className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
         {PRESENCA_FILTRO_NATUREZA.map((opt) => (
           <Button
             key={opt.id}
             type="button"
             size="sm"
             variant={naturezaFiltro === opt.id ? "default" : "outline"}
-            className="h-8 rounded-full bg-white px-3 text-xs"
+            className="h-8 rounded-full px-3 text-xs"
             onClick={() => setNaturezaFiltro(opt.id)}
           >
             {opt.label}
@@ -442,23 +442,23 @@ function Page() {
         </div>
       ) : view ? (
         <>
-          <Card className="overflow-hidden rounded-3xl border-0 bg-white p-0 shadow-[0_10px_40px_rgba(15,40,90,0.06)]">
+          <Card className="overflow-hidden rounded-3xl border bg-card p-0 shadow-sm">
             <div className="overflow-auto">
               <table className="min-w-max text-xs">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 z-10 bg-white px-4 py-3 text-left text-[11px] font-semibold text-slate-400 min-w-[220px]">
+                    <th className="sticky left-0 z-10 bg-card px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground min-w-[220px]">
                       Colaborador
                     </th>
-                    <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-400 min-w-[88px]">
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold text-muted-foreground min-w-[88px]">
                       Função
                     </th>
                     {view.dias.map((d) => (
                       <th key={d} className="px-1 py-3 text-center w-8">
-                        <div className="text-[9px] font-medium text-slate-400">
+                        <div className="text-[9px] font-medium text-muted-foreground">
                           {weekday(d)}
                         </div>
-                        <div className="text-[11px] font-semibold text-slate-500">
+                        <div className="text-[11px] font-semibold text-muted-foreground">
                           {String(Number(d.slice(8))).padStart(2, "0")}
                         </div>
                       </th>
@@ -469,7 +469,7 @@ function Page() {
                   {view.usuarios.length === 0 ? (
                     <tr>
                       <td
-                        className="px-4 py-10 text-center text-slate-400"
+                        className="px-4 py-10 text-center text-muted-foreground"
                         colSpan={view.dias.length + 2}
                       >
                         Nenhuma pessoa neste recorte. Ajuste os filtros.
@@ -477,8 +477,8 @@ function Page() {
                     </tr>
                   ) : (
                     view.usuarios.map((u) => (
-                      <tr key={u.userId} className="border-t border-slate-100">
-                        <td className="sticky left-0 z-10 bg-white px-4 py-2.5">
+                      <tr key={u.userId} className="border-t border-border">
+                        <td className="sticky left-0 z-10 bg-card px-4 py-2.5">
                           <div className="flex items-center gap-2.5">
                             <span
                               className="flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
@@ -487,7 +487,7 @@ function Page() {
                               {presencaInitials(u.nome) || "?"}
                             </span>
                             <div className="min-w-0">
-                              <div className="truncate font-semibold text-slate-800">
+                              <div className="truncate font-semibold text-foreground">
                                 {u.nome}
                               </div>
                               {u.equipe ? (
@@ -498,7 +498,7 @@ function Page() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-slate-400">
+                        <td className="px-3 py-2.5 text-muted-foreground">
                           {PRESENCA_ROLE_LABEL[u.role] ?? u.role}
                         </td>
                         {view.dias.map((d) => {
@@ -524,43 +524,35 @@ function Page() {
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                {(view.tipos.filter((t) => t.ativo).length
-                  ? view.tipos.filter((t) => t.ativo)
-                  : []
-                ).map((t) => (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                {view.tipos
+                  .filter((t) => t.ativo)
+                  .map((t) => (
                   <span key={t.id} className="inline-flex items-center gap-1.5">
-                    {t.natureza === "presente" ? (
-                      <span
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: t.cor }}
-                      />
-                    ) : (
-                      <span
-                        className="text-[10px] font-bold"
-                        style={{ color: t.cor }}
-                      >
-                        {t.sigla}
-                      </span>
-                    )}
+                    <span
+                      className="text-[10px] font-bold"
+                      style={{ color: t.cor }}
+                    >
+                      {t.sigla}
+                    </span>
                     {t.nome}
                   </span>
                 ))}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-muted-foreground">
                 Média de presentes/dia:{" "}
-                <span className="font-semibold text-slate-600">
+                <span className="font-semibold text-foreground">
                   {fmt2(view.resumo.mediaVieram)}
                 </span>
                 {"  ·  "}
                 Equivalente:{" "}
-                <span className="font-semibold text-slate-600">
+                <span className="font-semibold text-foreground">
                   {fmt2(view.resumo.mediaEquivalente)}
                 </span>
                 {"  ·  "}
                 vs mês ant.:{" "}
-                <span className="font-semibold text-slate-600">
+                <span className="font-semibold text-foreground">
                   {fmt2(view.resumoAnterior.mediaVieram)}
                 </span>
               </div>
@@ -601,14 +593,14 @@ function Page() {
             />
           </div>
 
-          <Card className="overflow-hidden rounded-3xl border-0 bg-white p-0 shadow-[0_10px_40px_rgba(15,40,90,0.06)]">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+          <Card className="overflow-hidden rounded-3xl border bg-card p-0 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
               <div>
-                <div className="text-sm font-semibold text-slate-800">
+                <div className="text-sm font-semibold text-foreground">
                   Comparativo com {MESES[view.resumoAnterior.mes - 1]}{" "}
                   {view.resumoAnterior.ano}
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   {filtroLabel}. Os totais usam o mesmo grupo de pessoas nos dois
                   meses.
                 </p>
@@ -617,7 +609,7 @@ function Page() {
             <div className="overflow-auto">
             <table className="w-full min-w-[720px] text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400">
+                <tr className="border-b border-border text-muted-foreground">
                   <th className="px-4 py-2 text-left">Pessoa</th>
                   <th className="px-2 py-2 text-right">Vieram</th>
                   <th className="px-2 py-2 text-right">Mês ant.</th>
@@ -710,14 +702,14 @@ function Page() {
             </div>
           </Card>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_8px_24px_rgba(15,40,90,0.05)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Info className="h-3.5 w-3.5" />
               </span>
               <div>
-                <div className="text-sm font-semibold text-slate-800">Observações</div>
-                <p className="text-xs text-slate-500">
+                <div className="text-sm font-semibold text-foreground">Observações</div>
+                <p className="text-xs text-muted-foreground">
                   Os dados de frequência são atualizados diariamente e podem sofrer
                   pequenas variações conforme o fechamento do ponto.
                   {view.podeEditar
@@ -726,7 +718,7 @@ function Page() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="h-px w-8 bg-primary" />
               Gestão eficiente, melhores resultados.
             </div>
@@ -762,16 +754,16 @@ function ReportKpi({
   tone: "emerald" | "blue" | "violet" | "rose";
 }) {
   const wash = {
-    emerald: "bg-emerald-50 text-emerald-600",
-    blue: "bg-blue-50 text-blue-600",
-    violet: "bg-violet-50 text-violet-600",
-    rose: "bg-rose-50 text-rose-500",
+    emerald: "bg-success/15",
+    blue: "bg-primary/15",
+    violet: "bg-info/15",
+    rose: "bg-destructive/15",
   }[tone];
   const iconBg = {
-    emerald: "bg-emerald-500",
-    blue: "bg-blue-600",
-    violet: "bg-violet-500",
-    rose: "bg-rose-500",
+    emerald: "bg-success",
+    blue: "bg-primary",
+    violet: "bg-info",
+    rose: "bg-destructive",
   }[tone];
   const good =
     delta == null || Math.abs(delta) < 0.005
@@ -790,21 +782,21 @@ function ReportKpi({
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0">
-        <div className="text-xs font-medium text-slate-500">{label}</div>
-        <div className="text-2xl font-bold tracking-tight text-slate-800">
+        <div className="text-xs font-medium text-muted-foreground">{label}</div>
+        <div className="text-2xl font-bold tracking-tight text-foreground">
           {value}
         </div>
         {hint ? (
-          <div className="text-[11px] text-slate-400">{hint}</div>
+          <div className="text-[11px] text-muted-foreground">{hint}</div>
         ) : delta != null ? (
           <div
             className={cn(
               "flex items-center gap-0.5 text-[11px] font-medium",
               good == null
-                ? "text-slate-400"
+                ? "text-muted-foreground"
                 : good
-                  ? "text-emerald-600"
-                  : "text-rose-500",
+                  ? "text-success"
+                  : "text-destructive",
             )}
           >
             {delta > 0 ? (
@@ -845,26 +837,19 @@ function PresencaDiaBotao({
           : cell?.nome ?? "Sem lançamento"
       }
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-full",
-        podeEditar && "hover:bg-slate-50",
+        "flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-semibold",
+        podeEditar && "hover:bg-muted/60",
       )}
+      style={
+        cell ? { backgroundColor: `${cell.cor}22`, color: cell.cor } : undefined
+      }
     >
       {busy ? (
-        <span className="text-[10px] text-slate-400">…</span>
-      ) : !cell ? (
-        <span className="size-2 rounded-full border border-slate-200" />
-      ) : cell.natureza === "presente" ? (
-        <span
-          className="size-2.5 rounded-full"
-          style={{ backgroundColor: cell.cor }}
-        />
+        "…"
+      ) : cell ? (
+        cell.sigla
       ) : (
-        <span
-          className="rounded-md px-1 py-0.5 text-[9px] font-bold"
-          style={{ backgroundColor: `${cell.cor}22`, color: cell.cor }}
-        >
-          {cell.sigla}
-        </span>
+        <span className="size-2 rounded-full border border-border" />
       )}
     </button>
   );
