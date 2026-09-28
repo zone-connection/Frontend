@@ -55,7 +55,7 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CorPicker } from "@/components/cor-picker";
 import {
   assertImageFile,
@@ -189,6 +189,31 @@ function construtoraIniciais(nome: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function ConstrutoraListAvatar({
+  nome,
+  logoUrl,
+}: {
+  nome: string;
+  logoUrl: string | null;
+}) {
+  return (
+    <Avatar className="h-8 w-8 bg-white">
+      {logoUrl ? (
+        <AvatarImage
+          src={logoUrl}
+          alt=""
+          className="object-contain p-0.5"
+        />
+      ) : null}
+      <AvatarFallback
+        className={cn("text-xs text-white", lostLeadAvatarClass(nome))}
+      >
+        {construtoraIniciais(nome)}
+      </AvatarFallback>
+    </Avatar>
+  );
 }
 
 function ConstrutoraNomeChip({
@@ -1244,16 +1269,10 @@ function ConstrutorasPage() {
                       <TableRow key={item.id} className="hover:bg-muted/40">
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback
-                                className={cn(
-                                  "text-xs text-white",
-                                  lostLeadAvatarClass(item.nome),
-                                )}
-                              >
-                                {construtoraIniciais(item.nome)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <ConstrutoraListAvatar
+                              nome={item.nome}
+                              logoUrl={item.logoUrl}
+                            />
                             {canViewVendas ? (
                               <button
                                 type="button"
@@ -1620,16 +1639,10 @@ function ConstrutorasPage() {
                           >
                             <TableCell className="sticky left-0 z-10 bg-card font-medium group-hover:bg-muted/40">
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback
-                                    className={cn(
-                                      "text-xs text-white",
-                                      lostLeadAvatarClass(item.nome),
-                                    )}
-                                  >
-                                    {construtoraIniciais(item.nome)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <ConstrutoraListAvatar
+                                  nome={item.nome}
+                                  logoUrl={item.logoUrl}
+                                />
                                 {item.nome}
                               </div>
                             </TableCell>
