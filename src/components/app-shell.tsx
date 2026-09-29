@@ -59,11 +59,8 @@ import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
 import {
   applyLogoChrome,
-  DEFAULT_SIDEBAR_THEME,
   LOGO_PALETTE_FALLBACK,
-  navSectionBand,
   sampleLogoPalette,
-  sidebarThemeFromPalette,
 } from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
@@ -406,7 +403,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const { brandName, logoUrl, modules } = useTenantTheme();
-  const [sidebarTheme, setSidebarTheme] = useState(DEFAULT_SIDEBAR_THEME);
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
@@ -448,10 +444,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         colors = await sampleLogoPalette(DEFAULT_TENANT_LOGO);
       }
       if (cancelled) return;
-      const palette = colors.length
-        ? colors
-        : [...LOGO_PALETTE_FALLBACK];
-      setSidebarTheme(sidebarThemeFromPalette(palette));
+      const palette = colors.length ? colors : [...LOGO_PALETTE_FALLBACK];
       applyLogoChrome(palette);
     })();
     return () => {
@@ -896,12 +889,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function renderAccountFooter(collapsedView: boolean) {
     return (
-      <div className="mt-auto border-t border-white/10 px-3 py-3">
+      <div className="border-t border-sidebar-border">
         {canSettings ? (
           <Link
             to="/configuracoes"
             title="Configurações"
-            className="mb-1 flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-xs text-white/75 hover:bg-white/10 hover:text-white"
+            className="flex w-full items-center gap-2 p-3 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
           >
             <Settings className="h-4 w-4 shrink-0" />
             {!collapsedView ? <span>Configurações</span> : null}
@@ -911,7 +904,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           href={SUPPORT_WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-xs text-white/75 hover:bg-white/10 hover:text-white"
+          className="flex w-full items-center gap-2 p-3 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
           title="Suporte técnico"
         >
           <Headset className="h-4 w-4 shrink-0" />
@@ -920,12 +913,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={handleSignOut}
-          className={cn(
-            "mt-2 inline-flex cursor-pointer items-center gap-2 rounded-full text-xs font-medium text-white shadow-sm hover:brightness-90",
-            collapsedView ? "size-9 justify-center p-0" : "px-3 py-2",
-          )}
-          title="Sair da conta"
-          style={{ background: sidebarTheme.logout }}
+          className="flex w-full cursor-pointer items-center gap-2 p-3 text-xs text-[#f87171] hover:bg-[#f87171]/15 hover:text-[#fca5a5]"
+          title="Sair"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsedView && <span>Sair da conta</span>}
@@ -953,21 +942,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Renderiza as seções de navegação. Reaproveitado tanto pelo <aside> fixo
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
-    const parentClass =
-      "flex w-full items-center gap-3 px-3 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:brightness-110";
-    const childClass = (active: boolean) =>
-      cn(
-        "relative flex w-full items-center gap-2.5 rounded-md py-2 pl-2.5 pr-2 text-[12.5px] font-normal transition-colors",
-        active
-          ? "text-white"
-          : "text-white/80 hover:bg-white/10 hover:text-white",
-      );
-
     return (
-      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto">
+      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto space-y-1 px-2 py-3">
         {navSections.map((section) => {
           const SectionIcon = section.icon;
           const isOpen = !!openSections[section.id];
+          const sectionActive = section.items.some((item) =>
+            itemMatchesPath(item, pathname),
+          );
           const standaloneLeaf =
             section.standalone &&
             section.items.length === 1 &&
@@ -979,82 +961,104 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const active =
               pathname === standaloneLeaf.to ||
               pathname.startsWith(`${standaloneLeaf.to}/`);
-            const tone = navSectionBand(section.id, sidebarTheme);
             return (
-              <div key={section.id} className="border-b border-black/25">
-                <Link
-                  to={standaloneLeaf.to}
-                  preload="intent"
-                  onClick={onNavigate}
-                  title={collapsedView ? section.label : undefined}
-                  className={cn(parentClass, active && "brightness-110")}
-                  style={{ background: tone.background }}
-                >
-                  <SectionIcon className="size-4 shrink-0 stroke-[1.75] text-white" />
-                  {!collapsedView && (
-                    <>
-                      <span className="flex-1 truncate">{section.label}</span>
-                      {isNavPathNovo(standaloneLeaf.to) ? <NovoBadge compact /> : null}
-                    </>
+              <Link
+                key={section.id}
+                to={standaloneLeaf.to}
+                preload="intent"
+                onClick={onNavigate}
+                title={collapsedView ? section.label : undefined}
+                className={cn(
+                  "flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                )}
+              >
+                <SectionIcon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    active && "text-brand-accent",
                   )}
-                </Link>
-              </div>
+                />
+                {!collapsedView && (
+                  <>
+                    <span className="flex-1 truncate">{section.label}</span>
+                    {isNavPathNovo(standaloneLeaf.to) ? (
+                      <NovoBadge compact />
+                    ) : null}
+                  </>
+                )}
+              </Link>
             );
           }
 
-          const tone = navSectionBand(section.id, sidebarTheme);
           return (
-            <div key={section.id} className="border-b border-black/25">
+            <div key={section.id} className="space-y-0.5">
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 title={collapsedView ? section.label : undefined}
-                className={cn(parentClass, "cursor-pointer")}
-                style={{ background: tone.background }}
+                className={cn(
+                  "flex w-full cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
+                  sectionActive
+                    ? "bg-sidebar-accent text-sidebar-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                )}
               >
-                <SectionIcon className="size-4 shrink-0 stroke-[1.75] text-white" />
+                <SectionIcon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    sectionActive
+                      ? "text-sidebar-foreground"
+                      : "text-sidebar-foreground/75",
+                  )}
+                />
                 {!collapsedView && (
                   <>
                     <span className="flex-1 truncate text-left">
                       {section.label}
                     </span>
                     {isOpen ? (
-                      <ChevronDown className="size-4 shrink-0 text-white/80 stroke-[1.6]" />
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                     ) : (
-                      <ChevronRight className="size-4 shrink-0 text-white/80 stroke-[1.6]" />
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                     )}
                   </>
                 )}
               </button>
 
               {isOpen && !collapsedView && (
-                <div
-                  className="space-y-0.5 px-2 py-1.5"
-                  style={{ background: tone.panel }}
-                >
+                <div className="ml-4 space-y-0.5 border-l border-sidebar-border pl-2">
                   {section.items.map((item) => {
                     if (isNavGroup(item)) {
                       const groupOpen = !!openGroups[item.id];
+                      const groupActive = itemMatchesPath(item, pathname);
                       const GroupIcon = item.icon;
                       return (
-                        <div key={item.id}>
+                        <div key={item.id} className="space-y-0.5">
                           <button
                             type="button"
                             onClick={() => toggleGroup(item.id)}
-                            className={cn(childClass(false), "cursor-pointer")}
+                            className={cn(
+                              "flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
+                              groupActive
+                                ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+                                : "text-sidebar-foreground/75 hover:bg-white/6",
+                            )}
                           >
-                            <GroupIcon className="size-3.5 shrink-0 stroke-[1.6]" />
+                            <GroupIcon className="h-4 w-4 shrink-0" />
                             <span className="flex-1 truncate text-left">
                               {item.label}
                             </span>
                             {groupOpen ? (
-                              <ChevronDown className="size-3.5 shrink-0 text-white/70 stroke-[1.6]" />
+                              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                             ) : (
-                              <ChevronRight className="size-3.5 shrink-0 text-white/70 stroke-[1.6]" />
+                              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                             )}
                           </button>
                           {groupOpen && (
-                            <div className="mt-0.5 space-y-0.5 pl-3">
+                            <div className="ml-2 space-y-0.5 border-l border-sidebar-border pl-1">
                               {item.children.map((child) => {
                                 const active =
                                   pathname === child.to ||
@@ -1066,16 +1070,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                     to={child.to}
                                     preload="intent"
                                     onClick={onNavigate}
-                                    className={childClass(active)}
-                                    style={
+                                    className={cn(
+                                      "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
                                       active
-                                        ? { background: tone.active }
-                                        : undefined
-                                    }
+                                        ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+                                        : "text-sidebar-foreground/75 hover:bg-white/6",
+                                    )}
                                   >
-                                    <ChildIcon className="size-3.5 shrink-0 stroke-[1.6]" />
-                                    <span className="min-w-0 flex-1 truncate">{child.label}</span>
-                                    {isNavPathNovo(child.to) ? <NovoBadge compact /> : null}
+                                    <ChildIcon className="h-4 w-4 shrink-0" />
+                                    <span className="min-w-0 flex-1 truncate">
+                                      {child.label}
+                                    </span>
+                                    {isNavPathNovo(child.to) ? (
+                                      <NovoBadge compact />
+                                    ) : null}
                                   </Link>
                                 );
                               })}
@@ -1096,11 +1104,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         to={item.to}
                         preload="intent"
                         onClick={onNavigate}
-                        className={childClass(active)}
-                        style={active ? { background: tone.active } : undefined}
+                        className={cn(
+                          "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                          active
+                            ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/75 hover:bg-white/6",
+                        )}
                       >
                         <span className="relative shrink-0">
-                          <Icon className="size-3.5 stroke-[1.6]" />
+                          <Icon className="h-4 w-4" />
                           {isAgenda && showAgendaBadge && collapsedView ? (
                             <span
                               className={cn(
@@ -1144,14 +1156,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar fixa — visível apenas em telas md e acima */}
       <aside
         className={cn(
-          collapsed ? "w-16" : "w-64",
-          "hidden md:flex shrink-0 border-r border-white/10 text-white transition-all duration-200 sticky top-0 h-screen flex-col",
+          collapsed ? "w-16" : "w-60",
+          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
         )}
-        style={{ background: sidebarTheme.surface }}
       >
         <div
           className={cn(
-            "flex border-b border-white/10",
+            "flex border-b border-sidebar-border",
             collapsed
               ? "flex-col items-center gap-1 px-1 py-2"
               : "items-center gap-2 px-3 h-14",
@@ -1212,15 +1223,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Drawer do menu mobile */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] text-white border-r border-white/10 flex flex-col transition-transform duration-200 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out md:hidden",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
-        style={{ background: sidebarTheme.surface }}
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navegação"
       >
-        <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10">
+        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
           <img
             src={logoUrl}
             alt={brandName}

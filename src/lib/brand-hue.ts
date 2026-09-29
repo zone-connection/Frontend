@@ -1,4 +1,4 @@
-/** Cor de marca da logo / imobiliária e degradês por bloco do menu. */
+/** Cor de marca da logo / imobiliária para botões, tabelas e KPIs. */
 
 export const FALLBACK_BRAND_HEX = "#079ed4";
 
@@ -141,14 +141,6 @@ const SECTION_ORDER = [
   "guia-sistema",
 ] as const;
 
-export type SidebarTheme = {
-  surface: string;
-  logout: string;
-  bands: Record<string, string>;
-  /** Cor base de cada bloco, para pintar os itens internos. */
-  tones: Record<string, string>;
-};
-
 function mixHex(a: string, b: string, t: number): string {
   const left = parseHexRgb(a);
   const right = parseHexRgb(b);
@@ -183,44 +175,6 @@ function readableBand(hex: string): string {
     hsl.l < 0.34 ? 0.38 : hsl.l > 0.58 ? 0.5 : clamp(hsl.l, 0.36, 0.52);
   return paint(hex, light, 0.5);
 }
-
-/** Fundo e faixas do menu a partir das cores que compõem a logo. */
-export function sidebarThemeFromPalette(colors: string[]): SidebarTheme {
-  const palette = (colors.length ? colors : [...LOGO_PALETTE_FALLBACK]).slice(
-    0,
-    6,
-  );
-  const top = paint(palette[0]!, 0.11, 0.38);
-  const mid = paint(palette[Math.floor(palette.length / 2)]!, 0.13, 0.38);
-  const bottom = paint(palette[palette.length - 1]!, 0.08, 0.38);
-  const bands: Record<string, string> = {};
-  const tones: Record<string, string> = {};
-  SECTION_ORDER.forEach((id, index) => {
-    const t =
-      SECTION_ORDER.length === 1 ? 0 : index / (SECTION_ORDER.length - 1);
-    const base = readableBand(colorAt(palette, t));
-    tones[id] = base;
-    bands[id] = `linear-gradient(90deg, ${base} 0%, ${mixHex(base, "#ffffff", 0.14)} 100%)`;
-  });
-  const accent = palette.reduce((best, hex) => {
-    const current = parseHexRgb(hex);
-    const winner = parseHexRgb(best);
-    if (!current || !winner) return best;
-    const a = rgbToHsl(...current);
-    const b = rgbToHsl(...winner);
-    return a.s * a.l > b.s * b.l ? hex : best;
-  }, palette[0]!);
-  return {
-    surface: `linear-gradient(180deg, ${top} 0%, ${mid} 52%, ${bottom} 100%)`,
-    logout: readableBand(accent),
-    bands,
-    tones,
-  };
-}
-
-export const DEFAULT_SIDEBAR_THEME = sidebarThemeFromPalette([
-  ...LOGO_PALETTE_FALLBACK,
-]);
 
 let logoChromePalette: string[] = [...LOGO_PALETTE_FALLBACK];
 
@@ -292,30 +246,6 @@ export function applyLogoChrome(colors: string[]) {
 /** Reaplica a paleta da logo depois que a aparência sobrescreve as variáveis. */
 export function reapplyLogoChrome() {
   applyLogoChrome(logoChromePalette);
-}
-
-/** Fundo do menu no tom escuro das cores da logo. */
-export const SIDEBAR_SURFACE = DEFAULT_SIDEBAR_THEME.surface;
-
-/** Faixa do bloco e o tom escuro dos itens internos, na cor da logo. */
-export function navSectionBand(
-  sectionId: string,
-  theme: SidebarTheme = DEFAULT_SIDEBAR_THEME,
-) {
-  const background =
-    theme.bands[sectionId] ??
-    theme.bands.operacao ??
-    DEFAULT_SIDEBAR_THEME.bands.operacao;
-  const base =
-    theme.tones[sectionId] ??
-    theme.tones.operacao ??
-    DEFAULT_SIDEBAR_THEME.tones.operacao ??
-    FALLBACK_BRAND_HEX;
-  return {
-    background,
-    panel: paint(base, 0.16, 0.42),
-    active: mixHex(base, "#ffffff", 0.22),
-  };
 }
 
 type LogoBucket = {
