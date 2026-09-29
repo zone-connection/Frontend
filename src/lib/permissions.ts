@@ -48,6 +48,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/fluxo-caixa",
     "/financeiro/movimentacao",
     "/presenca",
+    "/mural-chaves",
   ],
   admin: [
     "/dashboard",
@@ -64,6 +65,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/corretores",
     "/atrasos",
     "/presenca",
+    "/mural-chaves",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -96,6 +98,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/corretores",
     "/atrasos",
     "/presenca",
+    "/mural-chaves",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -123,6 +126,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/clientes",
     "/clientes-perdidos",
     "/presenca",
+    "/mural-chaves",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -138,6 +142,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/caca-lead",
     "/resultado",
     "/presenca",
+    "/mural-chaves",
     "/documentacao",
     "/propostas",
     "/contratos",
@@ -161,6 +166,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/comissao",
     "/financeiro/funcionarios",
     "/presenca",
+    "/mural-chaves",
     "/perfil",
   ],
   treinee: [
@@ -176,6 +182,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/clientes",
     "/clientes-perdidos",
     "/presenca",
+    "/mural-chaves",
     "/metas",
     "/triagem",
     "/documentacao",
@@ -188,7 +195,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/configuracoes",
     "/perfil",
   ],
-  assistente: ["/perfil", "/caca-lead", "/presenca"],
+  assistente: ["/perfil", "/caca-lead", "/presenca", "/mural-chaves"],
 };
 
 /** No Bronze o gerente acessa só o CRM operacional. */
@@ -206,6 +213,7 @@ const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/documentacao",
   "/vendas",
   "/presenca",
+  "/mural-chaves",
   "/contratos",
     "/financeiro/comissao",
     "/configuracoes",

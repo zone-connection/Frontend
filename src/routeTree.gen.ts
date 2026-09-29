@@ -40,6 +40,7 @@ import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usad
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
+import { Route as AppMuralChavesRouteImport } from './routes/_app.mural-chaves'
 import { Route as AppNovidadesRouteImport } from './routes/_app.novidades'
 import { Route as AppParceriasRouteImport } from './routes/_app.parcerias'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
@@ -265,6 +266,11 @@ const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
 const AppMetasRoute = AppMetasRouteImport.update({
   id: '/metas',
   path: '/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMuralChavesRoute = AppMuralChavesRouteImport.update({
+  id: '/mural-chaves',
+  path: '/mural-chaves',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNovidadesRoute = AppNovidadesRouteImport.update({
@@ -677,6 +683,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
+  '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
@@ -779,6 +786,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/metas': typeof AppMetasRoute
+  '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
@@ -880,6 +888,7 @@ export interface FileRoutesById {
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/_app/metas': typeof AppMetasRoute
+  '/_app/mural-chaves': typeof AppMuralChavesRoute
   '/_app/novidades': typeof AppNovidadesRoute
   '/_app/parcerias': typeof AppParceriasRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
@@ -986,6 +995,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/leads-perdidos'
     | '/metas'
+    | '/mural-chaves'
     | '/novidades'
     | '/parcerias'
     | '/perfil'
@@ -1088,6 +1098,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/leads-perdidos'
     | '/metas'
+    | '/mural-chaves'
     | '/novidades'
     | '/parcerias'
     | '/perfil'
@@ -1188,6 +1199,7 @@ export interface FileRouteTypes {
     | '/_app/leads'
     | '/_app/leads-perdidos'
     | '/_app/metas'
+    | '/_app/mural-chaves'
     | '/_app/novidades'
     | '/_app/parcerias'
     | '/_app/perfil'
@@ -1495,6 +1507,13 @@ declare module '@tanstack/react-router' {
       path: '/metas'
       fullPath: '/metas'
       preLoaderRoute: typeof AppMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mural-chaves': {
+      id: '/_app/mural-chaves'
+      path: '/mural-chaves'
+      fullPath: '/mural-chaves'
+      preLoaderRoute: typeof AppMuralChavesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/novidades': {
@@ -2184,6 +2203,7 @@ interface AppRouteChildren {
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
   AppMetasRoute: typeof AppMetasRoute
+  AppMuralChavesRoute: typeof AppMuralChavesRoute
   AppNovidadesRoute: typeof AppNovidadesRoute
   AppParceriasRoute: typeof AppParceriasRouteWithChildren
   AppPerfilRoute: typeof AppPerfilRoute
@@ -2224,6 +2244,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
   AppMetasRoute: AppMetasRoute,
+  AppMuralChavesRoute: AppMuralChavesRoute,
   AppNovidadesRoute: AppNovidadesRoute,
   AppParceriasRoute: AppParceriasRouteWithChildren,
   AppPerfilRoute: AppPerfilRoute,

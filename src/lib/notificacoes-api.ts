@@ -15,7 +15,10 @@ export type NotificacaoTipo =
   | "imovel_compativel"
   | "proposta_vencimento_proximo"
   | "lead_atribuido"
-  | "lead_pool";
+  | "lead_pool"
+  | "chave_retirada"
+  | "chave_devolucao"
+  | "chave_confirmacao";
 
 export type Notificacao = {
   id: string;

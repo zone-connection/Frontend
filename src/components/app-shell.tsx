@@ -46,6 +46,7 @@ import {
   TriangleAlert,
   ClipboardCheck,
   KeyRound,
+  Key,
   Timer,
   FileText,
   type LucideIcon,
@@ -80,6 +81,7 @@ import {
   type AgendaUrgencia,
 } from "@/lib/agenda-api";
 import { AgendaLembretesDialog } from "@/components/agenda-lembretes-dialog";
+import { ChaveConfirmacaoGate } from "@/components/chave-confirmacao-gate";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -278,6 +280,7 @@ const NAV_SECTIONS: {
       { to: "/funil", label: "Funil", icon: Kanban },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
       { to: "/agenda", label: "Agenda", icon: Calendar },
+      { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
       { to: "/clientes", label: "Clientes", icon: UserCircle2 },
       { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
       { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
@@ -649,6 +652,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ? "/documentacao"
             : "/resultado",
       });
+      return;
+    }
+    if (
+      n.tipo === "chave_retirada" ||
+      n.tipo === "chave_devolucao" ||
+      n.tipo === "chave_confirmacao"
+    ) {
+      void navigate({ to: "/mural-chaves" });
       return;
     }
     if (n.tipo === "imovel_compativel") {
@@ -1465,6 +1476,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ChaveConfirmacaoGate />
     </div>
   );
 }
