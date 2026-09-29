@@ -2615,7 +2615,7 @@ function DocumentacaoPage() {
             <>
             <Table
               containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
-              className="w-full min-w-340 table-fixed text-xs [&_th]:h-9 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:overflow-hidden [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle"
+              className="w-full min-w-376 table-fixed text-xs [&_th]:h-9 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:overflow-hidden [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle"
             >
               <TableHeader>
                 <TableRow>
@@ -2624,6 +2624,7 @@ function DocumentacaoPage() {
                   <TableHead className="w-40">Empreend.</TableHead>
                   <TableHead className="w-40">Status 1</TableHead>
                   <TableHead className="w-40">Status 2</TableHead>
+                  <TableHead className="w-36">VGV</TableHead>
                   <TableHead className="w-40">Corretor</TableHead>
                   {!isSolo ? (
                     <TableHead className="w-40">Gerente</TableHead>
@@ -2696,6 +2697,15 @@ function DocumentacaoPage() {
                         label={doc.status2}
                         colorByLabel={colorByLabel}
                       />
+                    </TableCell>
+                    <TableCell>
+                      {isStatusVendido(doc.status2) && doc.vgv != null ? (
+                        <span className="tabular-nums font-medium" title={brl(doc.vgv)}>
+                          {brl(doc.vgv)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {(() => {
