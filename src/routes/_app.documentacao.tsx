@@ -655,6 +655,7 @@ function DocumentacaoPage() {
     useState<DocCampoData>("createdAt");
   const [filterDataDe, setFilterDataDe] = useState("");
   const [filterDataAte, setFilterDataAte] = useState("");
+  const [filterSomenteVgv, setFilterSomenteVgv] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -968,6 +969,10 @@ function DocumentacaoPage() {
   const filteredItems = useMemo(() => {
     return items.filter((doc) => {
       if (!matchesDocMeta(doc)) return false;
+      if (filterSomenteVgv) {
+        if (!isStatusVendido(doc.status2) || doc.vgv == null) return false;
+        return dayInRange(docVendaDay(doc), periodRange);
+      }
       if (periodRange.de || periodRange.ate) {
         return dayInRange(docDateDay(doc, filterCampoData), periodRange);
       }
@@ -978,7 +983,7 @@ function DocumentacaoPage() {
       }
       return true;
     });
-  }, [items, matchesDocMeta, periodRange, filterCampoData]);
+  }, [items, matchesDocMeta, periodRange, filterCampoData, filterSomenteVgv]);
 
   const vgvVendidoNoPeriodo = useMemo(() => {
     return items
@@ -1088,6 +1093,13 @@ function DocumentacaoPage() {
         onClear: () => setFilterCampoData("createdAt"),
       });
     }
+    if (filterSomenteVgv) {
+      chips.push({
+        id: "vgv",
+        label: "Com VGV",
+        onClear: () => setFilterSomenteVgv(false),
+      });
+    }
     if (filterStatus1 !== "__all__") {
       chips.push({
         id: "status1",
@@ -1167,6 +1179,7 @@ function DocumentacaoPage() {
     filterCampoData,
     filterDataDe,
     filterDataAte,
+    filterSomenteVgv,
     filterStatus1,
     filterStatus2,
     filterFonte,
@@ -1199,6 +1212,7 @@ function DocumentacaoPage() {
     setFilterCampoData("createdAt");
     setFilterDataDe("");
     setFilterDataAte("");
+    setFilterSomenteVgv(false);
     void navigate({ to: "/documentacao", search: {}, replace: true });
   }
 
@@ -2155,8 +2169,8 @@ function DocumentacaoPage() {
               value={pipelineSummary.vgv}
               icon={Wallet}
               tone="teal"
-              href="/vendas"
-              search={{ comVgv: "1" }}
+              active={filterSomenteVgv}
+              onClick={() => setFilterSomenteVgv((atual) => !atual)}
             />
           </div>
       </PagePanel>
