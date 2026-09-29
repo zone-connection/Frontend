@@ -1,16 +1,33 @@
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, Loader2, Plus, Search } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  History,
+  Home,
+  KeyRound,
+  Loader2,
+  LogIn,
+  LogOut,
+  Pencil,
+  Plus,
+  Search,
+  Tag,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
 import { getSession, type AuthUser, type Role } from "@/lib/auth";
 import { canUserAction } from "@/lib/user-permissions";
@@ -151,6 +168,34 @@ const CHAVES_EXEMPLO: MuralChave[] = [
   }),
 ];
 
+function eventoExemplo(
+  parcial: Pick<
+    MuralChaveHistoricoItem,
+    "id" | "tipo" | "tipoLabel" | "identificador" | "autorNome" | "createdAt"
+  > &
+    Partial<MuralChaveHistoricoItem>,
+): MuralChaveHistoricoItem {
+  return {
+    manual: false,
+    identificadorAnterior: null,
+    empreendimentoNome: null,
+    imovelLabel: "",
+    quemRetirouNome: null,
+    quemRegistrouRetiradaNome: null,
+    retiradaEm: null,
+    previsaoDevolucao: null,
+    quemDevolveuNome: null,
+    quemRecebeuDevolucaoNome: null,
+    devolucaoEm: null,
+    confirmacaoPendente: false,
+    confirmadoEm: null,
+    confirmadoParaNome: null,
+    autorId: "exemplo",
+    observacao: "",
+    ...parcial,
+  };
+}
+
 const HISTORICO_EXEMPLO: Record<
   string,
   { identificadoresAnteriores: string[]; itens: MuralChaveHistoricoItem[] }
@@ -158,54 +203,105 @@ const HISTORICO_EXEMPLO: Record<
   "exemplo-torre-a-304": {
     identificadoresAnteriores: ["CHV 304"],
     itens: [
-      {
+      eventoExemplo({
         id: "ex-h1",
         tipo: "retirada",
         tipoLabel: "Retirada",
-        manual: false,
         identificador: "TORRE-A-304",
-        identificadorAnterior: null,
         empreendimentoNome: "Residencial X",
         imovelLabel: "Apartamento 304",
         quemRetirouNome: "João",
         quemRegistrouRetiradaNome: "João",
         retiradaEm: EXEMPLO_RETIRADA,
         previsaoDevolucao: EXEMPLO_PREVISAO,
-        quemDevolveuNome: null,
-        quemRecebeuDevolucaoNome: null,
-        devolucaoEm: null,
-        confirmacaoPendente: false,
-        confirmadoEm: null,
-        confirmadoParaNome: null,
-        autorId: "exemplo-joao",
         autorNome: "João",
-        observacao: "Visita com o cliente.",
+        observacao: "Visita com o cliente do Residencial X.",
         createdAt: EXEMPLO_RETIRADA,
-      },
-      {
+      }),
+      eventoExemplo({
         id: "ex-h2",
         tipo: "identificador",
         tipoLabel: "Identificador alterado",
-        manual: false,
         identificador: "TORRE-A-304",
         identificadorAnterior: "CHV 304",
         empreendimentoNome: "Residencial X",
         imovelLabel: "Apartamento 304",
-        quemRetirouNome: null,
-        quemRegistrouRetiradaNome: null,
-        retiradaEm: null,
-        previsaoDevolucao: null,
-        quemDevolveuNome: null,
-        quemRecebeuDevolucaoNome: null,
-        devolucaoEm: null,
-        confirmacaoPendente: false,
-        confirmadoEm: null,
-        confirmadoParaNome: null,
-        autorId: "exemplo-admin",
         autorNome: "Administrador",
-        observacao: 'De "CHV 304" para "TORRE-A-304".',
+        observacao: 'De "CHV 304" para "TORRE-A-304". O histórico anterior foi mantido.',
         createdAt: "2026-09-20T15:00:00.000Z",
-      },
+      }),
+      eventoExemplo({
+        id: "ex-h3",
+        tipo: "cadastro",
+        tipoLabel: "Cadastro",
+        identificador: "CHV 304",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apartamento 304",
+        autorNome: "Marina",
+        observacao: "Chave recebida do proprietário e guardada na imobiliária.",
+        createdAt: "2026-09-12T13:10:00.000Z",
+      }),
+    ],
+  },
+  "exemplo-chv-09": {
+    identificadoresAnteriores: [],
+    itens: [
+      eventoExemplo({
+        id: "ex-chv-4",
+        tipo: "confirmacao",
+        tipoLabel: "Confirmação do corretor",
+        identificador: "CHV 09",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apartamento 109",
+        quemDevolveuNome: "João",
+        quemRecebeuDevolucaoNome: "Marina",
+        devolucaoEm: "2026-09-18T20:40:00.000Z",
+        confirmadoParaNome: "Marina",
+        confirmadoEm: "2026-09-18T21:05:00.000Z",
+        autorNome: "João",
+        observacao: "João confirmou que entregou a chave para Marina, na imobiliária.",
+        createdAt: "2026-09-18T21:05:00.000Z",
+      }),
+      eventoExemplo({
+        id: "ex-chv-3",
+        tipo: "devolucao",
+        tipoLabel: "Devolução",
+        identificador: "CHV 09",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apartamento 109",
+        quemDevolveuNome: "João",
+        quemRecebeuDevolucaoNome: "Marina",
+        devolucaoEm: "2026-09-18T20:40:00.000Z",
+        autorNome: "Marina",
+        observacao: "Chave conferida e guardada no claviculário da imobiliária.",
+        createdAt: "2026-09-18T20:40:00.000Z",
+      }),
+      eventoExemplo({
+        id: "ex-chv-2",
+        tipo: "retirada",
+        tipoLabel: "Retirada",
+        identificador: "CHV 09",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apartamento 109",
+        quemRetirouNome: "João",
+        quemRegistrouRetiradaNome: "João",
+        retiradaEm: "2026-09-18T14:00:00.000Z",
+        previsaoDevolucao: "2026-09-18T21:00:00.000Z",
+        autorNome: "João",
+        observacao: "Visita agendada com o comprador.",
+        createdAt: "2026-09-18T14:00:00.000Z",
+      }),
+      eventoExemplo({
+        id: "ex-chv-1",
+        tipo: "cadastro",
+        tipoLabel: "Cadastro",
+        identificador: "CHV 09",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apartamento 109",
+        autorNome: "Imobiliária",
+        observacao: "Chave cadastrada no mural, disponível na imobiliária.",
+        createdAt: "2026-09-10T12:00:00.000Z",
+      }),
     ],
   },
 };
@@ -243,6 +339,55 @@ function historicoDoExemplo(chave: MuralChave) {
       },
     ],
   };
+}
+
+const ICONE_MOVIMENTO: Record<string, { icon: LucideIcon; classe: string }> = {
+  cadastro: { icon: KeyRound, classe: "bg-sky-100 text-sky-700" },
+  edicao: { icon: Pencil, classe: "bg-slate-100 text-slate-700" },
+  identificador: { icon: Tag, classe: "bg-violet-100 text-violet-700" },
+  retirada: { icon: LogOut, classe: "bg-rose-100 text-rose-700" },
+  retirada_manual: { icon: LogOut, classe: "bg-rose-100 text-rose-700" },
+  devolucao: { icon: LogIn, classe: "bg-emerald-100 text-emerald-700" },
+  confirmacao: { icon: CheckCircle2, classe: "bg-amber-100 text-amber-800" },
+};
+
+function iconeDoMovimento(tipo: string) {
+  return ICONE_MOVIMENTO[tipo] ?? { icon: History, classe: "bg-muted text-muted-foreground" };
+}
+
+function fatosDoMovimento(item: MuralChaveHistoricoItem) {
+  const fatos: { rotulo: string; valor: string }[] = [
+    { rotulo: "Identificador", valor: item.identificador },
+  ];
+  if (item.identificadorAnterior) {
+    fatos.push({ rotulo: "Identificador anterior", valor: item.identificadorAnterior });
+  }
+  fatos.push(
+    { rotulo: "Empreendimento", valor: item.empreendimentoNome || "—" },
+    { rotulo: "Imóvel", valor: item.imovelLabel || "—" },
+  );
+  if (item.quemRetirouNome) fatos.push({ rotulo: "Quem retirou", valor: item.quemRetirouNome });
+  if (item.quemRegistrouRetiradaNome) {
+    fatos.push({ rotulo: "Quem registrou a retirada", valor: item.quemRegistrouRetiradaNome });
+  }
+  if (item.retiradaEm) fatos.push({ rotulo: "Retirada", valor: formatChaveQuando(item.retiradaEm) });
+  if (item.previsaoDevolucao) {
+    fatos.push({ rotulo: "Previsão de devolução", valor: formatChaveQuando(item.previsaoDevolucao) });
+  }
+  if (item.quemDevolveuNome) fatos.push({ rotulo: "Quem devolveu", valor: item.quemDevolveuNome });
+  if (item.quemRecebeuDevolucaoNome) {
+    fatos.push({ rotulo: "Quem recebeu", valor: item.quemRecebeuDevolucaoNome });
+  }
+  if (item.devolucaoEm) fatos.push({ rotulo: "Devolução", valor: formatChaveQuando(item.devolucaoEm) });
+  if (item.confirmadoParaNome) {
+    fatos.push({
+      rotulo: "Confirmou a entrega para",
+      valor: item.confirmadoEm
+        ? `${item.confirmadoParaNome} · ${formatChaveQuando(item.confirmadoEm)}`
+        : item.confirmadoParaNome,
+    });
+  }
+  return fatos;
 }
 
 function filtrarExemplos(
@@ -497,52 +642,68 @@ export function MuralChavesPage() {
   const soExemplo = chaves.length === 0 && lista.length > 0;
   const emUso = lista.filter((chave) => chave.status === "em_uso").length;
 
+  const disponiveis = lista.length - emUso;
+
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <KeyRound className="h-5 w-5" />
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Operação
+          </p>
+          <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <KeyRound className="h-4 w-4" />
+            </span>
             Mural de Chaves
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Onde está cada chave, quem está com ela e se está disponível. O identificador segue o
             padrão da imobiliária e pode ser alterado sem perder o histórico.
           </p>
         </div>
         {podeGerenciar ? (
-          <Button onClick={abrirCriar}>
+          <Button onClick={abrirCriar} className="rounded-xl">
             <Plus className="mr-1.5 h-4 w-4" />
             Nova chave
           </Button>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2 text-sm">
-        <span className="rounded-full border px-3 py-1">{lista.length} chaves</span>
-        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
-          {lista.length - emUso} disponíveis
-        </span>
-        <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-800">
-          {emUso} em uso
-        </span>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border bg-card px-4 py-3">
+          <p className="text-xs text-muted-foreground">No mural</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{lista.length}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-3">
+          <p className="text-xs text-emerald-800/80">Disponíveis</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-emerald-900">
+            {disponiveis}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-rose-200/80 bg-rose-50/70 px-4 py-3">
+          <p className="text-xs text-rose-800/80">Em uso</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-rose-900">
+            {emUso}
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-3">
         <form
-          className="flex min-w-[220px] flex-1 items-center gap-2"
+          className="flex min-w-[240px] flex-1 items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             setQAplicada(q.trim());
           }}
         >
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={q}
               onChange={(event) => setQ(event.target.value)}
               placeholder="Identificador, imóvel, empreendimento ou corretor"
-              className="pl-8"
+              className="pl-9"
             />
           </div>
           <Button type="submit" variant="outline">
@@ -574,7 +735,7 @@ export function MuralChavesPage() {
 
       {erro && !soExemplo ? <p className="text-sm text-destructive">{erro}</p> : null}
       {soExemplo ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
           Exemplos visuais para mostrar o mural. Essas chaves não estão cadastradas e não podem ser
           retiradas.
         </p>
@@ -585,62 +746,98 @@ export function MuralChavesPage() {
           Carregando mural…
         </div>
       ) : lista.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           Nenhuma chave encontrada.
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {lista.map((chave) => {
             const usada = chave.status === "em_uso";
             const exemplo = chave.id.startsWith("exemplo-");
             return (
-              <article key={chave.id} className="flex flex-col rounded-xl border bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-base font-semibold">{chave.identificador}</h2>
+              <article
+                key={chave.id}
+                className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm"
+              >
+                <div
+                  className={cn(
+                    "flex items-start justify-between gap-3 border-b px-4 py-3.5",
+                    usada ? "bg-rose-50/80" : "bg-emerald-50/70",
+                  )}
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                        usada ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700",
+                      )}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-semibold tracking-tight">
+                        {chave.identificador}
+                      </h2>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {chave.empreendimento?.nome || "Sem empreendimento"}
+                      </p>
+                    </div>
+                  </div>
                   <span
                     className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                      usada
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-emerald-100 text-emerald-800",
+                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                      usada ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800",
                     )}
                   >
                     {usada ? "Em uso" : "Disponível"}
                   </span>
                 </div>
-                <dl className="mt-3 space-y-1 text-sm">
-                  <div>
-                    <dt className="inline text-muted-foreground">Empreendimento: </dt>
-                    <dd className="inline">{chave.empreendimento?.nome || "—"}</dd>
+
+                <div className="flex flex-1 flex-col gap-3 p-4">
+                  <div className="flex items-start gap-2 text-sm">
+                    <Home className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Imóvel</p>
+                      <p className="font-medium">{chave.imovelLabel}</p>
+                    </div>
                   </div>
-                  <div>
-                    <dt className="inline text-muted-foreground">Imóvel: </dt>
-                    <dd className="inline">{chave.imovelLabel}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline text-muted-foreground">Com: </dt>
-                    <dd className="inline">{chave.comQuem}</dd>
+                  <div className="flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-2.5 text-sm">
+                    <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Com quem está
+                      </p>
+                      <p className="font-medium">{chave.comQuem}</p>
+                    </div>
                   </div>
                   {usada ? (
-                    <>
-                      <div>
-                        <dt className="inline text-muted-foreground">Retirada: </dt>
-                        <dd className="inline">{formatChaveQuando(chave.retiradaEm)}</dd>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-xl border px-3 py-2">
+                        <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <Clock3 className="h-3 w-3" />
+                          Retirada
+                        </p>
+                        <p className="mt-0.5 font-medium">{formatChaveQuando(chave.retiradaEm)}</p>
                       </div>
-                      <div>
-                        <dt className="inline text-muted-foreground">Previsão: </dt>
-                        <dd className="inline">{formatChaveQuando(chave.previsaoDevolucao)}</dd>
+                      <div className="rounded-xl border px-3 py-2">
+                        <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <Clock3 className="h-3 w-3" />
+                          Previsão
+                        </p>
+                        <p className="mt-0.5 font-medium">
+                          {formatChaveQuando(chave.previsaoDevolucao)}
+                        </p>
                       </div>
-                      <div>
-                        <dt className="inline text-muted-foreground">Responsável pela retirada: </dt>
-                        <dd className="inline">{chave.retiradaRegistradaPor?.name || "—"}</dd>
+                      <div className="col-span-2 text-xs text-muted-foreground">
+                        Registrada por {chave.retiradaRegistradaPor?.name || "—"}
                       </div>
-                    </>
+                    </div>
                   ) : null}
-                </dl>
-                <div className="mt-4 flex flex-wrap gap-2">
+                </div>
+
+                <div className="mt-auto flex flex-wrap gap-2 border-t bg-muted/20 px-4 py-3">
                   {exemplo ? (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                       Exemplo
                     </span>
                   ) : null}
@@ -664,7 +861,13 @@ export function MuralChavesPage() {
                       Editar
                     </Button>
                   ) : null}
-                  <Button size="sm" variant="ghost" onClick={() => setAcao({ tipo: "historico", chave })}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                    onClick={() => setAcao({ tipo: "historico", chave })}
+                  >
+                    <History className="mr-1.5 h-3.5 w-3.5" />
                     Histórico
                   </Button>
                 </div>
@@ -675,9 +878,13 @@ export function MuralChavesPage() {
       )}
 
       <Dialog open={acao?.tipo === "criar" || acao?.tipo === "editar"} onOpenChange={(open) => !open && setAcao(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{acao?.tipo === "editar" ? "Editar chave" : "Nova chave"}</DialogTitle>
+            <DialogDescription>
+              O identificador fica livre para o padrão da imobiliária. O vínculo e o histórico
+              permanecem se o código mudar.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -697,37 +904,39 @@ export function MuralChavesPage() {
                   : " Alterar o código não apaga o vínculo nem o histórico."}
               </p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="chave-emp">Empreendimento</Label>
-              <select
-                id="chave-emp"
-                className={fieldClass()}
-                value={formEmpreendimento}
-                onChange={(event) => setFormEmpreendimento(event.target.value)}
-              >
-                <option value="">Nenhum</option>
-                {opcoes?.empreendimentos.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="chave-imovel">Imóvel cadastrado</Label>
-              <select
-                id="chave-imovel"
-                className={fieldClass()}
-                value={formImovel}
-                onChange={(event) => setFormImovel(event.target.value)}
-              >
-                <option value="">Nenhum</option>
-                {opcoes?.imoveis.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="chave-emp">Empreendimento</Label>
+                <select
+                  id="chave-emp"
+                  className={fieldClass()}
+                  value={formEmpreendimento}
+                  onChange={(event) => setFormEmpreendimento(event.target.value)}
+                >
+                  <option value="">Nenhum</option>
+                  {opcoes?.empreendimentos.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chave-imovel">Imóvel cadastrado</Label>
+                <select
+                  id="chave-imovel"
+                  className={fieldClass()}
+                  value={formImovel}
+                  onChange={(event) => setFormImovel(event.target.value)}
+                >
+                  <option value="">Nenhum</option>
+                  {opcoes?.imoveis.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="chave-unidade">Unidade / nome do imóvel</Label>
@@ -771,10 +980,11 @@ export function MuralChavesPage() {
             ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="chave-obs">Observações</Label>
-              <Input
+              <Textarea
                 id="chave-obs"
                 value={observacoes}
                 onChange={(event) => setObservacoes(event.target.value)}
+                className="min-h-20"
               />
             </div>
           </div>
@@ -936,70 +1146,132 @@ export function MuralChavesPage() {
       </Dialog>
 
       <Dialog open={acao?.tipo === "historico"} onOpenChange={(open) => !open && setAcao(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              Histórico
-              {acao?.tipo === "historico" ? ` — ${acao.chave.identificador}` : ""}
-            </DialogTitle>
-          </DialogHeader>
-          {historico?.identificadoresAnteriores.length ? (
-            <p className="text-sm text-muted-foreground">
-              Identificadores anteriores: {historico.identificadoresAnteriores.join(", ")}
-            </p>
-          ) : null}
-          {!historico ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando histórico…
-            </div>
-          ) : historico.itens.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma movimentação.</p>
-          ) : (
-            <ol className="space-y-3">
-              {historico.itens.map((item) => (
-                <li key={item.id} className="rounded-lg border p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{item.tipoLabel}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatChaveQuando(item.createdAt)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-muted-foreground">Por {item.autorNome}</p>
-                  <p>Identificador: {item.identificador}</p>
-                  {item.identificadorAnterior ? (
-                    <p>Identificador anterior: {item.identificadorAnterior}</p>
-                  ) : null}
-                  <p>Empreendimento: {item.empreendimentoNome || "—"}</p>
-                  <p>Imóvel: {item.imovelLabel}</p>
-                  {item.quemRetirouNome ? <p>Quem retirou: {item.quemRetirouNome}</p> : null}
-                  {item.quemRegistrouRetiradaNome ? (
-                    <p>Quem registrou a retirada: {item.quemRegistrouRetiradaNome}</p>
-                  ) : null}
-                  {item.retiradaEm ? <p>Retirada: {formatChaveQuando(item.retiradaEm)}</p> : null}
-                  {item.previsaoDevolucao ? (
-                    <p>Previsão: {formatChaveQuando(item.previsaoDevolucao)}</p>
-                  ) : null}
-                  {item.quemDevolveuNome ? <p>Quem devolveu: {item.quemDevolveuNome}</p> : null}
-                  {item.quemRecebeuDevolucaoNome ? (
-                    <p>Quem recebeu: {item.quemRecebeuDevolucaoNome}</p>
-                  ) : null}
-                  {item.devolucaoEm ? <p>Devolução: {formatChaveQuando(item.devolucaoEm)}</p> : null}
-                  {item.confirmadoParaNome ? (
-                    <p>
-                      Confirmação: {item.confirmadoParaNome}
-                      {item.confirmadoEm ? ` em ${formatChaveQuando(item.confirmadoEm)}` : ""}
+        <DialogContent className="flex h-[min(90vh,880px)] w-[min(1080px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
+          {acao?.tipo === "historico" ? (
+            <div className="border-b bg-muted/30 px-6 py-5 pr-14">
+              <DialogHeader className="space-y-3 text-left">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Histórico da chave
                     </p>
-                  ) : null}
-                  {item.confirmacaoPendente ? (
-                    <p className="text-amber-700">Aguardando confirmação do corretor.</p>
-                  ) : null}
-                  {item.manual ? <p>Alteração manual do responsável pelas chaves.</p> : null}
-                  {item.observacao ? <p>Obs.: {item.observacao}</p> : null}
-                </li>
-              ))}
-            </ol>
-          )}
+                    <DialogTitle className="mt-1 text-2xl">{acao.chave.identificador}</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      {acao.chave.empreendimento?.nome || "Sem empreendimento"}
+                      {" · "}
+                      {acao.chave.imovelLabel}
+                    </DialogDescription>
+                  </div>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                      acao.chave.status === "em_uso"
+                        ? "bg-rose-100 text-rose-800"
+                        : "bg-emerald-100 text-emerald-800",
+                    )}
+                  >
+                    {acao.chave.status === "em_uso" ? "Em uso" : "Disponível"}
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border bg-background px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Agora com</p>
+                    <p className="mt-0.5 text-sm font-medium">{acao.chave.comQuem}</p>
+                  </div>
+                  <div className="rounded-xl border bg-background px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Última retirada
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium">
+                      {formatChaveQuando(acao.chave.retiradaEm)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-background px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Previsão
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium">
+                      {formatChaveQuando(acao.chave.previsaoDevolucao)}
+                    </p>
+                  </div>
+                </div>
+                {historico?.identificadoresAnteriores.length ? (
+                  <p className="text-sm text-muted-foreground">
+                    Identificadores anteriores:{" "}
+                    <span className="font-medium text-foreground">
+                      {historico.identificadoresAnteriores.join(", ")}
+                    </span>
+                  </p>
+                ) : null}
+              </DialogHeader>
+            </div>
+          ) : null}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            {!historico ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando histórico…
+              </div>
+            ) : historico.itens.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação.</p>
+            ) : (
+              <ol className="relative space-y-4 border-l border-border pl-6 sm:pl-8">
+                {historico.itens.map((item) => {
+                  const visual = iconeDoMovimento(item.tipo);
+                  const Icone = visual.icon;
+                  const fatos = fatosDoMovimento(item);
+                  return (
+                    <li key={item.id} className="relative">
+                      <span
+                        className={cn(
+                          "absolute -left-10 top-4 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-background sm:-left-12",
+                          visual.classe,
+                        )}
+                      >
+                        <Icone className="h-3.5 w-3.5" />
+                      </span>
+                      <article className="rounded-2xl border bg-card p-4 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h3 className="text-base font-semibold">{item.tipoLabel}</h3>
+                            <p className="text-sm text-muted-foreground">Por {item.autorNome}</p>
+                          </div>
+                          <time className="text-sm text-muted-foreground">
+                            {formatChaveQuando(item.createdAt)}
+                          </time>
+                        </div>
+                        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {fatos.map((fato) => (
+                            <div key={fato.rotulo} className="min-w-0">
+                              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                {fato.rotulo}
+                              </dt>
+                              <dd className="mt-0.5 text-sm font-medium">{fato.valor}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {item.confirmacaoPendente ? (
+                          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                            Aguardando confirmação do corretor.
+                          </p>
+                        ) : null}
+                        {item.manual ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            Alteração manual do responsável pelas chaves.
+                          </p>
+                        ) : null}
+                        {item.observacao ? (
+                          <p className="mt-3 rounded-xl bg-muted/60 px-3 py-2 text-sm leading-relaxed">
+                            {item.observacao}
+                          </p>
+                        ) : null}
+                      </article>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
