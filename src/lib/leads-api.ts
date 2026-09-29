@@ -251,6 +251,32 @@ export async function fetchLeads(params?: {
   return apiFetch<PaginatedLeads>(`/leads?${query}`);
 }
 
+/** Ids de contatos do tipo pedido, percorrendo todas as páginas. */
+export async function fetchIdsLeads(tipo: ContatoTipo): Promise<Set<string>> {
+  const limit = 200;
+  const ids = new Set<string>();
+  const add = (rows: ApiLead[]) => {
+    for (const lead of rows) {
+      if (lead.tipo === "cliente") continue;
+      ids.add(lead.id);
+    }
+  };
+  const first = await fetchLeads({ page: 1, limit, tipo, sort: "created_desc" });
+  add(first.data);
+  const totalPages = Math.max(1, first.meta.totalPages);
+  let next = 2;
+  const worker = async () => {
+    while (next <= totalPages) {
+      const page = next;
+      next += 1;
+      const result = await fetchLeads({ page, limit, tipo, sort: "created_desc" });
+      add(result.data);
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  return ids;
+}
+
 export async function createLead(input: CreateLeadInput): Promise<ApiLead> {
   const { tipo, ...rest } = input;
   // APIs sem `tipo` no DTO (forbidNonWhitelisted) rejeitam `tipo: "lead"`.

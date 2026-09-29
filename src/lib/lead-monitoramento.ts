@@ -72,6 +72,8 @@ export type LeadPrazoAdiamento = {
 export type CorretorMonitoramentoLead = {
   id: string;
   nome: string;
+  /** Ausente em APIs antigas. cliente = carteira pessoal do corretor. */
+  tipo?: "lead" | "cliente";
   stage: string;
   problemas: ProblemaMonitoramento[];
   tarefasAtrasadas?: TarefaAtrasadaResumo[];
@@ -109,6 +111,66 @@ export type AtrasosResumo = {
   perdidosCorretores: number;
   perdidosEquipes: number;
 };
+
+function recontarAtrasos(
+  row: CorretorMonitoramento,
+  leads: CorretorMonitoramentoLead[],
+): CorretorMonitoramento {
+  let semMovimentacao = 0;
+  let foraDoPrazo = 0;
+  let tarefas = 0;
+  for (const lead of leads) {
+    if (lead.problemas.some((p) => p.tipo === "sem_movimentacao")) {
+      semMovimentacao += 1;
+    }
+    if (lead.problemas.some((p) => p.tipo === "prazo_ultrapassado")) {
+      foraDoPrazo += 1;
+    }
+    tarefas += lead.tarefasAtrasadas?.length ?? 0;
+  }
+  return {
+    ...row,
+    leads,
+    totalAtrasos: leads.length,
+    semMovimentacao,
+    foraDoPrazo,
+    tarefasAtrasadas: tarefas,
+  };
+}
+
+/**
+ * Tira clientes da carteira pessoal.
+ * Com `tipo` na resposta, usa o campo. Sem ele (API antiga), mantém só os ids
+ * do catálogo de leads (`GET /leads?tipo=lead`).
+ */
+export function somenteLeadsAtrasos(
+  rows: CorretorMonitoramento[],
+  idsLeads?: ReadonlySet<string>,
+): CorretorMonitoramento[] {
+  const filtrados: CorretorMonitoramento[] = [];
+  for (const row of rows) {
+    const leads = row.leads.filter((lead) => {
+      if (lead.tipo === "cliente") return false;
+      if (lead.tipo === "lead") return true;
+      return idsLeads ? idsLeads.has(lead.id) : false;
+    });
+    const next =
+      leads.length === row.leads.length ? row : recontarAtrasos(row, leads);
+    if (next.totalAtrasos > 0 || (next.leadsPerdidosReatribuicao ?? 0) > 0) {
+      filtrados.push(next);
+    }
+  }
+  return filtrados;
+}
+
+/** A resposta já distingue lead de cliente, então não precisa do catálogo. */
+export function monitoramentoInformaTipo(
+  rows: CorretorMonitoramento[],
+): boolean {
+  return rows.some((row) =>
+    row.leads.some((lead) => lead.tipo === "lead" || lead.tipo === "cliente"),
+  );
+}
 
 /** Consolida os contadores de atraso de vários corretores. */
 export function resumoAtrasos(

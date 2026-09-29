@@ -30,8 +30,12 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
-import { fetchCorretoresMonitoramento } from "@/lib/leads-api";
-import { resumoAtrasos } from "@/lib/lead-monitoramento";
+import { fetchCorretoresMonitoramento, fetchIdsLeads } from "@/lib/leads-api";
+import {
+  monitoramentoInformaTipo,
+  resumoAtrasos,
+  somenteLeadsAtrasos,
+} from "@/lib/lead-monitoramento";
 import type {
   CorretorMonitoramento,
   EquipeReatribuicaoResumo,
@@ -77,7 +81,14 @@ function Page() {
           fetchCorretoresMonitoramento(),
           isPlatformAdmin ? Promise.resolve([] as Equipe[]) : fetchEquipes(),
         ]);
-        setRows(data.corretores ?? []);
+        let corretores = data.corretores ?? [];
+        if (!isPlatformAdmin) {
+          const idsLeads = monitoramentoInformaTipo(corretores)
+            ? undefined
+            : await fetchIdsLeads("lead");
+          corretores = somenteLeadsAtrasos(corretores, idsLeads);
+        }
+        setRows(corretores);
         setEquipes(data.equipes ?? []);
         setEquipesCadastro(equipesData);
       } catch (err) {
