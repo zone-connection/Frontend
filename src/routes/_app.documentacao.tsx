@@ -2156,6 +2156,7 @@ function DocumentacaoPage() {
               icon={Wallet}
               tone="teal"
               href="/vendas"
+              search={{ comVgv: "1" }}
             />
           </div>
       </PagePanel>

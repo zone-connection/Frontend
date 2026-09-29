@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   CalendarDays,
@@ -79,8 +79,21 @@ import {
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { CadastroVendasBronzePage } from "@/components/cadastro-vendas-bronze-page";
 
+type VendasSearch = {
+  comVgv?: boolean;
+};
+
+function parseComVgv(value: unknown): boolean | undefined {
+  if (value === true || value === "1" || value === "true") return true;
+  return undefined;
+}
+
 export const Route = createFileRoute("/_app/vendas")({
   head: () => ({ meta: [{ title: "Vendas — Zone Connection" }] }),
+  validateSearch: (search: Record<string, unknown>): VendasSearch => {
+    const comVgv = parseComVgv(search.comVgv);
+    return comVgv ? { comVgv } : {};
+  },
   component: VendasPage,
 });
 
@@ -157,6 +170,8 @@ function VendasPage() {
 
 function VendasDocumentacaoPage() {
   const user = getSession();
+  const navigate = useNavigate();
+  const comVgv = Route.useSearch().comVgv === true;
   const isSolo = user?.tenant?.plano === "solo";
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";
@@ -294,6 +309,7 @@ function VendasDocumentacaoPage() {
         return false;
       if (applied.dataAte && (!vendaDay || vendaDay > applied.dataAte))
         return false;
+      if (comVgv && doc.vgv == null) return false;
       if (!query) return true;
       return normalize(
         [
@@ -309,7 +325,7 @@ function VendasDocumentacaoPage() {
           .join(" "),
       ).includes(query);
     });
-  }, [docs, applied, corretorEquipe]);
+  }, [docs, applied, corretorEquipe, comVgv]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -323,7 +339,7 @@ function VendasDocumentacaoPage() {
   }, [applied]);
 
   const totalVgv = filtered.reduce((sum, doc) => sum + (doc.vgv ?? 0), 0);
-  const comVgv = filtered.filter((doc) => (doc.vgv ?? 0) > 0).length;
+  const comVgvCount = filtered.filter((doc) => doc.vgv != null).length;
   const origemDonut = useMemo(() => {
     const counts = new Map<string, number>();
     for (const doc of filtered) {
@@ -341,9 +357,14 @@ function VendasDocumentacaoPage() {
       }));
   }, [filtered, colorByLabel]);
 
+  const verTodasAsVendas = () => {
+    void navigate({ to: "/vendas", search: {} });
+  };
+
   const clearFilters = () => {
     setDraft(emptyFilters);
     setApplied(emptyFilters);
+    if (comVgv) verTodasAsVendas();
   };
 
   const applyFilters = () => {
@@ -519,8 +540,20 @@ function VendasDocumentacaoPage() {
     <div>
       <PageHeader
         title="Vendas"
-        description="Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
+        description={
+          comVgv
+            ? "Vendas com VGV informado."
+            : "Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
+        }
       />
+      {comVgv ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm text-teal-950">
+          <span>Mostrando só as vendas que já têm VGV.</span>
+          <Button type="button" variant="outline" size="sm" onClick={verTodasAsVendas}>
+            Ver todas
+          </Button>
+        </div>
+      ) : null}
 
       <div className="mb-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
       <PagePanel
@@ -548,11 +581,16 @@ function VendasDocumentacaoPage() {
         <FinanceKpiCard
           variant="dash"
           label="Vendas com VGV"
-          value={comVgv}
+          value={comVgvCount}
           icon={UsersRound}
           tone="teal"
           format="number"
           suffix={`de ${filtered.length}`}
+          active={comVgv}
+          onClick={() => {
+            if (comVgv) verTodasAsVendas();
+            else void navigate({ to: "/vendas", search: { comVgv: true } });
+          }}
         />
       </section>
       </PagePanel>
