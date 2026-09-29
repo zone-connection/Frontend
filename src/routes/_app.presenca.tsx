@@ -69,8 +69,10 @@ import {
   PRESENCA_FILTRO_NATUREZA,
   PRESENCA_ROLE_LABEL,
   presencaInitials,
+  rankPorNatureza,
   weekdayLabel,
   type PresencaFiltroNatureza,
+  type PresencaRankItem,
 } from "@/lib/presenca-filter";
 import { downloadPresencaPdf } from "@/lib/presenca-pdf";
 import { useTenantTheme } from "@/lib/tenant-theme";
@@ -221,6 +223,19 @@ function Page() {
   const view = useMemo(
     () => (data ? applyPresencaFiltros(data, userIds, naturezaFiltro) : null),
     [data, userIds, naturezaFiltro],
+  );
+
+  const maisPresentes = useMemo(
+    () => rankPorNatureza(view?.usuarios ?? [], "presente"),
+    [view],
+  );
+  const maisFaltas = useMemo(
+    () => rankPorNatureza(view?.usuarios ?? [], "falta"),
+    [view],
+  );
+  const maisMeioPeriodo = useMemo(
+    () => rankPorNatureza(view?.usuarios ?? [], "meio_periodo"),
+    [view],
   );
 
   const filtroLabel = data
@@ -433,6 +448,32 @@ function Page() {
               </Badge>
             );
           })}
+        </div>
+      ) : null}
+
+      {view ? (
+        <div className="grid gap-3 md:grid-cols-3">
+          <RankCard
+            title="Mais presentes"
+            hint="Dias com presença"
+            items={maisPresentes}
+            empty="Ninguém com presença neste período."
+            tone="emerald"
+          />
+          <RankCard
+            title="Mais faltas"
+            hint="Dias com falta"
+            items={maisFaltas}
+            empty="Ninguém com falta neste período."
+            tone="rose"
+          />
+          <RankCard
+            title="Meio período"
+            hint="Dias presentes por meio período"
+            items={maisMeioPeriodo}
+            empty="Ninguém com meio período neste recorte."
+            tone="amber"
+          />
         </div>
       ) : null}
 
@@ -733,6 +774,59 @@ function Page() {
         onSaved={() => void load()}
       />
     </div>
+  );
+}
+
+function RankCard({
+  title,
+  hint,
+  items,
+  empty,
+  tone,
+}: {
+  title: string;
+  hint: string;
+  items: PresencaRankItem[];
+  empty: string;
+  tone: "emerald" | "rose" | "amber";
+}) {
+  const wash = {
+    emerald: "border-emerald-200/80 bg-emerald-50/70",
+    rose: "border-rose-200/80 bg-rose-50/70",
+    amber: "border-amber-200/80 bg-amber-50/70",
+  }[tone];
+  const badge = {
+    emerald: "bg-emerald-600 text-white",
+    rose: "bg-rose-600 text-white",
+    amber: "bg-amber-600 text-white",
+  }[tone];
+  return (
+    <Card className={cn("rounded-3xl border p-4 shadow-sm", wash)}>
+      <div className="text-sm font-semibold text-foreground">{title}</div>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
+      {items.length === 0 ? (
+        <p className="mt-3 text-xs text-muted-foreground">{empty}</p>
+      ) : (
+        <ol className="mt-3 space-y-2">
+          {items.map((item, index) => (
+            <li key={item.userId} className="flex items-center gap-2 text-sm">
+              <span
+                className={cn(
+                  "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                  index === 0 ? badge : "bg-background text-muted-foreground",
+                )}
+              >
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-medium">{item.nome}</span>
+              <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
+                {item.valor} {item.valor === 1 ? "dia" : "dias"}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Card>
   );
 }
 

@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { PresencaMes, PresencaUsuario } from "./presenca-api.ts";
+import type {
+  PresencaComparativoUsuario,
+  PresencaMes,
+  PresencaUsuario,
+} from "./presenca-api.ts";
 import {
   applyPresencaFiltros,
   labelPresencaFiltros,
+  rankPorNatureza,
+  rankPresenca,
 } from "./presenca-filter.ts";
 
 function user(
@@ -109,5 +115,110 @@ describe("applyPresencaFiltros", () => {
     const data = mes([ana, bruno]);
     assert.equal(labelPresencaFiltros(data, [], "todos"), "Equipe completa");
     assert.equal(labelPresencaFiltros(data, ["a"], "falta"), "Pessoa: Ana · Com falta");
+  });
+});
+
+function pessoa(
+  nome: string,
+  presentes: number,
+  faltas: number,
+): PresencaComparativoUsuario {
+  const zero = {
+    presentes: 0,
+    equivalente: 0,
+    faltas: 0,
+    justificadas: 0,
+    lancamentos: 0,
+  };
+  return {
+    userId: nome,
+    nome,
+    role: "corretor",
+    equipe: null,
+    atual: { ...zero, presentes, faltas, lancamentos: presentes + faltas },
+    anterior: zero,
+  };
+}
+
+describe("rankPorNatureza", () => {
+  const ana = user("a", "Ana", {
+    "2026-09-01": {
+      id: "1",
+      tipoId: "p",
+      sigla: "P",
+      nome: "Presença",
+      cor: "#059669",
+      natureza: "presente",
+      observacao: "",
+    },
+    "2026-09-02": {
+      id: "2",
+      tipoId: "mp",
+      sigla: "MP",
+      nome: "Meio período",
+      cor: "#d97706",
+      natureza: "meio_periodo",
+      observacao: "",
+    },
+  });
+  const bruno = user("b", "Bruno", {
+    "2026-09-01": {
+      id: "3",
+      tipoId: "mp",
+      sigla: "MP",
+      nome: "Meio período",
+      cor: "#d97706",
+      natureza: "meio_periodo",
+      observacao: "",
+    },
+    "2026-09-02": {
+      id: "4",
+      tipoId: "mp",
+      sigla: "MP",
+      nome: "Meio período",
+      cor: "#d97706",
+      natureza: "meio_periodo",
+      observacao: "",
+    },
+  });
+
+  it("separa presença integral de meio período", () => {
+    assert.deepEqual(
+      rankPorNatureza([ana, bruno], "presente").map((p) => p.nome),
+      ["Ana"],
+    );
+    assert.deepEqual(
+      rankPorNatureza([ana, bruno], "meio_periodo").map((p) => [p.nome, p.valor]),
+      [
+        ["Bruno", 2],
+        ["Ana", 1],
+      ],
+    );
+  });
+});
+
+describe("rankPresenca", () => {
+  const pessoas = [
+    pessoa("Bruno", 2, 4),
+    pessoa("Ana", 5, 0),
+    pessoa("Caio", 5, 1),
+    pessoa("Duda", 0, 0),
+  ];
+
+  it("ordena quem mais veio e deixa de fora quem não tem marca", () => {
+    assert.deepEqual(
+      rankPresenca(pessoas, "presentes").map((p) => p.nome),
+      ["Ana", "Caio", "Bruno"],
+    );
+  });
+
+  it("ordena quem mais faltou", () => {
+    assert.deepEqual(
+      rankPresenca(pessoas, "faltas").map((p) => [p.nome, p.valor]),
+      [
+        ["Bruno", 4],
+        ["Caio", 1],
+      ],
+    );
   });
 });

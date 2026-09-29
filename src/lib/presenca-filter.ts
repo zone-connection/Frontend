@@ -184,6 +184,53 @@ export function applyPresencaFiltros(
   };
 }
 
+export type PresencaRankItem = {
+  userId: string;
+  nome: string;
+  valor: number;
+};
+
+/** Conta os dias de uma natureza no recorte visível e ordena do maior para o menor. */
+export function rankPorNatureza(
+  usuarios: PresencaUsuario[],
+  natureza: PresencaNatureza,
+  limit = 8,
+): PresencaRankItem[] {
+  return usuarios
+    .map((usuario) => ({
+      userId: usuario.userId,
+      nome: usuario.nome,
+      valor: Object.values(usuario.dias).filter(
+        (cell) => cell?.natureza === natureza,
+      ).length,
+    }))
+    .filter((pessoa) => pessoa.valor > 0)
+    .sort(
+      (a, b) => b.valor - a.valor || a.nome.localeCompare(b.nome, "pt-BR"),
+    )
+    .slice(0, limit);
+}
+
+/** Topo do período: só quem tem marca, do maior para o menor. */
+export function rankPresenca(
+  pessoas: PresencaComparativoUsuario[],
+  metrica: "presentes" | "faltas",
+  limit = 3,
+): PresencaRankItem[] {
+  return pessoas
+    .map((pessoa) => ({
+      userId: pessoa.userId,
+      nome: pessoa.nome,
+      valor: pessoa.atual[metrica],
+    }))
+    .filter((pessoa) => pessoa.valor > 0)
+    .sort(
+      (a, b) =>
+        b.valor - a.valor || a.nome.localeCompare(b.nome, "pt-BR"),
+    )
+    .slice(0, limit);
+}
+
 export function labelPresencaFiltros(
   data: PresencaMes,
   userIds: string[],
