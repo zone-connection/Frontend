@@ -108,7 +108,7 @@ function draftFrom(lista?: ListaDocumento): Draft {
   };
 }
 
-export function ListasDocumentosPanel() {
+export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean }) {
   const { brandName, logoUrl, tenant } = useTenantTheme();
   const [listas, setListas] = useState<ListaDocumento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,10 +237,12 @@ export function ListasDocumentosPanel() {
         description="Listas prontas para baixar e enviar ao cliente. O PDF usa a logo e a cor da imobiliária."
         inset="muted"
         action={
-          <Button size="sm" onClick={() => setDraft(draftFrom())}>
-            <Plus className="mr-1 size-4" />
-            Novo tipo
-          </Button>
+          readOnly ? null : (
+            <Button size="sm" onClick={() => setDraft(draftFrom())}>
+              <Plus className="mr-1 size-4" />
+              Novo tipo
+            </Button>
+          )
         }
       >
         {loading ? (
@@ -301,7 +303,7 @@ export function ListasDocumentosPanel() {
             <Button variant="outline" className={SOFT_BTN} onClick={() => setPreview(null)}>
               Fechar
             </Button>
-            {preview ? (
+            {preview && !readOnly ? (
               <Button
                 variant="outline"
                 className={SOFT_BTN}

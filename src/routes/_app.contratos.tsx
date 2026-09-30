@@ -71,6 +71,11 @@ function canManageListasDocumentos() {
   return session.role === "super_admin" && Boolean(session.tenantId);
 }
 
+function canViewListasDocumentos() {
+  if (canManageListasDocumentos()) return true;
+  return getSession()?.role === "corretor";
+}
+
 function canUseContratoTemplate(templateId: ContratoTemplateId): boolean {
   const role = getSession()?.role;
   if (role === "super_admin") {
@@ -897,7 +902,9 @@ function ContratosPage() {
       </PagePanel>
 
       <div className="space-y-5">
-        {canManageListasDocumentos() ? <ListasDocumentosPanel /> : null}
+        {canViewListasDocumentos() ? (
+          <ListasDocumentosPanel readOnly={!canManageListasDocumentos()} />
+        ) : null}
         {gruposVisiveis.map((group) => (
           <PagePanel
             key={group.id}
