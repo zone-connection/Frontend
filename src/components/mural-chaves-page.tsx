@@ -10,6 +10,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  MapPin,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -408,29 +409,83 @@ const FAIXA_VISUAL: Record<
 > = {
   disponivel: {
     label: "Disponível",
-    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    card: "border-emerald-100 bg-emerald-50/80",
-    icon: "bg-emerald-500 text-white",
+    pill: "bg-emerald-100 text-emerald-800",
+    card: "border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white shadow-[0_10px_28px_-18px_rgba(16,185,129,0.9)]",
+    icon: "bg-emerald-500 text-white shadow-sm shadow-emerald-500/40",
   },
   em_uso: {
     label: "Em uso",
-    pill: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
-    card: "border-rose-100 bg-rose-50/80",
-    icon: "bg-rose-500 text-white",
+    pill: "bg-rose-100 text-rose-800",
+    card: "border-rose-200/80 bg-gradient-to-br from-rose-50 to-white shadow-[0_10px_28px_-18px_rgba(244,63,94,0.9)]",
+    icon: "bg-rose-500 text-white shadow-sm shadow-rose-500/40",
   },
   proprietario: {
     label: "Com proprietário",
-    pill: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
-    card: "border-sky-100 bg-sky-50/80",
-    icon: "bg-sky-500 text-white",
+    pill: "bg-sky-100 text-sky-800",
+    card: "border-sky-200/80 bg-gradient-to-br from-sky-50 to-white shadow-[0_10px_28px_-18px_rgba(14,165,233,0.9)]",
+    icon: "bg-sky-500 text-white shadow-sm shadow-sky-500/40",
   },
   outro: {
     label: "Outro local",
-    pill: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
-    card: "border-violet-100 bg-violet-50/80",
-    icon: "bg-violet-500 text-white",
+    pill: "bg-violet-100 text-violet-800",
+    card: "border-violet-200/80 bg-gradient-to-br from-violet-50 to-white shadow-[0_10px_28px_-18px_rgba(139,92,246,0.9)]",
+    icon: "bg-violet-500 text-white shadow-sm shadow-violet-500/40",
   },
 };
+
+const TONS_PESSOA = [
+  "bg-sky-500",
+  "bg-violet-500",
+  "bg-emerald-600",
+  "bg-orange-500",
+  "bg-rose-500",
+  "bg-amber-500",
+  "bg-indigo-500",
+];
+
+function iniciaisNome(nome: string) {
+  const limpo = nome.replace(/^(corretor|propriet[aá]rio|imobili[aá]ria)\s+/i, "").trim();
+  const partes = limpo.split(/\s+/).filter(Boolean);
+  const primeira = partes[0]?.[0] ?? "?";
+  const ultima = partes.length > 1 ? (partes[partes.length - 1]?.[0] ?? "") : "";
+  return `${primeira}${ultima}`.toUpperCase();
+}
+
+function tomNome(nome: string) {
+  let n = 0;
+  for (let i = 0; i < nome.length; i += 1) n = (n * 31 + nome.charCodeAt(i)) >>> 0;
+  return TONS_PESSOA[n % TONS_PESSOA.length]!;
+}
+
+function papelCurto(chave: MuralChave) {
+  const faixa = faixaDaChave(chave);
+  if (faixa === "proprietario") return "Proprietário";
+  if (faixa === "outro") return chave.localDescricao || "Outro local";
+  if (faixa === "em_uso") return "Corretor";
+  return "Imobiliária";
+}
+
+function PessoaMarca({ nome, detalhe }: { nome: string; detalhe?: string }) {
+  if (!nome || nome === "—") return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm",
+          tomNome(nome),
+        )}
+      >
+        {iniciaisNome(nome)}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium leading-tight text-foreground">{nome}</span>
+        {detalhe ? (
+          <span className="block truncate text-[11px] text-muted-foreground">{detalhe}</span>
+        ) : null}
+      </span>
+    </span>
+  );
+}
 
 function faixaDaChave(chave: MuralChave): FaixaChave {
   if (chave.status === "em_uso") return "em_uso";
@@ -476,10 +531,10 @@ function PainelChave({
   const pendente = historico?.itens.find((item) => item.confirmacaoPendente);
   const exemplo = ehExemplo(chave);
   return (
-    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-4 xl:w-[360px]">
-      <div className="flex items-start gap-3 border-b px-4 py-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
-          <KeyRound className="h-4 w-4" />
+    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border bg-card shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)] xl:sticky xl:top-4 xl:w-[360px]">
+      <div className="flex items-start gap-3 border-b bg-gradient-to-br from-sky-50 to-white px-4 py-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-sm shadow-sky-600/30">
+          <KeyRound className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-lg font-semibold tracking-tight">{chave.identificador}</h2>
@@ -518,31 +573,35 @@ function PainelChave({
 
       <dl className="space-y-3 px-4 py-4 text-sm">
         <div className="flex gap-2.5">
-          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <div>
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+          <div className="min-w-0 flex-1">
             <dt className="text-[11px] text-muted-foreground">Com</dt>
-            <dd className="font-medium">{chave.comQuem}</dd>
+            <dd className="mt-1">
+              <PessoaMarca nome={chave.comQuem} detalhe={papelCurto(chave)} />
+            </dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
           <div>
             <dt className="text-[11px] text-muted-foreground">Retirada</dt>
             <dd className="font-medium">{formatChaveQuando(chave.retiradaEm)}</dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <div>
             <dt className="text-[11px] text-muted-foreground">Previsão de devolução</dt>
             <dd className="font-medium">{formatChaveQuando(chave.previsaoDevolucao)}</dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <div>
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+          <div className="min-w-0 flex-1">
             <dt className="text-[11px] text-muted-foreground">Responsável pela retirada</dt>
-            <dd className="font-medium">{chave.retiradaRegistradaPor?.name || "—"}</dd>
+            <dd className="mt-1">
+              <PessoaMarca nome={chave.retiradaRegistradaPor?.name || "—"} />
+            </dd>
           </div>
         </div>
       </dl>
@@ -562,28 +621,26 @@ function PainelChave({
         ) : recente.length === 0 ? (
           <p className="mt-3 text-xs text-muted-foreground">Nenhuma movimentação.</p>
         ) : (
-          <ol className="mt-3 space-y-3">
+          <ol className="relative mt-3 space-y-4 border-l border-dashed border-border pl-4">
             {recente.map((item) => (
-              <li key={item.id} className="flex gap-2.5 text-sm">
+              <li key={item.id} className="relative text-sm">
                 <span
                   className={cn(
-                    "mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full",
+                    "absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-card",
                     item.tipo === "devolucao" || item.tipo === "confirmacao"
                       ? "bg-rose-500"
                       : "bg-emerald-500",
                   )}
                 />
-                <div className="min-w-0">
-                  <p className="font-medium">{item.tipoLabel}</p>
-                  <p className="text-xs text-muted-foreground">{formatChaveQuando(item.createdAt)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.quemRetirouNome
-                      ? `${item.quemRetirouNome} retirou`
-                      : item.quemDevolveuNome
-                        ? `${item.quemDevolveuNome} devolveu`
-                        : item.autorNome}
-                  </p>
-                </div>
+                <p className="font-medium">{item.tipoLabel}</p>
+                <p className="text-xs text-muted-foreground">{formatChaveQuando(item.createdAt)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.quemRetirouNome
+                    ? `${item.quemRetirouNome} retirou`
+                    : item.quemDevolveuNome
+                      ? `${item.quemDevolveuNome} devolveu`
+                      : item.autorNome}
+                </p>
               </li>
             ))}
           </ol>
@@ -592,17 +649,18 @@ function PainelChave({
 
       <div className="border-t px-4 py-4">
         <h3 className="text-sm font-semibold">Confirmação do corretor</h3>
-        {pendente ? (
-          <p className="mt-2 text-xs leading-relaxed text-amber-800">
-            Pendente. Aguardando confirmação de devolução.
-          </p>
-        ) : (
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {chave.status === "em_uso"
+        <div
+          className={cn(
+            "mt-2 rounded-2xl px-3 py-2.5 text-xs leading-relaxed",
+            pendente ? "bg-amber-50 text-amber-900" : "bg-muted/50 text-muted-foreground",
+          )}
+        >
+          {pendente
+            ? "Pendente. Aguardando confirmação de devolução."
+            : chave.status === "em_uso"
               ? "A confirmação aparece depois que a devolução for registrada."
               : "Nenhuma confirmação pendente."}
-          </p>
-        )}
+        </div>
         {pendente ? (
           <Button
             type="button"
@@ -1001,12 +1059,12 @@ export function MuralChavesPage() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(
               [
-                ["disponivel", "Disponíveis", contagem.disponivel],
-                ["em_uso", "Em uso", contagem.em_uso],
-                ["proprietario", "Com proprietário", contagem.proprietario],
-                ["outro", "Outro local", contagem.outro],
+                ["disponivel", "Disponíveis", contagem.disponivel, KeyRound],
+                ["em_uso", "Em uso", contagem.em_uso, LogOut],
+                ["proprietario", "Com proprietário", contagem.proprietario, UserRound],
+                ["outro", "Outro local", contagem.outro, MapPin],
               ] as const
-            ).map(([id, label, total]) => {
+            ).map(([id, label, total, Icone]) => {
               const visual = FAIXA_VISUAL[id];
               const ativo = faixa === id;
               return (
@@ -1015,18 +1073,18 @@ export function MuralChavesPage() {
                   type="button"
                   onClick={() => setFaixa(ativo ? "" : id)}
                   className={cn(
-                    "rounded-2xl border px-4 py-3 text-left transition",
+                    "rounded-2xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5",
                     visual.card,
-                    ativo && "ring-2 ring-primary/30",
+                    ativo && "ring-2 ring-primary/40",
                   )}
                 >
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    <span className={cn("flex h-7 w-7 items-center justify-center rounded-full", visual.icon)}>
-                      <KeyRound className="h-3.5 w-3.5" />
+                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", visual.icon)}>
+                      <Icone className="h-4 w-4" />
                     </span>
                     {label}
                   </div>
-                  <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{total}</p>
+                  <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">{total}</p>
                   <p className="text-xs text-muted-foreground">de {base.length} chaves</p>
                 </button>
               );
@@ -1127,14 +1185,16 @@ export function MuralChavesPage() {
                         <tr
                           key={chave.id}
                           className={cn(
-                            "cursor-pointer border-b last:border-0 hover:bg-muted/40",
-                            ativa && "bg-sky-50/80",
+                            "cursor-pointer border-b last:border-0 transition hover:bg-orange-50/50",
+                            ativa && "bg-sky-50 shadow-[inset_3px_0_0_0_#0284c7]",
                           )}
                           onClick={() => escolher(chave)}
                         >
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <KeyRound className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                                <KeyRound className="h-4 w-4" />
+                              </span>
                               <span className="font-semibold">{chave.identificador}</span>
                             </div>
                           </td>
@@ -1148,7 +1208,7 @@ export function MuralChavesPage() {
                             </span>
                           </td>
                           <td className="px-3 py-3">
-                            <p className="font-medium">{chave.comQuem}</p>
+                            <PessoaMarca nome={chave.comQuem} detalhe={papelCurto(chave)} />
                           </td>
                           <td className="px-3 py-3 text-muted-foreground">
                             {formatChaveQuando(chave.retiradaEm)}
@@ -1156,8 +1216,8 @@ export function MuralChavesPage() {
                           <td className="px-3 py-3 text-muted-foreground">
                             {formatChaveQuando(chave.previsaoDevolucao)}
                           </td>
-                          <td className="px-3 py-3 text-muted-foreground">
-                            {chave.retiradaRegistradaPor?.name || "—"}
+                          <td className="px-3 py-3">
+                            <PessoaMarca nome={chave.retiradaRegistradaPor?.name || "—"} />
                           </td>
                           <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}>
                             <DropdownMenu>
@@ -1243,8 +1303,13 @@ export function MuralChavesPage() {
           )}
 
           <div className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-2xl border bg-card p-4">
-              <h3 className="text-sm font-semibold">Retirada de chave pelo corretor</h3>
+            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/80 to-card p-4 shadow-sm">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white">
+                  <LogOut className="h-4 w-4" />
+                </span>
+                Retirada de chave pelo corretor
+              </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 O corretor seleciona a chave que vai retirar e o sistema registra automaticamente a
                 movimentação.
@@ -1262,8 +1327,13 @@ export function MuralChavesPage() {
                 Registrar retirada
               </Button>
             </div>
-            <div className="rounded-2xl border bg-card p-4">
-              <h3 className="text-sm font-semibold">Gerenciamento de chaves</h3>
+            <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-card p-4 shadow-sm">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500 text-white">
+                  <KeyRound className="h-4 w-4" />
+                </span>
+                Gerenciamento de chaves
+              </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Usuários autorizados podem cadastrar, editar e gerenciar as chaves do sistema.
               </p>
@@ -1273,10 +1343,12 @@ export function MuralChavesPage() {
                 </Button>
               ) : null}
             </div>
-            <div className="rounded-2xl border bg-card p-4">
+            <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-card p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white">
+                    <Bell className="h-4 w-4" />
+                  </span>
                   Notificações recentes
                 </h3>
               </div>
