@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bell,
+  Building2,
+  Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Home,
   History,
   KeyRound,
   Loader2,
@@ -21,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FinanceKpiCard, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -120,12 +124,12 @@ const CHAVES_EXEMPLO: MuralChave[] = [
     id: "exemplo-torre-a-304",
     identificador: "TORRE-A-304",
     status: "em_uso",
-    imovelLabel: "Apartamento 304",
+    imovelLabel: "Apto 304",
     empreendimento: { id: "exemplo-res-x", nome: "Residencial X" },
     comQuem: "Corretor João",
     retiradaEm: EXEMPLO_RETIRADA,
-    previsaoDevolucao: EXEMPLO_PREVISAO,
-    retiradaRegistradaPor: { id: "exemplo-marina", name: "Marina" },
+    previsaoDevolucao: "2026-09-25T21:00:00.000Z",
+    retiradaRegistradaPor: { id: "exemplo-joao-dias", name: "João Dias" },
   }),
   exemploChave({
     id: "exemplo-chv-09",
@@ -215,17 +219,29 @@ const HISTORICO_EXEMPLO: Record<
     identificadoresAnteriores: ["CHV 304"],
     itens: [
       eventoExemplo({
+        id: "ex-h0",
+        tipo: "devolucao",
+        tipoLabel: "Devolução (recebida)",
+        identificador: "TORRE-A-304",
+        empreendimentoNome: "Residencial X",
+        imovelLabel: "Apto 304",
+        confirmacaoPendente: true,
+        autorNome: "Corretor João",
+        observacao: "Devolução registrada, ainda sem quem recebeu.",
+        createdAt: "2026-09-25T21:00:00.000Z",
+      }),
+      eventoExemplo({
         id: "ex-h1",
         tipo: "retirada",
         tipoLabel: "Retirada",
         identificador: "TORRE-A-304",
         empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 304",
-        quemRetirouNome: "João",
-        quemRegistrouRetiradaNome: "João",
+        imovelLabel: "Apto 304",
+        quemRetirouNome: "Corretor João",
+        quemRegistrouRetiradaNome: "João Dias",
         retiradaEm: EXEMPLO_RETIRADA,
-        previsaoDevolucao: EXEMPLO_PREVISAO,
-        autorNome: "João",
+        previsaoDevolucao: "2026-09-25T21:00:00.000Z",
+        autorNome: "João Dias",
         observacao: "Visita com o cliente do Residencial X.",
         createdAt: EXEMPLO_RETIRADA,
       }),
@@ -403,33 +419,22 @@ function fatosDoMovimento(item: MuralChaveHistoricoItem) {
 
 type FaixaChave = "disponivel" | "em_uso" | "proprietario" | "outro";
 
-const FAIXA_VISUAL: Record<
-  FaixaChave,
-  { label: string; pill: string; card: string; icon: string }
-> = {
+const FAIXA_VISUAL: Record<FaixaChave, { label: string; pill: string }> = {
   disponivel: {
     label: "Disponível",
     pill: "bg-emerald-100 text-emerald-800",
-    card: "border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white shadow-[0_10px_28px_-18px_rgba(16,185,129,0.9)]",
-    icon: "bg-emerald-500 text-white shadow-sm shadow-emerald-500/40",
   },
   em_uso: {
     label: "Em uso",
     pill: "bg-rose-100 text-rose-800",
-    card: "border-rose-200/80 bg-gradient-to-br from-rose-50 to-white shadow-[0_10px_28px_-18px_rgba(244,63,94,0.9)]",
-    icon: "bg-rose-500 text-white shadow-sm shadow-rose-500/40",
   },
   proprietario: {
     label: "Com proprietário",
     pill: "bg-sky-100 text-sky-800",
-    card: "border-sky-200/80 bg-gradient-to-br from-sky-50 to-white shadow-[0_10px_28px_-18px_rgba(14,165,233,0.9)]",
-    icon: "bg-sky-500 text-white shadow-sm shadow-sky-500/40",
   },
   outro: {
     label: "Outro local",
     pill: "bg-violet-100 text-violet-800",
-    card: "border-violet-200/80 bg-gradient-to-br from-violet-50 to-white shadow-[0_10px_28px_-18px_rgba(139,92,246,0.9)]",
-    icon: "bg-violet-500 text-white shadow-sm shadow-violet-500/40",
   },
 };
 
@@ -500,6 +505,24 @@ function ehExemplo(chave: MuralChave) {
 
 const POR_PAGINA = 10;
 
+function formatChaveQuandoComAno(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const data = date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  });
+  const hora = date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+  return `${data} às ${hora}`;
+}
+
 function PainelChave({
   chave,
   historico,
@@ -527,81 +550,101 @@ function PainelChave({
 }) {
   const faixa = faixaDaChave(chave);
   const visual = FAIXA_VISUAL[faixa];
-  const recente = historico?.itens.slice(0, 2) ?? [];
+  const retirada = historico?.itens.find((item) => item.tipo === "retirada");
+  const devolucao = historico?.itens.find((item) => item.tipo === "devolucao");
+  const recente =
+    retirada || devolucao
+      ? [retirada, devolucao].filter((item): item is MuralChaveHistoricoItem => !!item)
+      : (historico?.itens.filter((item) => item.tipo !== "confirmacao").slice(0, 2) ?? []);
   const pendente = historico?.itens.find((item) => item.confirmacaoPendente);
   const exemplo = ehExemplo(chave);
+  const statusSolido = {
+    disponivel: "bg-emerald-500",
+    em_uso: "bg-rose-500",
+    proprietario: "bg-sky-500",
+    outro: "bg-violet-500",
+  }[faixa];
   return (
-    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border bg-card shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)] xl:sticky xl:top-4 xl:w-[360px]">
-      <div className="flex items-start gap-3 border-b bg-gradient-to-br from-sky-50 to-white px-4 py-4">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-sm shadow-sky-600/30">
-          <KeyRound className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-semibold tracking-tight">{chave.identificador}</h2>
-          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <p className="text-muted-foreground">Empreendimento</p>
-              <p className="truncate font-medium">{chave.empreendimento?.nome || "—"}</p>
+    <aside className="flex max-h-[70vh] w-full shrink-0 flex-col overflow-y-auto overscroll-contain rounded-2xl border bg-card shadow-sm xl:h-full xl:max-h-full xl:w-[340px]">
+      <div className="sticky top-0 z-10 bg-card px-4 pb-3 pt-4">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white">
+            <KeyRound className="h-4 w-4" />
+          </span>
+          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
+            {chave.identificador}
+          </h2>
+          <button
+            type="button"
+            className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+            onClick={onClose}
+            aria-label="Fechar detalhe"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="flex min-w-0 gap-2">
+            <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted-foreground">Empreendimento</p>
+              <p className="truncate text-sm font-medium">{chave.empreendimento?.nome || "—"}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Imóvel</p>
-              <p className="truncate font-medium">{chave.imovelLabel || "—"}</p>
+          </div>
+          <div className="flex min-w-0 gap-2">
+            <Home className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted-foreground">Imóvel</p>
+              <p className="truncate text-sm font-medium">{chave.imovelLabel || "—"}</p>
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
-          onClick={onClose}
-          aria-label="Fechar detalhe"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-        <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", visual.pill)}>
+      <div className="flex items-center justify-between gap-2 px-4 py-2">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white",
+            statusSolido,
+          )}
+        >
+          <KeyRound className="h-3.5 w-3.5" />
           {visual.label}
         </span>
-        {podeGerenciar && !exemplo ? (
-          <Button type="button" size="sm" variant="outline" className="h-8 rounded-lg" onClick={onEditar}>
-            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+        {podeGerenciar ? (
+          <Button type="button" size="sm" variant="outline" className="h-8 rounded-lg px-4" onClick={onEditar}>
             Editar
           </Button>
         ) : null}
       </div>
 
-      <dl className="space-y-3 px-4 py-4 text-sm">
+      <dl className="space-y-3 px-4 py-3 text-sm">
         <div className="flex gap-2.5">
-          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-          <div className="min-w-0 flex-1">
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
             <dt className="text-[11px] text-muted-foreground">Com</dt>
-            <dd className="mt-1">
-              <PessoaMarca nome={chave.comQuem} detalhe={papelCurto(chave)} />
-            </dd>
+            <dd className="font-medium">{chave.comQuem}</dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <dt className="text-[11px] text-muted-foreground">Retirada</dt>
             <dd className="font-medium">{formatChaveQuando(chave.retiradaEm)}</dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <dt className="text-[11px] text-muted-foreground">Previsão de devolução</dt>
             <dd className="font-medium">{formatChaveQuando(chave.previsaoDevolucao)}</dd>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
-          <div className="min-w-0 flex-1">
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
             <dt className="text-[11px] text-muted-foreground">Responsável pela retirada</dt>
-            <dd className="mt-1">
-              <PessoaMarca nome={chave.retiradaRegistradaPor?.name || "—"} />
-            </dd>
+            <dd className="font-medium">{chave.retiradaRegistradaPor?.name || "—"}</dd>
           </div>
         </div>
       </dl>
@@ -609,7 +652,7 @@ function PainelChave({
       <div className="border-t px-4 py-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">Histórico rápido</h3>
-          <button type="button" className="text-xs font-medium text-primary" onClick={onHistorico}>
+          <button type="button" className="text-xs font-medium text-sky-600" onClick={onHistorico}>
             Ver histórico completo
           </button>
         </div>
@@ -621,52 +664,57 @@ function PainelChave({
         ) : recente.length === 0 ? (
           <p className="mt-3 text-xs text-muted-foreground">Nenhuma movimentação.</p>
         ) : (
-          <ol className="relative mt-3 space-y-4 border-l border-dashed border-border pl-4">
-            {recente.map((item) => (
-              <li key={item.id} className="relative text-sm">
-                <span
-                  className={cn(
-                    "absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-card",
-                    item.tipo === "devolucao" || item.tipo === "confirmacao"
-                      ? "bg-rose-500"
-                      : "bg-emerald-500",
-                  )}
-                />
-                <p className="font-medium">{item.tipoLabel}</p>
-                <p className="text-xs text-muted-foreground">{formatChaveQuando(item.createdAt)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.quemRetirouNome
-                    ? `${item.quemRetirouNome} retirou`
-                    : item.quemDevolveuNome
-                      ? `${item.quemDevolveuNome} devolveu`
-                      : item.autorNome}
-                </p>
-              </li>
-            ))}
+          <ol className="relative mt-4 space-y-4 border-l border-border pl-4">
+            {recente.map((item) => {
+              const ehDevolucao = item.tipo === "devolucao" || item.tipo === "confirmacao";
+              const detalhe = item.quemRetirouNome
+                ? item.quemRegistrouRetiradaNome
+                  ? `${item.quemRetirouNome} (retirada por ${item.quemRegistrouRetiradaNome})`
+                  : item.quemRetirouNome
+                : ehDevolucao
+                  ? `Recebido por: ${item.quemRecebeuDevolucaoNome || "—"}`
+                  : item.autorNome;
+              const quando = ehDevolucao
+                ? formatChaveQuandoComAno(item.devolucaoEm)
+                : formatChaveQuandoComAno(item.retiradaEm || item.createdAt);
+              return (
+                <li key={item.id} className="relative text-sm">
+                  <span
+                    className={cn(
+                      "absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-card",
+                      ehDevolucao ? "bg-rose-500" : "bg-emerald-500",
+                    )}
+                  />
+                  <p className={cn("font-semibold", ehDevolucao ? "text-rose-600" : "text-emerald-600")}>
+                    {item.tipo === "devolucao" ? "Devolução (recebida)" : item.tipoLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{quando}</p>
+                  <p className="text-xs text-muted-foreground">{detalhe}</p>
+                </li>
+              );
+            })}
           </ol>
         )}
       </div>
 
       <div className="border-t px-4 py-4">
         <h3 className="text-sm font-semibold">Confirmação do corretor</h3>
-        <div
-          className={cn(
-            "mt-2 rounded-2xl px-3 py-2.5 text-xs leading-relaxed",
-            pendente ? "bg-amber-50 text-amber-900" : "bg-muted/50 text-muted-foreground",
-          )}
-        >
+        <p className="mt-2 text-sm font-medium">
+          {pendente ? "Pendente" : chave.status === "em_uso" ? "Ainda não registrada" : "Em dia"}
+        </p>
+        <p className="text-xs text-muted-foreground">
           {pendente
-            ? "Pendente. Aguardando confirmação de devolução."
+            ? "Aguardando confirmação de devolução"
             : chave.status === "em_uso"
               ? "A confirmação aparece depois que a devolução for registrada."
               : "Nenhuma confirmação pendente."}
-        </div>
+        </p>
         {pendente ? (
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="mt-3 h-8"
+            className="mt-3 h-8 border-sky-300 text-sky-700 hover:bg-sky-50"
             onClick={() =>
               toast.message("O corretor vê o pedido de confirmação ao entrar no sistema.")
             }
@@ -1032,9 +1080,9 @@ export function MuralChavesPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
-        <div className="min-w-0 flex-1 space-y-4">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row xl:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
@@ -1056,39 +1104,28 @@ export function MuralChavesPage() {
             ) : null}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {(
               [
-                ["disponivel", "Disponíveis", contagem.disponivel, KeyRound],
-                ["em_uso", "Em uso", contagem.em_uso, LogOut],
-                ["proprietario", "Com proprietário", contagem.proprietario, UserRound],
-                ["outro", "Outro local", contagem.outro, MapPin],
+                ["disponivel", "Disponíveis", contagem.disponivel, KeyRound, "emerald"],
+                ["em_uso", "Em uso", contagem.em_uso, LogOut, "rose"],
+                ["proprietario", "Com proprietário", contagem.proprietario, UserRound, "blue"],
+                ["outro", "Outro local", contagem.outro, MapPin, "violet"],
               ] as const
-            ).map(([id, label, total, Icone]) => {
-              const visual = FAIXA_VISUAL[id];
-              const ativo = faixa === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setFaixa(ativo ? "" : id)}
-                  className={cn(
-                    "rounded-2xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5",
-                    visual.card,
-                    ativo && "ring-2 ring-primary/40",
-                  )}
-                >
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", visual.icon)}>
-                      <Icone className="h-4 w-4" />
-                    </span>
-                    {label}
-                  </div>
-                  <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">{total}</p>
-                  <p className="text-xs text-muted-foreground">de {base.length} chaves</p>
-                </button>
-              );
-            })}
+            ).map(([id, label, total, Icone, tone]) => (
+              <FinanceKpiCard
+                key={id}
+                label={label}
+                value={total}
+                icon={Icone}
+                tone={tone as FinanceKpiTone}
+                format="number"
+                variant="dash"
+                detail={`de ${base.length} chaves`}
+                active={faixa === id}
+                onClick={() => setFaixa(faixa === id ? "" : id)}
+              />
+            ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -1149,6 +1186,7 @@ export function MuralChavesPage() {
             </p>
           ) : null}
 
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
           {carregando ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1162,7 +1200,7 @@ export function MuralChavesPage() {
             <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[920px] text-left text-sm">
-                  <thead className="border-b bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <thead className="sticky top-0 z-10 border-b bg-muted text-[11px] uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 font-medium">Chave / identificador</th>
                       <th className="px-3 py-3 font-medium">Empreendimento</th>
@@ -1368,6 +1406,7 @@ export function MuralChavesPage() {
                 </ul>
               )}
             </div>
+          </div>
           </div>
         </div>
 

@@ -427,6 +427,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isTriagem = pathname === "/triagem";
+  const lockPageScroll = isTriagem || pathname === "/mural-chaves";
 
   useEffect(() => {
     const sync = () => setUser(getSession());
@@ -1161,7 +1162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         "flex w-full bg-background",
-        isTriagem ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden" : "min-h-screen",
+        lockPageScroll ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden" : "min-h-screen",
       )}
     >
       {/* Sidebar fixa — visível apenas em telas md e acima */}
@@ -1278,7 +1279,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col",
-          isTriagem && "lg:min-h-0",
+          lockPageScroll && "lg:min-h-0",
         )}
       >
         <header className="h-14 border-b bg-card/90 backdrop-blur sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 min-w-0 shrink-0">
@@ -1428,7 +1429,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             "max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6",
-            isTriagem && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
+            lockPageScroll && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
           )}
         >
           {children}

@@ -46,6 +46,34 @@ export function formatNovidadePlanos(item: Novidade): string {
 
 export const NOVIDADES: Novidade[] = [
   {
+    id: "mural-chaves",
+    title: "Mural de Chaves",
+    kicker: "Gestão",
+    publishedAt: "2026-09-29",
+    summary:
+      "Controle de quem está com cada chave: retirada, previsão de devolução e confirmação do corretor.",
+    where:
+      "Gestão → Mural de Chaves. O item fica oculto até o admin da imobiliária ativar o módulo.",
+    href: "/mural-chaves",
+    hrefLabel: "Abrir Mural de Chaves",
+    who: "Admin ativa o módulo. Admin e gerente gerenciam as chaves. Quem tem permissão registra retirada e devolução.",
+    planos: ["solo", "prata", "ouro"],
+    planoDetalhe:
+      "Não entra no Bronze. No Prata, só com o pacote Administrativo. Continua oculto até o admin ligar em Configurações → Operação → Módulos.",
+    navPaths: ["/mural-chaves"],
+    pagePaths: ["/mural-chaves"],
+    activate: [
+      "Em Configurações, abra Operação e a aba Módulos.",
+      "Ligue o Mural de Chaves. O item passa a aparecer em Gestão.",
+      "Em Permissões, libere o mural para quem deve retirar ou gerenciar.",
+    ],
+    how: [
+      "Cadastre a chave com empreendimento e imóvel.",
+      "Registre a retirada, com quem está e a previsão de devolução.",
+      "Na devolução, o corretor confirma no próximo acesso.",
+    ],
+  },
+  {
     id: "automacoes-distribuicao",
     title: "Automações: Caça-lead, Retrabalho e distribuição online",
     kicker: "Operação",
