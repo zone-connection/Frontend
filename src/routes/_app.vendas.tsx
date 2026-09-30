@@ -582,6 +582,7 @@ function VendasDocumentacaoPage() {
           tone="emerald"
           format="number"
         />
+        {ownSalesOnly ? null : (
         <FinanceKpiCard
           variant="dash"
           label="VGV vendido"
@@ -589,6 +590,7 @@ function VendasDocumentacaoPage() {
           icon={Wallet}
           tone="blue"
         />
+        )}
         <FinanceKpiCard
           variant="dash"
           label="Vendas com VGV"

@@ -260,6 +260,7 @@ export function CadastroVendasBronzePage() {
           icon={ReceiptText}
           tone="emerald"
         />
+        {corretorLike ? null : (
         <FinanceKpiCard
           variant="dash"
           label="VGV"
@@ -267,6 +268,7 @@ export function CadastroVendasBronzePage() {
           icon={Wallet}
           tone="teal"
         />
+        )}
       </section>
 
       {rows.length === 0 ? (

@@ -139,9 +139,11 @@ function CorretorCell({
 export function ConstrutoraVendasTable({
   items,
   detailed = false,
+  showVgv = true,
 }: {
   items: VendaResumoItem[];
   detailed?: boolean;
+  showVgv?: boolean;
 }) {
   const grupos = useMemo(() => groupByCorretor(items), [items]);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -174,7 +176,9 @@ export function ConstrutoraVendasTable({
           <TableHead className={thClass}>Cliente</TableHead>
           {detailed ? <TableHead className={thClass}>CPF</TableHead> : null}
           {!detailed ? <TableHead className={thClass}>Data</TableHead> : null}
-          <TableHead className={cn(thClass, "text-right")}>VGV</TableHead>
+          {showVgv ? (
+            <TableHead className={cn(thClass, "text-right")}>VGV</TableHead>
+          ) : null}
           {detailed ? <TableHead className={thClass}>Data</TableHead> : null}
         </TableRow>
       </TableHeader>
@@ -237,6 +241,7 @@ export function ConstrutoraVendasTable({
                     {dateBr(venda.dataVenda)}
                   </TableCell>
                 )}
+                {showVgv ? (
                 <TableCell
                   className={cn(
                     tdClass,
@@ -245,6 +250,7 @@ export function ConstrutoraVendasTable({
                 >
                   {money(venda.vgv)}
                 </TableCell>
+                ) : null}
                 {detailed ? (
                   <TableCell
                     className={cn(tdClass, "tabular-nums text-muted-foreground")}
@@ -303,6 +309,7 @@ export function ConstrutoraVendasTable({
                     —
                   </TableCell>
                 )}
+                {showVgv ? (
                 <TableCell
                   className={cn(
                     tdClass,
@@ -311,6 +318,7 @@ export function ConstrutoraVendasTable({
                 >
                   {money(grupo.vgv)}
                 </TableCell>
+                ) : null}
                 {detailed ? (
                   <TableCell className={cn(tdClass, "text-muted-foreground")}>
                     —
@@ -358,11 +366,13 @@ export function ConstrutoraVendasTable({
                           {dateBr(venda.dataVenda)}
                         </TableCell>
                       )}
+                      {showVgv ? (
                       <TableCell
                         className={cn(tdClass, "text-right tabular-nums font-medium")}
                       >
                         {money(venda.vgv)}
                       </TableCell>
+                      ) : null}
                       {detailed ? (
                         <TableCell
                           className={cn(

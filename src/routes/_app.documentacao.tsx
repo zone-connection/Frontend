@@ -2163,6 +2163,7 @@ function DocumentacaoPage() {
                 });
               }}
             />
+            {isCorretorLike(user?.role) ? null : (
             <FinanceKpiCard
               variant="dash"
               label="VGV vendido"
@@ -2172,6 +2173,7 @@ function DocumentacaoPage() {
               active={filterSomenteVgv}
               onClick={() => setFilterSomenteVgv((atual) => !atual)}
             />
+            )}
           </div>
       </PagePanel>
 

@@ -1639,13 +1639,6 @@ function DashboardCorretorView() {
               format="number"
               variant="dash"
             />
-            <FinanceKpiCard
-              label="VGV vendido no mês"
-              value={summary.documentacao.vgvVendidoMes}
-              icon={Wallet}
-              tone="teal"
-              variant="dash"
-            />
           </div>
         </PagePanel>
         ) : null}

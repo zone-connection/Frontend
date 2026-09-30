@@ -42,7 +42,7 @@ import {
 } from "@/components/form-dialog";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { canViewRankingVendas } from "@/lib/permissions";
+import { canViewRankingVendas, isCorretorLike } from "@/lib/permissions";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
   DEFAULT_TABLE_SORT,
@@ -263,6 +263,7 @@ function ConstrutorasPage() {
   const user = getSession();
   const isAdmin = user?.role === "admin";
   const canViewVendas = canViewRankingVendas(user);
+  const showVgvTotal = canViewVendas && !isCorretorLike(user?.role);
   const canManage =
     isAdmin ||
     user?.role === "gerente" ||
@@ -1255,10 +1256,10 @@ function ConstrutorasPage() {
                       <TableHead>Viabilizador</TableHead>
                       <TableHead className="text-center">Empreend.</TableHead>
                       {canViewVendas ? (
-                        <>
-                          <TableHead className="text-center">Vendas</TableHead>
-                          <TableHead className="text-right">VGV</TableHead>
-                        </>
+                        <TableHead className="text-center">Vendas</TableHead>
+                      ) : null}
+                      {showVgvTotal ? (
+                        <TableHead className="text-right">VGV</TableHead>
                       ) : null}
                       <TableHead className="text-center">Docs</TableHead>
                       <TableHead className="w-30" />
@@ -1338,7 +1339,6 @@ function ConstrutorasPage() {
                           </Badge>
                         </TableCell>
                         {canViewVendas ? (
-                          <>
                             <TableCell className="text-center">
                               <Button
                                 variant="ghost"
@@ -1352,10 +1352,11 @@ function ConstrutorasPage() {
                                 </Badge>
                               </Button>
                             </TableCell>
+                        ) : null}
+                        {showVgvTotal ? (
                             <TableCell className="text-right tabular-nums">
                               {money(item.vgv ?? 0)}
                             </TableCell>
-                          </>
                         ) : null}
                         <TableCell className="text-center">
                           <Badge variant="secondary">
@@ -1482,6 +1483,7 @@ function ConstrutorasPage() {
                   format="number"
                   variant="dash"
                 />
+                {showVgvTotal ? (
                 <FinanceKpiCard
                   label="VGV"
                   value={vendasTotais.vgv}
@@ -1490,6 +1492,7 @@ function ConstrutorasPage() {
                   format="money"
                   variant="dash"
                 />
+                ) : null}
                 <FinanceKpiCard
                   label="Corretores"
                   value={vendasTotais.corretores}
@@ -1527,7 +1530,11 @@ function ConstrutorasPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <ConstrutoraVendasTable items={vendas} detailed />
+                  <ConstrutoraVendasTable
+                    items={vendas}
+                    detailed
+                    showVgv={showVgvTotal}
+                  />
                 </div>
               )}
             </CardContent>
