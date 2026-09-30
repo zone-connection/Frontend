@@ -39,7 +39,7 @@
   --color-surface-muted: #f8fafc;
   --color-text-muted: #64748b;
   --background-image-brand-text: linear-gradient(to right, #02b3ee, #014a7a);
-  --background-image-brand-cta: linear-gradient(135deg, #02b3ee 0%, #027dc2 100%);
+  --background-image-brand-cta: linear-gradient(135deg, #0a3a5c 0%, #02152d 100%);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -71,7 +71,7 @@
   --card-foreground: #053647;
   --popover: #ffffff;
   --popover-foreground: #053647;
-  --primary: #027dc2;
+  --primary: #02152d;
   --primary-foreground: #ffffff;
   --module-title: #014a7a;
   --secondary: #eef6fb;
@@ -89,8 +89,8 @@
   --info: #02b3ee;
   --info-foreground: #ffffff;
   --brand-accent: #027dc2;
-  --btn-gradient-from: #02b3ee;
-  --btn-gradient-to: #027dc2;
+  --btn-gradient-from: #0a3a5c;
+  --btn-gradient-to: #02152d;
   --table-head-gradient: linear-gradient(90deg, #02b3ee 0%, #027dc2 100%);
   --logo-wash: color-mix(in srgb, #027dc2 12%, transparent);
   /* Escala sequencial dos KPIs (claro → escuro) */
@@ -102,7 +102,7 @@
   --kpi-seq-6: #014a7a;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #027dc2;
+  --ring: #0a3a5c;
   --chart-1: #053647;
   --chart-2: #079ed4;
   --chart-3: #0a5a75;
@@ -322,7 +322,7 @@ html.tenant-density-compact .space-y-6 {
     background-color: transparent !important;
     background-image: var(
       --background-image-brand-cta,
-      linear-gradient(135deg, #0e6f8a 0%, #079ed4 100%)
+      linear-gradient(135deg, #0a3a5c 0%, #02152d 100%)
     ) !important;
     color: var(--btn-gradient-fg, #ffffff) !important;
     font-weight: 600;

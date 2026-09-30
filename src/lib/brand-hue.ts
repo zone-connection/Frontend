@@ -178,7 +178,13 @@ function readableBand(hex: string): string {
 
 let logoChromePalette: string[] = [...LOGO_PALETTE_FALLBACK];
 
-/** Pinta botões, filtros, formulários e tabelas com as cores da logo. */
+/** Mesmo tom do sidebar, para todo tenant. */
+const SIDEBAR_BUTTON_FROM = "#0a3a5c";
+const SIDEBAR_BUTTON_TO = "#02152d";
+const SIDEBAR_BUTTON_FROM_DARK = "#16527a";
+const SIDEBAR_BUTTON_TO_DARK = "#0a3a5c";
+
+/** Pinta tabelas e KPIs com a logo. Botões ficam no tom do sidebar. */
 export function applyLogoChrome(colors: string[]) {
   logoChromePalette = colors.length ? colors.slice(0, 6) : [...LOGO_PALETTE_FALLBACK];
   if (typeof document === "undefined") return;
@@ -187,15 +193,18 @@ export function applyLogoChrome(colors: string[]) {
   const mid = palette[Math.min(3, palette.length - 1)] ?? "#027dc2";
   const deep = palette[palette.length - 1] ?? "#014a7a";
   const root = document.documentElement;
-  const cta = `linear-gradient(135deg, ${bright} 0%, ${mid} 100%)`;
-  root.style.setProperty("--primary", mid);
+  const dark = root.classList.contains("dark");
+  const buttonFrom = dark ? SIDEBAR_BUTTON_FROM_DARK : SIDEBAR_BUTTON_FROM;
+  const buttonTo = dark ? SIDEBAR_BUTTON_TO_DARK : SIDEBAR_BUTTON_TO;
+  const cta = `linear-gradient(135deg, ${buttonFrom} 0%, ${buttonTo} 100%)`;
+  root.style.setProperty("--primary", buttonTo);
   root.style.setProperty("--primary-foreground", "#ffffff");
-  root.style.setProperty("--ring", mid);
+  root.style.setProperty("--ring", buttonFrom);
   root.style.setProperty("--brand-accent", bright);
   root.style.setProperty("--info", bright);
   root.style.setProperty("--module-title", deep);
-  root.style.setProperty("--btn-gradient-from", bright);
-  root.style.setProperty("--btn-gradient-to", mid);
+  root.style.setProperty("--btn-gradient-from", buttonFrom);
+  root.style.setProperty("--btn-gradient-to", buttonTo);
   root.style.setProperty("--btn-gradient-fg", "#ffffff");
   root.style.setProperty("--background-image-brand-cta", cta);
   root.style.setProperty(

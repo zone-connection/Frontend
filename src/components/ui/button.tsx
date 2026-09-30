@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "relative isolate overflow-hidden border-0 bg-transparent text-[color:var(--btn-gradient-fg,#ffffff)] shadow-sm before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-br before:from-[var(--btn-gradient-from,#0e6f8a)] before:to-[var(--btn-gradient-to,#079ED4)] hover:brightness-110",
+          "relative isolate overflow-hidden border-0 bg-transparent text-[color:var(--btn-gradient-fg,#ffffff)] shadow-sm before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-br before:from-[var(--btn-gradient-from,#0a3a5c)] before:to-[var(--btn-gradient-to,#02152d)] hover:brightness-110",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:

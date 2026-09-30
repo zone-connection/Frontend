@@ -1,7 +1,7 @@
 /** Degradê de botões/CTAs — acompanha a aparência do usuário. */
 export const BRAND_GRADIENT_STYLE = {
   backgroundImage:
-    "var(--background-image-brand-cta, linear-gradient(135deg, #0e6f8a 0%, #079ed4 100%))",
+    "var(--background-image-brand-cta, linear-gradient(135deg, #0a3a5c 0%, #02152d 100%))",
   color: "var(--btn-gradient-fg, #ffffff)",
 } as const;
 
