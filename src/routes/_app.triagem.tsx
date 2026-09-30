@@ -227,7 +227,7 @@ function TriagemLeadCard({
       className={cn(
         "rounded-2xl border p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors",
         active
-          ? "border-sky-200 bg-sky-50 ring-1 ring-sky-100 dark:border-sky-900/50 dark:bg-sky-950/25 dark:ring-sky-900/40"
+          ? "border-sidebar/30 bg-sidebar/5 ring-1 ring-sidebar/15"
           : "border-black/5 bg-card hover:bg-muted/40",
         herdada && !active && "border-amber-200 bg-amber-50/90",
       )}
@@ -1428,7 +1428,7 @@ function ManagerTriagem() {
                 {corretores.length} na lista
               </p>
             </div>
-            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-sky-800">
+            <span className="rounded-full bg-sidebar px-2 py-0.5 text-[11px] font-semibold tabular-nums text-sidebar-foreground">
               {corretores.length}
             </span>
           </div>
@@ -1492,7 +1492,7 @@ function ManagerTriagem() {
                 className={cn(
                   "flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left text-sm transition-colors",
                   active
-                    ? "border-sky-200 bg-sky-50 font-medium dark:border-sky-900/50 dark:bg-sky-950/30"
+                    ? "border-sidebar/30 bg-sidebar/5 font-medium"
                     : "border-black/5 bg-card hover:bg-muted/40",
                 )}
               >

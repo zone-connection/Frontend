@@ -136,49 +136,18 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
     },
   ];
 
-  const tones = [
-    "blue",
-    "violet",
-    "orange",
-    "emerald",
-    "teal",
-  ] as const;
-  const wash: Record<(typeof tones)[number], string> = {
-    blue: "border-sky-100/80 bg-sky-50",
-    violet: "border-violet-100/80 bg-violet-50",
-    orange: "border-orange-100/80 bg-orange-50",
-    emerald: "border-emerald-100/80 bg-emerald-50",
-    teal: "border-teal-100/80 bg-teal-50",
-  };
-  const iconBg: Record<(typeof tones)[number], string> = {
-    blue: "bg-sky-500",
-    violet: "bg-violet-500",
-    orange: "bg-orange-500",
-    emerald: "bg-emerald-500",
-    teal: "bg-teal-500",
-  };
-
   return (
     <div className="mb-3 grid grid-cols-2 gap-2 xl:grid-cols-5">
-      {cards.map((card, index) => {
+      {cards.map((card) => {
         const delta = percentVs(card.current, card.previous);
         const Icon = card.icon;
-        const tone = tones[index] ?? "blue";
         return (
           <div
             key={card.label}
-            className={cn(
-              "rounded-2xl border px-2.5 py-2",
-              wash[tone],
-            )}
+            className="rounded-2xl border border-sidebar/15 bg-sidebar/5 px-2.5 py-2"
           >
             <div className="flex items-center gap-3">
-              <span
-                className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-white ring-2 ring-white/70",
-                  iconBg[tone],
-                )}
-              >
+              <span className="flex size-8 items-center justify-center rounded-full bg-sidebar text-sidebar-foreground ring-2 ring-white/70">
                 <Icon className="h-4 w-4" />
               </span>
               <div className="min-w-0">
