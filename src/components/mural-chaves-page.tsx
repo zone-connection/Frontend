@@ -92,282 +92,6 @@ function fieldClass() {
   return "flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm";
 }
 
-const EXEMPLO_RETIRADA = "2026-09-24T17:30:00.000Z";
-const EXEMPLO_PREVISAO = "2026-09-24T21:00:00.000Z";
-
-function exemploChave(
-  parcial: Pick<MuralChave, "id" | "identificador" | "status" | "imovelLabel" | "comQuem"> &
-    Partial<MuralChave>,
-): MuralChave {
-  return {
-    local: parcial.status === "em_uso" ? "corretor" : "imobiliaria",
-    localDescricao: "",
-    statusLabel: parcial.status === "em_uso" ? "Em uso" : "Disponível",
-    unidade: parcial.imovelLabel,
-    empreendimento: null,
-    imovel: null,
-    responsavelAtual: null,
-    retiradoPor: null,
-    retiradaRegistradaPor: null,
-    retiradaEm: null,
-    previsaoDevolucao: null,
-    observacoes: "",
-    createdAt: EXEMPLO_RETIRADA,
-    updatedAt: EXEMPLO_RETIRADA,
-    ...parcial,
-  };
-}
-
-/** Cartões de exemplo. Não existem no cadastro e não aceitam movimentação. */
-const CHAVES_EXEMPLO: MuralChave[] = [
-  exemploChave({
-    id: "exemplo-torre-a-304",
-    identificador: "TORRE-A-304",
-    status: "em_uso",
-    imovelLabel: "Apto 304",
-    empreendimento: { id: "exemplo-res-x", nome: "Residencial X" },
-    comQuem: "Corretor João",
-    retiradaEm: EXEMPLO_RETIRADA,
-    previsaoDevolucao: "2026-09-25T21:00:00.000Z",
-    retiradaRegistradaPor: { id: "exemplo-joao-dias", name: "João Dias" },
-  }),
-  exemploChave({
-    id: "exemplo-chv-09",
-    identificador: "CHV 09",
-    status: "disponivel",
-    imovelLabel: "Apartamento 109",
-    empreendimento: { id: "exemplo-res-x", nome: "Residencial X" },
-    comQuem: "Imobiliária",
-    local: "imobiliaria",
-  }),
-  exemploChave({
-    id: "exemplo-ch-009",
-    identificador: "CH-009",
-    status: "disponivel",
-    imovelLabel: "Sala 09",
-    empreendimento: { id: "exemplo-aurora", nome: "Edifício Aurora" },
-    comQuem: "Proprietário",
-    local: "proprietario",
-  }),
-  exemploChave({
-    id: "exemplo-apt-304",
-    identificador: "APT-304",
-    status: "em_uso",
-    imovelLabel: "Apartamento 304",
-    empreendimento: { id: "exemplo-aguas", nome: "Parque das Águas" },
-    comQuem: "Corretor Ana",
-    retiradaEm: "2026-09-25T12:15:00.000Z",
-    previsaoDevolucao: "2026-09-25T16:00:00.000Z",
-    retiradaRegistradaPor: { id: "exemplo-ana", name: "Ana" },
-  }),
-  exemploChave({
-    id: "exemplo-res-x-09",
-    identificador: "RES-X-09",
-    status: "disponivel",
-    imovelLabel: "Casa 09",
-    empreendimento: { id: "exemplo-res-x", nome: "Residencial X" },
-    comQuem: "Portaria do bloco B",
-    local: "outro",
-    localDescricao: "Portaria do bloco B",
-  }),
-  exemploChave({
-    id: "exemplo-torre-b-102",
-    identificador: "TORRE-B-102",
-    status: "em_uso",
-    imovelLabel: "Apartamento 102",
-    empreendimento: { id: "exemplo-res-y", nome: "Residencial Y" },
-    comQuem: "Corretor Pedro",
-    retiradaEm: "2026-09-26T14:00:00.000Z",
-    previsaoDevolucao: null,
-    retiradaRegistradaPor: { id: "exemplo-marina", name: "Marina" },
-  }),
-];
-
-function eventoExemplo(
-  parcial: Pick<
-    MuralChaveHistoricoItem,
-    "id" | "tipo" | "tipoLabel" | "identificador" | "autorNome" | "createdAt"
-  > &
-    Partial<MuralChaveHistoricoItem>,
-): MuralChaveHistoricoItem {
-  return {
-    manual: false,
-    identificadorAnterior: null,
-    empreendimentoNome: null,
-    imovelLabel: "",
-    quemRetirouNome: null,
-    quemRegistrouRetiradaNome: null,
-    retiradaEm: null,
-    previsaoDevolucao: null,
-    quemDevolveuNome: null,
-    quemRecebeuDevolucaoNome: null,
-    devolucaoEm: null,
-    confirmacaoPendente: false,
-    confirmadoEm: null,
-    confirmadoParaNome: null,
-    autorId: "exemplo",
-    observacao: "",
-    ...parcial,
-  };
-}
-
-const HISTORICO_EXEMPLO: Record<
-  string,
-  { identificadoresAnteriores: string[]; itens: MuralChaveHistoricoItem[] }
-> = {
-  "exemplo-torre-a-304": {
-    identificadoresAnteriores: ["CHV 304"],
-    itens: [
-      eventoExemplo({
-        id: "ex-h0",
-        tipo: "devolucao",
-        tipoLabel: "Devolução (recebida)",
-        identificador: "TORRE-A-304",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apto 304",
-        confirmacaoPendente: true,
-        autorNome: "Corretor João",
-        observacao: "Devolução registrada, ainda sem quem recebeu.",
-        createdAt: "2026-09-25T21:00:00.000Z",
-      }),
-      eventoExemplo({
-        id: "ex-h1",
-        tipo: "retirada",
-        tipoLabel: "Retirada",
-        identificador: "TORRE-A-304",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apto 304",
-        quemRetirouNome: "Corretor João",
-        quemRegistrouRetiradaNome: "João Dias",
-        retiradaEm: EXEMPLO_RETIRADA,
-        previsaoDevolucao: "2026-09-25T21:00:00.000Z",
-        autorNome: "João Dias",
-        observacao: "Visita com o cliente do Residencial X.",
-        createdAt: EXEMPLO_RETIRADA,
-      }),
-      eventoExemplo({
-        id: "ex-h2",
-        tipo: "identificador",
-        tipoLabel: "Identificador alterado",
-        identificador: "TORRE-A-304",
-        identificadorAnterior: "CHV 304",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 304",
-        autorNome: "Administrador",
-        observacao: 'De "CHV 304" para "TORRE-A-304". O histórico anterior foi mantido.',
-        createdAt: "2026-09-20T15:00:00.000Z",
-      }),
-      eventoExemplo({
-        id: "ex-h3",
-        tipo: "cadastro",
-        tipoLabel: "Cadastro",
-        identificador: "CHV 304",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 304",
-        autorNome: "Marina",
-        observacao: "Chave recebida do proprietário e guardada na imobiliária.",
-        createdAt: "2026-09-12T13:10:00.000Z",
-      }),
-    ],
-  },
-  "exemplo-chv-09": {
-    identificadoresAnteriores: [],
-    itens: [
-      eventoExemplo({
-        id: "ex-chv-4",
-        tipo: "confirmacao",
-        tipoLabel: "Confirmação do corretor",
-        identificador: "CHV 09",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 109",
-        quemDevolveuNome: "João",
-        quemRecebeuDevolucaoNome: "Marina",
-        devolucaoEm: "2026-09-18T20:40:00.000Z",
-        confirmadoParaNome: "Marina",
-        confirmadoEm: "2026-09-18T21:05:00.000Z",
-        autorNome: "João",
-        observacao: "João confirmou que entregou a chave para Marina, na imobiliária.",
-        createdAt: "2026-09-18T21:05:00.000Z",
-      }),
-      eventoExemplo({
-        id: "ex-chv-3",
-        tipo: "devolucao",
-        tipoLabel: "Devolução",
-        identificador: "CHV 09",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 109",
-        quemDevolveuNome: "João",
-        quemRecebeuDevolucaoNome: "Marina",
-        devolucaoEm: "2026-09-18T20:40:00.000Z",
-        autorNome: "Marina",
-        observacao: "Chave conferida e guardada no claviculário da imobiliária.",
-        createdAt: "2026-09-18T20:40:00.000Z",
-      }),
-      eventoExemplo({
-        id: "ex-chv-2",
-        tipo: "retirada",
-        tipoLabel: "Retirada",
-        identificador: "CHV 09",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 109",
-        quemRetirouNome: "João",
-        quemRegistrouRetiradaNome: "João",
-        retiradaEm: "2026-09-18T14:00:00.000Z",
-        previsaoDevolucao: "2026-09-18T21:00:00.000Z",
-        autorNome: "João",
-        observacao: "Visita agendada com o comprador.",
-        createdAt: "2026-09-18T14:00:00.000Z",
-      }),
-      eventoExemplo({
-        id: "ex-chv-1",
-        tipo: "cadastro",
-        tipoLabel: "Cadastro",
-        identificador: "CHV 09",
-        empreendimentoNome: "Residencial X",
-        imovelLabel: "Apartamento 109",
-        autorNome: "Imobiliária",
-        observacao: "Chave cadastrada no mural, disponível na imobiliária.",
-        createdAt: "2026-09-10T12:00:00.000Z",
-      }),
-    ],
-  },
-};
-
-function historicoDoExemplo(chave: MuralChave) {
-  const pronto = HISTORICO_EXEMPLO[chave.id];
-  if (pronto) return pronto;
-  const emUso = chave.status === "em_uso";
-  return {
-    identificadoresAnteriores: [] as string[],
-    itens: [
-      {
-        id: `${chave.id}-h`,
-        tipo: emUso ? "retirada" : "cadastro",
-        tipoLabel: emUso ? "Retirada" : "Cadastro",
-        manual: false,
-        identificador: chave.identificador,
-        identificadorAnterior: null,
-        empreendimentoNome: chave.empreendimento?.nome ?? null,
-        imovelLabel: chave.imovelLabel,
-        quemRetirouNome: emUso ? chave.comQuem.replace(/^Corretor /, "") : null,
-        quemRegistrouRetiradaNome: chave.retiradaRegistradaPor?.name ?? null,
-        retiradaEm: chave.retiradaEm,
-        previsaoDevolucao: chave.previsaoDevolucao,
-        quemDevolveuNome: null,
-        quemRecebeuDevolucaoNome: null,
-        devolucaoEm: null,
-        confirmacaoPendente: false,
-        confirmadoEm: null,
-        confirmadoParaNome: null,
-        autorId: "exemplo",
-        autorNome: chave.retiradaRegistradaPor?.name ?? "Imobiliária",
-        observacao: "",
-        createdAt: chave.retiradaEm ?? chave.createdAt,
-      },
-    ],
-  };
-}
-
 const ICONE_MOVIMENTO: Record<string, { icon: LucideIcon; classe: string }> = {
   cadastro: { icon: KeyRound, classe: "bg-sky-100 text-sky-700" },
   edicao: { icon: Pencil, classe: "bg-slate-100 text-slate-700" },
@@ -499,10 +223,6 @@ function faixaDaChave(chave: MuralChave): FaixaChave {
   return "disponivel";
 }
 
-function ehExemplo(chave: MuralChave) {
-  return chave.id.startsWith("exemplo-");
-}
-
 const POR_PAGINA = 10;
 
 function formatChaveQuandoComAno(iso: string | null | undefined) {
@@ -557,7 +277,6 @@ function PainelChave({
       ? [retirada, devolucao].filter((item): item is MuralChaveHistoricoItem => !!item)
       : (historico?.itens.filter((item) => item.tipo !== "confirmacao").slice(0, 2) ?? []);
   const pendente = historico?.itens.find((item) => item.confirmacaoPendente);
-  const exemplo = ehExemplo(chave);
   const statusSolido = {
     disponivel: "bg-emerald-500",
     em_uso: "bg-rose-500",
@@ -619,6 +338,13 @@ function PainelChave({
       </div>
 
       <dl className="space-y-3 px-4 py-3 text-sm">
+        <div className="flex gap-2.5">
+          <Tag className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Tipo</dt>
+            <dd className="font-medium">{chave.tipo || "—"}</dd>
+          </div>
+        </div>
         <div className="flex gap-2.5">
           <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
@@ -727,22 +453,22 @@ function PainelChave({
       <div className="mt-auto space-y-2 border-t px-4 py-4">
         <p className="text-sm font-semibold">Ações</p>
         {chave.status === "em_uso" && podeGerenciar ? (
-          <Button type="button" className="w-full" disabled={exemplo} onClick={onDevolver}>
+          <Button type="button" className="w-full" onClick={onDevolver}>
             Registrar devolução
           </Button>
         ) : null}
         {chave.status !== "em_uso" && podeRetirar ? (
-          <Button type="button" className="w-full" disabled={exemplo} onClick={onRetirar}>
+          <Button type="button" className="w-full" onClick={onRetirar}>
             Retirar chave
           </Button>
         ) : null}
         {chave.status !== "em_uso" && podeGerenciar ? (
-          <Button type="button" variant="outline" className="w-full" disabled={exemplo} onClick={onManual}>
+          <Button type="button" variant="outline" className="w-full" onClick={onManual}>
             Registrar retirada
           </Button>
         ) : null}
         {podeGerenciar ? (
-          <Button type="button" variant="outline" className="w-full" disabled={exemplo} onClick={onEditar}>
+          <Button type="button" variant="outline" className="w-full" onClick={onEditar}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Editar chave
           </Button>
@@ -752,7 +478,6 @@ function PainelChave({
             type="button"
             variant="outline"
             className="w-full border-rose-200 text-rose-700 hover:bg-rose-50"
-            disabled={exemplo}
             onClick={onEditar}
           >
             <Tag className="mr-1.5 h-3.5 w-3.5" />
@@ -781,6 +506,7 @@ export function MuralChavesPage() {
   const [q, setQ] = useState("");
   const [faixa, setFaixa] = useState<FaixaChave | "">("");
   const [empreendimentoId, setEmpreendimentoId] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [pagina, setPagina] = useState(1);
   const [selecionada, setSelecionada] = useState<MuralChave | null>(null);
@@ -804,6 +530,8 @@ export function MuralChavesPage() {
   const [formEmpreendimento, setFormEmpreendimento] = useState("");
   const [formImovel, setFormImovel] = useState("");
   const [unidade, setUnidade] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [tipoPersonalizado, setTipoPersonalizado] = useState(false);
   const [local, setLocal] = useState<MuralChaveLocal>("imobiliaria");
   const [localDescricao, setLocalDescricao] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -816,7 +544,7 @@ export function MuralChavesPage() {
       const rows = await fetchMuralChaves();
       setChaves(rows);
       setSelecionada((atual) => {
-        if (!atual || ehExemplo(atual)) return atual;
+        if (!atual) return atual;
         return rows.find((item) => item.id === atual.id) ?? null;
       });
       setErro("");
@@ -841,7 +569,7 @@ export function MuralChavesPage() {
 
   useEffect(() => {
     setPagina(1);
-  }, [q, faixa, empreendimentoId, responsavel]);
+  }, [q, faixa, empreendimentoId, tipoFiltro, responsavel]);
 
   useEffect(() => {
     void fetchNotificacoes()
@@ -854,10 +582,6 @@ export function MuralChavesPage() {
   useEffect(() => {
     if (!selecionada) {
       setPainelHistorico(null);
-      return;
-    }
-    if (ehExemplo(selecionada)) {
-      setPainelHistorico(historicoDoExemplo(selecionada));
       return;
     }
     let ativo = true;
@@ -879,10 +603,6 @@ export function MuralChavesPage() {
       setHistorico(null);
       return;
     }
-    if (acao.chave.id.startsWith("exemplo-")) {
-      setHistorico(historicoDoExemplo(acao.chave));
-      return;
-    }
     void fetchMuralChaveHistorico(acao.chave.id)
       .then(setHistorico)
       .catch((err) => {
@@ -896,6 +616,8 @@ export function MuralChavesPage() {
     setFormEmpreendimento("");
     setFormImovel("");
     setUnidade("");
+    setTipo("");
+    setTipoPersonalizado(false);
     setLocal("imobiliaria");
     setLocalDescricao("");
     setObservacoes("");
@@ -907,6 +629,8 @@ export function MuralChavesPage() {
     setFormEmpreendimento(chave.empreendimento?.id ?? "");
     setFormImovel(chave.imovel?.id ?? "");
     setUnidade(chave.unidade);
+    setTipo(chave.tipo);
+    setTipoPersonalizado(false);
     setLocal(chave.local === "corretor" ? "imobiliaria" : chave.local);
     setLocalDescricao(chave.localDescricao);
     setObservacoes(chave.observacoes);
@@ -928,6 +652,10 @@ export function MuralChavesPage() {
       toast.error("Informe o identificador da chave.");
       return;
     }
+    if (!tipo.trim()) {
+      toast.error("Informe o tipo da chave.");
+      return;
+    }
     if (!formEmpreendimento && !formImovel) {
       toast.error("Vincule a chave a um imóvel, a um empreendimento, ou aos dois.");
       return;
@@ -941,6 +669,7 @@ export function MuralChavesPage() {
       const emUso = acao?.tipo === "editar" && acao.chave.status === "em_uso";
       const body = {
         identificador: identificador.trim(),
+        tipo: tipo.trim(),
         empreendimentoId: formEmpreendimento || null,
         imovelId: formImovel || null,
         unidade: unidade.trim(),
@@ -964,6 +693,7 @@ export function MuralChavesPage() {
       }
       setAcao(null);
       await carregar();
+      void fetchMuralChaveOpcoes().then(setOpcoes).catch(() => undefined);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a chave.");
     } finally {
@@ -1028,43 +758,49 @@ export function MuralChavesPage() {
     }
   }
 
-  const exemplos = !carregando && chaves.length === 0 ? CHAVES_EXEMPLO : [];
-  const base = chaves.length > 0 ? chaves : exemplos;
-  const soExemplo = chaves.length === 0 && base.length > 0;
   const texto = q.trim().toLocaleLowerCase("pt-BR");
   const lista = useMemo(() => {
-    return base.filter((chave) => {
+    return chaves.filter((chave) => {
       if (faixa && faixaDaChave(chave) !== faixa) return false;
       if (empreendimentoId && chave.empreendimento?.id !== empreendimentoId) return false;
+      if (tipoFiltro && chave.tipo !== tipoFiltro) return false;
       if (responsavel && chave.comQuem !== responsavel) return false;
       if (!texto) return true;
-      const alvo = [chave.identificador, chave.imovelLabel, chave.empreendimento?.nome, chave.comQuem]
+      const alvo = [chave.identificador, chave.tipo, chave.imovelLabel, chave.empreendimento?.nome, chave.comQuem]
         .join(" ")
         .toLocaleLowerCase("pt-BR");
       return alvo.includes(texto);
     });
-  }, [base, empreendimentoId, faixa, responsavel, texto]);
+  }, [chaves, empreendimentoId, faixa, tipoFiltro, responsavel, texto]);
   const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const visiveis = lista.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
   const contagem = {
-    disponivel: base.filter((chave) => faixaDaChave(chave) === "disponivel").length,
-    em_uso: base.filter((chave) => faixaDaChave(chave) === "em_uso").length,
-    proprietario: base.filter((chave) => faixaDaChave(chave) === "proprietario").length,
-    outro: base.filter((chave) => faixaDaChave(chave) === "outro").length,
+    disponivel: chaves.filter((chave) => faixaDaChave(chave) === "disponivel").length,
+    em_uso: chaves.filter((chave) => faixaDaChave(chave) === "em_uso").length,
+    proprietario: chaves.filter((chave) => faixaDaChave(chave) === "proprietario").length,
+    outro: chaves.filter((chave) => faixaDaChave(chave) === "outro").length,
   };
-  const responsaveis = [...new Set(base.map((chave) => chave.comQuem).filter(Boolean))].sort((a, b) =>
+  const responsaveis = [...new Set(chaves.map((chave) => chave.comQuem).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
+  const tiposFiltro = [
+    ...new Set(
+      ["Aluguel", "Usado", ...(opcoes?.tipos ?? []), ...chaves.map((chave) => chave.tipo ?? "")]
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
   const empreendimentosFiltro =
     opcoes?.empreendimentos.length
       ? opcoes.empreendimentos
-      : [...new Map(base.filter((c) => c.empreendimento).map((c) => [c.empreendimento!.id, c.empreendimento!])).values()];
+      : [...new Map(chaves.filter((c) => c.empreendimento).map((c) => [c.empreendimento!.id, c.empreendimento!])).values()];
 
   function limparFiltros() {
     setQ("");
     setFaixa("");
     setEmpreendimentoId("");
+    setTipoFiltro("");
     setResponsavel("");
     setPagina(1);
   }
@@ -1073,11 +809,8 @@ export function MuralChavesPage() {
     setSelecionada(chave);
   }
 
-  function bloquearExemplo(chave: MuralChave) {
-    if (!ehExemplo(chave)) return false;
-    toast.error("Este cartão é só um exemplo. Cadastre uma chave para movimentar.");
-    return true;
-  }
+  const tiposCadastro = tiposFiltro;
+  const tipoEhNovo = tipoPersonalizado || (tipo.trim() !== "" && !tiposCadastro.includes(tipo));
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-4">
@@ -1121,7 +854,7 @@ export function MuralChavesPage() {
                 tone={tone as FinanceKpiTone}
                 format="number"
                 variant="dash"
-                detail={`de ${base.length} chaves`}
+                detail={`de ${chaves.length} chaves`}
                 active={faixa === id}
                 onClick={() => setFaixa(faixa === id ? "" : id)}
               />
@@ -1138,6 +871,18 @@ export function MuralChavesPage() {
                 className="pl-9"
               />
             </div>
+            <select
+              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+              value={tipoFiltro}
+              onChange={(event) => setTipoFiltro(event.target.value)}
+            >
+              <option value="">Tipo</option>
+              {tiposFiltro.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
             <select
               className={cn(fieldClass(), "w-auto max-w-[200px]")}
               value={empreendimentoId}
@@ -1178,13 +923,7 @@ export function MuralChavesPage() {
             </Button>
           </div>
 
-          {erro && !soExemplo ? <p className="text-sm text-destructive">{erro}</p> : null}
-          {soExemplo ? (
-            <p className="rounded-xl border border-dashed bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
-              Exemplos visuais para mostrar o mural. Essas chaves não estão cadastradas e não podem ser
-              retiradas.
-            </p>
-          ) : null}
+          {erro ? <p className="text-sm text-destructive">{erro}</p> : null}
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
           {carregando ? (
@@ -1194,7 +933,9 @@ export function MuralChavesPage() {
             </div>
           ) : lista.length === 0 ? (
             <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-              Nenhuma chave encontrada.
+              {chaves.length === 0
+                ? "Nenhuma chave cadastrada."
+                : "Nenhuma chave encontrada."}
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -1205,6 +946,7 @@ export function MuralChavesPage() {
                       <th className="px-4 py-3 font-medium">Chave / identificador</th>
                       <th className="px-3 py-3 font-medium">Empreendimento</th>
                       <th className="px-3 py-3 font-medium">Imóvel</th>
+                      <th className="px-3 py-3 font-medium">Tipo</th>
                       <th className="px-3 py-3 font-medium">Status</th>
                       <th className="px-3 py-3 font-medium">Com</th>
                       <th className="px-3 py-3 font-medium">Retirada</th>
@@ -1216,7 +958,6 @@ export function MuralChavesPage() {
                   <tbody>
                     {visiveis.map((chave) => {
                       const visual = FAIXA_VISUAL[faixaDaChave(chave)];
-                      const exemplo = ehExemplo(chave);
                       const usada = chave.status === "em_uso";
                       const ativa = selecionada?.id === chave.id;
                       return (
@@ -1240,6 +981,7 @@ export function MuralChavesPage() {
                             {chave.empreendimento?.nome || "—"}
                           </td>
                           <td className="px-3 py-3">{chave.imovelLabel || "—"}</td>
+                          <td className="px-3 py-3">{chave.tipo || "—"}</td>
                           <td className="px-3 py-3">
                             <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", visual.pill)}>
                               {visual.label}
@@ -1269,22 +1011,22 @@ export function MuralChavesPage() {
                                 <DropdownMenuItem onClick={() => setAcao({ tipo: "historico", chave })}>
                                   Histórico
                                 </DropdownMenuItem>
-                                {!exemplo && podeRetirar && !usada ? (
+                                {podeRetirar && !usada ? (
                                   <DropdownMenuItem onClick={() => abrirMovimento("retirar", chave)}>
                                     Retirar
                                   </DropdownMenuItem>
                                 ) : null}
-                                {!exemplo && podeGerenciar && !usada ? (
+                                {podeGerenciar && !usada ? (
                                   <DropdownMenuItem onClick={() => abrirMovimento("manual", chave)}>
                                     Registrar retirada
                                   </DropdownMenuItem>
                                 ) : null}
-                                {!exemplo && podeGerenciar && usada ? (
+                                {podeGerenciar && usada ? (
                                   <DropdownMenuItem onClick={() => abrirMovimento("devolver", chave)}>
                                     Registrar devolução
                                   </DropdownMenuItem>
                                 ) : null}
-                                {!exemplo && podeGerenciar ? (
+                                {podeGerenciar ? (
                                   <DropdownMenuItem onClick={() => abrirEditar(chave)}>Editar</DropdownMenuItem>
                                 ) : null}
                               </DropdownMenuContent>
@@ -1358,7 +1100,7 @@ export function MuralChavesPage() {
                 className="mt-3"
                 disabled={!selecionada || selecionada.status === "em_uso" || !podeRetirar}
                 onClick={() => {
-                  if (!selecionada || bloquearExemplo(selecionada)) return;
+                  if (!selecionada) return;
                   abrirMovimento("retirar", selecionada);
                 }}
               >
@@ -1419,19 +1161,15 @@ export function MuralChavesPage() {
             podeRetirar={podeRetirar}
             onClose={() => setSelecionada(null)}
             onEditar={() => {
-              if (bloquearExemplo(selecionada)) return;
               abrirEditar(selecionada);
             }}
             onRetirar={() => {
-              if (bloquearExemplo(selecionada)) return;
               abrirMovimento("retirar", selecionada);
             }}
             onManual={() => {
-              if (bloquearExemplo(selecionada)) return;
               abrirMovimento("manual", selecionada);
             }}
             onDevolver={() => {
-              if (bloquearExemplo(selecionada)) return;
               abrirMovimento("devolver", selecionada);
             }}
             onHistorico={() => setAcao({ tipo: "historico", chave: selecionada })}
@@ -1499,6 +1237,43 @@ export function MuralChavesPage() {
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="chave-tipo">Tipo</Label>
+              <select
+                id="chave-tipo"
+                className={fieldClass()}
+                value={tipoEhNovo ? "__novo__" : tipo}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "__novo__") {
+                    setTipoPersonalizado(true);
+                    setTipo("");
+                    return;
+                  }
+                  setTipoPersonalizado(false);
+                  setTipo(value);
+                }}
+              >
+                <option value="">Selecione</option>
+                {tiposCadastro.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+                <option value="__novo__">Outro tipo…</option>
+              </select>
+              {tipoEhNovo ? (
+                <Input
+                  value={tipo}
+                  onChange={(event) => setTipo(event.target.value)}
+                  placeholder="Nome do tipo, como temporada ou planta"
+                  maxLength={40}
+                />
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Aluguel e Usado já vêm prontos. Outro tipo fica disponível para as próximas chaves.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="chave-unidade">Unidade / nome do imóvel</Label>

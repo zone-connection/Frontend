@@ -6,6 +6,7 @@ export type MuralChaveLocal = "proprietario" | "imobiliaria" | "corretor" | "out
 export type MuralChave = {
   id: string;
   identificador: string;
+  tipo: string;
   status: MuralChaveStatus;
   statusLabel: string;
   local: MuralChaveLocal;
@@ -54,6 +55,7 @@ export type MuralChaveOpcoes = {
   empreendimentos: { id: string; nome: string }[];
   imoveis: { id: string; label: string }[];
   usuarios: { id: string; name: string; role: string }[];
+  tipos: string[];
 };
 
 export type MuralChavePendencia = {
@@ -69,6 +71,7 @@ export type MuralChavePendencia = {
 
 export type MuralChaveInput = {
   identificador?: string;
+  tipo?: string;
   empreendimentoId?: string | null;
   imovelId?: string | null;
   unidade?: string;
