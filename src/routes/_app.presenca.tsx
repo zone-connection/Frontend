@@ -4,6 +4,9 @@ import {
   CalendarDays,
   CalendarOff,
   Check,
+  Clock,
+  UserCheck,
+  UserX,
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
@@ -226,15 +229,15 @@ function Page() {
   );
 
   const maisPresentes = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "presente"),
+    () => rankPorNatureza(view?.usuarios ?? [], "presente", 4),
     [view],
   );
   const maisFaltas = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "falta"),
+    () => rankPorNatureza(view?.usuarios ?? [], "falta", 4),
     [view],
   );
   const maisMeioPeriodo = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "meio_periodo"),
+    () => rankPorNatureza(view?.usuarios ?? [], "meio_periodo", 4),
     [view],
   );
 
@@ -459,6 +462,7 @@ function Page() {
             items={maisPresentes}
             empty="Ninguém com presença neste período."
             tone="emerald"
+            icon={UserCheck}
           />
           <RankCard
             title="Mais faltas"
@@ -466,6 +470,7 @@ function Page() {
             items={maisFaltas}
             empty="Ninguém com falta neste período."
             tone="rose"
+            icon={UserX}
           />
           <RankCard
             title="Meio período"
@@ -473,6 +478,7 @@ function Page() {
             items={maisMeioPeriodo}
             empty="Ninguém com meio período neste recorte."
             tone="amber"
+            icon={Clock}
           />
         </div>
       ) : null}
@@ -777,53 +783,115 @@ function Page() {
   );
 }
 
+const RANK_TONE = {
+  emerald: {
+    card: "border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-emerald-50/30",
+    icon: "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25",
+    fill: "bg-emerald-200/70",
+    pill: "bg-emerald-100 text-emerald-800",
+    rankOn: "bg-emerald-600 text-white",
+    rankOff: "bg-white text-emerald-700 ring-1 ring-emerald-200",
+  },
+  rose: {
+    card: "border-rose-200/80 bg-gradient-to-b from-rose-50 to-rose-50/30",
+    icon: "bg-rose-600 text-white shadow-sm shadow-rose-600/25",
+    fill: "bg-rose-200/70",
+    pill: "bg-rose-100 text-rose-800",
+    rankOn: "bg-rose-600 text-white",
+    rankOff: "bg-white text-rose-700 ring-1 ring-rose-200",
+  },
+  amber: {
+    card: "border-amber-200/80 bg-gradient-to-b from-amber-50 to-amber-50/30",
+    icon: "bg-amber-500 text-white shadow-sm shadow-amber-500/25",
+    fill: "bg-amber-200/80",
+    pill: "bg-amber-100 text-amber-900",
+    rankOn: "bg-amber-500 text-white",
+    rankOff: "bg-white text-amber-800 ring-1 ring-amber-200",
+  },
+} as const;
+
 function RankCard({
   title,
   hint,
   items,
   empty,
   tone,
+  icon: Icon,
 }: {
   title: string;
   hint: string;
   items: PresencaRankItem[];
   empty: string;
-  tone: "emerald" | "rose" | "amber";
+  tone: keyof typeof RANK_TONE;
+  icon: typeof UserCheck;
 }) {
-  const wash = {
-    emerald: "border-emerald-200/80 bg-emerald-50/70",
-    rose: "border-rose-200/80 bg-rose-50/70",
-    amber: "border-amber-200/80 bg-amber-50/70",
-  }[tone];
-  const badge = {
-    emerald: "bg-emerald-600 text-white",
-    rose: "bg-rose-600 text-white",
-    amber: "bg-amber-600 text-white",
-  }[tone];
+  const style = RANK_TONE[tone];
+  const max = items.reduce((top, item) => Math.max(top, item.valor), 1);
   return (
-    <Card className={cn("rounded-3xl border p-4 shadow-sm", wash)}>
-      <div className="text-sm font-semibold text-foreground">{title}</div>
-      <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
+    <Card className={cn("flex h-full flex-col rounded-3xl p-0", style.card)}>
+      <div className="flex items-center gap-3 px-4 pt-4">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-2xl",
+            style.icon,
+          )}
+        >
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold leading-tight text-foreground">
+            {title}
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
+        </div>
+      </div>
       {items.length === 0 ? (
-        <p className="mt-3 text-xs text-muted-foreground">{empty}</p>
+        <p className="mx-3 mb-3 mt-3 rounded-2xl border border-dashed border-black/10 px-3 py-6 text-center text-xs text-muted-foreground">
+          {empty}
+        </p>
       ) : (
-        <ol className="mt-3 space-y-2">
-          {items.map((item, index) => (
-            <li key={item.userId} className="flex items-center gap-2 text-sm">
-              <span
-                className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                  index === 0 ? badge : "bg-background text-muted-foreground",
-                )}
+        <ol className="mt-3 flex flex-1 flex-col gap-1.5 px-3 pb-3">
+          {items.map((item, index) => {
+            const share = Math.max(12, Math.round((item.valor / max) * 100));
+            return (
+              <li
+                key={item.userId}
+                className="relative overflow-hidden rounded-2xl bg-white/80 ring-1 ring-black/[0.04]"
               >
-                {index + 1}
-              </span>
-              <span className="min-w-0 flex-1 truncate font-medium">{item.nome}</span>
-              <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
-                {item.valor} {item.valor === 1 ? "dia" : "dias"}
-              </span>
-            </li>
-          ))}
+                <span
+                  className={cn("absolute inset-y-0 left-0", style.fill)}
+                  style={{ width: `${share}%` }}
+                />
+                <div className="relative flex items-center gap-2.5 px-2.5 py-2">
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                      index === 0 ? style.rankOn : style.rankOff,
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: avatarTone(item.userId) }}
+                  >
+                    {presencaInitials(item.nome) || "?"}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                    {item.nome}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                      style.pill,
+                    )}
+                  >
+                    {item.valor} {item.valor === 1 ? "dia" : "dias"}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
         </ol>
       )}
     </Card>

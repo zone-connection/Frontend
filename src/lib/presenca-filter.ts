@@ -194,7 +194,7 @@ export type PresencaRankItem = {
 export function rankPorNatureza(
   usuarios: PresencaUsuario[],
   natureza: PresencaNatureza,
-  limit = 8,
+  limit = 4,
 ): PresencaRankItem[] {
   return usuarios
     .map((usuario) => ({
