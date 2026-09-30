@@ -20,7 +20,11 @@ export function ChaveConfirmacaoGate() {
   const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(async () => {
-    if (!getSession()) return;
+    const session = getSession();
+    if (session?.tenant?.modules?.muralChavesOptIn !== true) {
+      setItens([]);
+      return;
+    }
     try {
       const pendencias = await fetchMuralChavePendencias();
       setItens(pendencias);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, Eye, Home, KeyRound, Landmark, Users } from "lucide-react";
+import { Building2, Eye, Home, Key, KeyRound, Landmark, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ export function ConfigModulosOperacaoPanel() {
   const router = useRouter();
   const { refresh: refreshLeads } = useLeads();
   const [ops, setOps] = useState<TenantOperationModules | null>(null);
+  const [muralChaves, setMuralChaves] = useState(false);
   const [adminVerClientes, setAdminVerClientes] = useState(false);
   const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,6 +77,7 @@ export function ConfigModulosOperacaoPanel() {
     try {
       const data = await fetchTenantOperationModules();
       setOps(data.operations);
+      setMuralChaves(data.muralChaves === true);
       setAdminVerClientes(data.adminVerClientesCorretor === true);
       setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
     } catch (err) {
@@ -113,6 +115,36 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar a operação.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleMuralChaves(checked: boolean) {
+    if (!isAdmin) return;
+    setMuralChaves(checked);
+    setSavingKey("muralChaves");
+    try {
+      const data = await updateTenantOperationModules({
+        muralChavesOptIn: checked,
+      });
+      setOps(data.operations);
+      setMuralChaves(data.muralChaves === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      await router.invalidate();
+      toast.success(
+        checked
+          ? "Mural de Chaves ativado. Ele aparece em Gestão."
+          : "Mural de Chaves oculto. As chaves cadastradas continuam salvas.",
+      );
+    } catch (err) {
+      setMuralChaves(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar o Mural de Chaves.",
       );
     } finally {
       setSavingKey(null);
@@ -246,6 +278,42 @@ export function ConfigModulosOperacaoPanel() {
             </Card>
           );
         })}
+        <Card>
+          <CardHeader className="flex-row items-start gap-3 space-y-0">
+            <div className="rounded-lg border bg-muted/40 p-2">
+              <Key className="h-5 w-5 text-brand-accent" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base">Mural de Chaves</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Controle de quem está com cada chave. Começa oculto. Ao ativar,
+                o item aparece em Gestão para quem tem permissão.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <Badge variant={muralChaves ? "default" : "secondary"}>
+              {muralChaves ? "Ativado" : "Desativado"}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={muralChaves}
+                disabled={!isAdmin || savingKey === "muralChaves"}
+                onCheckedChange={(checked) => void toggleMuralChaves(checked)}
+                aria-label="Ativar Mural de Chaves"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant={muralChaves ? "outline" : "default"}
+                disabled={!isAdmin || savingKey === "muralChaves"}
+                onClick={() => void toggleMuralChaves(!muralChaves)}
+              >
+                {muralChaves ? "Desativar" : "Ativar"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         {!isSolo ? <ConfigHideClientesMenuCard /> : null}
         {isAdmin && !isSolo ? (
           <Card>

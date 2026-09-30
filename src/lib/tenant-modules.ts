@@ -82,7 +82,6 @@ export const TENANT_MODULE_GROUPS: TenantModuleGroup[] = [
       { key: "construtoras", label: "Construtoras" },
       { key: "leadsPerdidos", label: "Leads Perdidos" },
       { key: "vendas", label: "Vendas" },
-      { key: "muralChaves", label: "Mural de chaves" },
     ],
   },
   {
@@ -97,6 +96,7 @@ export const TENANT_MODULE_GROUPS: TenantModuleGroup[] = [
       { key: "equipes", label: "Equipes" },
       { key: "corretores", label: "Ranking" },
       { key: "presenca", label: "Presença" },
+      { key: "muralChaves", label: "Mural de chaves" },
       { key: "documentacao", label: "Documentação" },
       { key: "analise", label: "Análise" },
       { key: "metas", label: "Metas" },
@@ -193,6 +193,7 @@ export function defaultModulesRecord(
 ): Record<TenantModuleKey, boolean> {
   return Object.fromEntries(
     ALL_TENANT_MODULE_KEYS.map((key) => {
+      if (key === "muralChaves") return [key, false];
       if (isTenantOperationKey(key)) return [key, OPERATION_DEFAULTS[key]];
       return [key, enabled];
     }),
@@ -206,6 +207,10 @@ export function modulesFromTenantJson(
   if (!modules) return base;
   for (const key of ALL_TENANT_MODULE_KEYS) {
     if (typeof modules[key] === "boolean") base[key] = modules[key]!;
+  }
+  base.muralChaves = modules.muralChavesOptIn === true;
+  if (typeof modules.muralChavesOptIn === "boolean") {
+    (base as Record<string, boolean>).muralChavesOptIn = modules.muralChavesOptIn;
   }
   // Compatibilidade com tenants antigos (só 6 chaves)
   return base;
@@ -261,7 +266,6 @@ const SOLO_ENABLED = new Set<TenantModuleKey>([
   "metas",
   "presenca",
   "financeiro",
-  "muralChaves",
 ]);
 
 const ADMIN_TOGGLE_KEYS: TenantModuleKey[] = [
@@ -344,6 +348,7 @@ export function normalizeModulesForPlano(
     for (const key of TENANT_OPERATION_KEYS) {
       if (key !== "comercial") next[key] = modules[key] === true;
     }
+    applyMuralChavesVisibility(next, modules);
     return next;
   }
 
@@ -379,7 +384,19 @@ export function normalizeModulesForPlano(
     if (typeof next[key] !== "boolean") next[key] = OPERATION_DEFAULTS[key];
   }
 
+  applyMuralChavesVisibility(next, modules);
   return next;
+}
+
+/** Mural fica oculto até o admin da imobiliária ativar. */
+function applyMuralChavesVisibility(
+  next: Record<string, boolean>,
+  raw: Record<string, boolean>,
+) {
+  next.muralChaves = raw.muralChavesOptIn === true;
+  if (typeof raw.muralChavesOptIn === "boolean") {
+    next.muralChavesOptIn = raw.muralChavesOptIn;
+  }
 }
 
 /** Preset de módulos por plano (espelha o backend). */
@@ -417,6 +434,7 @@ export function setAdminGroupEnabled(
   const admin = TENANT_MODULE_GROUPS.find((g) => g.id === "administrativo");
   if (!admin) return next;
   for (const mod of admin.modules) {
+    if (mod.key === "muralChaves") continue;
     if (mod.keepOnAdminBulkOff) {
       if (enabled) next[mod.key] = true;
       continue;

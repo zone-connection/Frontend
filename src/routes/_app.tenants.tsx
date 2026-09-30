@@ -1444,7 +1444,13 @@ function TenantsPage() {
                                         let modules = {
                                           ...prev.modules,
                                           [mod.key]: e.target.checked,
+                                        } as typeof prev.modules & {
+                                          muralChavesOptIn?: boolean;
                                         };
+                                        if (mod.key === "muralChaves") {
+                                          modules.muralChavesOptIn =
+                                            e.target.checked;
+                                        }
                                         if (
                                           prev.plano === "prata" &&
                                           mod.key === "financeiro" &&

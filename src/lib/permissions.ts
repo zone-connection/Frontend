@@ -244,6 +244,9 @@ export function canAccessRoute(
       ([route]) => path === route || path.startsWith(`${route}/`),
     )?.[1];
     if (tenantKey) {
+      if (tenantKey === "muralChaves" && modules.muralChavesOptIn !== true) {
+        return false;
+      }
       if (isTenantOperationKey(tenantKey)) {
         if (!isTenantOperationEnabled(modules, tenantKey)) return false;
       } else if (modules[tenantKey] === false) {
