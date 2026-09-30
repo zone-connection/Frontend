@@ -113,6 +113,7 @@ import {
   isCorretorLike,
 } from "@/lib/permissions";
 import { canUserAction } from "@/lib/user-permissions";
+import { leadPodeRedistribuir } from "@/lib/documentacao-status";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
   DEFAULT_TABLE_SORT,
@@ -1178,6 +1179,23 @@ function LeadsPage() {
         equipeId = form.equipeId || null;
         corretorId = hasCorretor ? form.corretorId : null;
       }
+    }
+
+    const editingLead =
+      formMode === "edit" && editingId
+        ? leads.find((item) => item.id === editingId)
+        : undefined;
+    if (editingLead && !leadPodeRedistribuir(editingLead)) {
+      const mudouDono =
+        (corretorId !== undefined && corretorId !== editingLead.corretorId) ||
+        (equipeId !== undefined &&
+          equipeId !== (editingLead.equipeId ?? null));
+      if (mudouDono) {
+        toast.error("Lead com venda ou VGV não pode ser redistribuído.");
+        return;
+      }
+      equipeId = undefined;
+      corretorId = undefined;
     }
 
     try {
@@ -2788,7 +2806,7 @@ function LeadsPage() {
         moreActions={
           detailLead
             ? [
-                ...(canReassign
+                ...(canReassign && leadPodeRedistribuir(detailLead)
                   ? [
                       {
                         label: "Reatribuir",
@@ -3692,7 +3710,7 @@ function LeadsPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-end gap-0.5">
-                        {canReassign ? (
+                        {canReassign && leadPodeRedistribuir(l) ? (
                           <Button
                             type="button"
                             variant="ghost"

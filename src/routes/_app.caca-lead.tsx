@@ -31,6 +31,7 @@ import {
 import { useLeads } from "@/lib/leads-store";
 import { phoneDigits } from "@/lib/phone";
 import { canReassignLead } from "@/lib/permissions";
+import { leadPodeRedistribuir } from "@/lib/documentacao-status";
 import { useTablePager } from "@/lib/use-table-pager";
 import { cn } from "@/lib/utils";
 
@@ -197,7 +198,7 @@ function CacaLeadPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
-                    {canReassign ? (
+                    {canReassign && leadPodeRedistribuir(lead) ? (
                       <Button
                         type="button"
                         size="sm"
@@ -211,7 +212,7 @@ function CacaLeadPage() {
                         Reatribuir
                       </Button>
                     ) : null}
-                    {canPegar ? (
+                    {canPegar && leadPodeRedistribuir(lead) ? (
                     <Button
                       type="button"
                       size="sm"
@@ -262,7 +263,7 @@ function CacaLeadPage() {
         }}
         showCorretor={true}
         moreActions={
-          detail && canReassign
+          detail && canReassign && leadPodeRedistribuir(detail)
             ? [
                 {
                   label: "Reatribuir",
@@ -277,7 +278,7 @@ function CacaLeadPage() {
             : undefined
         }
         primaryAction={
-          detail && canPegar ? (
+          detail && canPegar && leadPodeRedistribuir(detail) ? (
             <Button
               type="button"
               className="h-9"

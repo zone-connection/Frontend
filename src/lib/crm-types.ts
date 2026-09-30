@@ -94,6 +94,10 @@ export interface Lead {
    */
   documentacaoStatus1?: string | null;
   documentacaoStatus2?: string | null;
+  /** VGV da documentação mais recente, em reais. */
+  documentacaoVgv?: number | null;
+  /** false quando o lead virou venda ou já tem VGV. */
+  podeRedistribuir?: boolean;
   monitoramento?: LeadMonitoramento | null;
 }
 

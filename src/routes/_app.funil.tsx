@@ -86,6 +86,7 @@ import {
   shouldShowAnaliseStatus,
 } from "@/lib/analise-status";
 import { DocStatus1FunilTag } from "@/components/doc-status1-funil-tag";
+import { leadPodeRedistribuir } from "@/lib/documentacao-status";
 import { ApiError } from "@/lib/api";
 import {
   FormDialogActions,
@@ -1627,7 +1628,13 @@ export function ComercialFunilBoard({
                       <div
                         className={cn(
                           "flex w-full gap-1.5",
-                          canReassign ? "flex-row" : "flex-col",
+                          canReassign &&
+                            leadPodeRedistribuir(
+                              l,
+                              funnelStages.find((s) => s.id === l.stage)?.papel,
+                            )
+                            ? "flex-row"
+                            : "flex-col",
                         )}
                       >
                         <button
@@ -1645,7 +1652,11 @@ export function ComercialFunilBoard({
                           />
                           Triagem
                         </button>
-                        {canReassign ? (
+                        {canReassign &&
+                        leadPodeRedistribuir(
+                          l,
+                          funnelStages.find((s) => s.id === l.stage)?.papel,
+                        ) ? (
                           <button
                             type="button"
                             className="flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"
@@ -1839,7 +1850,11 @@ export function ComercialFunilBoard({
                 },
               ]
             : []),
-          ...(canReassign
+          ...(canReassign &&
+          leadPodeRedistribuir(
+            detailLead,
+            funnelStages.find((s) => s.id === detailLead.stage)?.papel,
+          )
             ? [
                 {
                   label: "Reatribuir",

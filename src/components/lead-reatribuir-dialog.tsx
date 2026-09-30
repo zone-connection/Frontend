@@ -23,6 +23,7 @@ import { getSession } from "@/lib/auth";
 import type { Lead } from "@/lib/crm-types";
 import { useLeads } from "@/lib/leads-store";
 import { isCorretorLike } from "@/lib/permissions";
+import { leadPodeRedistribuir } from "@/lib/documentacao-status";
 
 export function LeadReatribuirDialog({
   lead,
@@ -57,8 +58,10 @@ export function LeadReatribuirDialog({
     setSaving(false);
   }, [open, lead?.id]);
 
+  const bloqueado = lead ? !leadPodeRedistribuir(lead) : false;
+
   async function handleConfirm() {
-    if (!lead || !corretorId || saving) return;
+    if (!lead || !corretorId || saving || bloqueado) return;
     setSaving(true);
     try {
       const updated = await updateLead(lead.id, { corretorId });
@@ -92,7 +95,9 @@ export function LeadReatribuirDialog({
             <div className="space-y-1">
               <DialogTitle>Reatribuir lead</DialogTitle>
               <DialogDescription>
-                {lead
+                {bloqueado
+                  ? `${lead?.nome ?? "Este lead"} já é venda ou tem VGV e não pode ser redistribuído.`
+                  : lead
                   ? atual
                     ? `${lead.nome} está com ${atual}. Escolha o novo corretor.`
                     : `${lead.nome} está sem corretor. Escolha quem vai assumir.`
@@ -106,7 +111,7 @@ export function LeadReatribuirDialog({
           <Select
             value={corretorId || undefined}
             onValueChange={setCorretorId}
-            disabled={saving || options.length === 0}
+            disabled={saving || bloqueado || options.length === 0}
           >
             <SelectTrigger className="h-10 bg-background">
               <SelectValue
@@ -137,7 +142,7 @@ export function LeadReatribuirDialog({
           </Button>
           <Button
             type="button"
-            disabled={saving || !corretorId}
+            disabled={saving || bloqueado || !corretorId}
             onClick={() => void handleConfirm()}
           >
             {saving ? (

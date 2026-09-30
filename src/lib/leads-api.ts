@@ -68,11 +68,14 @@ export interface ApiLead {
     id: string;
     status1: string;
     status2: string;
+    vgv?: number | null;
     updatedAt: string;
   }>;
   /** Status 1 da documentação mais recente (já achatado pelo backend). */
   documentacaoStatus1?: string | null;
   documentacaoStatus2?: string | null;
+  documentacaoVgv?: number | null;
+  podeRedistribuir?: boolean;
   perdidoAt?: string | null;
   motivoPerda?: string | null;
   perdidoPorId?: string | null;
@@ -189,6 +192,9 @@ export function mapApiLead(api: ApiLead): Lead {
       api.documentacaoStatus1 ?? api.documentacoes?.[0]?.status1 ?? null,
     documentacaoStatus2:
       api.documentacaoStatus2 ?? api.documentacoes?.[0]?.status2 ?? null,
+    documentacaoVgv:
+      api.documentacaoVgv ?? api.documentacoes?.[0]?.vgv ?? null,
+    podeRedistribuir: api.podeRedistribuir,
     monitoramento: api.monitoramento ?? null,
   };
 }
