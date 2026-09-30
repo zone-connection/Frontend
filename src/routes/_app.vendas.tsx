@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { canViewModule } from "@/lib/permissions";
+import { canViewModule, isCorretorLike } from "@/lib/permissions";
 import { origemBadgeClass, catalogColorToChartHex } from "@/lib/catalog-colors";
 import { useCatalog } from "@/lib/catalog-store";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
@@ -173,6 +173,8 @@ function VendasDocumentacaoPage() {
   const navigate = useNavigate();
   const comVgv = Route.useSearch().comVgv === true;
   const isSolo = user?.tenant?.plano === "solo";
+  const ownSalesOnly = isCorretorLike(user?.role);
+  const showTeamFilters = !isSolo && !ownSalesOnly;
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";
   const { colorByLabel } = useCatalog();
@@ -214,11 +216,18 @@ function VendasDocumentacaoPage() {
     setLoading(true);
     Promise.all([
       fetchDocumentacoes(undefined, undefined, true),
-      isSolo ? Promise.resolve([] as Equipe[]) : fetchEquipes(),
+      showTeamFilters ? fetchEquipes() : Promise.resolve([] as Equipe[]),
     ])
       .then(([documentacoes, equipesData]) => {
         if (!active) return;
-        setDocs(documentacoes.filter((doc) => isStatusVendido(doc.status2)));
+        const sold = documentacoes.filter((doc) => isStatusVendido(doc.status2));
+        setDocs(
+          ownSalesOnly && user?.id
+            ? sold.filter(
+                (doc) => (doc.corretorId ?? doc.lead.corretorId) === user.id,
+              )
+            : sold,
+        );
         setEquipes(equipesData);
       })
       .catch((error) => {
@@ -233,7 +242,7 @@ function VendasDocumentacaoPage() {
     return () => {
       active = false;
     };
-  }, [canView, isSolo]);
+  }, [canView, showTeamFilters, ownSalesOnly, user?.id]);
 
   const corretorEquipe = useMemo(() => {
     const map = new Map<string, Equipe>();
@@ -543,7 +552,9 @@ function VendasDocumentacaoPage() {
         description={
           comVgv
             ? "Vendas com VGV informado."
-            : "Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
+            : ownSalesOnly
+              ? "Suas vendas — use o período nos filtros se quiser restringir o intervalo."
+              : "Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
         }
       />
       {comVgv ? (
@@ -613,7 +624,7 @@ function VendasDocumentacaoPage() {
           <div
             className={cn(
               "grid gap-3",
-              !isSolo &&
+              showTeamFilters &&
                 "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]",
             )}
           >
@@ -628,7 +639,7 @@ function VendasDocumentacaoPage() {
                 className={cn("rounded-sm pl-9", FILTER_CONTROL)}
               />
             </div>
-            {!isSolo ? (
+            {showTeamFilters ? (
               <>
                 <Select
                   value={draft.equipeId}
@@ -677,12 +688,12 @@ function VendasDocumentacaoPage() {
           <div
             className={cn(
               "grid gap-3",
-              isSolo
-                ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]"
-                : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]",
+              showTeamFilters
+                ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
+                : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]",
             )}
           >
-            {!isSolo ? (
+            {showTeamFilters ? (
               <Select
                 value={draft.corretorId}
                 onValueChange={(value) =>
