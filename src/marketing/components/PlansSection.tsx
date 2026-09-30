@@ -85,8 +85,8 @@ const PLANS: Plan[] = [
     name: "Prata",
     audience: "Financeiro ou Administrativo",
     users: "Até 15 usuários",
-    setupFee: "R$ 300,00",
-    monthlyFee: "R$ 379,00/mês",
+    setupFee: "R$ 380,00",
+    monthlyFee: "R$ 429,00/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 997,00",
     theme: {
@@ -129,8 +129,8 @@ const PLANS: Plan[] = [
     name: "Ouro",
     audience: "Financeiro e Administrativo juntos",
     users: "Até 35 usuários",
-    setupFee: "R$ 500,00",
-    monthlyFee: "R$ 549,00/mês",
+    setupFee: "R$ 580,00",
+    monthlyFee: "R$ 649,00/mês",
     setupFeeOld: "R$ 1.490,00",
     monthlyFeeOld: "R$ 1.649,00",
     theme: {
