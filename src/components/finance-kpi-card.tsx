@@ -232,7 +232,10 @@ export function FinanceKpiCard({
       className={cn(
         "relative h-full min-w-0 flex flex-col overflow-hidden text-card-foreground",
         isDash
-          ? "rounded-2xl border border-sidebar/15 bg-sidebar/5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.06)]"
+          ? cn(
+              "rounded-2xl border shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_24px_rgba(15,23,42,0.06)]",
+              t.wash,
+            )
           : "rounded-xl border border-border/60 bg-card shadow-sm",
         !isDash && wash && t.wash,
         interactive && "transition-shadow hover:shadow-md",
@@ -256,11 +259,10 @@ export function FinanceKpiCard({
       >
         <div
           className={cn(
-            "flex items-center justify-center shrink-0 shadow-sm",
+            "flex items-center justify-center shrink-0 text-white shadow-sm",
             isDash
-              ? "size-11 rounded-full bg-sidebar text-sidebar-foreground ring-4 ring-white/70"
+              ? cn("size-11 rounded-full ring-4 ring-white/70", t.icon)
               : cn(
-                  "text-white",
                   "rounded-md",
                   compact ? "w-8 h-8" : "w-8 h-8 sm:w-12 sm:h-12 sm:rounded-lg",
                   t.icon,
