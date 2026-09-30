@@ -1,18 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Bell,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   History,
-  Home,
   KeyRound,
   Loader2,
   LogIn,
   LogOut,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
   Tag,
   UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,8 +32,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ApiError } from "@/lib/api";
 import { getSession, type AuthUser, type Role } from "@/lib/auth";
+import { fetchNotificacoes, type Notificacao } from "@/lib/notificacoes-api";
 import { canUserAction } from "@/lib/user-permissions";
 import {
   createMuralChave,
@@ -46,7 +57,6 @@ import {
   type MuralChaveHistoricoItem,
   type MuralChaveLocal,
   type MuralChaveOpcoes,
-  type MuralChaveStatus,
 } from "@/lib/mural-chaves-api";
 import { cn } from "@/lib/utils";
 
@@ -390,26 +400,262 @@ function fatosDoMovimento(item: MuralChaveHistoricoItem) {
   return fatos;
 }
 
-function filtrarExemplos(
-  q: string,
-  status: MuralChaveStatus | "",
-  empreendimentoId: string,
-) {
-  if (empreendimentoId) return [];
-  const texto = q.trim().toLocaleLowerCase("pt-BR");
-  return CHAVES_EXEMPLO.filter((chave) => {
-    if (status && chave.status !== status) return false;
-    if (!texto) return true;
-    const alvo = [
-      chave.identificador,
-      chave.imovelLabel,
-      chave.empreendimento?.nome,
-      chave.comQuem,
-    ]
-      .join(" ")
-      .toLocaleLowerCase("pt-BR");
-    return alvo.includes(texto);
-  });
+type FaixaChave = "disponivel" | "em_uso" | "proprietario" | "outro";
+
+const FAIXA_VISUAL: Record<
+  FaixaChave,
+  { label: string; pill: string; card: string; icon: string }
+> = {
+  disponivel: {
+    label: "Disponível",
+    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    card: "border-emerald-100 bg-emerald-50/80",
+    icon: "bg-emerald-500 text-white",
+  },
+  em_uso: {
+    label: "Em uso",
+    pill: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+    card: "border-rose-100 bg-rose-50/80",
+    icon: "bg-rose-500 text-white",
+  },
+  proprietario: {
+    label: "Com proprietário",
+    pill: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+    card: "border-sky-100 bg-sky-50/80",
+    icon: "bg-sky-500 text-white",
+  },
+  outro: {
+    label: "Outro local",
+    pill: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
+    card: "border-violet-100 bg-violet-50/80",
+    icon: "bg-violet-500 text-white",
+  },
+};
+
+function faixaDaChave(chave: MuralChave): FaixaChave {
+  if (chave.status === "em_uso") return "em_uso";
+  if (chave.local === "proprietario") return "proprietario";
+  if (chave.local === "outro") return "outro";
+  return "disponivel";
+}
+
+function ehExemplo(chave: MuralChave) {
+  return chave.id.startsWith("exemplo-");
+}
+
+const POR_PAGINA = 10;
+
+function PainelChave({
+  chave,
+  historico,
+  podeGerenciar,
+  podeIdentificador,
+  podeRetirar,
+  onClose,
+  onEditar,
+  onRetirar,
+  onManual,
+  onDevolver,
+  onHistorico,
+}: {
+  chave: MuralChave;
+  historico: { identificadoresAnteriores: string[]; itens: MuralChaveHistoricoItem[] } | null;
+  podeGerenciar: boolean;
+  podeIdentificador: boolean;
+  podeRetirar: boolean;
+  onClose: () => void;
+  onEditar: () => void;
+  onRetirar: () => void;
+  onManual: () => void;
+  onDevolver: () => void;
+  onHistorico: () => void;
+}) {
+  const faixa = faixaDaChave(chave);
+  const visual = FAIXA_VISUAL[faixa];
+  const recente = historico?.itens.slice(0, 2) ?? [];
+  const pendente = historico?.itens.find((item) => item.confirmacaoPendente);
+  const exemplo = ehExemplo(chave);
+  return (
+    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-4 xl:w-[360px]">
+      <div className="flex items-start gap-3 border-b px-4 py-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+          <KeyRound className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-semibold tracking-tight">{chave.identificador}</h2>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <p className="text-muted-foreground">Empreendimento</p>
+              <p className="truncate font-medium">{chave.empreendimento?.nome || "—"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Imóvel</p>
+              <p className="truncate font-medium">{chave.imovelLabel || "—"}</p>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+          onClick={onClose}
+          aria-label="Fechar detalhe"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+        <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", visual.pill)}>
+          {visual.label}
+        </span>
+        {podeGerenciar && !exemplo ? (
+          <Button type="button" size="sm" variant="outline" className="h-8 rounded-lg" onClick={onEditar}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            Editar
+          </Button>
+        ) : null}
+      </div>
+
+      <dl className="space-y-3 px-4 py-4 text-sm">
+        <div className="flex gap-2.5">
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Com</dt>
+            <dd className="font-medium">{chave.comQuem}</dd>
+          </div>
+        </div>
+        <div className="flex gap-2.5">
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Retirada</dt>
+            <dd className="font-medium">{formatChaveQuando(chave.retiradaEm)}</dd>
+          </div>
+        </div>
+        <div className="flex gap-2.5">
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Previsão de devolução</dt>
+            <dd className="font-medium">{formatChaveQuando(chave.previsaoDevolucao)}</dd>
+          </div>
+        </div>
+        <div className="flex gap-2.5">
+          <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <dt className="text-[11px] text-muted-foreground">Responsável pela retirada</dt>
+            <dd className="font-medium">{chave.retiradaRegistradaPor?.name || "—"}</dd>
+          </div>
+        </div>
+      </dl>
+
+      <div className="border-t px-4 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold">Histórico rápido</h3>
+          <button type="button" className="text-xs font-medium text-primary" onClick={onHistorico}>
+            Ver histórico completo
+          </button>
+        </div>
+        {!historico ? (
+          <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Carregando…
+          </p>
+        ) : recente.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground">Nenhuma movimentação.</p>
+        ) : (
+          <ol className="mt-3 space-y-3">
+            {recente.map((item) => (
+              <li key={item.id} className="flex gap-2.5 text-sm">
+                <span
+                  className={cn(
+                    "mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full",
+                    item.tipo === "devolucao" || item.tipo === "confirmacao"
+                      ? "bg-rose-500"
+                      : "bg-emerald-500",
+                  )}
+                />
+                <div className="min-w-0">
+                  <p className="font-medium">{item.tipoLabel}</p>
+                  <p className="text-xs text-muted-foreground">{formatChaveQuando(item.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.quemRetirouNome
+                      ? `${item.quemRetirouNome} retirou`
+                      : item.quemDevolveuNome
+                        ? `${item.quemDevolveuNome} devolveu`
+                        : item.autorNome}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      <div className="border-t px-4 py-4">
+        <h3 className="text-sm font-semibold">Confirmação do corretor</h3>
+        {pendente ? (
+          <p className="mt-2 text-xs leading-relaxed text-amber-800">
+            Pendente. Aguardando confirmação de devolução.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            {chave.status === "em_uso"
+              ? "A confirmação aparece depois que a devolução for registrada."
+              : "Nenhuma confirmação pendente."}
+          </p>
+        )}
+        {pendente ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3 h-8"
+            onClick={() =>
+              toast.message("O corretor vê o pedido de confirmação ao entrar no sistema.")
+            }
+          >
+            Notificar corretor
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="mt-auto space-y-2 border-t px-4 py-4">
+        <p className="text-sm font-semibold">Ações</p>
+        {chave.status === "em_uso" && podeGerenciar ? (
+          <Button type="button" className="w-full" disabled={exemplo} onClick={onDevolver}>
+            Registrar devolução
+          </Button>
+        ) : null}
+        {chave.status !== "em_uso" && podeRetirar ? (
+          <Button type="button" className="w-full" disabled={exemplo} onClick={onRetirar}>
+            Retirar chave
+          </Button>
+        ) : null}
+        {chave.status !== "em_uso" && podeGerenciar ? (
+          <Button type="button" variant="outline" className="w-full" disabled={exemplo} onClick={onManual}>
+            Registrar retirada
+          </Button>
+        ) : null}
+        {podeGerenciar ? (
+          <Button type="button" variant="outline" className="w-full" disabled={exemplo} onClick={onEditar}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            Editar chave
+          </Button>
+        ) : null}
+        {podeIdentificador ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-rose-200 text-rose-700 hover:bg-rose-50"
+            disabled={exemplo}
+            onClick={onEditar}
+          >
+            <Tag className="mr-1.5 h-3.5 w-3.5" />
+            Alterar identificador
+          </Button>
+        ) : null}
+      </div>
+    </aside>
+  );
 }
 
 export function MuralChavesPage() {
@@ -427,9 +673,16 @@ export function MuralChavesPage() {
     !!session && (PODE_RETIRAR.has(session.role) || podeGerenciar);
 
   const [q, setQ] = useState("");
-  const [qAplicada, setQAplicada] = useState("");
-  const [status, setStatus] = useState<MuralChaveStatus | "">("");
+  const [faixa, setFaixa] = useState<FaixaChave | "">("");
   const [empreendimentoId, setEmpreendimentoId] = useState("");
+  const [responsavel, setResponsavel] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [selecionada, setSelecionada] = useState<MuralChave | null>(null);
+  const [painelHistorico, setPainelHistorico] = useState<{
+    identificadoresAnteriores: string[];
+    itens: MuralChaveHistoricoItem[];
+  } | null>(null);
+  const [avisos, setAvisos] = useState<Notificacao[]>([]);
   const [chaves, setChaves] = useState<MuralChave[]>([]);
   const [opcoes, setOpcoes] = useState<MuralChaveOpcoes | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -454,19 +707,19 @@ export function MuralChavesPage() {
 
   const carregar = useCallback(async () => {
     try {
-      const rows = await fetchMuralChaves({
-        q: qAplicada,
-        status,
-        empreendimentoId,
-      });
+      const rows = await fetchMuralChaves();
       setChaves(rows);
+      setSelecionada((atual) => {
+        if (!atual || ehExemplo(atual)) return atual;
+        return rows.find((item) => item.id === atual.id) ?? null;
+      });
       setErro("");
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Não foi possível carregar o mural.");
     } finally {
       setCarregando(false);
     }
-  }, [empreendimentoId, qAplicada, status]);
+  }, []);
 
   useEffect(() => {
     void carregar();
@@ -479,6 +732,41 @@ export function MuralChavesPage() {
       .then(setOpcoes)
       .catch(() => setOpcoes(null));
   }, []);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [q, faixa, empreendimentoId, responsavel]);
+
+  useEffect(() => {
+    void fetchNotificacoes()
+      .then((rows) =>
+        setAvisos(rows.filter((item) => item.tipo.startsWith("chave_")).slice(0, 3)),
+      )
+      .catch(() => setAvisos([]));
+  }, [chaves]);
+
+  useEffect(() => {
+    if (!selecionada) {
+      setPainelHistorico(null);
+      return;
+    }
+    if (ehExemplo(selecionada)) {
+      setPainelHistorico(historicoDoExemplo(selecionada));
+      return;
+    }
+    let ativo = true;
+    setPainelHistorico(null);
+    void fetchMuralChaveHistorico(selecionada.id)
+      .then((data) => {
+        if (ativo) setPainelHistorico(data);
+      })
+      .catch(() => {
+        if (ativo) setPainelHistorico({ identificadoresAnteriores: [], itens: [] });
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [selecionada?.id, selecionada?.updatedAt]);
 
   useEffect(() => {
     if (acao?.tipo !== "historico") {
@@ -634,248 +922,411 @@ export function MuralChavesPage() {
     }
   }
 
-  const exemplos =
-    !carregando && chaves.length === 0
-      ? filtrarExemplos(qAplicada, status, empreendimentoId)
-      : [];
-  const lista = chaves.length > 0 ? chaves : exemplos;
-  const soExemplo = chaves.length === 0 && lista.length > 0;
-  const emUso = lista.filter((chave) => chave.status === "em_uso").length;
+  const exemplos = !carregando && chaves.length === 0 ? CHAVES_EXEMPLO : [];
+  const base = chaves.length > 0 ? chaves : exemplos;
+  const soExemplo = chaves.length === 0 && base.length > 0;
+  const texto = q.trim().toLocaleLowerCase("pt-BR");
+  const lista = useMemo(() => {
+    return base.filter((chave) => {
+      if (faixa && faixaDaChave(chave) !== faixa) return false;
+      if (empreendimentoId && chave.empreendimento?.id !== empreendimentoId) return false;
+      if (responsavel && chave.comQuem !== responsavel) return false;
+      if (!texto) return true;
+      const alvo = [chave.identificador, chave.imovelLabel, chave.empreendimento?.nome, chave.comQuem]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+      return alvo.includes(texto);
+    });
+  }, [base, empreendimentoId, faixa, responsavel, texto]);
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const visiveis = lista.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
+  const contagem = {
+    disponivel: base.filter((chave) => faixaDaChave(chave) === "disponivel").length,
+    em_uso: base.filter((chave) => faixaDaChave(chave) === "em_uso").length,
+    proprietario: base.filter((chave) => faixaDaChave(chave) === "proprietario").length,
+    outro: base.filter((chave) => faixaDaChave(chave) === "outro").length,
+  };
+  const responsaveis = [...new Set(base.map((chave) => chave.comQuem).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+  const empreendimentosFiltro =
+    opcoes?.empreendimentos.length
+      ? opcoes.empreendimentos
+      : [...new Map(base.filter((c) => c.empreendimento).map((c) => [c.empreendimento!.id, c.empreendimento!])).values()];
 
-  const disponiveis = lista.length - emUso;
+  function limparFiltros() {
+    setQ("");
+    setFaixa("");
+    setEmpreendimentoId("");
+    setResponsavel("");
+    setPagina(1);
+  }
+
+  function escolher(chave: MuralChave) {
+    setSelecionada(chave);
+  }
+
+  function bloquearExemplo(chave: MuralChave) {
+    if (!ehExemplo(chave)) return false;
+    toast.error("Este cartão é só um exemplo. Cadastre uma chave para movimentar.");
+    return true;
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Operação
-          </p>
-          <h1 className="mt-1 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <KeyRound className="h-4 w-4" />
-            </span>
-            Mural de Chaves
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Onde está cada chave, quem está com ela e se está disponível. O identificador segue o
-            padrão da imobiliária e pode ser alterado sem perder o histórico.
-          </p>
-        </div>
-        {podeGerenciar ? (
-          <Button onClick={abrirCriar} className="rounded-xl">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nova chave
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border bg-card px-4 py-3">
-          <p className="text-xs text-muted-foreground">No mural</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{lista.length}</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-3">
-          <p className="text-xs text-emerald-800/80">Disponíveis</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-emerald-900">
-            {disponiveis}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-rose-200/80 bg-rose-50/70 px-4 py-3">
-          <p className="text-xs text-rose-800/80">Em uso</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-rose-900">
-            {emUso}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-3">
-        <form
-          className="flex min-w-[240px] flex-1 items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setQAplicada(q.trim());
-          }}
-        >
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(event) => setQ(event.target.value)}
-              placeholder="Identificador, imóvel, empreendimento ou corretor"
-              className="pl-9"
-            />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
+                <KeyRound className="h-5 w-5" />
+              </span>
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">Mural de Chaves</h1>
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                  Controle centralizado das chaves dos imóveis. Saiba em tempo real onde está cada
+                  chave, quem está com ela e seu status.
+                </p>
+              </div>
+            </div>
+            {podeGerenciar ? (
+              <Button onClick={abrirCriar} className="rounded-xl">
+                <Plus className="mr-1.5 h-4 w-4" />
+                Cadastrar Chave
+              </Button>
+            ) : null}
           </div>
-          <Button type="submit" variant="outline">
-            Buscar
-          </Button>
-        </form>
-        <select
-          className={cn(fieldClass(), "w-auto")}
-          value={status}
-          onChange={(event) => setStatus(event.target.value as MuralChaveStatus | "")}
-        >
-          <option value="">Todos os status</option>
-          <option value="disponivel">Disponíveis</option>
-          <option value="em_uso">Em uso</option>
-        </select>
-        <select
-          className={cn(fieldClass(), "w-auto max-w-[240px]")}
-          value={empreendimentoId}
-          onChange={(event) => setEmpreendimentoId(event.target.value)}
-        >
-          <option value="">Todos os empreendimentos</option>
-          {opcoes?.empreendimentos.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.nome}
-            </option>
-          ))}
-        </select>
-      </div>
 
-      {erro && !soExemplo ? <p className="text-sm text-destructive">{erro}</p> : null}
-      {soExemplo ? (
-        <p className="rounded-xl border border-dashed bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
-          Exemplos visuais para mostrar o mural. Essas chaves não estão cadastradas e não podem ser
-          retiradas.
-        </p>
-      ) : null}
-      {carregando ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando mural…
-        </div>
-      ) : lista.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Nenhuma chave encontrada.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {lista.map((chave) => {
-            const usada = chave.status === "em_uso";
-            const exemplo = chave.id.startsWith("exemplo-");
-            return (
-              <article
-                key={chave.id}
-                className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm"
-              >
-                <div
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {(
+              [
+                ["disponivel", "Disponíveis", contagem.disponivel],
+                ["em_uso", "Em uso", contagem.em_uso],
+                ["proprietario", "Com proprietário", contagem.proprietario],
+                ["outro", "Outro local", contagem.outro],
+              ] as const
+            ).map(([id, label, total]) => {
+              const visual = FAIXA_VISUAL[id];
+              const ativo = faixa === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFaixa(ativo ? "" : id)}
                   className={cn(
-                    "flex items-start justify-between gap-3 border-b px-4 py-3.5",
-                    usada ? "bg-rose-50/80" : "bg-emerald-50/70",
+                    "rounded-2xl border px-4 py-3 text-left transition",
+                    visual.card,
+                    ativo && "ring-2 ring-primary/30",
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                        usada ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700",
-                      )}
-                    >
-                      <KeyRound className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <span className={cn("flex h-7 w-7 items-center justify-center rounded-full", visual.icon)}>
+                      <KeyRound className="h-3.5 w-3.5" />
                     </span>
-                    <div className="min-w-0">
-                      <h2 className="truncate text-base font-semibold tracking-tight">
-                        {chave.identificador}
-                      </h2>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {chave.empreendimento?.nome || "Sem empreendimento"}
-                      </p>
-                    </div>
+                    {label}
                   </div>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
-                      usada ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800",
-                    )}
-                  >
-                    {usada ? "Em uso" : "Disponível"}
-                  </span>
-                </div>
+                  <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{total}</p>
+                  <p className="text-xs text-muted-foreground">de {base.length} chaves</p>
+                </button>
+              );
+            })}
+          </div>
 
-                <div className="flex flex-1 flex-col gap-3 p-4">
-                  <div className="flex items-start gap-2 text-sm">
-                    <Home className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Imóvel</p>
-                      <p className="font-medium">{chave.imovelLabel}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-2.5 text-sm">
-                    <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Com quem está
-                      </p>
-                      <p className="font-medium">{chave.comQuem}</p>
-                    </div>
-                  </div>
-                  {usada ? (
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="rounded-xl border px-3 py-2">
-                        <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                          <Clock3 className="h-3 w-3" />
-                          Retirada
-                        </p>
-                        <p className="mt-0.5 font-medium">{formatChaveQuando(chave.retiradaEm)}</p>
-                      </div>
-                      <div className="rounded-xl border px-3 py-2">
-                        <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                          <Clock3 className="h-3 w-3" />
-                          Previsão
-                        </p>
-                        <p className="mt-0.5 font-medium">
-                          {formatChaveQuando(chave.previsaoDevolucao)}
-                        </p>
-                      </div>
-                      <div className="col-span-2 text-xs text-muted-foreground">
-                        Registrada por {chave.retiradaRegistradaPor?.name || "—"}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(event) => setQ(event.target.value)}
+                placeholder="Buscar chave, imóvel, empreendimento..."
+                className="pl-9"
+              />
+            </div>
+            <select
+              className={cn(fieldClass(), "w-auto max-w-[200px]")}
+              value={empreendimentoId}
+              onChange={(event) => setEmpreendimentoId(event.target.value)}
+            >
+              <option value="">Empreendimento</option>
+              {empreendimentosFiltro.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+            <select
+              className={cn(fieldClass(), "w-auto")}
+              value={faixa}
+              onChange={(event) => setFaixa(event.target.value as FaixaChave | "")}
+            >
+              <option value="">Status</option>
+              <option value="disponivel">Disponível</option>
+              <option value="em_uso">Em uso</option>
+              <option value="proprietario">Com proprietário</option>
+              <option value="outro">Outro local</option>
+            </select>
+            <select
+              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+              value={responsavel}
+              onChange={(event) => setResponsavel(event.target.value)}
+            >
+              <option value="">Responsável</option>
+              {responsaveis.map((nome) => (
+                <option key={nome} value={nome}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
+          </div>
 
-                <div className="mt-auto flex flex-wrap gap-2 border-t bg-muted/20 px-4 py-3">
-                  {exemplo ? (
-                    <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      Exemplo
-                    </span>
-                  ) : null}
-                  {!exemplo && podeRetirar && !usada ? (
-                    <Button size="sm" onClick={() => abrirMovimento("retirar", chave)}>
-                      Retirar
-                    </Button>
-                  ) : null}
-                  {!exemplo && podeGerenciar && !usada ? (
-                    <Button size="sm" variant="outline" onClick={() => abrirMovimento("manual", chave)}>
-                      Registrar retirada
-                    </Button>
-                  ) : null}
-                  {!exemplo && podeGerenciar && usada ? (
-                    <Button size="sm" onClick={() => abrirMovimento("devolver", chave)}>
-                      Registrar devolução
-                    </Button>
-                  ) : null}
-                  {!exemplo && podeGerenciar ? (
-                    <Button size="sm" variant="outline" onClick={() => abrirEditar(chave)}>
-                      Editar
-                    </Button>
-                  ) : null}
+          {erro && !soExemplo ? <p className="text-sm text-destructive">{erro}</p> : null}
+          {soExemplo ? (
+            <p className="rounded-xl border border-dashed bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+              Exemplos visuais para mostrar o mural. Essas chaves não estão cadastradas e não podem ser
+              retiradas.
+            </p>
+          ) : null}
+
+          {carregando ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando mural…
+            </div>
+          ) : lista.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+              Nenhuma chave encontrada.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[920px] text-left text-sm">
+                  <thead className="border-b bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Chave / identificador</th>
+                      <th className="px-3 py-3 font-medium">Empreendimento</th>
+                      <th className="px-3 py-3 font-medium">Imóvel</th>
+                      <th className="px-3 py-3 font-medium">Status</th>
+                      <th className="px-3 py-3 font-medium">Com</th>
+                      <th className="px-3 py-3 font-medium">Retirada</th>
+                      <th className="px-3 py-3 font-medium">Prev. devolução</th>
+                      <th className="px-3 py-3 font-medium">Resp. retirada</th>
+                      <th className="px-3 py-3 font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visiveis.map((chave) => {
+                      const visual = FAIXA_VISUAL[faixaDaChave(chave)];
+                      const exemplo = ehExemplo(chave);
+                      const usada = chave.status === "em_uso";
+                      const ativa = selecionada?.id === chave.id;
+                      return (
+                        <tr
+                          key={chave.id}
+                          className={cn(
+                            "cursor-pointer border-b last:border-0 hover:bg-muted/40",
+                            ativa && "bg-sky-50/80",
+                          )}
+                          onClick={() => escolher(chave)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <KeyRound className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                              <span className="font-semibold">{chave.identificador}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {chave.empreendimento?.nome || "—"}
+                          </td>
+                          <td className="px-3 py-3">{chave.imovelLabel || "—"}</td>
+                          <td className="px-3 py-3">
+                            <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", visual.pill)}>
+                              {visual.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <p className="font-medium">{chave.comQuem}</p>
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {formatChaveQuando(chave.retiradaEm)}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {formatChaveQuando(chave.previsaoDevolucao)}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground">
+                            {chave.retiradaRegistradaPor?.name || "—"}
+                          </td>
+                          <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => escolher(chave)}>Ver detalhe</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setAcao({ tipo: "historico", chave })}>
+                                  Histórico
+                                </DropdownMenuItem>
+                                {!exemplo && podeRetirar && !usada ? (
+                                  <DropdownMenuItem onClick={() => abrirMovimento("retirar", chave)}>
+                                    Retirar
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {!exemplo && podeGerenciar && !usada ? (
+                                  <DropdownMenuItem onClick={() => abrirMovimento("manual", chave)}>
+                                    Registrar retirada
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {!exemplo && podeGerenciar && usada ? (
+                                  <DropdownMenuItem onClick={() => abrirMovimento("devolver", chave)}>
+                                    Registrar devolução
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {!exemplo && podeGerenciar ? (
+                                  <DropdownMenuItem onClick={() => abrirEditar(chave)}>Editar</DropdownMenuItem>
+                                ) : null}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
+                <span>
+                  Mostrando {visiveis.length} de {lista.length} chaves
+                </span>
+                <div className="flex items-center gap-1">
                   <Button
-                    size="sm"
-                    variant="ghost"
-                    className="ml-auto"
-                    onClick={() => setAcao({ tipo: "historico", chave })}
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    disabled={paginaAtual <= 1}
+                    onClick={() => setPagina((atual) => Math.max(1, atual - 1))}
                   >
-                    <History className="mr-1.5 h-3.5 w-3.5" />
-                    Histórico
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {Array.from({ length: totalPaginas }, (_, index) => index + 1)
+                    .slice(0, 6)
+                    .map((numero) => (
+                      <Button
+                        key={numero}
+                        type="button"
+                        size="icon"
+                        variant={numero === paginaAtual ? "default" : "outline"}
+                        className="h-8 w-8"
+                        onClick={() => setPagina(numero)}
+                      >
+                        {numero}
+                      </Button>
+                    ))}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    disabled={paginaAtual >= totalPaginas}
+                    onClick={() => setPagina((atual) => Math.min(totalPaginas, atual + 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-              </article>
-            );
-          })}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="rounded-2xl border bg-card p-4">
+              <h3 className="text-sm font-semibold">Retirada de chave pelo corretor</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                O corretor seleciona a chave que vai retirar e o sistema registra automaticamente a
+                movimentação.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3"
+                disabled={!selecionada || selecionada.status === "em_uso" || !podeRetirar}
+                onClick={() => {
+                  if (!selecionada || bloquearExemplo(selecionada)) return;
+                  abrirMovimento("retirar", selecionada);
+                }}
+              >
+                Registrar retirada
+              </Button>
+            </div>
+            <div className="rounded-2xl border bg-card p-4">
+              <h3 className="text-sm font-semibold">Gerenciamento de chaves</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Usuários autorizados podem cadastrar, editar e gerenciar as chaves do sistema.
+              </p>
+              {podeGerenciar ? (
+                <Button type="button" size="sm" variant="outline" className="mt-3" onClick={abrirCriar}>
+                  Gerenciar chaves
+                </Button>
+              ) : null}
+            </div>
+            <div className="rounded-2xl border bg-card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                  Notificações recentes
+                </h3>
+              </div>
+              {avisos.length === 0 ? (
+                <p className="mt-3 text-xs text-muted-foreground">Nenhuma movimentação recente.</p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {avisos.map((aviso) => (
+                    <li key={aviso.id} className="text-xs leading-relaxed">
+                      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />
+                      {aviso.titulo}
+                      <span className="mt-0.5 block text-muted-foreground">
+                        {formatChaveQuando(aviso.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+
+        {selecionada ? (
+          <PainelChave
+            chave={selecionada}
+            historico={painelHistorico}
+            podeGerenciar={podeGerenciar}
+            podeIdentificador={podeIdentificador}
+            podeRetirar={podeRetirar}
+            onClose={() => setSelecionada(null)}
+            onEditar={() => {
+              if (bloquearExemplo(selecionada)) return;
+              abrirEditar(selecionada);
+            }}
+            onRetirar={() => {
+              if (bloquearExemplo(selecionada)) return;
+              abrirMovimento("retirar", selecionada);
+            }}
+            onManual={() => {
+              if (bloquearExemplo(selecionada)) return;
+              abrirMovimento("manual", selecionada);
+            }}
+            onDevolver={() => {
+              if (bloquearExemplo(selecionada)) return;
+              abrirMovimento("devolver", selecionada);
+            }}
+            onHistorico={() => setAcao({ tipo: "historico", chave: selecionada })}
+          />
+        ) : null}
+      </div>
 
       <Dialog open={acao?.tipo === "criar" || acao?.tipo === "editar"} onOpenChange={(open) => !open && setAcao(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
