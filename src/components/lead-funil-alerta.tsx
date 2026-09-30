@@ -298,7 +298,7 @@ export function LeadFunilAlerta({
             {mon.tarefasAtrasadas && mon.tarefasAtrasadas.length > 0 && (
               <div className="space-y-1.5">
                 <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-300">
-                  Tarefas atrasadas
+                  Follow-ups atrasados
                 </p>
                 <ul className="space-y-1.5">
                   {mon.tarefasAtrasadas.map((tarefa) => (

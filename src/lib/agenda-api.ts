@@ -341,6 +341,8 @@ export type CreateAgendamentoInput = {
   local?: string | null;
   observacoes?: string | null;
   funilStage?: string | null;
+  /** true só no follow-up. Tarefa registrada não coloca o lead em atraso. */
+  contaAtraso?: boolean;
   recurrenceFreq?: AgendamentoRecurrenceFreq;
   recurrenceDays?: number[];
   recurrenceUntil?: string | null;
@@ -423,12 +425,13 @@ export async function createAgendamento(
     });
   } catch (err) {
     if (
-      input.funilStage &&
       err instanceof ApiError &&
       err.status === 400 &&
-      /funilStage/i.test(err.message)
+      ((input.funilStage && /funilStage/i.test(err.message)) ||
+        (input.contaAtraso != null && /contaAtraso/i.test(err.message)))
     ) {
-      const { funilStage: _funilStage, ...rest } = input;
+      const { funilStage: _funilStage, contaAtraso: _contaAtraso, ...rest } =
+        input;
       return apiFetch<Agendamento>("/agenda", {
         method: "POST",
         body: rest,

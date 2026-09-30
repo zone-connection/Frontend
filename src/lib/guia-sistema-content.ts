@@ -197,7 +197,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         tips: [
           "Colunas intermediárias não têm papel especial — só organizam o atendimento.",
           "O Funil de Clientes é o mesmo quadro, filtrado em tipo Cliente.",
-          "Borda vermelha no card: prazo da etapa, inatividade ou tarefa atrasada. Some quando a tarefa é concluída.",
+          "Borda vermelha no card: prazo da etapa, inatividade ou follow-up atrasado. Registrar uma tarefa tira o lead do atraso e essa tarefa não volta a colocá-lo em atraso.",
         ],
       },
       {
@@ -781,7 +781,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
           {
             title: "Ler os indicadores",
             detail:
-              "Sem movimentação usa o tempo de inatividade configurado no funil; fora do prazo é a etapa que passou do tempo; tarefas atrasadas são compromissos com prazo vencido.",
+              "Sem movimentação usa o tempo de inatividade configurado no funil; fora do prazo é a etapa que passou do tempo; follow-ups atrasados são retornos vencidos sem conclusão. Uma tarefa registrada tira o lead do atraso e não gera atraso.",
           },
           {
             title: "Abrir o lead",

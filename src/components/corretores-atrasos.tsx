@@ -50,7 +50,7 @@ const PROBLEMA_STYLE: Record<
     wash: "border-rose-100 bg-rose-50/90 hover:bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20",
   },
   tarefa_atrasada: {
-    label: "Tarefa atrasada",
+    label: "Follow-up atrasado",
     icon: ListChecks,
     dot: "bg-red-500",
     pill: "bg-red-500/10 text-red-700 dark:text-red-300",
@@ -184,7 +184,7 @@ export function AtrasosResumoBanner({
           {resumo.corretores} corretor{resumo.corretores === 1 ? "" : "es"}
         </p>
         <p className="text-xs text-muted-foreground">
-          Leads parados, fora do prazo da etapa ou com tarefa atrasada.
+          Leads parados, fora do prazo da etapa ou com follow-up atrasado.
         </p>
       </div>
       <AtrasosResumoChips resumo={resumo} className="hidden lg:flex" />

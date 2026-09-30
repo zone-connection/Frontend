@@ -176,7 +176,7 @@ function Page() {
       <div>
         <PageHeader
           title="Atrasos"
-          description="Leads parados, fora do prazo ou com tarefa atrasada."
+          description="Leads parados, fora do prazo ou com follow-up atrasado."
         />
         <SemConexao
           title="Acesso restrito"
@@ -192,10 +192,10 @@ function Page() {
         title="Atrasos"
         description={
           isGerente
-            ? "Leads da sua equipe parados, fora do prazo da etapa ou com tarefa atrasada."
+            ? "Leads da sua equipe parados, fora do prazo da etapa ou com follow-up atrasado."
             : isPlatformAdmin
-              ? "Empresas paradas, fora do prazo da etapa ou com tarefa atrasada."
-            : "Leads parados, fora do prazo da etapa ou com tarefa atrasada, por corretor."
+              ? "Empresas paradas, fora do prazo da etapa ou com follow-up atrasado."
+            : "Leads parados, fora do prazo da etapa ou com follow-up atrasado, por corretor."
         }
         actions={
           <div className="flex flex-wrap items-end justify-end gap-2">
@@ -297,7 +297,7 @@ function Page() {
           format="number"
         />
         <FinanceKpiCard
-          label="Tarefas atrasadas"
+          label="Follow-ups atrasados"
           value={resumo.tarefas}
           icon={ListChecks}
           tone="violet"

@@ -92,7 +92,7 @@ function activityTitle(tipo: ActivityTipo, nome: string) {
   if (tipo === "ligacao") return `Ligação ${nome}`;
   if (tipo === "visita") return `Visita ${nome}`;
   if (tipo === "reuniao") return `Reunião ${nome}`;
-  if (tipo === "tarefa") return `Follow-up ${nome}`;
+  if (tipo === "tarefa") return `Tarefa ${nome}`;
   return `Atividade ${nome}`;
 }
 

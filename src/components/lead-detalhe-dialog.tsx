@@ -347,7 +347,7 @@ function MonitoramentoCard({
           })}
           {mon.tarefasAtrasadas?.map((tarefa) => (
             <p key={tarefa.id} className="text-xs text-muted-foreground">
-              Tarefa atrasada: {tarefa.titulo} · prazo {tarefa.prazo}
+              Follow-up atrasado: {tarefa.titulo} · prazo {tarefa.prazo}
             </p>
           ))}
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-1 text-xs">

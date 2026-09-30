@@ -120,6 +120,7 @@ export function FunilTarefaDialog({
         endsAt,
         funilStage: prompt.stage,
         observacoes: `Etapa do funil: ${prompt.stageName}.`,
+        contaAtraso: true,
       });
       toast.success("Tarefa criada na agenda.");
       onCreated?.();
@@ -152,7 +153,7 @@ export function FunilTarefaDialog({
               <DialogTitle>Criar tarefa?</DialogTitle>
               <DialogDescription>
                 {prompt
-                  ? `${prompt.leadNome} foi para ${prompt.stageName}. Deseja criar uma tarefa na agenda vinculada a este contato?`
+                  ? `${prompt.leadNome} foi para ${prompt.stageName}. Se este follow-up vencer sem conclusão, o lead entra em atraso.`
                   : null}
               </DialogDescription>
             </div>

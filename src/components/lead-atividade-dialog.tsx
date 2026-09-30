@@ -80,7 +80,7 @@ function activityTitle(tipo: ActivityTipo, nome: string) {
   if (tipo === "ligacao") return `Ligação ${nome}`;
   if (tipo === "visita") return `Visita ${nome}`;
   if (tipo === "reuniao") return `Reunião ${nome}`;
-  if (tipo === "tarefa") return `Follow-up ${nome}`;
+  if (tipo === "tarefa") return `Tarefa ${nome}`;
   return `Atividade ${nome}`;
 }
 
@@ -160,7 +160,7 @@ export function LeadAtividadeDialog({
       });
       toast.success(
         tipo === "tarefa"
-          ? "Tarefa criada. O lead saiu do atraso."
+          ? "Tarefa registrada. O lead saiu do atraso."
           : "Atividade agendada. O lead saiu do atraso.",
       );
       await onCreated?.(prompt.leadId);
@@ -193,7 +193,7 @@ export function LeadAtividadeDialog({
               <DialogTitle>Adicionar atividade</DialogTitle>
               <DialogDescription>
                 {prompt
-                    ? `Agende um compromisso para ${prompt.leadNome}. Isso registra movimentação e encerra tarefas atrasadas.`
+                    ? `Registre um compromisso para ${prompt.leadNome}. O lead sai do atraso, e este compromisso não volta a colocá-lo em atraso.`
                   : null}
               </DialogDescription>
             </div>
