@@ -480,15 +480,18 @@ function Page() {
 
           {showRankingGerentes && (
             <section className="mt-5 mb-6 space-y-4">
-              <PodioVendas
-                title="Pódio de vendas · gerentes"
-                items={data.gerentes.map((row) => ({
-                  id: `${row.gerenteId}:${row.equipeId}`,
-                  nome: row.nome,
-                  vendas: row.vendas.valor,
-                  vgv: row.vgv.valor,
-                }))}
-              />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <PodioVendas
+                  title="Pódio de vendas · gerentes"
+                  items={data.gerentes.map((row) => ({
+                    id: `${row.gerenteId}:${row.equipeId}`,
+                    nome: row.nome,
+                    vendas: row.vendas.valor,
+                    vgv: row.vgv.valor,
+                  }))}
+                />
+                <GerentesRanking gerentes={data.gerentes} />
+              </div>
               <Card className="overflow-hidden rounded-2xl">
                 <CardHeader className="border-b border-border/40 bg-gradient-to-r from-primary/[0.09] via-primary/[0.03] to-transparent">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -496,13 +499,14 @@ function Page() {
                     Ranking Gerentes
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Agregado pela equipe liderada · ordenado por VGV do período.
+                    VGV do gerente no período: equipe liderada e vendas em que
+                    ele é o responsável.
                   </p>
                 </CardHeader>
                 <CardContent className="p-0">
                   {data.gerentes.length === 0 ? (
                     <p className="text-sm text-muted-foreground px-6 py-4">
-                      Nenhuma equipe com gerente cadastrada.
+                      Nenhum gerente cadastrado.
                     </p>
                   ) : (
                     <>
@@ -739,6 +743,101 @@ function podiumListRowClass(place: number) {
     place === 3 &&
       "bg-orange-200/75 hover:bg-orange-200 dark:bg-orange-500/25 dark:hover:bg-orange-500/35",
     place > 3 && "hover:bg-muted/60",
+  );
+}
+
+function GerentesRanking({
+  gerentes,
+}: {
+  gerentes: DashboardRankingGerente[];
+}) {
+  const maxVgv = Math.max(...gerentes.map((row) => row.vgv.valor ?? 0), 1);
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <UsersRound className="h-4 w-4 text-primary" /> Ranking gerentes · VGV
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Ordenado pelo VGV do gerente no período.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-0 p-0">
+        {gerentes.length === 0 ? (
+          <p className="px-4 py-5 text-center text-sm text-muted-foreground">
+            Nenhum gerente cadastrado.
+          </p>
+        ) : (
+          gerentes.slice(0, 8).map((row) => {
+            const place = row.posicao;
+            const topThree = place <= 3;
+            const pct = Math.max(6, ((row.vgv.valor ?? 0) / maxVgv) * 100);
+            return (
+              <div key={row.gerenteId} className={podiumListRowClass(place)}>
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black",
+                    place === 1 && "bg-amber-400/20 text-amber-600",
+                    place === 2 && "bg-slate-400/20 text-slate-500",
+                    place === 3 && "bg-orange-400/20 text-orange-600",
+                    !topThree && "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {place}
+                </span>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback
+                    className={cn(
+                      "text-[11px] font-semibold",
+                      topThree ? "bg-primary/10 text-primary" : "bg-muted",
+                    )}
+                  >
+                    {initials(row.nome)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        "truncate text-sm",
+                        topThree ? "font-bold" : "font-medium",
+                      )}
+                    >
+                      {row.nome}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold tabular-nums">
+                      {money(row.vgv.valor)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <FlowTrack
+                      percent={pct}
+                      tone={
+                        place === 1
+                          ? "amber"
+                          : place === 2
+                            ? "slate"
+                            : place === 3
+                              ? "orange"
+                              : "primary"
+                      }
+                      className="h-2.5 flex-1"
+                    />
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {row.vendas.valor}{" "}
+                      {row.vendas.valor === 1 ? "venda" : "vendas"}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                    {row.equipe}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
