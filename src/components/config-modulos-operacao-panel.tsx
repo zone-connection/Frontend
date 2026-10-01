@@ -27,34 +27,36 @@ const CARDS: Array<{
     key: "comercial",
     title: "Comercial",
     description:
-      "CRM de lançamentos: leads, funil de vendas e operação atual da imobiliária.",
+      "CRM de lançamentos: leads, funil e triagem. Entra no seletor de operação do menu. Fechamento fica fora da operação.",
     icon: Building2,
     locked: true,
   },
   {
     key: "captacao",
     title: "Captação de Imóveis",
-    description: "Gerencie proprietários, imóveis e processos de captação.",
+    description:
+      "Proprietários, imóveis e o funil de captação. Vira a operação Captação no seletor do menu.",
     icon: Home,
   },
   {
     key: "imoveisUsados",
     title: "Venda de Imóveis Usados",
     description:
-      "Gerencie a venda de imóveis usados, interessados, visitas e propostas.",
+      "Estoque, visitas, propostas e interessados. Vira a operação Venda de Usados no seletor do menu.",
     icon: Landmark,
   },
   {
     key: "locacao",
     title: "Locação",
-    description: "Gerencie locatários, contratos e operações de locação.",
+    description:
+      "Vira a operação Locação no seletor do menu. A visão geral já está disponível; funil, carteira e contratos ainda não têm telas.",
     icon: KeyRound,
   },
   {
     key: "parcerias",
     title: "Corretores parceiros",
     description:
-      "Convide corretores de outras imobiliárias para ver estoque, indicar clientes e acompanhar o repasse.",
+      "Convide corretores de outras imobiliárias para ver estoque, indicar clientes e acompanhar o repasse. Aparece dentro da operação Venda de Usados.",
     icon: Users,
   },
 ];
@@ -216,9 +218,10 @@ export function ConfigModulosOperacaoPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Escolha quais operações esta imobiliária utiliza. Captação e venda de
-        usados começam desligadas; ative aqui para aparecer no menu. Desativar
-        esconde o acesso; funis e dados permanecem salvos.
+        Escolha quais operações esta imobiliária utiliza. Lançamentos fica
+        sempre no seletor do menu. Captação, venda de usados e locação entram
+        nesse seletor quando estão ligadas. Dashboard, agenda, imóveis,
+        treinamento e fechamento ficam fora da operação. Desativar esconde o acesso; funis e dados permanecem salvos.
       </p>
       {loading && (
         <p className="text-sm text-muted-foreground">Carregando…</p>

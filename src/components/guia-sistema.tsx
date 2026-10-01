@@ -103,10 +103,11 @@ function JourneyPage() {
       <Card>
         <CardContent className="space-y-4 p-5 sm:p-6">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Há duas operações. A de lançamentos vive em Leads e Funil: o
-            fechamento é a ficha de Documentação (parecer do analista e Status 2
-            Vendido). A de imóvel usado vive em Captação e Venda de Usados —
-            ligue esses módulos em Configurações se não aparecerem no menu.
+            Há duas operações no seletor do menu. A de lançamentos reúne Leads
+            e Funil. A de imóvel usado troca o seletor para Captação ou Venda
+            de Usados — ligue esses módulos em Configurações se não
+            aparecerem. Dashboard, agenda, imóveis, treinamento e fechamento
+            ficam sempre visíveis.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             No índice ao lado, abra a pasta (Operação, Captação e usados,

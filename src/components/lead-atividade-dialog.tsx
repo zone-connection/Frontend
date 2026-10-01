@@ -26,10 +26,13 @@ import {
   createAgendamento,
   type AgendamentoTipo,
 } from "@/lib/agenda-api";
+import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
+import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
 
 const ACTIVITY_TIPOS = [
   "ligacao",
   "visita",
+  "retirada_chave",
   "reuniao",
   "tarefa",
   "outro",
@@ -79,6 +82,7 @@ function toLocalIso(date: string, time: string) {
 function activityTitle(tipo: ActivityTipo, nome: string) {
   if (tipo === "ligacao") return `Ligação ${nome}`;
   if (tipo === "visita") return `Visita ${nome}`;
+  if (tipo === "retirada_chave") return `Retirada de chave ${nome}`;
   if (tipo === "reuniao") return `Reunião ${nome}`;
   if (tipo === "tarefa") return `Tarefa ${nome}`;
   return `Atividade ${nome}`;
@@ -105,6 +109,38 @@ export function LeadAtividadeDialog({
   const [inicio, setInicio] = useState("09:00");
   const [fim, setFim] = useState("09:30");
   const [saving, setSaving] = useState(false);
+  const [empreendimentoId, setEmpreendimentoId] = useState("");
+  const [muralChaveId, setMuralChaveId] = useState("");
+  const [empreendimentos, setEmpreendimentos] = useState<
+    { id: string; nome: string }[]
+  >([]);
+  const [chaves, setChaves] = useState<MuralChave[]>([]);
+
+  const vinculaChave = tipo === "visita" || tipo === "retirada_chave";
+
+  useEffect(() => {
+    if (!prompt || !vinculaChave) return;
+    let cancelado = false;
+    void fetchEmpreendimentos({ ativo: true })
+      .then((rows) => {
+        if (!cancelado) {
+          setEmpreendimentos(rows.map((item) => ({ id: item.id, nome: item.nome })));
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setEmpreendimentos([]);
+      });
+    void fetchMuralChaves()
+      .then((rows) => {
+        if (!cancelado) setChaves(rows);
+      })
+      .catch(() => {
+        if (!cancelado) setChaves([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [prompt, vinculaChave]);
 
   useEffect(() => {
     if (!prompt) return;
@@ -114,6 +150,8 @@ export function LeadAtividadeDialog({
     setData(next.data);
     setInicio(next.inicio);
     setFim(next.fim);
+    setEmpreendimentoId("");
+    setMuralChaveId("");
     setSaving(false);
   }, [prompt]);
 
@@ -145,6 +183,10 @@ export function LeadAtividadeDialog({
       toast.error("O horário de término deve ser depois do início.");
       return;
     }
+    if (tipo === "retirada_chave" && !muralChaveId) {
+      toast.error("Selecione a chave da retirada.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -157,6 +199,8 @@ export function LeadAtividadeDialog({
         endsAt,
         funilStage: prompt.stage,
         observacoes: `Atividade do lead · etapa ${prompt.stageName}.`,
+        empreendimentoId: vinculaChave ? empreendimentoId || null : null,
+        muralChaveId: vinculaChave ? muralChaveId || null : null,
       });
       toast.success(
         tipo === "tarefa"
@@ -241,6 +285,68 @@ export function LeadAtividadeDialog({
               disabled={saving}
             />
           </div>
+          {vinculaChave ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Empreendimento</Label>
+                <Select
+                  value={empreendimentoId || "__none__"}
+                  onValueChange={(value) =>
+                    setEmpreendimentoId(value === "__none__" ? "" : value)
+                  }
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Opcional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {empreendimentos.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  Chave{tipo === "retirada_chave" ? "" : " (opc.)"}
+                </Label>
+                <Select
+                  value={muralChaveId || "__none__"}
+                  onValueChange={(value) => {
+                    const chave = chaves.find((item) => item.id === value);
+                    setMuralChaveId(value === "__none__" ? "" : value);
+                    if (!empreendimentoId && chave?.empreendimento?.id) {
+                      setEmpreendimentoId(chave.empreendimento.id);
+                    }
+                  }}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar chave" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {chaves
+                      .filter((chave) => chave.status === "disponivel")
+                      .filter(
+                        (chave) =>
+                          !empreendimentoId ||
+                          !chave.empreendimento ||
+                          chave.empreendimento.id === empreendimentoId,
+                      )
+                      .map((chave) => (
+                        <SelectItem key={chave.id} value={chave.id}>
+                          {chave.identificador}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="lead-atividade-inicio">Início</Label>

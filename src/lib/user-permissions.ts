@@ -6,7 +6,10 @@ export type UserPermissions = {
 };
 
 export const PERMISSION_GROUPS = [
-  { id: "operacao", label: "Operação" },
+  { id: "operacao", label: "Lançamentos" },
+  { id: "captacao", label: "Captação" },
+  { id: "usados", label: "Venda de Usados" },
+  { id: "locacao", label: "Locação" },
   { id: "fechamento", label: "Fechamento" },
   { id: "catalogo", label: "Catálogo" },
   { id: "gestao", label: "Gestão" },
@@ -47,25 +50,25 @@ export const PERMISSION_MODULES = [
     key: "captacao",
     label: "Captação de imóveis",
     routes: ["/captacao"],
-    group: "operacao",
+    group: "captacao",
   },
   {
     key: "imoveisUsados",
     label: "Venda de imóveis usados",
     routes: ["/imoveis-usados"],
-    group: "operacao",
-  },
-  {
-    key: "locacao",
-    label: "Locação",
-    routes: ["/locacao"],
-    group: "operacao",
+    group: "usados",
   },
   {
     key: "parcerias",
     label: "Corretores parceiros",
     routes: ["/parcerias"],
-    group: "operacao",
+    group: "usados",
+  },
+  {
+    key: "locacao",
+    label: "Locação",
+    routes: ["/locacao"],
+    group: "locacao",
   },
   {
     key: "documentacao",

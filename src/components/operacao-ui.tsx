@@ -2,6 +2,20 @@ import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export function ModulePageTransition({
+  pathname,
+  children,
+}: {
+  pathname: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div key={pathname} className="module-page-in">
+      {children}
+    </div>
+  );
+}
+
 export function OperationSubnav({
   items,
   pathname,
@@ -13,7 +27,7 @@ export function OperationSubnav({
   if (depth > 2) return null;
 
   return (
-    <nav className="mb-5 overflow-x-auto rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-card to-card p-1 shadow-sm shadow-primary/5">
+    <nav className="mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-card to-card p-1 shadow-sm shadow-primary/5">
       <div className="flex min-w-max gap-1">
         {items.map((tab) => {
           const active =
@@ -25,7 +39,7 @@ export function OperationSubnav({
               to={tab.to}
               preload={false}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-300 ease-out",
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-primary/10 hover:text-primary",

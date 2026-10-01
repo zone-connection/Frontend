@@ -5,6 +5,7 @@ import {
   Store,
   Users,
   Kanban,
+  Funnel,
   Crosshair,
   Calendar,
   Building2,
@@ -41,7 +42,6 @@ import {
   BookMarked,
   GraduationCap,
   Handshake,
-  Library,
   Receipt,
   TriangleAlert,
   ClipboardCheck,
@@ -51,7 +51,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
@@ -64,6 +64,7 @@ import {
   sampleLogoPalette,
 } from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
+import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
 import { NovoBadge } from "@/components/novo-badge";
 import { isNavPathNovo, isPageNovo } from "@/lib/novidades";
@@ -158,6 +159,120 @@ function itemMatchesPath(item: NavItem, pathname: string) {
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 }
 
+type OperacaoId = "lancamentos" | "captacao" | "venda-usados" | "locacao";
+
+const OPERACAO_STORAGE_KEY = "crm-operacao-ativa";
+
+/** Mesma cadência de styles.css (.operacao-section-in / -out). */
+const NAV_ITEM_EXIT_MS = 420;
+const NAV_ITEM_EXIT_DELAYS = [
+  20, 55, 90, 125, 160, 195, 230, 265, 300, 335, 370, 405, 440, 475, 510, 545,
+];
+
+function navExitHold(count: number) {
+  const index = Math.min(Math.max(count, 1), NAV_ITEM_EXIT_DELAYS.length) - 1;
+  return NAV_ITEM_EXIT_DELAYS[index] ?? 20;
+}
+
+const OPERACAO_SECTION_IDS = new Set(["operacao", "usados", "locacao"]);
+
+function isOperacaoId(value: string | null): value is OperacaoId {
+  return (
+    value === "lancamentos" ||
+    value === "captacao" ||
+    value === "venda-usados" ||
+    value === "locacao"
+  );
+}
+
+function pathMatchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+const OPERACOES: {
+  id: OperacaoId;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  prefixes: string[];
+  items: NavItem[];
+}[] = [
+  {
+    id: "lancamentos",
+    label: "Lançamentos",
+    description: "Leads, funil e triagem.",
+    icon: Briefcase,
+    prefixes: [
+      "/leads",
+      "/caca-lead",
+      "/funil",
+      "/funil-clientes",
+      "/triagem",
+      "/clientes",
+      "/clientes-perdidos",
+      "/leads-perdidos",
+      "/construtoras",
+    ],
+    items: [
+      { to: "/leads", label: "Leads", icon: Users },
+      { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
+      { to: "/funil", label: "Funil", icon: Funnel },
+      { to: "/triagem", label: "Triagem", icon: ClipboardList },
+      { to: "/clientes", label: "Clientes", icon: UserCircle2 },
+      { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
+      { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
+      { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
+      { to: "/construtoras", label: "Construtoras", icon: Building2 },
+    ],
+  },
+  {
+    id: "captacao",
+    label: "Captação",
+    description: "Proprietários, imóveis e o funil de captação.",
+    icon: Home,
+    prefixes: ["/captacao"],
+    items: [
+      { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+      { to: "/captacao/funil", label: "Funil", icon: Funnel },
+      { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
+      { to: "/captacao/fila", label: "Acompanhamento", icon: Timer },
+      { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+    ],
+  },
+  {
+    id: "venda-usados",
+    label: "Venda de Usados",
+    description: "Estoque, visitas, propostas e parceiros.",
+    icon: Store,
+    prefixes: ["/imoveis-usados", "/parcerias"],
+    items: [
+      { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+      { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
+      { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
+      { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
+      { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
+      { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
+      {
+        id: "parcerias",
+        label: "Parceiros",
+        icon: Handshake,
+        children: [
+          { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
+          { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
+        ],
+      },
+    ],
+  },
+  {
+    id: "locacao",
+    label: "Locação",
+    description: "Visão geral. Funil e contratos ainda não têm telas.",
+    icon: KeyRound,
+    prefixes: ["/locacao"],
+    items: [{ to: "/locacao", label: "Visão geral", icon: LayoutDashboard }],
+  },
+];
+
 const FINANCEIRO_MODULES: NavLeaf[] = [
   {
     to: "/financeiro/visao-geral",
@@ -196,12 +311,10 @@ const FINANCEIRO_MODULES: NavLeaf[] = [
 
 /** Operação da plataforma (super_admin). */
 const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/leads", label: "Leads", icon: Users },
-  { to: "/funil", label: "Funil", icon: Kanban },
+  { to: "/funil", label: "Funil", icon: Funnel },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/metas", label: "Metas", icon: Target },
-  { to: "/treinamento", label: "Treinamento", icon: GraduationCap },
 ];
 
 /** Fechamento da plataforma (super_admin) — sem Documentação nem Propostas. */
@@ -271,29 +384,47 @@ const NAV_SECTIONS: {
 }[] = [
   {
     id: "operacao",
-    label: "Operação",
+    label: "Lançamentos",
     icon: Briefcase,
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-      { to: "/funil", label: "Funil", icon: Kanban },
+      { to: "/funil", label: "Funil", icon: Funnel },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
-      { to: "/agenda", label: "Agenda", icon: Calendar },
       { to: "/clientes", label: "Clientes", icon: UserCircle2 },
       { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
       { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
       { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
+    ],
+  },
+  {
+    id: "usados",
+    label: "Usados",
+    icon: Store,
+    items: [
       {
         id: "captacao",
         label: "Captação",
         icon: Home,
         children: [
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/captacao/funil", label: "Funil", icon: Kanban },
+          { to: "/captacao/funil", label: "Funil", icon: Funnel },
           { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
           { to: "/captacao/fila", label: "Acompanhamento", icon: Timer },
           { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+        ],
+      },
+      {
+        id: "imoveis-usados",
+        label: "Venda",
+        icon: Store,
+        children: [
+          { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+          { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
+          { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
+          { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
+          { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
+          { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
         ],
       },
       {
@@ -305,20 +436,14 @@ const NAV_SECTIONS: {
           { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
         ],
       },
-      {
-        id: "imoveis-usados",
-        label: "Venda de Usados",
-        icon: Store,
-        children: [
-          { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/imoveis-usados/funil", label: "Funil", icon: Kanban },
-          { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-          { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
-          { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
-          { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
-        ],
-      },
-      { to: "/treinamento", label: "Treinamento", icon: GraduationCap },
+    ],
+  },
+  {
+    id: "locacao",
+    label: "Locação",
+    icon: KeyRound,
+    items: [
+      { to: "/locacao", label: "Visão geral", icon: LayoutDashboard },
     ],
   },
   {
@@ -333,13 +458,32 @@ const NAV_SECTIONS: {
     ],
   },
   {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    standalone: true,
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    icon: Calendar,
+    standalone: true,
+    items: [{ to: "/agenda", label: "Agenda", icon: Calendar }],
+  },
+  {
     id: "catalogo",
-    label: "Catálogo",
-    icon: Library,
-    items: [
-      { to: "/construtoras", label: "Construtoras", icon: Building2 },
-      { to: "/imoveis", label: "Imóveis", icon: Building2 },
-    ],
+    label: "Imóveis",
+    icon: Building2,
+    standalone: true,
+    items: [{ to: "/imoveis", label: "Imóveis", icon: Building2 }],
+  },
+  {
+    id: "treinamento",
+    label: "Treinamento",
+    icon: GraduationCap,
+    standalone: true,
+    items: [{ to: "/treinamento", label: "Treinamento", icon: GraduationCap }],
   },
   {
     id: "gestao",
@@ -412,9 +556,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const plano = user?.tenant?.plano ?? null;
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     operacao: true,
-    financeiro: true,
   });
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [closingSections, setClosingSections] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [closingGroups, setClosingGroups] = useState<Record<string, boolean>>(
+    {},
+  );
+  const closeTimers = useRef<Record<string, number>>({});
+  const [operacao, setOperacao] = useState<OperacaoId>("lancamentos");
+  const [operacaoPickerOpen, setOperacaoPickerOpen] = useState(false);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [agendaSolicitacoesCount, setAgendaSolicitacoesCount] = useState(0);
   const [agendaUrgencia, setAgendaUrgencia] =
@@ -846,21 +998,112 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .filter((section) => section.items.length > 0);
   }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav]);
 
+  const operacoesDisponiveis = useMemo(() => {
+    if (!user || user.role === "super_admin") return [];
+    return OPERACOES.map((op) => ({
+      ...op,
+      items: op.items
+        .map((item) => {
+          if (isNavGroup(item)) {
+            const children = item.children.filter((child) =>
+              canAccessRoute(
+                user.role,
+                child.to,
+                user.tenant?.modules ?? modules,
+                plano,
+                user.permissions,
+              ),
+            );
+            return children.length ? { ...item, children } : null;
+          }
+          if (item.to === "/caca-lead" && hideCacaLeadNav) return null;
+          if (
+            hideClientesFromSidebar &&
+            (item.to === "/clientes" || item.to === "/funil-clientes")
+          ) {
+            return null;
+          }
+          return canAccessRoute(
+            user.role,
+            item.to,
+            user.tenant?.modules ?? modules,
+            plano,
+            user.permissions,
+          )
+            ? item
+            : null;
+        })
+        .filter((item): item is NavItem => item !== null),
+    })).filter((op) => op.items.length > 0);
+  }, [
+    user,
+    modules,
+    plano,
+    hideCacaLeadNav,
+    hideClientesFromSidebar,
+  ]);
+
+  const operacaoAtiva =
+    operacoesDisponiveis.find((op) => op.id === operacao) ??
+    operacoesDisponiveis[0] ??
+    null;
+
+  useEffect(() => {
+    const saved = localStorage.getItem(OPERACAO_STORAGE_KEY);
+    if (isOperacaoId(saved)) setOperacao(saved);
+  }, []);
+
+  useEffect(() => {
+    const fromPath = OPERACOES.find((op) =>
+      op.prefixes.some((prefix) => pathMatchesPrefix(pathname, prefix)),
+    );
+    if (!fromPath) return;
+    if (!operacoesDisponiveis.some((op) => op.id === fromPath.id)) return;
+    setOperacao(fromPath.id);
+  }, [pathname, operacoesDisponiveis]);
+
+  useEffect(() => {
+    if (!operacoesDisponiveis.length) return;
+    if (!operacoesDisponiveis.some((op) => op.id === operacao)) {
+      setOperacao(operacoesDisponiveis[0].id);
+    }
+  }, [operacao, operacoesDisponiveis]);
+
+  useEffect(() => {
+    if (!operacaoAtiva) return;
+    localStorage.setItem(OPERACAO_STORAGE_KEY, operacaoAtiva.id);
+  }, [operacaoAtiva]);
+
   useEffect(() => {
     const active = navSections.find((section) =>
       section.items.some((item) => itemMatchesPath(item, pathname)),
     );
     if (active) {
+      window.clearTimeout(closeTimers.current[`section:${active.id}`]);
+      delete closeTimers.current[`section:${active.id}`];
+      setClosingSections((prev) => ({ ...prev, [active.id]: false }));
       setOpenSections((prev) => ({ ...prev, [active.id]: true }));
     }
-    for (const section of navSections) {
-      for (const item of section.items) {
-        if (isNavGroup(item) && itemMatchesPath(item, pathname)) {
-          setOpenGroups((prev) => ({ ...prev, [item.id]: true }));
-        }
+    const groups = [
+      ...navSections.flatMap((section) => section.items),
+      ...(operacaoAtiva?.items ?? []),
+    ];
+    for (const item of groups) {
+      if (isNavGroup(item) && itemMatchesPath(item, pathname)) {
+        window.clearTimeout(closeTimers.current[`group:${item.id}`]);
+        delete closeTimers.current[`group:${item.id}`];
+        setClosingGroups((prev) => ({ ...prev, [item.id]: false }));
+        setOpenGroups((prev) => ({ ...prev, [item.id]: true }));
       }
     }
-  }, [pathname, navSections]);
+  }, [pathname, navSections, operacaoAtiva]);
+
+  useEffect(() => {
+    const timers = closeTimers.current;
+    return () => {
+      for (const timer of Object.values(timers)) window.clearTimeout(timer);
+    };
+  }, []);
 
   // Fecha o menu mobile automaticamente quando a rota muda.
   useEffect(() => {
@@ -878,17 +1121,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [mobileNavOpen]);
 
+  function cancelClose(key: string) {
+    window.clearTimeout(closeTimers.current[key]);
+    delete closeTimers.current[key];
+  }
+
+  function beginClose(
+    key: string,
+    count: number,
+    markClosing: (value: boolean) => void,
+    markOpen: (value: boolean) => void,
+  ) {
+    cancelClose(key);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      markClosing(false);
+      markOpen(false);
+      return;
+    }
+    markClosing(true);
+    closeTimers.current[key] = window.setTimeout(() => {
+      markOpen(false);
+      markClosing(false);
+      delete closeTimers.current[key];
+    }, navExitHold(count) + NAV_ITEM_EXIT_MS + 40);
+  }
+
   function toggleSection(id: string) {
     if (collapsed) {
       setCollapsed(false);
+      cancelClose(`section:${id}`);
+      setClosingSections((prev) => ({ ...prev, [id]: false }));
       setOpenSections((prev) => ({ ...prev, [id]: true }));
       return;
     }
-    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (openSections[id] && !closingSections[id]) {
+      const section = navSections.find((item) => item.id === id);
+      beginClose(
+        `section:${id}`,
+        section?.items.length ?? 1,
+        (value) => setClosingSections((prev) => ({ ...prev, [id]: value })),
+        (value) => setOpenSections((prev) => ({ ...prev, [id]: value })),
+      );
+      return;
+    }
+    cancelClose(`section:${id}`);
+    setClosingSections((prev) => ({ ...prev, [id]: false }));
+    setOpenSections((prev) => ({ ...prev, [id]: true }));
   }
 
-  function toggleGroup(id: string) {
-    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+  function toggleGroup(id: string, count = 1) {
+    if (openGroups[id] && !closingGroups[id]) {
+      beginClose(
+        `group:${id}`,
+        count,
+        (value) => setClosingGroups((prev) => ({ ...prev, [id]: value })),
+        (value) => setOpenGroups((prev) => ({ ...prev, [id]: value })),
+      );
+      return;
+    }
+    cancelClose(`group:${id}`);
+    setClosingGroups((prev) => ({ ...prev, [id]: false }));
+    setOpenGroups((prev) => ({ ...prev, [id]: true }));
   }
 
   async function handleSignOut() {
@@ -951,14 +1244,258 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )
     : false;
 
+  function renderOperacaoMenu(
+    collapsedView: boolean,
+    onNavigate?: () => void,
+  ) {
+    if (!operacaoAtiva || user?.role === "super_admin") return null;
+    const ActiveIcon = operacaoAtiva.icon;
+    return (
+      <div className="mb-2 space-y-1">
+        <button
+          type="button"
+          onClick={() => {
+            if (collapsedView) {
+              setCollapsed(false);
+              setOperacaoPickerOpen(true);
+              return;
+            }
+            setOperacaoPickerOpen((open) => !open);
+          }}
+          title="Trocar operação"
+          aria-expanded={operacaoPickerOpen}
+          className={cn(
+            "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-2 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent",
+            collapsedView && "justify-center px-2",
+          )}
+        >
+          <ActiveIcon className="h-4 w-4 shrink-0" />
+          {!collapsedView && (
+            <>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                {operacaoAtiva.label}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50 transition-transform",
+                  operacaoPickerOpen && "rotate-180",
+                )}
+              />
+            </>
+          )}
+        </button>
+        {operacaoPickerOpen && !collapsedView && (
+          <div className="rounded-lg border border-sidebar-border bg-sidebar p-1.5">
+            <div
+              className={cn(
+                "grid gap-1.5",
+                operacoesDisponiveis.length >= 3 ? "grid-cols-3" : "grid-cols-2",
+              )}
+            >
+              {operacoesDisponiveis.map((op) => {
+                const Icon = op.icon;
+                const selected = op.id === operacaoAtiva.id;
+                return (
+                  <button
+                    key={op.id}
+                    type="button"
+                    onClick={() => {
+                      setOperacao(op.id);
+                      setOperacaoPickerOpen(false);
+                    }}
+                    className={cn(
+                      "flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md border px-1.5 py-2 text-center transition-colors",
+                      selected
+                        ? "border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/70",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">
+                      {op.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setOperacaoPickerOpen(false)}
+              className="mt-1 flex w-full cursor-pointer items-center justify-end gap-1 px-1 py-1 text-[11px] text-sidebar-foreground/60 hover:text-sidebar-foreground"
+            >
+              <X className="h-3 w-3" />
+              Fechar
+            </button>
+          </div>
+        )}
+        {!collapsedView && (
+          <div
+            key={operacaoAtiva.id}
+            className="operacao-section-in space-y-0.5 pt-1"
+          >
+            {operacaoAtiva.items.map((item) =>
+              renderNavItem(item, collapsedView, onNavigate),
+            )}
+          </div>
+        )}
+        <div className="mx-1 border-t border-sidebar-border pt-1" />
+      </div>
+    );
+  }
+
+  function renderNavItem(
+    item: NavItem,
+    collapsedView: boolean,
+    onNavigate?: () => void,
+  ) {
+    if (isNavGroup(item)) {
+      const groupOpen = !!openGroups[item.id];
+      const groupActive = itemMatchesPath(item, pathname);
+      const GroupIcon = item.icon;
+      return (
+        <div key={item.id} className="space-y-0.5">
+          <button
+            type="button"
+            onClick={() => toggleGroup(item.id, item.children.length)}
+            className={cn(
+              "flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
+              groupActive
+                ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/75 hover:bg-white/6",
+            )}
+          >
+            <GroupIcon className="h-4 w-4 shrink-0" />
+            <span className="flex-1 truncate text-left">{item.label}</span>
+            {groupOpen && !closingGroups[item.id] ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
+            )}
+          </button>
+          {groupOpen && (
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                closingGroups[item.id] ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+              )}
+              style={
+                closingGroups[item.id]
+                  ? { transitionDelay: `${navExitHold(item.children.length)}ms` }
+                  : undefined
+              }
+            >
+              <div
+                className={cn(
+                  "overflow-hidden space-y-0.5 border-l border-sidebar-border pl-1 ml-2",
+                  closingGroups[item.id]
+                    ? "operacao-section-out"
+                    : "operacao-section-in",
+                )}
+              >
+                {item.children.map((child) =>
+                  renderNavLeaf(child, collapsedView, onNavigate),
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return renderNavLeaf(item, collapsedView, onNavigate);
+  }
+
+  function renderNavLeaf(
+    item: NavLeaf,
+    collapsedView: boolean,
+    onNavigate?: () => void,
+  ) {
+    const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
+    const Icon = item.icon;
+    const isAgenda = item.to === "/agenda";
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        preload="intent"
+        onClick={onNavigate}
+        className={cn(
+          "relative flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-300 ease-out",
+          active
+            ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+            : "text-sidebar-foreground/75 hover:bg-white/6",
+        )}
+      >
+        <span className="relative shrink-0">
+          <Icon className="h-4 w-4" />
+          {isAgenda && showAgendaBadge && collapsedView ? (
+            <span
+              className={cn(
+                "absolute -top-1.5 -right-1.5 size-2 rounded-full",
+                agendaDotClass,
+              )}
+            />
+          ) : null}
+        </span>
+        <span className="flex-1 truncate">{item.label}</span>
+        {isNavPathNovo(item.to) ? <NovoBadge compact /> : null}
+        {isAgenda && showAgendaBadge ? (
+          <Badge
+            className={cn(
+              "h-5 min-w-5 px-1.5 text-[10px]",
+              agendaBadgeClass,
+            )}
+          >
+            {agendaBadgeCount > 9 ? "9+" : agendaBadgeCount}
+          </Badge>
+        ) : null}
+      </Link>
+    );
+  }
+
   // Renderiza as seções de navegação. Reaproveitado tanto pelo <aside> fixo
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
+    const sections =
+      user?.role === "super_admin"
+        ? navSections.filter((section) => section.id !== "agenda")
+        : navSections.filter((section) => !OPERACAO_SECTION_IDS.has(section.id));
+    const acimaDaOperacao = new Set([
+      "dashboard",
+      "agenda",
+      "catalogo",
+      "treinamento",
+    ]);
+    const menuSlots: Array<
+      | { kind: "section"; section: (typeof sections)[number] }
+      | { kind: "operacao" }
+    > = [
+      ...sections
+        .filter((section) => acimaDaOperacao.has(section.id))
+        .map((section) => ({ kind: "section" as const, section })),
+      { kind: "operacao" },
+      ...sections
+        .filter((section) => !acimaDaOperacao.has(section.id))
+        .map((section) => ({ kind: "section" as const, section })),
+    ];
     return (
       <nav className="sidebar-nav-scroll flex-1 overflow-y-auto space-y-1 px-2 py-3">
-        {navSections.map((section) => {
+        {menuSlots.map((slot) => {
+          if (slot.kind === "operacao") {
+            const menu = renderOperacaoMenu(collapsedView, onNavigate);
+            if (!menu) return null;
+            return (
+              <div
+                key="operacao-menu"
+                className="mt-1 border-t border-sidebar-border pt-2"
+              >
+                {menu}
+              </div>
+            );
+          }
+          const section = slot.section;
           const SectionIcon = section.icon;
           const isOpen = !!openSections[section.id];
+          const sectionClosing = !!closingSections[section.id];
           const sectionActive = section.items.some((item) =>
             itemMatchesPath(item, pathname),
           );
@@ -973,6 +1510,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const active =
               pathname === standaloneLeaf.to ||
               pathname.startsWith(`${standaloneLeaf.to}/`);
+            const isAgenda = standaloneLeaf.to === "/agenda";
             return (
               <Link
                 key={section.id}
@@ -987,15 +1525,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                 )}
               >
-                <SectionIcon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    active && "text-brand-accent",
-                  )}
-                />
+                <span className="relative shrink-0">
+                  <SectionIcon className="h-4 w-4" />
+                  {isAgenda && showAgendaBadge && collapsedView ? (
+                    <span
+                      className={cn(
+                        "absolute -top-1.5 -right-1.5 size-2 rounded-full",
+                        agendaDotClass,
+                      )}
+                    />
+                  ) : null}
+                </span>
                 {!collapsedView && (
                   <>
                     <span className="flex-1 truncate">{section.label}</span>
+                    {isAgenda && showAgendaBadge ? (
+                      <Badge
+                        className={cn(
+                          "h-5 min-w-5 px-1.5 text-[10px]",
+                          agendaBadgeClass,
+                        )}
+                      >
+                        {agendaBadgeCount > 9 ? "9+" : agendaBadgeCount}
+                      </Badge>
+                    ) : null}
                     {isNavPathNovo(standaloneLeaf.to) ? (
                       <NovoBadge compact />
                     ) : null}
@@ -1031,7 +1584,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="flex-1 truncate text-left">
                       {section.label}
                     </span>
-                    {isOpen ? (
+                    {isOpen && !sectionClosing ? (
                       <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                     ) : (
                       <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
@@ -1041,7 +1594,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               {isOpen && !collapsedView && (
-                <div className="ml-4 space-y-0.5 border-l border-sidebar-border pl-2">
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    sectionClosing ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+                  )}
+                  style={
+                    sectionClosing
+                      ? { transitionDelay: `${navExitHold(section.items.length)}ms` }
+                      : undefined
+                  }
+                >
+                <div
+                  className={cn(
+                    "overflow-hidden ml-4 space-y-0.5 border-l border-sidebar-border pl-2",
+                    sectionClosing
+                      ? "operacao-section-out"
+                      : "operacao-section-in",
+                  )}
+                >
                   {section.items.map((item) => {
                     if (isNavGroup(item)) {
                       const groupOpen = !!openGroups[item.id];
@@ -1051,7 +1622,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <div key={item.id} className="space-y-0.5">
                           <button
                             type="button"
-                            onClick={() => toggleGroup(item.id)}
+                            onClick={() => toggleGroup(item.id, item.children.length)}
                             className={cn(
                               "flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
                               groupActive
@@ -1063,14 +1634,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <span className="flex-1 truncate text-left">
                               {item.label}
                             </span>
-                            {groupOpen ? (
+                            {groupOpen && !closingGroups[item.id] ? (
                               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                             ) : (
                               <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                             )}
                           </button>
                           {groupOpen && (
-                            <div className="ml-2 space-y-0.5 border-l border-sidebar-border pl-1">
+                            <div
+                              className={cn(
+                                "grid transition-[grid-template-rows] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                                closingGroups[item.id]
+                                  ? "grid-rows-[0fr]"
+                                  : "grid-rows-[1fr]",
+                              )}
+                              style={
+                                closingGroups[item.id]
+                                  ? {
+                                      transitionDelay: `${navExitHold(item.children.length)}ms`,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              <div
+                                className={cn(
+                                  "overflow-hidden ml-2 space-y-0.5 border-l border-sidebar-border pl-1",
+                                  closingGroups[item.id]
+                                    ? "operacao-section-out"
+                                    : "operacao-section-in",
+                                )}
+                              >
                               {item.children.map((child) => {
                                 const active =
                                   pathname === child.to ||
@@ -1099,6 +1692,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                   </Link>
                                 );
                               })}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1149,6 +1743,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </Link>
                     );
                   })}
+                </div>
                 </div>
               )}
             </div>
@@ -1432,7 +2027,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             lockPageScroll && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
           )}
         >
-          {children}
+          {operacaoAtiva?.id === "lancamentos" &&
+          operacaoAtiva.prefixes.some((prefix) =>
+            pathMatchesPrefix(pathname, prefix),
+          ) ? (
+            <OperationSubnav
+              pathname={pathname}
+              items={operacaoAtiva.items.flatMap((item) =>
+                isNavGroup(item) ? item.children : [item],
+              )}
+            />
+          ) : null}
+          {pathname.startsWith("/captacao") ||
+          pathname.startsWith("/imoveis-usados") ||
+          pathname.startsWith("/parcerias") ? (
+            children
+          ) : (
+            <ModulePageTransition pathname={pathname}>
+              <div
+                className={cn(
+                  lockPageScroll &&
+                    "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
+                )}
+              >
+                {children}
+              </div>
+            </ModulePageTransition>
+          )}
         </main>
         <GuiaTourHost />
       </div>

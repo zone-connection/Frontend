@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { Handshake, Home } from "lucide-react";
-import { OperationSubnav } from "@/components/operacao-ui";
+import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
 
 const TABS = [
   { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
@@ -21,7 +21,9 @@ function ParceriasLayout() {
   return (
     <div>
       <OperationSubnav items={[...TABS]} pathname={pathname} />
-      <Outlet />
+      <ModulePageTransition pathname={pathname}>
+        <Outlet />
+      </ModulePageTransition>
     </div>
   );
 }

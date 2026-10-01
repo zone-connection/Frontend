@@ -36,7 +36,7 @@ export type GuiaGroup = {
 export const GUIA_GROUPS: GuiaGroup[] = [
   {
     id: "operacao",
-    label: "Operação",
+    label: "Lançamentos",
     kicker: "Dia a dia comercial",
     description:
       "Da chegada do lead até o acompanhamento na carteira. Aqui mora o atendimento.",
@@ -403,12 +403,12 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         href: "/configuracoes",
         who: "Só o admin da imobiliária liga ou desliga. Comercial, Captação e Usados são operações independentes.",
         summary:
-          "Captação e Venda de Usados não entram no menu enquanto estiverem desligados. Isso não apaga dados: só esconde as pastas Operação → Captação e Operação → Venda de Usados. Locação ainda não tem telas.",
+          "Captação, Venda de Usados e Locação entram no seletor de operação do menu e somem enquanto estiverem desligados. Isso não apaga dados. Locação abre a visão geral; funil, carteira e contratos ainda não têm telas. Dashboard, agenda, imóveis, treinamento e fechamento ficam sempre no menu, fora da operação.",
         actions: [
           {
             title: "Abrir Configurações → Módulos",
             detail:
-              "Em Gestão → Configurações, escolha Módulos (operações imobiliárias). Comercial fica sempre ligado. Ative Captação de Imóveis e/ou Venda de Imóveis Usados e salve. Recarregue se o menu não atualizar na hora.",
+              "Em Gestão → Configurações, escolha Módulos (operações imobiliárias). Comercial fica sempre ligado, como Lançamentos no seletor. Ative Captação de Imóveis, Venda de Imóveis Usados ou Locação para elas entrarem no mesmo seletor, e salve. Recarregue se o menu não atualizar na hora.",
           },
           {
             title: "Criar os funis certos",
@@ -496,7 +496,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
           {
             title: "Kanban da venda",
             detail:
-              "Em Venda de Usados → Funil, arraste o imóvel entre etapas. O card mostra título, proprietário, status de estoque e preço.",
+              "Na operação Venda de Usados, abra Funil e arraste o imóvel entre etapas. O card mostra título, proprietário, status de estoque e preço.",
           },
           {
             title: "Disponibilizar um captado",
@@ -963,7 +963,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
           {
             title: "Módulos de operação",
             detail:
-              "Captação de Imóveis e Venda de Imóveis Usados nascem desligados. Ligue em Configurações → Módulos para aparecerem no menu Operação. Locação ainda não tem telas.",
+              "Captação de Imóveis e Venda de Imóveis Usados nascem desligados. Ligue em Configurações → Módulos para entrarem no seletor de operação. Locação também entra nesse seletor; funil, carteira e contratos ainda não têm telas.",
           },
           {
             title: "Catálogos",

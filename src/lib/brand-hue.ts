@@ -178,13 +178,13 @@ function readableBand(hex: string): string {
 
 let logoChromePalette: string[] = [...LOGO_PALETTE_FALLBACK];
 
-/** Mesmo tom do sidebar, para todo tenant. */
-const SIDEBAR_BUTTON_FROM = "#0a3a5c";
-const SIDEBAR_BUTTON_TO = "#02152d";
-const SIDEBAR_BUTTON_FROM_DARK = "#16527a";
-const SIDEBAR_BUTTON_TO_DARK = "#0a3a5c";
+/** Azul do sistema, mais claro que o menu, para todo tenant. */
+const SIDEBAR_BUTTON_FROM = "#079ed4";
+const SIDEBAR_BUTTON_TO = "#075a82";
+const SIDEBAR_BUTTON_FROM_DARK = "#38bdf8";
+const SIDEBAR_BUTTON_TO_DARK = "#079ed4";
 
-/** Pinta tabelas e KPIs com a logo. Botões ficam no tom do sidebar. */
+/** Pinta tabelas e KPIs com a logo. Botões ficam no azul claro do sistema. */
 export function applyLogoChrome(colors: string[]) {
   logoChromePalette = colors.length ? colors.slice(0, 6) : [...LOGO_PALETTE_FALLBACK];
   if (typeof document === "undefined") return;

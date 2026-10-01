@@ -39,6 +39,7 @@ import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
+import { Route as AppLocacaoRouteImport } from './routes/_app.locacao'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppMuralChavesRouteImport } from './routes/_app.mural-chaves'
 import { Route as AppNovidadesRouteImport } from './routes/_app.novidades'
@@ -261,6 +262,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
   id: '/leads-perdidos',
   path: '/leads-perdidos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLocacaoRoute = AppLocacaoRouteImport.update({
+  id: '/locacao',
+  path: '/locacao',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMetasRoute = AppMetasRouteImport.update({
@@ -682,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/locacao': typeof AppLocacaoRoute
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
@@ -785,6 +792,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/locacao': typeof AppLocacaoRoute
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
@@ -887,6 +895,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/_app/locacao': typeof AppLocacaoRoute
   '/_app/metas': typeof AppMetasRoute
   '/_app/mural-chaves': typeof AppMuralChavesRoute
   '/_app/novidades': typeof AppNovidadesRoute
@@ -994,6 +1003,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/locacao'
     | '/metas'
     | '/mural-chaves'
     | '/novidades'
@@ -1097,6 +1107,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/locacao'
     | '/metas'
     | '/mural-chaves'
     | '/novidades'
@@ -1198,6 +1209,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados'
     | '/_app/leads'
     | '/_app/leads-perdidos'
+    | '/_app/locacao'
     | '/_app/metas'
     | '/_app/mural-chaves'
     | '/_app/novidades'
@@ -1500,6 +1512,13 @@ declare module '@tanstack/react-router' {
       path: '/leads-perdidos'
       fullPath: '/leads-perdidos'
       preLoaderRoute: typeof AppLeadsPerdidosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/locacao': {
+      id: '/_app/locacao'
+      path: '/locacao'
+      fullPath: '/locacao'
+      preLoaderRoute: typeof AppLocacaoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/metas': {
@@ -2202,6 +2221,7 @@ interface AppRouteChildren {
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
+  AppLocacaoRoute: typeof AppLocacaoRoute
   AppMetasRoute: typeof AppMetasRoute
   AppMuralChavesRoute: typeof AppMuralChavesRoute
   AppNovidadesRoute: typeof AppNovidadesRoute
@@ -2243,6 +2263,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
+  AppLocacaoRoute: AppLocacaoRoute,
   AppMetasRoute: AppMetasRoute,
   AppMuralChavesRoute: AppMuralChavesRoute,
   AppNovidadesRoute: AppNovidadesRoute,

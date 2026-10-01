@@ -9,6 +9,7 @@ export const AGENDAMENTO_TIPOS = [
   "tarefa",
   "outro",
   "bloqueio",
+  "retirada_chave",
 ] as const;
 
 export type AgendamentoTipo = (typeof AGENDAMENTO_TIPOS)[number];
@@ -57,6 +58,7 @@ export const AGENDAMENTO_TIPO_LABEL: Record<AgendamentoTipo, string> = {
   tarefa: "Tarefa",
   outro: "Outro",
   bloqueio: "Bloqueio",
+  retirada_chave: "Retirada de chave",
 };
 
 export const AGENDAMENTO_STATUS_LABEL: Record<AgendamentoStatus, string> = {
@@ -154,6 +156,7 @@ export const AGENDAMENTO_TIPO_BLOCK: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#0e6f8a] border-[#0a5a75] text-white",
   outro: "bg-[#64748b] border-[#475569] text-white",
   bloqueio: `bg-slate-400/80 border-slate-500 text-white border-dashed ${BLOQUEIO_HATCH}`,
+  retirada_chave: "bg-[#075a82] border-[#054a6b] text-white",
   aniversario: "bg-[#5bc4e8] border-[#079ed4] text-[#053647]",
 };
 
@@ -171,6 +174,8 @@ export const AGENDAMENTO_TIPO_SOFT: Record<AgendamentoVisual, string> = {
     "bg-[#64748b]/12 text-[#475569] dark:text-slate-300 border-[#64748b]/30",
   bloqueio:
     "bg-slate-500/10 text-slate-700 dark:text-slate-200 border-slate-500/35 border-dashed",
+  retirada_chave:
+    "bg-[#075a82]/12 text-[#075a82] dark:text-[#7ec8e8] border-[#075a82]/30",
   aniversario:
     "bg-[#5bc4e8]/20 text-[#04648a] dark:text-[#5bc4e8] border-[#5bc4e8]/40",
 };
@@ -183,6 +188,7 @@ export const AGENDAMENTO_TIPO_WELL: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#0e6f8a] text-white",
   outro: "bg-[#64748b] text-white",
   bloqueio: "bg-slate-500 text-white",
+  retirada_chave: "bg-[#075a82] text-white",
   aniversario: "bg-[#5bc4e8] text-[#053647]",
 };
 
@@ -194,6 +200,7 @@ export const AGENDAMENTO_TIPO_ACCENT: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#0e6f8a]",
   outro: "bg-[#64748b]",
   bloqueio: "bg-slate-400",
+  retirada_chave: "bg-[#075a82]",
   aniversario: "bg-[#5bc4e8]",
 };
 
@@ -206,6 +213,7 @@ export const AGENDAMENTO_TIPO_CARD: Record<AgendamentoVisual, string> = {
   outro: "bg-card border-border border-l-[#64748b] text-foreground",
   bloqueio:
     "bg-muted/40 border-slate-400/50 border-l-slate-400 border-dashed text-foreground",
+  retirada_chave: "bg-card border-border border-l-[#075a82] text-foreground",
   aniversario: "bg-card border-border border-l-[#5bc4e8] text-foreground",
 };
 
@@ -217,6 +225,7 @@ export const AGENDAMENTO_TIPO_DOT: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#0e6f8a]",
   outro: "bg-[#64748b]",
   bloqueio: "bg-slate-400 ring-1 ring-slate-500",
+  retirada_chave: "bg-[#075a82]",
   aniversario: "bg-[#5bc4e8]",
 };
 
@@ -250,15 +259,27 @@ export function getAgendamentoCardSubtitle(item: {
   autor: { name: string };
   atribuidoParaId?: string | null;
   lead?: { nome: string } | null;
+  empreendimento?: { nome: string } | null;
+  muralChave?: { identificador: string } | null;
+  chaveRetiradaEm?: string | null;
 }) {
   if (isAgendamentoBloqueio(item)) {
     return item.titulo?.trim() || null;
   }
+  const vinculo = [
+    item.empreendimento?.nome,
+    item.muralChave
+      ? `Chave ${item.muralChave.identificador}${item.chaveRetiradaEm ? " retirada" : ""}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   if (item.atribuidoParaId) {
     const base = `De ${item.autor.name}`;
-    return item.lead?.nome ? `${base} · ${item.lead.nome}` : base;
+    const nome = item.lead?.nome;
+    return [base, nome, vinculo].filter(Boolean).join(" · ");
   }
-  return item.lead?.nome ?? null;
+  return [item.lead?.nome, vinculo].filter(Boolean).join(" · ") || null;
 }
 
 /** Cor do evento: aniversário tem tom próprio; o resto segue o tipo. */
@@ -325,6 +346,11 @@ export interface Agendamento {
     corretorId: string | null;
     corretor: { id: string; name: string } | null;
   } | null;
+  empreendimentoId: string | null;
+  empreendimento: { id: string; nome: string } | null;
+  muralChaveId: string | null;
+  muralChave: { id: string; identificador: string; status: string } | null;
+  chaveRetiradaEm: string | null;
 }
 
 export type CreateAgendamentoInput = {
@@ -346,6 +372,8 @@ export type CreateAgendamentoInput = {
   recurrenceFreq?: AgendamentoRecurrenceFreq;
   recurrenceDays?: number[];
   recurrenceUntil?: string | null;
+  empreendimentoId?: string | null;
+  muralChaveId?: string | null;
 };
 
 export type UpdateAgendamentoInput = Partial<

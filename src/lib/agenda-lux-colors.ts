@@ -7,6 +7,7 @@ export const AGENDA_LUX_BLOCK: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#e0892a] border-[#c4731c] text-white",
   outro: "bg-[#2aa3a3] border-[#218686] text-white",
   bloqueio: "bg-[#d45c5c] border-[#b94a4a] text-white",
+  retirada_chave: "bg-[#075a82] border-[#054a6b] text-white",
   aniversario: "bg-[#d46aa8] border-[#b85590] text-white",
 };
 
@@ -17,5 +18,6 @@ export const AGENDA_LUX_CHIP: Record<AgendamentoVisual, string> = {
   tarefa: "bg-[#e0892a] text-white",
   outro: "bg-[#2aa3a3] text-white",
   bloqueio: "bg-[#d45c5c] text-white",
+  retirada_chave: "bg-[#075a82] text-white",
   aniversario: "bg-[#d46aa8] text-white",
 };

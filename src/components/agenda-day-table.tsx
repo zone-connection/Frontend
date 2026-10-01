@@ -513,6 +513,15 @@ export function AgendaDayTable({
                               {item.local}
                             </span>
                           ) : null}
+                          {item.empreendimento ? (
+                            <span>{item.empreendimento.nome}</span>
+                          ) : null}
+                          {item.muralChave ? (
+                            <span>
+                              Chave {item.muralChave.identificador}
+                              {item.chaveRetiradaEm ? " · retirada" : ""}
+                            </span>
+                          ) : null}
                           {!item.lead &&
                           !item.local &&
                           !showCorretor &&

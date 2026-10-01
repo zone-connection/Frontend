@@ -94,6 +94,11 @@ import {
   type CreateAgendamentoInput,
 } from "@/lib/agenda-api";
 import { AgendamentoTipoOption, AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
+import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
+import {
+  fetchMuralChaves,
+  type MuralChave,
+} from "@/lib/mural-chaves-api";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   CalendarDays,
@@ -176,6 +181,8 @@ type FormState = {
   recurrenceDays: number[];
   recurrenceUntil: string;
   seriesId: string | null;
+  empreendimentoId: string;
+  muralChaveId: string;
 };
 
 const emptyForm = (): FormState => {
@@ -201,6 +208,8 @@ const emptyForm = (): FormState => {
     recurrenceDays: [now.getDay()],
     recurrenceUntil: "",
     seriesId: null,
+    empreendimentoId: "",
+    muralChaveId: "",
   };
 };
 
@@ -270,6 +279,10 @@ function AgendaPage() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [empreendimentoOptions, setEmpreendimentoOptions] = useState<
+    { id: string; nome: string }[]
+  >([]);
+  const [chaveOptions, setChaveOptions] = useState<MuralChave[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteSeriesId, setDeleteSeriesId] = useState<string | null>(null);
@@ -359,6 +372,32 @@ function AgendaPage() {
       null
     );
   }, [filterCorretorId, search.nome, corretorFilterOptions]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (form.tipo !== "visita" && form.tipo !== "retirada_chave") return;
+    let cancelado = false;
+    void fetchEmpreendimentos({ ativo: true })
+      .then((rows) => {
+        if (cancelado) return;
+        setEmpreendimentoOptions(
+          rows.map((item) => ({ id: item.id, nome: item.nome })),
+        );
+      })
+      .catch(() => {
+        if (!cancelado) setEmpreendimentoOptions([]);
+      });
+    void fetchMuralChaves()
+      .then((rows) => {
+        if (!cancelado) setChaveOptions(rows);
+      })
+      .catch(() => {
+        if (!cancelado) setChaveOptions([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [open, form.tipo]);
 
   useEffect(() => {
     if (search.corretorId) {
@@ -686,6 +725,8 @@ function AgendaPage() {
         ? toDateInput(new Date(item.recurrenceUntil))
         : "",
       seriesId: item.seriesId ?? null,
+      empreendimentoId: item.empreendimentoId ?? "",
+      muralChaveId: item.muralChaveId ?? "",
     });
     setOpen(true);
   }
@@ -778,6 +819,11 @@ function AgendaPage() {
       return null;
     }
 
+    if (form.tipo === "retirada_chave" && !form.muralChaveId) {
+      toast.error("Selecione a chave da retirada.");
+      return null;
+    }
+
     const startsAt = combineLocalIso(form.date, form.timeStart);
     const endsAt = form.timeEnd
       ? combineLocalIso(form.date, form.timeEnd)
@@ -819,6 +865,14 @@ function AgendaPage() {
       endsAt,
       local: form.local.trim() || null,
       observacoes: form.observacoes.trim() || null,
+      empreendimentoId:
+        form.tipo === "visita" || form.tipo === "retirada_chave"
+          ? form.empreendimentoId || null
+          : null,
+      muralChaveId:
+        form.tipo === "visita" || form.tipo === "retirada_chave"
+          ? form.muralChaveId || null
+          : null,
       ...(isBloqueio
         ? {
             recurrenceFreq: form.recurrenceFreq,
@@ -883,6 +937,8 @@ function AgendaPage() {
           endsAt: payload.endsAt,
           local: payload.local,
           observacoes: payload.observacoes,
+          empreendimentoId: payload.empreendimentoId,
+          muralChaveId: payload.muralChaveId,
           ...(payload.alvoTipo
             ? {
                 alvoTipo: payload.alvoTipo,
@@ -1804,7 +1860,9 @@ function AgendaPage() {
                           : tipo === "visita" || tipo === "reuniao"
                             ? "com_gerente"
                             : prev.escopo === "com_gerente" &&
-                                (tipo === "tarefa" || tipo === "ligacao")
+                                (tipo === "tarefa" ||
+                                  tipo === "ligacao" ||
+                                  tipo === "retirada_chave")
                               ? "pessoal"
                               : prev.escopo,
                       timeEnd:
@@ -1823,6 +1881,96 @@ function AgendaPage() {
                   }}
                 />
               </div>
+
+              {form.tipo === "visita" || form.tipo === "retirada_chave" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>
+                      Empreendimento
+                      {form.tipo === "visita" ? " (opc.)" : ""}
+                    </Label>
+                    <Select
+                      value={form.empreendimentoId || "__none__"}
+                      onValueChange={(value) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          empreendimentoId: value === "__none__" ? "" : value,
+                          muralChaveId:
+                            value !== "__none__" &&
+                            prev.muralChaveId &&
+                            chaveOptions.find((chave) => chave.id === prev.muralChaveId)
+                              ?.empreendimento?.id &&
+                            chaveOptions.find((chave) => chave.id === prev.muralChaveId)
+                              ?.empreendimento?.id !== value
+                              ? ""
+                              : prev.muralChaveId,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar empreendimento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {empreendimentoOptions.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Chave{form.tipo === "retirada_chave" ? "" : " (opc.)"}
+                    </Label>
+                    <Select
+                      value={form.muralChaveId || "__none__"}
+                      onValueChange={(value) => {
+                        const chave = chaveOptions.find((item) => item.id === value);
+                        setForm((prev) => ({
+                          ...prev,
+                          muralChaveId: value === "__none__" ? "" : value,
+                          empreendimentoId:
+                            prev.empreendimentoId ||
+                            chave?.empreendimento?.id ||
+                            "",
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar chave" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {chaveOptions
+                          .filter(
+                            (chave) =>
+                              chave.status === "disponivel" ||
+                              chave.id === form.muralChaveId,
+                          )
+                          .filter(
+                            (chave) =>
+                              !form.empreendimentoId ||
+                              !chave.empreendimento ||
+                              chave.empreendimento.id === form.empreendimentoId,
+                          )
+                          .map((chave) => (
+                            <SelectItem key={chave.id} value={chave.id}>
+                              {chave.identificador}
+                              {chave.empreendimento
+                                ? ` · ${chave.empreendimento.nome}`
+                                : ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Agendar reserva a chave. A retirada no mural confirma, sem criar outro compromisso.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
               {!isAdmin &&
               !isPlatformAdmin &&

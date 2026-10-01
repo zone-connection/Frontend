@@ -8,6 +8,7 @@ import {
   FileText,
   Handshake,
   Home,
+  KeyRound,
   Phone,
   Plus,
   UserRound,
@@ -40,6 +41,7 @@ const LUX_CHIP_ICON: Record<AgendamentoVisual, LucideIcon> = {
   tarefa: FileText,
   outro: CalendarDays,
   bloqueio: Ban,
+  retirada_chave: KeyRound,
   aniversario: Cake,
 };
 

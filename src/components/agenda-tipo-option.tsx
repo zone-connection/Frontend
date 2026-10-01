@@ -10,6 +10,7 @@ import {
   Ban,
   CalendarDays,
   CheckSquare,
+  KeyRound,
   MapPin,
   Phone,
   Users,
@@ -23,6 +24,7 @@ export const AGENDAMENTO_TIPO_ICON: Record<AgendamentoTipo, LucideIcon> = {
   tarefa: CheckSquare,
   outro: CalendarDays,
   bloqueio: Ban,
+  retirada_chave: KeyRound,
 };
 
 /** Bolinha na cor do tipo — a mesma do bloco no calendário. */
