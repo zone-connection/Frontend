@@ -1442,7 +1442,7 @@ function DocumentacaoPage() {
         } else {
           const telefone = placeholderClientPhone(form.nome.trim());
           const created = await addLead({
-            tipo: "cliente",
+            tipo: "lead",
             nome: form.nome.trim(),
             telefone,
             email: `cliente.${Date.now().toString(36)}@pendente.local`,
@@ -1830,7 +1830,7 @@ function DocumentacaoPage() {
           if (!lead) {
             const telefone = placeholderClientPhone(row.nome);
             lead = await addLead({
-              tipo: "cliente",
+              tipo: "lead",
               nome: row.nome,
               telefone,
               email: `cliente.${Date.now().toString(36)}@pendente.local`,
@@ -2867,10 +2867,10 @@ function DocumentacaoPage() {
                       className="mt-0.5"
                     />
                     <span className="text-sm leading-snug">
-                      <span className="font-medium">Cliente novo</span>
+                      <span className="font-medium">Lead novo</span>
                       <span className="block text-muted-foreground text-xs">
-                        Marque se o cliente ainda não está no banco — ao salvar,
-                        o cadastro é criado junto com a documentação.
+                        Marque se a pessoa ainda não está no banco — ao salvar,
+                        entra como lead no funil de lançamentos, junto com a documentação.
                       </span>
                     </span>
                   </label>

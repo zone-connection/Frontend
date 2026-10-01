@@ -162,7 +162,8 @@ import { cn } from "@/lib/utils";
 import { getWhatsAppUrl } from "@/lib/env";
 import { phoneDigits } from "@/lib/phone";
 import { celebrateAfterDocumentacao } from "@/lib/celebrations";
-import { isStatusVendido, pickCatalogLabel } from "@/lib/documentacao-status";
+import { isStatusVendido, isStatusAprovadoDoc, pickCatalogLabel } from "@/lib/documentacao-status";
+import { leadEntraNoFunil } from "@/lib/funil-tipo-filtro";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
 /** Slug legado (fallback se o funil não tiver papel configurado). */
@@ -374,16 +375,15 @@ export function ComercialFunilBoard({
 
   const leads = useMemo(() => {
     let list = allLeads.filter((l) => {
-      if (l.tipo === tipoFiltro) return true;
-      // Admin com a opção ligada: clientes dos corretores também no funil geral.
-      if (
-        !isClientesFunil &&
-        adminVeClientesCorretor &&
-        l.tipo === "cliente"
-      ) {
-        return true;
-      }
-      return false;
+      return leadEntraNoFunil({
+        tipo: l.tipo,
+        tipoFiltro,
+        isClientesFunil,
+        aprovadoNaDocumentacao:
+          isStatusAprovadoDoc(l.documentacaoStatus1) ||
+          l.analise?.status === "aprovado",
+        adminVeClientesCorretor,
+      });
     });
 
     // Clientes = carteira pessoal, salvo admin com opção de ver corretores.
