@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FlowBar } from "@/components/flow-bar";
 import {
@@ -37,6 +38,7 @@ import {
   type DashboardAdmin,
   type DashboardRanking,
   type DashboardRankingCorretor,
+  type PeriodoGranularidade,
 } from "@/lib/dashboard-api";
 import { cn } from "@/lib/utils";
 import {
@@ -74,12 +76,100 @@ const chartConfig = {
   taxa: { label: "Taxa %", color: "hsl(262 83% 58%)" },
 } satisfies ChartConfig;
 
-function formatMesLabel(inicioIso: string) {
-  return new Date(inicioIso).toLocaleDateString("pt-BR", {
+const GRANULARIDADE_OPTIONS: {
+  value: PeriodoGranularidade;
+  label: string;
+}[] = [
+  { value: "mes", label: "Mensal" },
+  { value: "bimestre", label: "Bimestre" },
+  { value: "trimestre", label: "Trimestre" },
+  { value: "semestre", label: "Semestre" },
+  { value: "anual", label: "Anual" },
+];
+
+const PERIODO_NOUN: Record<PeriodoGranularidade, string> = {
+  mes: "mês",
+  bimestre: "bimestre",
+  trimestre: "trimestre",
+  semestre: "semestre",
+  anual: "ano",
+};
+
+const MESES_CURTOS = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+] as const;
+
+function duracaoMeses(g: PeriodoGranularidade) {
+  if (g === "bimestre") return 2;
+  if (g === "trimestre") return 3;
+  if (g === "semestre") return 6;
+  if (g === "anual") return 12;
+  return 1;
+}
+
+function snapMes(mes: number, g: PeriodoGranularidade) {
+  const d = duracaoMeses(g);
+  return Math.floor((mes - 1) / d) * d + 1;
+}
+
+function recortesDoPeriodo(g: PeriodoGranularidade) {
+  const d = duracaoMeses(g);
+  const items: { mes: number; label: string }[] = [];
+  for (let start = 1; start <= 12; start += d) {
+    if (g === "anual") break;
+    const idx = Math.floor((start - 1) / d) + 1;
+    const fim = start + d - 1;
+    const faixa =
+      d === 1
+        ? MESES_CURTOS[start - 1]
+        : `${MESES_CURTOS[start - 1]}–${MESES_CURTOS[fim - 1]}`;
+    items.push({ mes: start, label: `${idx}º (${faixa})` });
+  }
+  return items;
+}
+
+function nomeMes(mes: number, ano: number) {
+  return new Date(Date.UTC(ano, mes - 1, 1)).toLocaleDateString("pt-BR", {
     month: "long",
-    year: "numeric",
-    timeZone: "America/Recife",
+    timeZone: "UTC",
   });
+}
+
+function labelPeriodo(g: PeriodoGranularidade, mes: number, ano: number) {
+  if (g === "anual") return String(ano);
+  if (g === "mes") return `${nomeMes(mes, ano)} de ${ano}`;
+  const recorte = recortesDoPeriodo(g).find((item) => item.mes === mes);
+  return recorte ? `${recorte.label} de ${ano}` : `${ano}`;
+}
+
+function agoraBrasil() {
+  const brasil = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  return {
+    ano: brasil.getUTCFullYear(),
+    mes: brasil.getUTCMonth() + 1,
+  };
+}
+
+function descricaoPeriodo(
+  platform: boolean,
+  periodoLabel: string,
+  periodoNoun: string,
+) {
+  const comparacao = `comparação com o ${periodoNoun} anterior`;
+  return platform
+    ? `Vendas e conversão · ${periodoLabel} · ${comparacao}.`
+    : `Documentações do ${periodoNoun} × vendas · ${periodoLabel} · ${comparacao}.`;
 }
 
 function money(n: number) {
@@ -109,6 +199,17 @@ function Page() {
   const [search, setSearch] = useState("");
   const [equipe, setEquipe] = useState("__all__");
   const [sortBy, setSortBy] = useState<SortKey>("taxa");
+  const agora = useMemo(() => agoraBrasil(), []);
+  const [granularidade, setGranularidade] =
+    useState<PeriodoGranularidade>("mes");
+  const [mes, setMes] = useState(agora.mes);
+  const [ano, setAno] = useState(agora.ano);
+
+  const anosDisponiveis = useMemo(() => {
+    const list: number[] = [];
+    for (let y = agora.ano; y >= agora.ano - 5; y -= 1) list.push(y);
+    return list;
+  }, [agora.ano]);
 
   const load = useCallback(async () => {
     if (!canView) {
@@ -117,13 +218,14 @@ function Page() {
     }
     setLoading(true);
     try {
+      const filtros = { mes, ano, granularidade };
       if (isPlatformAdmin) {
-        setAdmin(await fetchDashboardAdmin());
+        setAdmin(await fetchDashboardAdmin(filtros));
         setRanking(null);
       } else {
         const [a, r] = await Promise.all([
-          fetchDashboardAdmin(),
-          fetchDashboardRanking(),
+          fetchDashboardAdmin(filtros),
+          fetchDashboardRanking(filtros),
         ]);
         setAdmin(a);
         setRanking(r);
@@ -139,7 +241,7 @@ function Page() {
     } finally {
       setLoading(false);
     }
-  }, [canView, isPlatformAdmin]);
+  }, [canView, isPlatformAdmin, mes, ano, granularidade]);
 
   useEffect(() => {
     void load();
@@ -207,6 +309,86 @@ function Page() {
   const hasActiveFilters = Boolean(
     search || (!isGerente && equipe !== "__all__"),
   );
+  const periodoLabel = useMemo(
+    () => labelPeriodo(granularidade, snapMes(mes, granularidade), ano),
+    [granularidade, mes, ano],
+  );
+  const recortes = useMemo(
+    () => recortesDoPeriodo(granularidade),
+    [granularidade],
+  );
+  const periodoNoun = PERIODO_NOUN[granularidade];
+  const descricao = descricaoPeriodo(
+    isPlatformAdmin,
+    periodoLabel,
+    periodoNoun,
+  );
+  const filtrosPeriodo = (
+    <div className="flex flex-wrap items-end gap-2">
+      <div className="space-y-1">
+        <Label className="text-[11px] text-muted-foreground">Período</Label>
+        <Select
+          value={granularidade}
+          onValueChange={(value) => {
+            const next = value as PeriodoGranularidade;
+            setGranularidade(next);
+            setMes(snapMes(mes, next));
+          }}
+        >
+          <SelectTrigger className="h-9 w-32 bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {GRANULARIDADE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {granularidade !== "anual" ? (
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground">
+            {granularidade === "mes" ? "Mês" : "Recorte"}
+          </Label>
+          <Select
+            value={String(snapMes(mes, granularidade))}
+            onValueChange={(value) => setMes(Number(value))}
+          >
+            <SelectTrigger className="h-9 min-w-38 bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {recortes.map((item) => (
+                <SelectItem key={item.mes} value={String(item.mes)}>
+                  {granularidade === "mes" ? nomeMes(item.mes, ano) : item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+      <div className="space-y-1">
+        <Label className="text-[11px] text-muted-foreground">Ano</Label>
+        <Select
+          value={String(ano)}
+          onValueChange={(value) => setAno(Number(value))}
+        >
+          <SelectTrigger className="h-9 w-22 bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {anosDisponiveis.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   if (!canView) {
     return (
@@ -230,7 +412,11 @@ function Page() {
   if (loading && !admin && !ranking) {
     return (
       <div>
-        <PageHeader title="Taxa de conversão" />
+        <PageHeader
+          title="Taxa de conversão"
+          description={descricao}
+          actions={filtrosPeriodo}
+        />
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
           Carregando indicadores…
@@ -242,7 +428,11 @@ function Page() {
   if (!admin || (!isPlatformAdmin && !ranking)) {
     return (
       <div>
-        <PageHeader title="Taxa de conversão" />
+        <PageHeader
+          title="Taxa de conversão"
+          description={descricao}
+          actions={filtrosPeriodo}
+        />
         <SemConexao
           title="Indicadores indisponíveis"
           description="Não foi possível carregar os dados de conversão."
@@ -251,18 +441,14 @@ function Page() {
     );
   }
 
-  const mes = formatMesLabel(admin.periodo.mesAtual.inicio);
   const conv = admin.conversao;
 
   return (
     <div>
       <PageHeader
         title="Taxa de conversão"
-        description={
-          isPlatformAdmin
-            ? `Vendas e conversão · ${mes} · comparação com o mês anterior.`
-            : `Documentações do mês × vendas · ${mes} · comparação com o mês anterior.`
-        }
+        description={descricao}
+        actions={filtrosPeriodo}
       />
 
       <section
@@ -333,12 +519,12 @@ function Page() {
 
       <Card className="mb-4 overflow-hidden rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Funil do mês</CardTitle>
+          <CardTitle className="text-base">Funil do {periodoNoun}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {isPlatformAdmin ? (
               <>
                 {conv.vendas.valor} venda
-                {conv.vendas.valor === 1 ? "" : "s"} no mês (
+                {conv.vendas.valor === 1 ? "" : "s"} no {periodoNoun} (
                 <span className="table-person-name tabular-nums">
                   {conv.taxa.valor.toLocaleString("pt-BR", {
                     maximumFractionDigits: 1,
@@ -354,7 +540,7 @@ function Page() {
                 <span className="table-person-name tabular-nums">
                   {conv.documentacoes.valor}
                 </span>{" "}
-                documentações do mês,{" "}
+                documentações do {periodoNoun},{" "}
                 <span className="table-person-name tabular-nums">
                   {conv.vendas.valor}
                 </span>{" "}
@@ -392,7 +578,7 @@ function Page() {
             tone="emerald"
           />
           <FlowBar
-            label="Perdidos no mês"
+            label={`Perdidos no ${periodoNoun}`}
             value={admin.perdidos.mes.valor}
             max={Math.max(
               isPlatformAdmin
@@ -527,7 +713,7 @@ function Page() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Taxa por corretor (%)</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Conversão = vendas ÷ documentações do mês.
+              Conversão = vendas ÷ documentações do {periodoNoun}.
             </p>
           </CardHeader>
           <CardContent className="min-w-0">
