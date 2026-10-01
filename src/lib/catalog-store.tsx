@@ -47,9 +47,47 @@ export const INITIAL_STAGE_SLUG = "novo";
 const LEGACY_PAPEL_BY_SLUG: Record<string, FunilEtapaPapel> = {
   novo: "inicial",
   "em-analise": "analise",
+  venda: "venda",
   "ganho-venda": "venda",
   perdido: "perdido",
 };
+
+function foldEtapaNome(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function papelPorNome(
+  label: string | null | undefined,
+  slug: string | null | undefined,
+): FunilEtapaPapel | null {
+  const nome = foldEtapaNome(label);
+  const id = foldEtapaNome(slug);
+  if (
+    nome === "venda" ||
+    nome === "vendido" ||
+    nome === "vendida" ||
+    nome === "ganho / venda" ||
+    id === "venda" ||
+    id === "vendido" ||
+    id === "vendida" ||
+    id === "ganho-venda"
+  ) {
+    return "venda";
+  }
+  if (
+    nome === "perdido" ||
+    nome === "perdida" ||
+    id === "perdido" ||
+    id === "perdida"
+  ) {
+    return "perdido";
+  }
+  return null;
+}
 
 function resolvePapel(
   item: CatalogItem,
@@ -57,6 +95,8 @@ function resolvePapel(
 ): FunilEtapaPapel | null {
   if (item.papel) return item.papel;
   const slug = item.slug ?? "";
+  const porNome = papelPorNome(item.label, slug);
+  if (porNome) return porNome;
   const legacy = LEGACY_PAPEL_BY_SLUG[slug] ?? null;
   if (!legacy) return null;
   if (siblings.some((s) => s.id !== item.id && s.papel === legacy)) {

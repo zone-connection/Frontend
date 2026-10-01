@@ -98,6 +98,7 @@ function Page() {
   }
 
   function setModule(key: string, value: boolean) {
+    if (selected?.role === "corretor" && key === "presenca") return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next: UserPermissions = {
@@ -290,7 +291,11 @@ function Page() {
                           <span className="text-sm">{mod.label}</span>
                           <Switch
                             checked={draft.modules[mod.key] === true}
-                            disabled={!canEdit}
+                            disabled={
+                              !canEdit ||
+                              (selected?.role === "corretor" &&
+                                mod.key === "presenca")
+                            }
                             onCheckedChange={(v) => setModule(mod.key, v)}
                           />
                         </label>

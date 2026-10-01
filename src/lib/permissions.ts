@@ -125,7 +125,6 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/guia-sistema",
     "/clientes",
     "/clientes-perdidos",
-    "/presenca",
     "/mural-chaves",
     "/metas",
     "/triagem",

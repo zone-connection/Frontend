@@ -289,7 +289,11 @@ export function ComercialFunilBoard({
         lead.monitoramento,
         funilAtivo.inatividadeValor,
         funilAtivo.inatividadeUnidade,
-        { terminal: isEtapaMonitoramentoTerminal(papel) },
+        {
+          terminal:
+            isEtapaMonitoramentoTerminal(papel) ||
+            isStatusVendido(lead.documentacaoStatus2),
+        },
       ),
     };
   }
