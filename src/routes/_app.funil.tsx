@@ -379,9 +379,11 @@ export function ComercialFunilBoard({
         tipo: l.tipo,
         tipoFiltro,
         isClientesFunil,
-        aprovadoNaDocumentacao:
-          isStatusAprovadoDoc(l.documentacaoStatus1) ||
-          l.analise?.status === "aprovado",
+        fichaDeLancamento:
+          l.tipo === "lead" ||
+          Boolean(l.documentacaoStatus1?.trim()) ||
+          Boolean(l.analise?.status) ||
+          isStatusAprovadoDoc(l.documentacaoStatus1),
         adminVeClientesCorretor,
       });
     });

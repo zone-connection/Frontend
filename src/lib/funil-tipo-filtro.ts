@@ -1,19 +1,20 @@
-/** Quem a documentação aprovou fica no funil de lançamentos, fora da carteira. */
+/**
+ * Funil de clientes é só a carteira (tipo cliente, sem ficha de lançamento).
+ * Lead nunca entra nessa carteira do corretor.
+ */
 export function leadEntraNoFunil(input: {
   tipo: string;
   tipoFiltro: string;
   isClientesFunil: boolean;
-  aprovadoNaDocumentacao: boolean;
+  fichaDeLancamento: boolean;
   adminVeClientesCorretor: boolean;
 }): boolean {
-  if (input.aprovadoNaDocumentacao) return !input.isClientesFunil;
-  if (input.tipo === input.tipoFiltro) return true;
-  if (
-    !input.isClientesFunil &&
-    input.adminVeClientesCorretor &&
-    input.tipo === "cliente"
-  ) {
-    return true;
+  const ehLead = input.tipo === "lead" || input.fichaDeLancamento;
+  if (input.isClientesFunil) {
+    if (ehLead) return false;
+    return input.tipo === "cliente";
   }
-  return false;
+  if (ehLead) return true;
+  if (input.adminVeClientesCorretor && input.tipo === "cliente") return true;
+  return input.tipo === input.tipoFiltro;
 }

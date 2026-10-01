@@ -3,15 +3,30 @@ import { describe, it } from "node:test";
 import { leadEntraNoFunil } from "../src/lib/funil-tipo-filtro.ts";
 
 describe("funil de clientes", () => {
-  it("esconde da carteira quem a documentação aprovou e mostra no funil de leads", () => {
-    const aprovado = {
+  it("não mostra lead na carteira do corretor, mesmo com ficha ou flag de admin", () => {
+    for (const fichaDeLancamento of [false, true]) {
+      assert.equal(
+        leadEntraNoFunil({
+          tipo: "lead",
+          tipoFiltro: "cliente",
+          isClientesFunil: true,
+          fichaDeLancamento,
+          adminVeClientesCorretor: true,
+        }),
+        false,
+      );
+    }
+  });
+
+  it("tira da carteira quem tem ficha de lançamento e mostra no funil de leads", () => {
+    const ficha = {
       tipo: "cliente",
-      aprovadoNaDocumentacao: true,
+      fichaDeLancamento: true,
       adminVeClientesCorretor: false,
     };
     assert.equal(
       leadEntraNoFunil({
-        ...aprovado,
+        ...ficha,
         tipoFiltro: "cliente",
         isClientesFunil: true,
       }),
@@ -19,7 +34,7 @@ describe("funil de clientes", () => {
     );
     assert.equal(
       leadEntraNoFunil({
-        ...aprovado,
+        ...ficha,
         tipoFiltro: "lead",
         isClientesFunil: false,
       }),
@@ -27,13 +42,13 @@ describe("funil de clientes", () => {
     );
   });
 
-  it("mantém cliente sem aprovação na carteira e lead comum no funil de lançamentos", () => {
+  it("mantém cliente sem ficha na carteira e lead comum no funil de lançamentos", () => {
     assert.equal(
       leadEntraNoFunil({
         tipo: "cliente",
         tipoFiltro: "cliente",
         isClientesFunil: true,
-        aprovadoNaDocumentacao: false,
+        fichaDeLancamento: false,
         adminVeClientesCorretor: false,
       }),
       true,
@@ -41,19 +56,9 @@ describe("funil de clientes", () => {
     assert.equal(
       leadEntraNoFunil({
         tipo: "lead",
-        tipoFiltro: "cliente",
-        isClientesFunil: true,
-        aprovadoNaDocumentacao: false,
-        adminVeClientesCorretor: false,
-      }),
-      false,
-    );
-    assert.equal(
-      leadEntraNoFunil({
-        tipo: "lead",
         tipoFiltro: "lead",
         isClientesFunil: false,
-        aprovadoNaDocumentacao: false,
+        fichaDeLancamento: false,
         adminVeClientesCorretor: false,
       }),
       true,
