@@ -68,7 +68,7 @@ export const NOVIDADES: Novidade[] = [
       "Em Permissões, libere o mural para quem deve retirar ou gerenciar.",
     ],
     how: [
-      "Cadastre a chave com empreendimento e imóvel.",
+      "Cadastre a chave vinculada a um imóvel de captação ou de usados.",
       "Registre a retirada, com quem está e a previsão de devolução.",
       "Na devolução, o corretor confirma no próximo acesso.",
     ],

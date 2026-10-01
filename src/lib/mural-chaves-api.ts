@@ -3,6 +3,14 @@ import { apiFetch } from "@/lib/api";
 export type MuralChaveStatus = "disponivel" | "em_uso";
 export type MuralChaveLocal = "proprietario" | "imobiliaria" | "corretor" | "outro";
 
+export type MuralImovelOrigem = "captacao" | "usado" | "ambos";
+
+export const MURAL_ORIGEM_LABEL: Record<MuralImovelOrigem, string> = {
+  captacao: "Captação",
+  usado: "Usado",
+  ambos: "Captação e usado",
+};
+
 export type MuralChave = {
   id: string;
   identificador: string;
@@ -14,6 +22,7 @@ export type MuralChave = {
   comQuem: string;
   unidade: string;
   imovelLabel: string;
+  origem: MuralImovelOrigem | null;
   empreendimento: { id: string; nome: string } | null;
   imovel: { id: string; label: string } | null;
   responsavelAtual: { id: string; name: string } | null;
@@ -51,9 +60,15 @@ export type MuralChaveHistoricoItem = {
   createdAt: string;
 };
 
+export type MuralImovelOpcao = {
+  id: string;
+  label: string;
+  origem: MuralImovelOrigem;
+};
+
 export type MuralChaveOpcoes = {
   empreendimentos: { id: string; nome: string }[];
-  imoveis: { id: string; label: string }[];
+  imoveis: MuralImovelOpcao[];
   usuarios: { id: string; name: string; role: string }[];
   tipos: string[];
 };

@@ -55,6 +55,7 @@ import {
   fetchMuralChaves,
   formatChaveQuando,
   MURAL_LOCAIS_CADASTRO,
+  MURAL_ORIGEM_LABEL,
   retiradaManualMuralChave,
   retirarMuralChave,
   updateMuralChave,
@@ -62,6 +63,7 @@ import {
   type MuralChaveHistoricoItem,
   type MuralChaveLocal,
   type MuralChaveOpcoes,
+  type MuralImovelOrigem,
 } from "@/lib/mural-chaves-api";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +92,22 @@ function toIso(value: string) {
 
 function fieldClass() {
   return "flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm";
+}
+
+function rotuloOrigem(origem: MuralImovelOrigem | null | undefined) {
+  if (!origem) return "";
+  return MURAL_ORIGEM_LABEL[origem];
+}
+
+function rotuloImovelOpcao(item: { label: string; origem: MuralImovelOrigem | null }) {
+  const origem = rotuloOrigem(item.origem);
+  return origem ? `${origem} · ${item.label}` : item.label;
+}
+
+function chaveNaOrigem(chave: MuralChave, origem: "" | "captacao" | "usado") {
+  if (!origem) return true;
+  if (chave.origem === "ambos") return true;
+  return chave.origem === origem;
 }
 
 const ICONE_MOVIMENTO: Record<string, { icon: LucideIcon; classe: string }> = {
@@ -315,6 +333,9 @@ function PainelChave({
             <div className="min-w-0">
               <p className="text-[11px] text-muted-foreground">Imóvel</p>
               <p className="truncate text-sm font-medium">{chave.imovelLabel || "—"}</p>
+              {rotuloOrigem(chave.origem) ? (
+                <p className="truncate text-[11px] text-muted-foreground">{rotuloOrigem(chave.origem)}</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -506,6 +527,7 @@ export function MuralChavesPage() {
   const [q, setQ] = useState("");
   const [faixa, setFaixa] = useState<FaixaChave | "">("");
   const [empreendimentoId, setEmpreendimentoId] = useState("");
+  const [origemFiltro, setOrigemFiltro] = useState<"" | "captacao" | "usado">("");
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -569,7 +591,7 @@ export function MuralChavesPage() {
 
   useEffect(() => {
     setPagina(1);
-  }, [q, faixa, empreendimentoId, tipoFiltro, responsavel]);
+  }, [q, faixa, empreendimentoId, origemFiltro, tipoFiltro, responsavel]);
 
   useEffect(() => {
     void fetchNotificacoes()
@@ -656,12 +678,8 @@ export function MuralChavesPage() {
       toast.error("Informe o tipo da chave.");
       return;
     }
-    if (!formEmpreendimento && !formImovel) {
-      toast.error("Vincule a chave a um imóvel, a um empreendimento, ou aos dois.");
-      return;
-    }
-    if (!formImovel && !unidade.trim()) {
-      toast.error("Informe a unidade do imóvel, por exemplo Apartamento 304.");
+    if (!formImovel) {
+      toast.error("Vincule a chave a um imóvel de captação ou de usados.");
       return;
     }
     setSalvando(true);
@@ -763,15 +781,23 @@ export function MuralChavesPage() {
     return chaves.filter((chave) => {
       if (faixa && faixaDaChave(chave) !== faixa) return false;
       if (empreendimentoId && chave.empreendimento?.id !== empreendimentoId) return false;
+      if (!chaveNaOrigem(chave, origemFiltro)) return false;
       if (tipoFiltro && chave.tipo !== tipoFiltro) return false;
       if (responsavel && chave.comQuem !== responsavel) return false;
       if (!texto) return true;
-      const alvo = [chave.identificador, chave.tipo, chave.imovelLabel, chave.empreendimento?.nome, chave.comQuem]
+      const alvo = [
+        chave.identificador,
+        chave.tipo,
+        chave.imovelLabel,
+        rotuloOrigem(chave.origem),
+        chave.empreendimento?.nome,
+        chave.comQuem,
+      ]
         .join(" ")
         .toLocaleLowerCase("pt-BR");
       return alvo.includes(texto);
     });
-  }, [chaves, empreendimentoId, faixa, tipoFiltro, responsavel, texto]);
+  }, [chaves, empreendimentoId, origemFiltro, faixa, tipoFiltro, responsavel, texto]);
   const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const visiveis = lista.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
@@ -800,6 +826,7 @@ export function MuralChavesPage() {
     setQ("");
     setFaixa("");
     setEmpreendimentoId("");
+    setOrigemFiltro("");
     setTipoFiltro("");
     setResponsavel("");
     setPagina(1);
@@ -811,6 +838,19 @@ export function MuralChavesPage() {
 
   const tiposCadastro = tiposFiltro;
   const tipoEhNovo = tipoPersonalizado || (tipo.trim() !== "" && !tiposCadastro.includes(tipo));
+  const imoveisCadastro = useMemo(() => {
+    const lista = opcoes?.imoveis ?? [];
+    if (!formImovel || lista.some((item) => item.id === formImovel)) return lista;
+    if (acao?.tipo !== "editar" || acao.chave.imovel?.id !== formImovel) return lista;
+    return [
+      ...lista,
+      {
+        id: acao.chave.imovel.id,
+        label: acao.chave.imovel.label,
+        origem: acao.chave.origem,
+      },
+    ];
+  }, [acao, formImovel, opcoes?.imoveis]);
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col gap-4">
@@ -824,8 +864,8 @@ export function MuralChavesPage() {
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Mural de Chaves</h1>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Controle centralizado das chaves dos imóveis. Saiba em tempo real onde está cada
-                  chave, quem está com ela e seu status.
+                  Controle das chaves dos imóveis de captação e de usados. Saiba em tempo real onde
+                  está cada chave, quem está com ela e seu status.
                 </p>
               </div>
             </div>
@@ -867,7 +907,7 @@ export function MuralChavesPage() {
               <Input
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
-                placeholder="Buscar chave, imóvel, empreendimento..."
+                placeholder="Buscar chave, imóvel, captação ou usado..."
                 className="pl-9"
               />
             </div>
@@ -882,6 +922,17 @@ export function MuralChavesPage() {
                   {item}
                 </option>
               ))}
+            </select>
+            <select
+              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+              value={origemFiltro}
+              onChange={(event) =>
+                setOrigemFiltro(event.target.value as "" | "captacao" | "usado")
+              }
+            >
+              <option value="">Origem</option>
+              <option value="captacao">Captação</option>
+              <option value="usado">Usado</option>
             </select>
             <select
               className={cn(fieldClass(), "w-auto max-w-[200px]")}
@@ -980,7 +1031,14 @@ export function MuralChavesPage() {
                           <td className="px-3 py-3 text-muted-foreground">
                             {chave.empreendimento?.nome || "—"}
                           </td>
-                          <td className="px-3 py-3">{chave.imovelLabel || "—"}</td>
+                          <td className="px-3 py-3">
+                            <p>{chave.imovelLabel || "—"}</p>
+                            {rotuloOrigem(chave.origem) ? (
+                              <p className="text-[11px] text-muted-foreground">
+                                {rotuloOrigem(chave.origem)}
+                              </p>
+                            ) : null}
+                          </td>
                           <td className="px-3 py-3">{chave.tipo || "—"}</td>
                           <td className="px-3 py-3">
                             <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", visual.pill)}>
@@ -1182,8 +1240,8 @@ export function MuralChavesPage() {
           <DialogHeader>
             <DialogTitle>{acao?.tipo === "editar" ? "Editar chave" : "Nova chave"}</DialogTitle>
             <DialogDescription>
-              O identificador fica livre para o padrão da imobiliária. O vínculo e o histórico
-              permanecem se o código mudar.
+              O identificador fica livre para o padrão da imobiliária. A chave fica vinculada a um
+              imóvel de captação ou de usados, e o histórico permanece se o código mudar.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -1222,20 +1280,23 @@ export function MuralChavesPage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="chave-imovel">Imóvel cadastrado</Label>
+                <Label htmlFor="chave-imovel">Imóvel de captação ou usados</Label>
                 <select
                   id="chave-imovel"
                   className={fieldClass()}
                   value={formImovel}
                   onChange={(event) => setFormImovel(event.target.value)}
                 >
-                  <option value="">Nenhum</option>
-                  {opcoes?.imoveis.map((item) => (
+                  <option value="">Selecione</option>
+                  {imoveisCadastro.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.label}
+                      {rotuloImovelOpcao(item)}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-muted-foreground">
+                  Só entram imóveis que estão na captação, na venda de usados, ou nos dois.
+                </p>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1494,7 +1555,7 @@ export function MuralChavesPage() {
                     </p>
                     <DialogTitle className="mt-1 text-2xl">{acao.chave.identificador}</DialogTitle>
                     <DialogDescription className="mt-1">
-                      {acao.chave.empreendimento?.nome || "Sem empreendimento"}
+                      {rotuloOrigem(acao.chave.origem) || "Sem origem"}
                       {" · "}
                       {acao.chave.imovelLabel}
                     </DialogDescription>
