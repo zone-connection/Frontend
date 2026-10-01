@@ -64,7 +64,7 @@ import {
   FormDialogShell,
   FormSection,
 } from "@/components/form-dialog";
-import { brl, type Lead } from "@/lib/crm-types";
+import { brl } from "@/lib/crm-types";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -119,7 +119,6 @@ import {
   exportDocumentacoesToPdf,
   normalizePersonName,
   parseDocumentacoesFile,
-  placeholderClientPhone,
   type ParsedImportDoc,
 } from "@/lib/documentacao-io";
 import {
@@ -137,10 +136,7 @@ import {
 import { createUser } from "@/lib/users-api";
 import { CorPicker } from "@/components/cor-picker";
 import { fetchEquipeGerentes, type EquipeOptionUser } from "@/lib/equipes-api";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Check,
-  ChevronsUpDown,
   FolderOpen,
   Plus,
   Loader2,
@@ -185,14 +181,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { IdSearchSelect } from "@/components/id-search-select";
 
 const DOC_STATUS_CHIP = cn(STATUS_CHIP_CLASS, "justify-start text-left");
@@ -278,8 +266,6 @@ function creditUserLabel(user: { name: string; role?: string | null }) {
 }
 
 type FormState = {
-  contatoId: string;
-  novoCliente: boolean;
   nome: string;
   construtoraId: string;
   empreendimentoId: string;
@@ -302,8 +288,6 @@ type FormState = {
 };
 
 const emptyForm = (): FormState => ({
-  contatoId: "",
-  novoCliente: false,
   nome: "",
   construtoraId: "",
   empreendimentoId: "",
@@ -598,17 +582,8 @@ function DocumentacaoPage() {
     user?.role === "treinee";
   const canMutateDocs = user?.role === "admin" || user?.role === "analista";
   const canEditDocs = canMutateDocs || user?.role === "gerente";
+  const { assignees } = useLeads();
   const {
-    leads,
-    assignees,
-    loading: leadsLoading,
-    addLead,
-    refresh: refreshLeads,
-  } = useLeads();
-  const {
-    funnelStages,
-    defaultStageId,
-    origens,
     documentacaoFontes,
     documentacaoStatus1,
     documentacaoStatus2,
@@ -667,7 +642,6 @@ function DocumentacaoPage() {
   const [importFileName, setImportFileName] = useState("");
 
   const [open, setOpen] = useState(false);
-  const [contatoPickerOpen, setContatoPickerOpen] = useState(false);
   const [createLocked, setCreateLocked] = useState(false);
   const [leaveCreateOpen, setLeaveCreateOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit" | "view">(
@@ -696,11 +670,6 @@ function DocumentacaoPage() {
   const [statusLabel, setStatusLabel] = useState("");
   const [fonteOpen, setFonteOpen] = useState(false);
   const [fonteLabel, setFonteLabel] = useState("");
-
-  const stageLabel = useCallback(
-    (slug: string) => funnelStages.find((s) => s.id === slug)?.name ?? slug,
-    [funnelStages],
-  );
 
   const corretorOptions = useMemo(() => {
     // Lista dedicada da API de documentação (todos os corretores ativos).
@@ -771,27 +740,6 @@ function DocumentacaoPage() {
       (e) => !e.construtoraId || e.construtoraId === form.construtoraId,
     );
   }, [empreendimentos, form.construtoraId]);
-
-  const visibleLeads = useMemo(() => {
-    if (!user) return [];
-    if (!isManager) {
-      return leads.filter(
-        (l) => l.corretorId === user.id || l.corretor === user.name,
-      );
-    }
-    return leads;
-  }, [leads, user, isManager]);
-
-  const contatoOptions = useMemo(() => {
-    return [...visibleLeads].sort((a, b) =>
-      a.nome.localeCompare(b.nome, "pt-BR"),
-    );
-  }, [visibleLeads]);
-
-  const selectedContato = contatoOptions.find((l) => l.id === form.contatoId);
-  const selectedContatoLabel = selectedContato
-    ? `${selectedContato.nome} · ${selectedContato.tipo === "cliente" ? "Cliente" : "Lead"}`
-    : "—";
 
   const status1Options = useMemo(() => {
     return dedupeStatusOptions(
@@ -931,7 +879,7 @@ function DocumentacaoPage() {
       return false;
     }
     if (filterCorretorId !== "__all__") {
-      const corretorId = doc.corretorId ?? doc.lead.corretorId;
+      const corretorId = doc.corretorId ?? doc.lead?.corretorId;
       if (corretorId !== filterCorretorId) return false;
     }
     if (filterGerenteId !== "__all__" && doc.gerenteId !== filterGerenteId) {
@@ -945,7 +893,7 @@ function DocumentacaoPage() {
       doc.empreendimento?.nome,
       doc.corretor?.name,
       doc.gerente?.name,
-      doc.lead.nome,
+      doc.lead?.nome,
       doc.status1,
       doc.status2,
       displayFonte(doc.fonte),
@@ -1243,39 +1191,6 @@ function DocumentacaoPage() {
     );
   }
 
-  function applyContact(contact: Lead) {
-    setForm((prev) => {
-      const corretorId = isSolo
-        ? user?.id || prev.corretorId
-        : (contact.corretorId ?? prev.corretorId);
-      const gerenteId = isSolo
-        ? ""
-        : gerenteIdOfCorretor(corretorId) || prev.gerenteId;
-      const dataAnalise =
-        prev.dataAnalise ||
-        (isStatusAnalise(prev.status1) ? todayDateInput() : "");
-      return {
-        ...prev,
-        nome: contact.nome,
-        corretorId,
-        gerenteId,
-        construtoraId: contact.construtoraId ?? prev.construtoraId,
-        empreendimentoId: contact.empreendimentoId ?? prev.empreendimentoId,
-        dataAnalise,
-      };
-    });
-  }
-
-  function selectContato(id: string) {
-    setForm((prev) => ({
-      ...prev,
-      contatoId: id,
-      novoCliente: false,
-    }));
-    const contact = leads.find((l) => l.id === id);
-    if (contact) applyContact(contact);
-  }
-
   function resetCreateForm() {
     setFormMode("create");
     setEditingId(null);
@@ -1328,7 +1243,6 @@ function DocumentacaoPage() {
 
   function closeDocDialog() {
     setOpen(false);
-    setContatoPickerOpen(false);
     setCreateLocked(false);
     setLeaveCreateOpen(false);
   }
@@ -1343,8 +1257,6 @@ function DocumentacaoPage() {
 
   function fillFromDoc(doc: Documentacao) {
     setForm({
-      contatoId: doc.leadId,
-      novoCliente: false,
       nome: doc.nome,
       construtoraId: doc.construtoraId ?? "",
       empreendimentoId: doc.empreendimentoId ?? "",
@@ -1381,7 +1293,7 @@ function DocumentacaoPage() {
     setOpen(true);
   }
 
-  function buildPayload(leadId: string): CreateDocumentacaoInput | null {
+  function buildPayload(): CreateDocumentacaoInput | null {
     if (form.nome.trim().length < 2) {
       toast.error("Informe o nome.");
       return null;
@@ -1392,7 +1304,6 @@ function DocumentacaoPage() {
     }
 
     return {
-      leadId,
       nome: form.nome.trim(),
       construtoraId: form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
@@ -1424,45 +1335,7 @@ function DocumentacaoPage() {
 
     setSaving(true);
     try {
-      let leadId = form.contatoId;
-      const criarClienteNovo =
-        formMode === "create" && (form.novoCliente || !leadId);
-
-      if (criarClienteNovo) {
-        if (form.nome.trim().length < 2) {
-          toast.error("Informe o nome do cliente.");
-          return;
-        }
-        const nomeNorm = normalizePersonName(form.nome);
-        const existingByName = leads.find(
-          (l) => normalizePersonName(l.nome) === nomeNorm,
-        );
-        if (existingByName) {
-          leadId = existingByName.id;
-        } else {
-          const telefone = placeholderClientPhone(form.nome.trim());
-          const created = await addLead({
-            tipo: "lead",
-            nome: form.nome.trim(),
-            telefone,
-            email: `cliente.${Date.now().toString(36)}@pendente.local`,
-            origem: origens[0] ?? "Documentação",
-            interesse: "Comprar",
-            cidade: "",
-            bairro: "",
-            stage: defaultStageId,
-            corretorId: form.corretorId || undefined,
-          });
-          leadId = created.id;
-        }
-      }
-
-      if (!leadId && formMode === "edit") {
-        toast.error("Contato inválido.");
-        return;
-      }
-
-      const payload = buildPayload(leadId);
+      const payload = buildPayload();
       if (!payload) return;
 
       const prevDoc =
@@ -1475,19 +1348,14 @@ function DocumentacaoPage() {
 
       if (formMode === "create") {
         const created = await createDocumentacao(payload);
-        toast.success(
-          criarClienteNovo
-            ? "Cliente e documentação criados."
-            : "Documentação criada.",
-        );
+        toast.success("Documentação criada.");
         void celebrateAfterDocumentacao({
           corretorId: created.corretorId ?? payload.corretorId,
           docCreated: true,
           becameVendido: isStatusVendido(created.status2 ?? payload.status2),
         });
       } else if (editingId) {
-        const { leadId: _leadId, ...patch } = payload;
-        const updated = await updateDocumentacao(editingId, patch);
+        const updated = await updateDocumentacao(editingId, payload);
         toast.success("Documentação atualizada.");
         void celebrateAfterDocumentacao({
           corretorId: updated.corretorId ?? payload.corretorId,
@@ -1653,15 +1521,6 @@ function DocumentacaoPage() {
     }
   }
 
-  function findLeadForImport(
-    row: ParsedImportDoc,
-    leadList: typeof leads,
-  ): (typeof leads)[number] | undefined {
-    const nome = normalizePersonName(row.nome);
-    if (!nome) return undefined;
-    return leadList.find((l) => normalizePersonName(l.nome) === nome);
-  }
-
   function resolveIdByName(
     list: { id: string; nome?: string; name?: string }[],
     raw: string,
@@ -1733,7 +1592,6 @@ function DocumentacaoPage() {
     const localEmpreendimentos = [...empreendimentos];
     const localCorretores = [...corretorOptions];
     const localGerentes = [...gerenteOptions];
-    const localLeads = [...leads];
     const localFontes = [...fonteOptions];
     const localStatus1 = [...status1Options];
     const localStatus2 = [...status2Options];
@@ -1825,26 +1683,6 @@ function DocumentacaoPage() {
             corretorId = user.id;
           }
 
-          // Cliente / lead
-          let lead = findLeadForImport(row, localLeads);
-          if (!lead) {
-            const telefone = placeholderClientPhone(row.nome);
-            lead = await addLead({
-              tipo: "lead",
-              nome: row.nome,
-              telefone,
-              email: `cliente.${Date.now().toString(36)}@pendente.local`,
-              origem: origens[0] ?? "Documentação",
-              interesse: "Comprar",
-              cidade: "",
-              bairro: "",
-              stage: defaultStageId,
-              corretorId: corretorId || undefined,
-            });
-            localLeads.push(lead);
-            createdExtras += 1;
-          }
-
           // Construtora
           let construtoraId = resolveIdByName(
             localConstrutoras,
@@ -1918,14 +1756,13 @@ function DocumentacaoPage() {
           }
 
           await createDocumentacao({
-            leadId: lead.id,
             nome: row.nome,
             construtoraId,
             empreendimentoId,
             fonte: row.fonte,
             status1: row.status1,
             status2: row.status2,
-            corretorId: corretorId ?? lead.corretorId ?? null,
+            corretorId: corretorId,
             gerenteId:
               gerenteId ??
               resolveIdByName(localGerentes, row.gerenteNome) ??
@@ -1943,11 +1780,7 @@ function DocumentacaoPage() {
 
       setImportOpen(false);
       setImportRows([]);
-      await Promise.all([
-        loadItems(),
-        loadLookups(),
-        refreshLeads({ silent: true }),
-      ]);
+      await Promise.all([loadItems(), loadLookups()]);
       if (ok > 0) {
         const extras =
           createdExtras > 0
@@ -1974,7 +1807,7 @@ function DocumentacaoPage() {
         title="Documentação"
         description={
           canCreateDoc
-            ? "Fichas operacionais vinculadas a leads e clientes."
+            ? "A ficha nasce aqui, sem card no funil."
             : "Consulta das documentações vinculadas a você."
         }
         actions={
@@ -2049,7 +1882,6 @@ function DocumentacaoPage() {
             {canCreateDoc && (
               <Button
                 onClick={openCreate}
-                disabled={leadsLoading}
                 size="sm"
                 data-guia="doc-nova"
               >
@@ -2665,12 +2497,7 @@ function DocumentacaoPage() {
                         {doc.nome}
                       </div>
                       <div className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
-                        {diasEmAnaliseLabel(doc) ??
-                          `${doc.lead.tipo === "cliente" ? "Cliente" : "Lead"}${
-                            doc.lead.stage
-                              ? ` · ${stageLabel(doc.lead.stage)}`
-                              : ""
-                          }`}
+                        {diasEmAnaliseLabel(doc)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -2727,7 +2554,7 @@ function DocumentacaoPage() {
                     <TableCell>
                       {(() => {
                         const corretor =
-                          doc.corretor ?? doc.lead.corretor ?? null;
+                          doc.corretor ?? doc.lead?.corretor ?? null;
                         if (!corretor?.name) {
                           return (
                             <span className="text-muted-foreground">—</span>
@@ -2848,134 +2675,6 @@ function DocumentacaoPage() {
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
-            <FormSection title="Lead / Cliente">
-              <div className="space-y-4">
-                {formMode === "create" && (
-                  <label className="flex items-start gap-2 rounded-lg border border-border/60 p-3 cursor-pointer hover:bg-muted/30">
-                    <Checkbox
-                      checked={form.novoCliente}
-                      onCheckedChange={(checked) => {
-                        const on = checked === true;
-                        setForm((prev) => ({
-                          ...prev,
-                          novoCliente: on,
-                          contatoId: on ? "" : prev.contatoId,
-                        }));
-                        if (on) setContatoPickerOpen(false);
-                      }}
-                      disabled={readOnly}
-                      className="mt-0.5"
-                    />
-                    <span className="text-sm leading-snug">
-                      <span className="font-medium">Lead novo</span>
-                      <span className="block text-muted-foreground text-xs">
-                        Marque se a pessoa ainda não está no banco — ao salvar,
-                        entra como lead no funil de lançamentos, junto com a documentação.
-                      </span>
-                    </span>
-                  </label>
-                )}
-
-                {!form.novoCliente ? (
-                  <div className="space-y-2">
-                    <Label>Lead ou cliente</Label>
-                    <Popover
-                      modal
-                      open={contatoPickerOpen}
-                      onOpenChange={(next) => {
-                        if (readOnly || formMode === "edit") return;
-                        setContatoPickerOpen(next);
-                      }}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={contatoPickerOpen}
-                          disabled={readOnly || formMode === "edit"}
-                          className="h-9 w-full justify-between rounded-md font-normal"
-                        >
-                          <span className="truncate">
-                            {selectedContatoLabel}
-                          </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-(--radix-popover-trigger-width) p-0"
-                        align="start"
-                        onWheel={(event) => event.stopPropagation()}
-                      >
-                        <Command
-                          filter={(value, search) => {
-                            const norm = (s: string) =>
-                              s
-                                .normalize("NFD")
-                                .replace(/\p{M}/gu, "")
-                                .toLowerCase();
-                            return norm(value).includes(norm(search)) ? 1 : 0;
-                          }}
-                        >
-                          <CommandInput placeholder="Pesquisar pelo nome…" />
-                          <CommandList className="max-h-72">
-                            <CommandEmpty>
-                              Nenhum contato encontrado.
-                            </CommandEmpty>
-                            <CommandGroup>
-                              <CommandItem
-                                value="nenhum contato"
-                                onSelect={() => {
-                                  setForm((prev) => ({
-                                    ...prev,
-                                    contatoId: "",
-                                  }));
-                                  setContatoPickerOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    !form.contatoId
-                                      ? "opacity-100"
-                                      : "opacity-0",
-                                  )}
-                                />
-                                —
-                              </CommandItem>
-                              {contatoOptions.map((l) => (
-                                <CommandItem
-                                  key={l.id}
-                                  value={`${l.nome} ${l.telefone ?? ""} ${l.tipo} ${l.id}`}
-                                  onSelect={() => {
-                                    selectContato(l.id);
-                                    setContatoPickerOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      form.contatoId === l.id
-                                        ? "opacity-100"
-                                        : "opacity-0",
-                                    )}
-                                  />
-                                  <span className="truncate">
-                                    {l.nome} ·{" "}
-                                    {l.tipo === "cliente" ? "Cliente" : "Lead"}
-                                  </span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                ) : null}
-              </div>
-            </FormSection>
-
             <FormSection title="Dados da planilha">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">

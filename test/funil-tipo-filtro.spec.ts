@@ -3,62 +3,47 @@ import { describe, it } from "node:test";
 import { leadEntraNoFunil } from "../src/lib/funil-tipo-filtro.ts";
 
 describe("funil de clientes", () => {
-  it("não mostra lead na carteira do corretor, mesmo com ficha ou flag de admin", () => {
-    for (const fichaDeLancamento of [false, true]) {
-      assert.equal(
-        leadEntraNoFunil({
-          tipo: "lead",
-          tipoFiltro: "cliente",
-          isClientesFunil: true,
-          fichaDeLancamento,
-          adminVeClientesCorretor: true,
-        }),
-        false,
-      );
-    }
+  it("não mostra lead na carteira do corretor, mesmo com flag de admin", () => {
+    assert.equal(
+      leadEntraNoFunil({
+        tipo: "lead",
+        tipoFiltro: "cliente",
+        isClientesFunil: true,
+        adminVeClientesCorretor: true,
+      }),
+      false,
+    );
   });
 
-  it("tira da carteira quem tem ficha de lançamento e mostra no funil de leads", () => {
-    const ficha = {
+  it("mantém cliente na carteira e fora do funil de leads", () => {
+    const cliente = {
       tipo: "cliente",
-      fichaDeLancamento: true,
       adminVeClientesCorretor: false,
     };
     assert.equal(
       leadEntraNoFunil({
-        ...ficha,
+        ...cliente,
         tipoFiltro: "cliente",
         isClientesFunil: true,
       }),
-      false,
+      true,
     );
     assert.equal(
       leadEntraNoFunil({
-        ...ficha,
+        ...cliente,
         tipoFiltro: "lead",
         isClientesFunil: false,
       }),
-      true,
+      false,
     );
   });
 
-  it("mantém cliente sem ficha na carteira e lead comum no funil de lançamentos", () => {
-    assert.equal(
-      leadEntraNoFunil({
-        tipo: "cliente",
-        tipoFiltro: "cliente",
-        isClientesFunil: true,
-        fichaDeLancamento: false,
-        adminVeClientesCorretor: false,
-      }),
-      true,
-    );
+  it("mantém lead comum no funil de lançamentos", () => {
     assert.equal(
       leadEntraNoFunil({
         tipo: "lead",
         tipoFiltro: "lead",
         isClientesFunil: false,
-        fichaDeLancamento: false,
         adminVeClientesCorretor: false,
       }),
       true,

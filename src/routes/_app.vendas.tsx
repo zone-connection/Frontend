@@ -149,7 +149,7 @@ function toVendaEditForm(doc: Documentacao): VendaEditForm {
     nome: doc.nome ?? "",
     construtoraId: doc.construtoraId ?? "",
     empreendimentoId: doc.empreendimentoId ?? "",
-    corretorId: doc.corretorId ?? doc.lead.corretorId ?? "",
+    corretorId: doc.corretorId ?? doc.lead?.corretorId ?? "",
     gerenteId: doc.gerenteId ?? "",
     dataVenda: dateDay(doc.dataVenda),
     vgv: doc.vgv != null ? formatMoneyInput(doc.vgv) : "",
@@ -224,7 +224,7 @@ function VendasDocumentacaoPage() {
         setDocs(
           ownSalesOnly && user?.id
             ? sold.filter(
-                (doc) => (doc.corretorId ?? doc.lead.corretorId) === user.id,
+                (doc) => (doc.corretorId ?? doc.lead?.corretorId) === user.id,
               )
             : sold,
         );
@@ -271,7 +271,7 @@ function VendasDocumentacaoPage() {
       }
     }
     for (const doc of docs) {
-      const corretor = doc.corretor ?? doc.lead.corretor;
+      const corretor = doc.corretor ?? doc.lead?.corretor;
       if (corretor) map.set(corretor.id, corretor.name);
     }
     return [...map.entries()]
@@ -284,16 +284,21 @@ function VendasDocumentacaoPage() {
 
   const origens = useMemo(
     () =>
-      [...new Set(docs.map((doc) => doc.lead.origem).filter(Boolean))].sort(
-        (a, b) => a.localeCompare(b, "pt-BR"),
-      ),
+      [
+        ...new Set(
+          docs.flatMap((doc) => {
+            const origem = doc.lead?.origem?.trim();
+            return origem ? [origem] : [];
+          }),
+        ),
+      ].sort((a, b) => a.localeCompare(b, "pt-BR")),
     [docs],
   );
 
   const filtered = useMemo(() => {
     const query = normalize(applied.search);
     return docs.filter((doc) => {
-      const docCorretorId = doc.corretorId ?? doc.lead.corretorId;
+      const docCorretorId = doc.corretorId ?? doc.lead?.corretorId;
       const equipe = docCorretorId
         ? corretorEquipe.get(docCorretorId)
         : undefined;
@@ -312,7 +317,7 @@ function VendasDocumentacaoPage() {
         docCorretorId !== applied.corretorId
       )
         return false;
-      if (applied.origem !== "__all__" && doc.lead.origem !== applied.origem)
+      if (applied.origem !== "__all__" && doc.lead?.origem !== applied.origem)
         return false;
       if (applied.dataDe && (!vendaDay || vendaDay < applied.dataDe))
         return false;
@@ -325,9 +330,9 @@ function VendasDocumentacaoPage() {
           doc.nome,
           doc.construtora?.nome,
           doc.empreendimento?.nome,
-          doc.corretor?.name ?? doc.lead.corretor?.name,
+          doc.corretor?.name ?? doc.lead?.corretor?.name,
           doc.gerente?.name,
-          doc.lead.origem,
+          doc.lead?.origem,
           equipe?.name,
         ]
           .filter(Boolean)
@@ -352,7 +357,7 @@ function VendasDocumentacaoPage() {
   const origemDonut = useMemo(() => {
     const counts = new Map<string, number>();
     for (const doc of filtered) {
-      const label = doc.lead.origem?.trim() || "Sem origem";
+      const label = doc.lead?.origem?.trim() || "Sem origem";
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
     const fallback = ["#0ea5e9", "#8b5cf6", "#14b8a6", "#f59e0b", "#f43f5e"];
@@ -404,7 +409,7 @@ function VendasDocumentacaoPage() {
     if (editing?.corretor && !map.has(editing.corretor.id)) {
       map.set(editing.corretor.id, editing.corretor);
     }
-    const leadCorretor = editing?.lead.corretor;
+    const leadCorretor = editing?.lead?.corretor;
     if (leadCorretor && !map.has(leadCorretor.id)) {
       map.set(leadCorretor.id, leadCorretor);
     }
@@ -825,12 +830,12 @@ function VendasDocumentacaoPage() {
                 </TableHeader>
                 <TableBody>
                   {pageItems.map((doc) => {
-                    const docCorretorId = doc.corretorId ?? doc.lead.corretorId;
+                    const docCorretorId = doc.corretorId ?? doc.lead?.corretorId;
                     const equipe = docCorretorId
                       ? corretorEquipe.get(docCorretorId)
                       : undefined;
                     const origemLabel = displayFonte(
-                      doc.lead.origem || doc.fonte,
+                      doc.lead?.origem || doc.fonte,
                     );
                     return (
                       <TableRow key={doc.id}>
@@ -862,7 +867,7 @@ function VendasDocumentacaoPage() {
                         ) : null}
                         <TableCell>
                           <span className="table-person-name text-sm">
-                            {doc.corretor?.name ?? doc.lead.corretor?.name ?? "—"}
+                            {doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—"}
                           </span>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">

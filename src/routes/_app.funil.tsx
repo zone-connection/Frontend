@@ -85,7 +85,6 @@ import {
   analiseBadgeClass,
   shouldShowAnaliseStatus,
 } from "@/lib/analise-status";
-import { DocStatus1FunilTag } from "@/components/doc-status1-funil-tag";
 import { leadPodeRedistribuir } from "@/lib/documentacao-status";
 import { ApiError } from "@/lib/api";
 import {
@@ -162,7 +161,7 @@ import { cn } from "@/lib/utils";
 import { getWhatsAppUrl } from "@/lib/env";
 import { phoneDigits } from "@/lib/phone";
 import { celebrateAfterDocumentacao } from "@/lib/celebrations";
-import { isStatusVendido, isStatusAprovadoDoc, pickCatalogLabel } from "@/lib/documentacao-status";
+import { isStatusVendido, pickCatalogLabel } from "@/lib/documentacao-status";
 import { leadEntraNoFunil } from "@/lib/funil-tipo-filtro";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
@@ -290,9 +289,7 @@ export function ComercialFunilBoard({
         funilAtivo.inatividadeValor,
         funilAtivo.inatividadeUnidade,
         {
-          terminal:
-            isEtapaMonitoramentoTerminal(papel) ||
-            isStatusVendido(lead.documentacaoStatus2),
+          terminal: isEtapaMonitoramentoTerminal(papel),
         },
       ),
     };
@@ -383,11 +380,6 @@ export function ComercialFunilBoard({
         tipo: l.tipo,
         tipoFiltro,
         isClientesFunil,
-        fichaDeLancamento:
-          l.tipo === "lead" ||
-          Boolean(l.documentacaoStatus1?.trim()) ||
-          Boolean(l.analise?.status) ||
-          isStatusAprovadoDoc(l.documentacaoStatus1),
         adminVeClientesCorretor,
       });
     });
@@ -1557,7 +1549,6 @@ export function ComercialFunilBoard({
                             }`}
                           />
                         </div>
-                        <DocStatus1FunilTag status1={l.documentacaoStatus1} />
                       </div>
                     </div>
                     {isOrphanColumn && (
@@ -2238,7 +2229,6 @@ function AnalistaFunilBoard() {
         return;
       }
       const created = await createDocumentacao({
-        leadId: item.leadId,
         nome: item.nome,
         construtoraId: item.lead.construtoraId,
         empreendimentoId: item.lead.empreendimentoId,
@@ -2330,7 +2320,6 @@ function AnalistaFunilBoard() {
     setDocSaving(true);
     try {
       const created = await createDocumentacao({
-        leadId: docTarget.leadId,
         nome: docTarget.nome,
         construtoraId: docTarget.lead.construtoraId,
         empreendimentoId: docTarget.lead.empreendimentoId,

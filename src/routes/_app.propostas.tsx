@@ -922,9 +922,9 @@ function Page() {
       setDocumentacoes(docs);
       setAprovadosPorDoc(
         new Set(
-          docs
-            .filter((d) => isStatusAprovadoDoc(d.status1))
-            .map((d) => d.leadId),
+          docs.flatMap((d) =>
+            isStatusAprovadoDoc(d.status1) && d.leadId ? [d.leadId] : [],
+          ),
         ),
       );
       setConstrutoras(cons);

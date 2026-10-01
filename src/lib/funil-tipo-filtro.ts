@@ -1,15 +1,15 @@
 /**
- * Funil de clientes é só a carteira (tipo cliente, sem ficha de lançamento).
- * Lead nunca entra nessa carteira do corretor.
+ * Funil de clientes é a carteira (tipo cliente).
+ * Funil de leads é a prospecção (tipo lead).
+ * Ter ficha de documentação não muda de funil.
  */
 export function leadEntraNoFunil(input: {
   tipo: string;
   tipoFiltro: string;
   isClientesFunil: boolean;
-  fichaDeLancamento: boolean;
   adminVeClientesCorretor: boolean;
 }): boolean {
-  const ehLead = input.tipo === "lead" || input.fichaDeLancamento;
+  const ehLead = input.tipo === "lead";
   if (input.isClientesFunil) {
     if (ehLead) return false;
     return input.tipo === "cliente";

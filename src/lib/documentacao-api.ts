@@ -37,7 +37,7 @@ export const DEFAULT_STATUS2 = ["Vendido", "Bacen", "Andamento"] as const;
 
 export interface Documentacao {
   id: string;
-  leadId: string;
+  leadId: string | null;
   tipoContato: ContatoTipo;
   stageSituacao: StageId;
   nome: string;
@@ -81,11 +81,10 @@ export interface Documentacao {
     origem: string;
     corretorId: string | null;
     corretor: { id: string; name: string; cor: string | null } | null;
-  };
+  } | null;
 }
 
 export type CreateDocumentacaoInput = {
-  leadId: string;
   nome: string;
   construtoraId?: string | null;
   empreendimentoId?: string | null;

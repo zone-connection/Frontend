@@ -1191,7 +1191,7 @@ function LeadsPage() {
         (equipeId !== undefined &&
           equipeId !== (editingLead.equipeId ?? null));
       if (mudouDono) {
-        toast.error("Lead com venda ou VGV não pode ser redistribuído.");
+        toast.error("Lead na etapa de venda não pode ser redistribuído.");
         return;
       }
       equipeId = undefined;

@@ -73,18 +73,14 @@ export function isStatusVendido(
   return status2Group(status) === "vendido";
 }
 
-/** Venda na etapa, ficha vendida ou VGV preenchido não entra na redistribuição. */
+/** Etapa de venda do funil não entra na redistribuição. A ficha não entra nessa conta. */
 export function leadPodeRedistribuir(
   lead: {
     podeRedistribuir?: boolean | null;
-    documentacaoStatus2?: string | null;
-    documentacaoVgv?: number | null;
   },
   papel?: string | null,
 ): boolean {
   if (papel === "venda") return false;
-  if (isStatusVendido(lead.documentacaoStatus2)) return false;
-  if (lead.documentacaoVgv != null) return false;
   if (lead.podeRedistribuir === false) return false;
   return true;
 }
