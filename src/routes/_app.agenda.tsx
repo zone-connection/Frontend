@@ -879,7 +879,9 @@ function AgendaPage() {
     const atribuidoParaId =
       form.alvoTipo === "corretor"
         ? form.alvoCorretorId || null
-        : form.atribuidoParaId || null;
+        : form.tipo === "tarefa"
+          ? form.atribuidoParaId || null
+          : null;
     const isAdminEvent =
       user?.role === "admin" &&
       form.tipo !== "bloqueio" &&
@@ -2051,16 +2053,18 @@ function AgendaPage() {
                   options={tiposDisponiveis}
                   disabled={formMode === "edit"}
                   onChange={(tipo) => {
-                    setForm((prev) => ({
+                    setForm((prev) => {
+                      const atribuidoParaId =
+                        tipo === "tarefa" ? prev.atribuidoParaId : "";
+                      return {
                       ...prev,
                       tipo,
-                      atribuidoParaId:
-                        tipo === "bloqueio" ? "" : prev.atribuidoParaId,
+                      atribuidoParaId,
                       escopo:
                         isAdmin ||
                         isPlatformAdmin ||
                         tipo === "bloqueio" ||
-                        prev.atribuidoParaId
+                        atribuidoParaId
                           ? "pessoal"
                           : tipo === "visita" || tipo === "reuniao"
                             ? "com_gerente"
@@ -2082,7 +2086,8 @@ function AgendaPage() {
                               })()
                             : "15:00"
                           : prev.timeEnd,
-                    }));
+                    };
+                    });
                   }}
                 />
               </div>
@@ -2371,7 +2376,7 @@ function AgendaPage() {
               ) : null}
 
               {(isAdmin || isGerente) &&
-              form.tipo !== "bloqueio" &&
+              form.tipo === "tarefa" &&
               form.alvoTipo !== "corretor" &&
               form.alvoTipo !== "nenhum" ? (
                 <div className="space-y-2">
