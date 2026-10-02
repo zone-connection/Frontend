@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/api";
 import {
   createLead,
   deleteLeadApi,
+  deleteLeadsBulkApi,
   fetchLeadAssignees,
   fetchLeads,
   mapApiLead,
@@ -95,8 +96,13 @@ type LeadsContextValue = {
     updated: number;
     skipped: number;
   }>;
-  /** Exclusão definitiva (admin, lead já perdido). */
+  /** Exclusão definitiva (admin). */
   deleteLead: (id: string) => Promise<void>;
+  /** Exclusão definitiva em lote (admin). */
+  deleteLeads: (ids: string[]) => Promise<{
+    deleted: number;
+    failed: number;
+  }>;
 };
 
 const LeadsContext = createContext<LeadsContextValue | null>(null);
@@ -407,6 +413,33 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const deleteLeads = useCallback(async (ids: string[]) => {
+    const unique = [...new Set(ids)];
+    let removed: Lead[] = [];
+    setLeads((prev) => {
+      removed = prev.filter((l) => unique.includes(l.id));
+      return prev.filter((l) => !unique.includes(l.id));
+    });
+
+    try {
+      const result = await deleteLeadsBulkApi(unique);
+      if (result.failedIds.length > 0) {
+        const failed = new Set(result.failedIds);
+        const restore = removed.filter((l) => failed.has(l.id));
+        if (restore.length > 0) {
+          setLeads((prev) => [...restore, ...prev]);
+        }
+      }
+      return { deleted: result.deleted, failed: result.failedIds.length };
+    } catch (err) {
+      setLeads((prev) => {
+        const existing = new Set(prev.map((l) => l.id));
+        return [...removed.filter((l) => !existing.has(l.id)), ...prev];
+      });
+      throw err;
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       leads,
@@ -423,6 +456,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       markLeadLost,
       markLeadsLost,
       deleteLead,
+      deleteLeads,
     }),
     [
       leads,
@@ -439,6 +473,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       markLeadLost,
       markLeadsLost,
       deleteLead,
+      deleteLeads,
     ],
   );
 

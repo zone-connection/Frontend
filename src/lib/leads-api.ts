@@ -557,7 +557,7 @@ export async function fetchLostClientes(params?: {
   return apiFetch<PaginatedLeads>(`/leads/clientes-perdidos?${qs.toString()}`);
 }
 
-/** Exclusão definitiva (admin, só leads já perdidos). */
+/** Exclusão definitiva (admin). */
 export async function deleteLeadApi(id: string): Promise<void> {
   await apiFetch<void>(`/leads/${id}`, { method: "DELETE" });
 }

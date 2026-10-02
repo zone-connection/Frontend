@@ -501,6 +501,8 @@ function LeadsPage() {
     updateLead,
     markLeadLost,
     markLeadsLost,
+    deleteLead: purgeLeadById,
+    deleteLeads: purgeLeadsByIds,
     applyLead,
     loading,
     assignees,
@@ -572,6 +574,9 @@ function LeadsPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkMotivo, setBulkMotivo] = useState("");
   const [bulkMotivoOutro, setBulkMotivoOutro] = useState("");
+  const [purgeLead, setPurgeLead] = useState<Lead | null>(null);
+  const [bulkPurgeOpen, setBulkPurgeOpen] = useState(false);
+  const [bulkPurging, setBulkPurging] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
   const [atividadePrompt, setAtividadePrompt] =
@@ -1363,6 +1368,57 @@ function LeadsPage() {
     }
   }
 
+  async function confirmPurge() {
+    if (!purgeLead) return;
+    const id = purgeLead.id;
+    const nome = purgeLead.nome;
+    setPurgeLead(null);
+    if (detailLead?.id === id) setDetailLead(null);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await purgeLeadById(id);
+      toast.success(`Lead ${nome} excluído permanentemente.`);
+    } catch (err) {
+      toast.error(
+        userFacingError(err, "Não foi possível excluir o lead permanentemente."),
+      );
+    }
+  }
+
+  async function confirmBulkPurge() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkPurgeOpen(false);
+    setBulkPurging(true);
+    try {
+      const result = await purgeLeadsByIds(ids);
+      setSelectedIds(new Set());
+      if (detailLead && ids.includes(detailLead.id)) setDetailLead(null);
+      if (result.failed > 0) {
+        toast.error(
+          `${result.deleted} excluído(s) permanentemente, ${result.failed} com erro.`,
+        );
+        void refresh();
+      } else {
+        toast.success(
+          result.deleted === 1
+            ? "1 lead excluído permanentemente."
+            : `${result.deleted} leads excluídos permanentemente.`,
+        );
+      }
+    } catch (err) {
+      toast.error(
+        userFacingError(err, "Não foi possível excluir os leads permanentemente."),
+      );
+    } finally {
+      setBulkPurging(false);
+    }
+  }
+
   function openAtividade(lead: Lead) {
     if (!canWriteTriagem || !canAgenda) return;
     const stageName =
@@ -1608,19 +1664,34 @@ function LeadsPage() {
               </DropdownMenu>
               ) : null}
               {selectedCount > 0 && canDeleteLeads && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={bulkDeleting}
-                  onClick={() => setBulkDeleteOpen(true)}
-                >
-                  {bulkDeleting ? (
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 mr-1" />
-                  )}
-                  Excluir ({selectedCount})
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={bulkDeleting}
+                    onClick={() => setBulkDeleteOpen(true)}
+                  >
+                    {bulkDeleting ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-1" />
+                    )}
+                    Excluir ({selectedCount})
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={bulkPurging}
+                    onClick={() => setBulkPurgeOpen(true)}
+                  >
+                    {bulkPurging ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-1" />
+                    )}
+                    Excluir permanentemente ({selectedCount})
+                  </Button>
+                </>
               )}
             </div>
             <Button
@@ -2842,6 +2913,23 @@ function LeadsPage() {
               ]
             : undefined
         }
+        footer={
+          canDeleteLeads && detailLead ? (
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              onClick={() => {
+                const lead = detailLead;
+                setDetailLead(null);
+                setPurgeLead(lead);
+              }}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              Excluir permanentemente
+            </Button>
+          ) : undefined
+        }
       />
 
       <LeadAtividadeDialog
@@ -2986,6 +3074,75 @@ function LeadsPage() {
               }}
             >
               Excluir selecionados
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!purgeLead}
+        onOpenChange={(open) => {
+          if (!open) setPurgeLead(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {purgeLead
+                ? `${purgeLead.nome} será apagado do banco para sempre. Esta ação não pode ser desfeita e o lead não vai para Leads Perdidos.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmPurge();
+              }}
+            >
+              Excluir permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkPurgeOpen}
+        onOpenChange={(open) => {
+          if (!open && !bulkPurging) setBulkPurgeOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {selectedCount} lead(s) permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Os leads selecionados serão apagados do banco para sempre. Esta
+              ação não pode ser desfeita e eles não vão para Leads Perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkPurging}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={bulkPurging}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmBulkPurge();
+              }}
+            >
+              {bulkPurging ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  Excluindo…
+                </>
+              ) : (
+                "Excluir permanentemente"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3763,7 +3920,7 @@ function LeadsPage() {
                               <MoreHorizontal className="w-3.5 h-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuContent align="end" className="w-56">
                             <DropdownMenuItem onClick={() => setDetailLead(l)}>
                               <Eye className="w-4 h-4 mr-2" /> Ver detalhes
                             </DropdownMenuItem>
@@ -3805,6 +3962,15 @@ function LeadsPage() {
                             >
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir
                             </DropdownMenuItem>
+                            {canDeleteLeads ? (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setPurgeLead(l)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                                permanentemente
+                              </DropdownMenuItem>
+                            ) : null}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
