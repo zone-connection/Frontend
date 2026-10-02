@@ -98,7 +98,6 @@ import {
 import { AgendamentoTipoOption, AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import {
   AgendaVisitaOcupacao,
-  AgendaVisitasPainel,
   fimBloqueioLocal,
   rotuloImovel,
 } from "@/components/agenda-visita-ocupacao";
@@ -288,6 +287,8 @@ function AgendaPage() {
   );
   const [filterTipo, setFilterTipo] = useState<string>("__all__");
   const [filterStatus, setFilterStatus] = useState<string>("__all__");
+  const [filterEmpreendimentoId, setFilterEmpreendimentoId] = useState("__all__");
+  const [filterImovelId, setFilterImovelId] = useState("__all__");
 
   const [open, setOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -410,6 +411,35 @@ function AgendaPage() {
       cancelado = true;
     };
   }, [open, formMode, editingId, form.tipo]);
+
+  useEffect(() => {
+    let cancelado = false;
+    void fetchEmpreendimentos({ ativo: true })
+      .then((rows) => {
+        if (!cancelado) {
+          setEmpreendimentoOptions(
+            rows.map((item) => ({ id: item.id, nome: item.nome })),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setEmpreendimentoOptions([]);
+      });
+    void fetchImoveisCaptados()
+      .then((rows) => {
+        if (!cancelado) {
+          setImovelOptions(
+            rows.map((item) => ({ id: item.id, label: rotuloImovel(item) })),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setImovelOptions([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -535,6 +565,8 @@ function AgendaPage() {
     if (isManager && filterCorretorId !== "__all__") n += 1;
     if (filterTipo !== "__all__") n += 1;
     if (filterStatus !== "__all__") n += 1;
+    if (filterEmpreendimentoId !== "__all__") n += 1;
+    if (filterImovelId !== "__all__") n += 1;
     return n;
   }, [
     isAdmin,
@@ -543,6 +575,8 @@ function AgendaPage() {
     filterCorretorId,
     filterTipo,
     filterStatus,
+    filterEmpreendimentoId,
+    filterImovelId,
   ]);
 
   function clearAgendaFilters() {
@@ -550,6 +584,8 @@ function AgendaPage() {
     setFilterCorretorId("__all__");
     setFilterTipo("__all__");
     setFilterStatus("__all__");
+    setFilterEmpreendimentoId("__all__");
+    setFilterImovelId("__all__");
     void navigate({ to: "/agenda", search: {}, replace: true });
   }
 
@@ -607,6 +643,12 @@ function AgendaPage() {
             filterStatus !== "__all__"
               ? (filterStatus as AgendamentoStatus)
               : undefined,
+          empreendimentoId:
+            filterEmpreendimentoId !== "__all__"
+              ? filterEmpreendimentoId
+              : undefined,
+          imovelId:
+            filterImovelId !== "__all__" ? filterImovelId : undefined,
         }),
         showSolicitacoes ? fetchSolicitacoesAgenda() : Promise.resolve([]),
         fetchAgendaKpis({
@@ -642,6 +684,8 @@ function AgendaPage() {
     filterCorretorId,
     filterTipo,
     filterStatus,
+    filterEmpreendimentoId,
+    filterImovelId,
   ]);
 
   useEffect(() => {
@@ -1141,7 +1185,19 @@ function AgendaPage() {
     setCalendarMonth(startOfMonth(next));
   }
 
-  const rangeTitle =
+  const recursoAgendaLabel = [
+    filterEmpreendimentoId !== "__all__"
+      ? empreendimentoOptions.find((item) => item.id === filterEmpreendimentoId)
+          ?.nome
+      : null,
+    filterImovelId !== "__all__"
+      ? imovelOptions.find((item) => item.id === filterImovelId)?.label
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const rangeTitle = `${
     layoutMode === "tabela"
       ? selectedDay.toLocaleDateString("pt-BR", {
           weekday: "long",
@@ -1149,7 +1205,8 @@ function AgendaPage() {
           month: "long",
           year: "numeric",
         })
-      : formatRangeLabel(view, selectedDay);
+      : formatRangeLabel(view, selectedDay)
+  }${recursoAgendaLabel ? ` · ${recursoAgendaLabel}` : ""}`;
 
   return (
     <AgendaLuxShell>
@@ -1179,10 +1236,6 @@ function AgendaPage() {
             Voltar à minha visão
           </Button>
         </div>
-      ) : null}
-
-      {section === "agenda" && (isAdmin || isGerente) ? (
-        <AgendaVisitasPainel dia={toDateInput(selectedDay)} />
       ) : null}
 
       <div className="mb-4 inline-flex rounded-full border border-black/5 bg-card p-1">
@@ -1397,7 +1450,7 @@ function AgendaPage() {
                     ) : null}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 space-y-3 p-4">
+                <PopoverContent align="end" className="w-80 space-y-3 p-4">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium">Filtros</p>
                     {activeFiltersCount > 0 ? (
@@ -1484,6 +1537,52 @@ function AgendaPage() {
                         {AGENDAMENTO_TIPOS.map((t) => (
                           <SelectItem key={t} value={t}>
                             <AgendamentoTipoOption tipo={t} />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      Empreendimento
+                    </Label>
+                    <Select
+                      value={filterEmpreendimentoId}
+                      onValueChange={setFilterEmpreendimentoId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Empreendimento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">
+                          Todos os empreendimentos
+                        </SelectItem>
+                        {empreendimentoOptions.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      Imóvel
+                    </Label>
+                    <Select
+                      value={filterImovelId}
+                      onValueChange={setFilterImovelId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Imóvel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Todos os imóveis</SelectItem>
+                        {imovelOptions.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

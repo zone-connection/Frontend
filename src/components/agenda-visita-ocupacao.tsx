@@ -1,16 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchDisponibilidadeVisitas, type VisitaOcupacao } from "@/lib/agenda-api";
-import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
-import { fetchImoveisCaptados } from "@/lib/imoveis-usados-api";
 import type { Imovel } from "@/lib/captacao-api";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function rotuloImovel(imovel: Pick<Imovel, "logradouro" | "numero" | "bairro" | "cidade">) {
   const endereco = [imovel.logradouro, imovel.numero].filter(Boolean).join(", ");
@@ -137,110 +127,5 @@ export function AgendaVisitaOcupacao({
         </ul>
       )}
     </div>
-  );
-}
-
-export function AgendaVisitasPainel({ dia }: { dia: string }) {
-  const [empreendimentos, setEmpreendimentos] = useState<
-    { id: string; nome: string }[]
-  >([]);
-  const [imoveis, setImoveis] = useState<{ id: string; label: string }[]>([]);
-  const [empreendimentoId, setEmpreendimentoId] = useState("");
-  const [imovelId, setImovelId] = useState("");
-
-  useEffect(() => {
-    let cancelado = false;
-    void fetchEmpreendimentos({ ativo: true })
-      .then((rows) => {
-        if (!cancelado) {
-          setEmpreendimentos(rows.map((item) => ({ id: item.id, nome: item.nome })));
-        }
-      })
-      .catch(() => {
-        if (!cancelado) setEmpreendimentos([]);
-      });
-    void fetchImoveisCaptados()
-      .then((rows) => {
-        if (!cancelado) {
-          setImoveis(rows.map((item) => ({ id: item.id, label: rotuloImovel(item) })));
-        }
-      })
-      .catch(() => {
-        if (!cancelado) setImoveis([]);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-
-  const empreendimentoNome = empreendimentos.find((item) => item.id === empreendimentoId)?.nome;
-  const imovelLabel = imoveis.find((item) => item.id === imovelId)?.label;
-  const titulo = [empreendimentoNome, imovelLabel].filter(Boolean).join(" · ");
-
-  return (
-    <section className="mb-4 rounded-2xl border border-black/5 bg-card p-4">
-      <div className="mb-3">
-        <h2 className="text-sm font-semibold">Agenda de visitas</h2>
-        <p className="text-xs text-muted-foreground">
-          Horários ocupados e disponíveis do empreendimento ou do imóvel no dia selecionado.
-        </p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label>Empreendimento</Label>
-          <Select
-            value={empreendimentoId || "__none__"}
-            onValueChange={(value) =>
-              setEmpreendimentoId(value === "__none__" ? "" : value)
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar empreendimento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">—</SelectItem>
-              {empreendimentos.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Imóvel</Label>
-          <Select
-            value={imovelId || "__none__"}
-            onValueChange={(value) => setImovelId(value === "__none__" ? "" : value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar imóvel" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">—</SelectItem>
-              {imoveis.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="mt-3">
-        {empreendimentoId || imovelId ? (
-          <AgendaVisitaOcupacao
-            empreendimentoId={empreendimentoId || undefined}
-            imovelId={imovelId || undefined}
-            dia={dia}
-            titulo={titulo}
-          />
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Selecione um empreendimento ou um imóvel para ver as visitas do dia.
-          </p>
-        )}
-      </div>
-    </section>
   );
 }

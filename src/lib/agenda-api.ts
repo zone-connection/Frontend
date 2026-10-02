@@ -260,6 +260,8 @@ export function getAgendamentoCardSubtitle(item: {
   atribuidoParaId?: string | null;
   lead?: { nome: string } | null;
   empreendimento?: { nome: string } | null;
+  atribuidoPara?: { name: string } | null;
+  toleranciaAtiva?: boolean;
   muralChave?: { identificador: string } | null;
   chaveRetiradaEm?: string | null;
 }) {
@@ -267,7 +269,11 @@ export function getAgendamentoCardSubtitle(item: {
     return item.titulo?.trim() || null;
   }
   const vinculo = [
+    item.tipo === "visita"
+      ? item.atribuidoPara?.name ?? item.autor.name
+      : null,
     item.empreendimento?.nome,
+    item.tipo === "visita" && item.toleranciaAtiva ? "tolerância de 2 horas" : null,
     item.muralChave
       ? `Chave ${item.muralChave.identificador}${item.chaveRetiradaEm ? " retirada" : ""}`
       : null,
@@ -408,6 +414,8 @@ export type FetchAgendamentosParams = {
   status?: AgendamentoStatus;
   from?: string;
   to?: string;
+  empreendimentoId?: string;
+  imovelId?: string;
 };
 
 export async function fetchAgendamentos(
@@ -420,6 +428,8 @@ export async function fetchAgendamentos(
   if (params.status) qs.set("status", params.status);
   if (params.from) qs.set("from", params.from);
   if (params.to) qs.set("to", params.to);
+  if (params.empreendimentoId) qs.set("empreendimentoId", params.empreendimentoId);
+  if (params.imovelId) qs.set("imovelId", params.imovelId);
   const query = qs.toString();
   return apiFetch<Agendamento[]>(`/agenda${query ? `?${query}` : ""}`);
 }

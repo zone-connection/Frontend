@@ -140,9 +140,11 @@ function hoursList() {
 
 function eventBounds(item: Agendamento) {
   const start = new Date(item.startsAt);
-  const end = item.endsAt
-    ? new Date(item.endsAt)
-    : new Date(start.getTime() + DEFAULT_DURATION_MIN * 60_000);
+  const end = item.bloqueadoAte
+    ? new Date(item.bloqueadoAte)
+    : item.endsAt
+      ? new Date(item.endsAt)
+      : new Date(start.getTime() + DEFAULT_DURATION_MIN * 60_000);
   return { start, end };
 }
 

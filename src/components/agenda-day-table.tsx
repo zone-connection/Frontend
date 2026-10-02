@@ -62,8 +62,9 @@ function formatTime(d: Date) {
 function formatTimeRange(item: Agendamento) {
   const start = new Date(item.startsAt);
   const startLabel = formatTime(start);
-  if (!item.endsAt) return startLabel;
-  return `${startLabel} – ${formatTime(new Date(item.endsAt))}`;
+  const fim = item.bloqueadoAte ?? item.endsAt;
+  if (!fim) return startLabel;
+  return `${startLabel} – ${formatTime(new Date(fim))}`;
 }
 
 function slotBounds(day: Date, hour: number) {
