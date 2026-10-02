@@ -38,6 +38,19 @@ describe("funil de clientes", () => {
     );
   });
 
+  it("não coloca aprovado da documentação na entrada do funil de leads", () => {
+    assert.equal(
+      leadEntraNoFunil({
+        tipo: "lead",
+        tipoFiltro: "lead",
+        isClientesFunil: false,
+        adminVeClientesCorretor: false,
+        aprovadoNaEntrada: true,
+      }),
+      false,
+    );
+  });
+
   it("mantém lead comum no funil de lançamentos", () => {
     assert.equal(
       leadEntraNoFunil({

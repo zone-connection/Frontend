@@ -1,14 +1,16 @@
 /**
  * Funil de clientes é a carteira (tipo cliente).
  * Funil de leads é a prospecção (tipo lead).
- * Ter ficha de documentação não muda de funil.
+ * Quem a documentação ou a análise aprovou e ficou na entrada não entra no funil de leads.
  */
 export function leadEntraNoFunil(input: {
   tipo: string;
   tipoFiltro: string;
   isClientesFunil: boolean;
   adminVeClientesCorretor: boolean;
+  aprovadoNaEntrada?: boolean;
 }): boolean {
+  if (!input.isClientesFunil && input.aprovadoNaEntrada) return false;
   const ehLead = input.tipo === "lead";
   if (input.isClientesFunil) {
     if (ehLead) return false;

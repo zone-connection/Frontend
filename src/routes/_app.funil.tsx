@@ -161,7 +161,11 @@ import { cn } from "@/lib/utils";
 import { getWhatsAppUrl } from "@/lib/env";
 import { phoneDigits } from "@/lib/phone";
 import { celebrateAfterDocumentacao } from "@/lib/celebrations";
-import { isStatusVendido, pickCatalogLabel } from "@/lib/documentacao-status";
+import {
+  isStatusAprovadoDoc,
+  isStatusVendido,
+  pickCatalogLabel,
+} from "@/lib/documentacao-status";
 import { leadEntraNoFunil } from "@/lib/funil-tipo-filtro";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
@@ -375,12 +379,20 @@ export function ComercialFunilBoard({
   }, [assignees, equipes, isGerente, user]);
 
   const leads = useMemo(() => {
+    const etapaInicialId =
+      funnelStages.find((stage) => stage.papel === "inicial")?.id ?? null;
     let list = allLeads.filter((l) => {
+      const aprovadoNaEntrada =
+        etapaInicialId != null &&
+        l.stage === etapaInicialId &&
+        (l.analise?.status === "aprovado" ||
+          isStatusAprovadoDoc(l.documentacaoStatus1));
       return leadEntraNoFunil({
         tipo: l.tipo,
         tipoFiltro,
         isClientesFunil,
         adminVeClientesCorretor,
+        aprovadoNaEntrada,
       });
     });
 
@@ -447,6 +459,7 @@ export function ComercialFunilBoard({
     return list;
   }, [
     allLeads,
+    funnelStages,
     filterCorretorId,
     filterEquipeId,
     filterMeusLeads,

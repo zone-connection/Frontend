@@ -3090,7 +3090,7 @@ function LeadsPage() {
             <AlertDialogTitle>Excluir permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
               {purgeLead
-                ? `${purgeLead.nome} será apagado do banco para sempre. Esta ação não pode ser desfeita e o lead não vai para Leads Perdidos.`
+                ? `${purgeLead.nome} será apagado do funil para sempre. A ficha em Documentações permanece. Esta ação não pode ser desfeita e o lead não vai para Leads Perdidos.`
                 : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -3121,8 +3121,9 @@ function LeadsPage() {
               Excluir {selectedCount} lead(s) permanentemente?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Os leads selecionados serão apagados do banco para sempre. Esta
-              ação não pode ser desfeita e eles não vão para Leads Perdidos.
+              Os leads selecionados serão apagados do funil para sempre. As
+              fichas em Documentações permanecem. Esta ação não pode ser
+              desfeita e eles não vão para Leads Perdidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

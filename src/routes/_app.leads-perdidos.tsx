@@ -720,7 +720,7 @@ function LeadsPerdidos() {
             <AlertDialogTitle>Excluir definitivamente?</AlertDialogTitle>
             <AlertDialogDescription>
               {purgeTarget
-                ? `${purgeTarget.nome} será removido do banco para sempre. Esta ação não pode ser desfeita.`
+                ? `${purgeTarget.nome} será removido do funil para sempre. A ficha em Documentações permanece. Esta ação não pode ser desfeita.`
                 : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -750,8 +750,8 @@ function LeadsPerdidos() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedCount === allVisibleIds.length && search.trim() === ""
-                ? `Todos os ${selectedCount} lead(s) da lista serão removidos do banco para sempre. Esta ação não pode ser desfeita.`
-                : `${selectedCount} lead(s) selecionado(s) serão removidos do banco para sempre. Esta ação não pode ser desfeita.`}
+                ? `Todos os ${selectedCount} lead(s) da lista serão removidos do funil para sempre. As fichas em Documentações permanecem. Esta ação não pode ser desfeita.`
+                : `${selectedCount} lead(s) selecionado(s) serão removidos do funil para sempre. As fichas em Documentações permanecem. Esta ação não pode ser desfeita.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
