@@ -348,6 +348,16 @@ export interface Agendamento {
   } | null;
   empreendimentoId: string | null;
   empreendimento: { id: string; nome: string } | null;
+  imovelId: string | null;
+  toleranciaAtiva: boolean;
+  bloqueadoAte: string | null;
+  imovel: {
+    id: string;
+    logradouro: string;
+    numero: string;
+    bairro: string;
+    cidade: string;
+  } | null;
   muralChaveId: string | null;
   muralChave: { id: string; identificador: string; status: string } | null;
   chaveRetiradaEm: string | null;
@@ -373,6 +383,8 @@ export type CreateAgendamentoInput = {
   recurrenceDays?: number[];
   recurrenceUntil?: string | null;
   empreendimentoId?: string | null;
+  imovelId?: string | null;
+  toleranciaAtiva?: boolean;
   muralChaveId?: string | null;
 };
 
@@ -431,6 +443,48 @@ export async function fetchAgendaKpis(params: {
   if (params.equipeId) qs.set("equipeId", params.equipeId);
   const query = qs.toString();
   return apiFetch<AgendaKpis>(`/agenda/kpis${query ? `?${query}` : ""}`);
+}
+
+export type VisitaOcupacao = {
+  id: string;
+  titulo: string;
+  startsAt: string;
+  endsAt: string | null;
+  bloqueadoAte: string | null;
+  toleranciaAtiva: boolean;
+  corretorNome: string;
+  empreendimentoId: string | null;
+  empreendimentoNome: string | null;
+  imovelId: string | null;
+  imovelLabel: string | null;
+};
+
+export async function fetchDisponibilidadeVisitas(params: {
+  empreendimentoId?: string;
+  imovelId?: string;
+  from: string;
+  to: string;
+}): Promise<{ total: number; visitas: VisitaOcupacao[] }> {
+  const qs = new URLSearchParams();
+  if (params.empreendimentoId) qs.set("empreendimentoId", params.empreendimentoId);
+  if (params.imovelId) qs.set("imovelId", params.imovelId);
+  qs.set("from", params.from);
+  qs.set("to", params.to);
+  return apiFetch(`/agenda/disponibilidade?${qs.toString()}`);
+}
+
+export type AgendamentoHistoricoItem = {
+  id: string;
+  acao: "criado" | "alterado" | "cancelado" | "concluido" | "excluido";
+  detalhe: string;
+  createdAt: string;
+  autor: { id: string; name: string };
+};
+
+export async function fetchHistoricoVisita(
+  id: string,
+): Promise<AgendamentoHistoricoItem[]> {
+  return apiFetch(`/agenda/${id}/historico`);
 }
 
 export async function fetchSolicitacoesAgenda(): Promise<Agendamento[]> {

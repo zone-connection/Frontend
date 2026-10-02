@@ -80,11 +80,13 @@ import {
   deleteAgendamento,
   fetchAgendamentos,
   fetchAgendaKpis,
+  fetchHistoricoVisita,
   fetchSolicitacoesAgenda,
   isAgendamentoAniversario,
   recusarAgendamento,
   updateAgendamento,
   type Agendamento,
+  type AgendamentoHistoricoItem,
   type AgendaKpis,
   type AgendamentoAlvo,
   type AgendamentoEscopo,
@@ -94,6 +96,14 @@ import {
   type CreateAgendamentoInput,
 } from "@/lib/agenda-api";
 import { AgendamentoTipoOption, AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
+import {
+  AgendaVisitaOcupacao,
+  AgendaVisitasPainel,
+  fimBloqueioLocal,
+  rotuloImovel,
+} from "@/components/agenda-visita-ocupacao";
+import { fetchImoveisCaptados } from "@/lib/imoveis-usados-api";
+import { Switch } from "@/components/ui/switch";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import {
   fetchMuralChaves,
@@ -182,6 +192,8 @@ type FormState = {
   recurrenceUntil: string;
   seriesId: string | null;
   empreendimentoId: string;
+  imovelId: string;
+  toleranciaAtiva: boolean;
   muralChaveId: string;
 };
 
@@ -209,6 +221,8 @@ const emptyForm = (): FormState => {
     recurrenceUntil: "",
     seriesId: null,
     empreendimentoId: "",
+    imovelId: "",
+    toleranciaAtiva: false,
     muralChaveId: "",
   };
 };
@@ -282,6 +296,12 @@ function AgendaPage() {
   const [empreendimentoOptions, setEmpreendimentoOptions] = useState<
     { id: string; nome: string }[]
   >([]);
+  const [imovelOptions, setImovelOptions] = useState<
+    { id: string; label: string }[]
+  >([]);
+  const [visitaHistorico, setVisitaHistorico] = useState<AgendamentoHistoricoItem[]>(
+    [],
+  );
   const [chaveOptions, setChaveOptions] = useState<MuralChave[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -374,6 +394,24 @@ function AgendaPage() {
   }, [filterCorretorId, search.nome, corretorFilterOptions]);
 
   useEffect(() => {
+    if (!open || formMode !== "edit" || !editingId || form.tipo !== "visita") {
+      setVisitaHistorico([]);
+      return;
+    }
+    let cancelado = false;
+    void fetchHistoricoVisita(editingId)
+      .then((rows) => {
+        if (!cancelado) setVisitaHistorico(rows);
+      })
+      .catch(() => {
+        if (!cancelado) setVisitaHistorico([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [open, formMode, editingId, form.tipo]);
+
+  useEffect(() => {
     if (!open) return;
     if (form.tipo !== "visita" && form.tipo !== "retirada_chave") return;
     let cancelado = false;
@@ -386,6 +424,17 @@ function AgendaPage() {
       })
       .catch(() => {
         if (!cancelado) setEmpreendimentoOptions([]);
+      });
+    void fetchImoveisCaptados()
+      .then((rows) => {
+        if (!cancelado) {
+          setImovelOptions(
+            rows.map((item) => ({ id: item.id, label: rotuloImovel(item) })),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setImovelOptions([]);
       });
     void fetchMuralChaves()
       .then((rows) => {
@@ -726,6 +775,8 @@ function AgendaPage() {
         : "",
       seriesId: item.seriesId ?? null,
       empreendimentoId: item.empreendimentoId ?? "",
+      imovelId: item.imovelId ?? "",
+      toleranciaAtiva: item.toleranciaAtiva === true,
       muralChaveId: item.muralChaveId ?? "",
     });
     setOpen(true);
@@ -869,6 +920,8 @@ function AgendaPage() {
         form.tipo === "visita" || form.tipo === "retirada_chave"
           ? form.empreendimentoId || null
           : null,
+      imovelId: form.tipo === "visita" ? form.imovelId || null : null,
+      toleranciaAtiva: form.tipo === "visita" ? form.toleranciaAtiva : false,
       muralChaveId:
         form.tipo === "visita" || form.tipo === "retirada_chave"
           ? form.muralChaveId || null
@@ -938,6 +991,8 @@ function AgendaPage() {
           local: payload.local,
           observacoes: payload.observacoes,
           empreendimentoId: payload.empreendimentoId,
+          imovelId: payload.imovelId,
+          toleranciaAtiva: payload.toleranciaAtiva,
           muralChaveId: payload.muralChaveId,
           ...(payload.alvoTipo
             ? {
@@ -1124,6 +1179,10 @@ function AgendaPage() {
             Voltar à minha visão
           </Button>
         </div>
+      ) : null}
+
+      {section === "agenda" && (isAdmin || isGerente) ? (
+        <AgendaVisitasPainel dia={toDateInput(selectedDay)} />
       ) : null}
 
       <div className="mb-4 inline-flex rounded-full border border-black/5 bg-card p-1">
@@ -1969,6 +2028,90 @@ function AgendaPage() {
                       Agendar reserva a chave. A retirada no mural confirma, sem criar outro compromisso.
                     </p>
                   </div>
+                  {form.tipo === "visita" ? (
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Imóvel (opc.)</Label>
+                      <Select
+                        value={form.imovelId || "__none__"}
+                        onValueChange={(value) =>
+                          setField("imovelId", value === "__none__" ? "" : value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar imóvel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">—</SelectItem>
+                          {imovelOptions.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Sem imóvel, a visita ocupa o empreendimento inteiro. Com imóvel, só essa unidade fica reservada.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {form.tipo === "visita" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
+                    <div>
+                      <p className="text-sm font-medium">Tolerância de 2 horas</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        O corretor informa o início. Com a tolerância, o imóvel fica ocupado pelas duas horas seguintes.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.toleranciaAtiva}
+                      onCheckedChange={(checked) =>
+                        setField("toleranciaAtiva", checked === true)
+                      }
+                    />
+                  </div>
+                  {form.date && form.timeStart ? (
+                    <p className="text-xs text-muted-foreground">
+                      Horário informado: {form.timeStart}. Período bloqueado:{" "}
+                      {form.timeStart}–{fimBloqueioLocal(
+                        form.date,
+                        form.timeStart,
+                        form.timeEnd,
+                        form.toleranciaAtiva,
+                      )}
+                      .
+                    </p>
+                  ) : null}
+                  <AgendaVisitaOcupacao
+                    empreendimentoId={form.empreendimentoId || undefined}
+                    imovelId={form.imovelId || undefined}
+                    dia={form.date}
+                    titulo={
+                      [
+                        empreendimentoOptions.find(
+                          (item) => item.id === form.empreendimentoId,
+                        )?.nome,
+                        imovelOptions.find((item) => item.id === form.imovelId)?.label,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    }
+                  />
+                  {visitaHistorico.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium">Histórico</p>
+                      <ul className="space-y-1">
+                        {visitaHistorico.map((item) => (
+                          <li key={item.id} className="text-[11px] text-muted-foreground">
+                            {new Date(item.createdAt).toLocaleString("pt-BR")} · {item.autor.name} · {item.detalhe}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
