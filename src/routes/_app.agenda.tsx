@@ -236,6 +236,53 @@ function combineLocalIso(date: string, time: string): string {
   return new Date(y, m - 1, d, hh, mm, 0, 0).toISOString();
 }
 
+function chaveAutomatica(
+  chaves: MuralChave[],
+  empreendimentoId: string,
+  imovelId: string,
+) {
+  const livre = (chave: MuralChave) => chave.status !== "em_uso";
+  if (imovelId) {
+    const doImovel = chaves.find(
+      (chave) => chave.imovel?.id === imovelId && livre(chave),
+    );
+    if (doImovel) return doImovel.id;
+    if (chaves.some((chave) => chave.imovel?.id === imovelId)) return "";
+  }
+  if (empreendimentoId) {
+    const doEmpreendimento =
+      chaves.find(
+        (chave) =>
+          chave.empreendimento?.id === empreendimentoId &&
+          livre(chave) &&
+          !chave.imovel,
+      ) ??
+      chaves.find(
+        (chave) =>
+          chave.empreendimento?.id === empreendimentoId && livre(chave),
+      );
+    if (doEmpreendimento) return doEmpreendimento.id;
+  }
+  return "";
+}
+
+function chaveVinculadaEmUso(
+  chaves: MuralChave[],
+  empreendimentoId: string,
+  imovelId: string,
+) {
+  const vinculadas = chaves.filter(
+    (chave) =>
+      (imovelId && chave.imovel?.id === imovelId) ||
+      (!imovelId &&
+        empreendimentoId &&
+        chave.empreendimento?.id === empreendimentoId),
+  );
+  return (
+    vinculadas.length > 0 && vinculadas.every((chave) => chave.status === "em_uso")
+  );
+}
+
 function formatAgendaPreview(date: string, timeStart: string, timeEnd: string) {
   if (!date || !timeStart) return "";
   const [y, m, d] = date.split("-").map(Number);
@@ -2040,13 +2087,115 @@ function AgendaPage() {
                 />
               </div>
 
-              {form.tipo === "visita" || form.tipo === "retirada_chave" ? (
+              {form.tipo === "visita" ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>
-                      Empreendimento
-                      {form.tipo === "visita" ? " (opc.)" : ""}
-                    </Label>
+                    <Label>Empreendimento</Label>
+                    <Select
+                      value={form.empreendimentoId || "__none__"}
+                      onValueChange={(value) => {
+                        const empreendimentoId = value === "__none__" ? "" : value;
+                        setForm((prev) => ({
+                          ...prev,
+                          empreendimentoId,
+                          muralChaveId: chaveAutomatica(
+                            chaveOptions,
+                            empreendimentoId,
+                            prev.imovelId,
+                          ),
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar empreendimento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {empreendimentoOptions.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Imóvel</Label>
+                    <Select
+                      value={form.imovelId || "__none__"}
+                      onValueChange={(value) => {
+                        const imovelId = value === "__none__" ? "" : value;
+                        setForm((prev) => ({
+                          ...prev,
+                          imovelId,
+                          muralChaveId: chaveAutomatica(
+                            chaveOptions,
+                            prev.empreendimentoId,
+                            imovelId,
+                          ),
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar imóvel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {imovelOptions.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Chave</Label>
+                    <Select
+                      value={form.muralChaveId || "__none__"}
+                      onValueChange={(value) =>
+                        setField("muralChaveId", value === "__none__" ? "" : value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar chave" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {chaveOptions
+                          .filter(
+                            (chave) =>
+                              chave.status !== "em_uso" ||
+                              chave.id === form.muralChaveId,
+                          )
+                          .map((chave) => (
+                            <SelectItem key={chave.id} value={chave.id}>
+                              {chave.identificador}
+                              {chave.empreendimento
+                                ? ` · ${chave.empreendimento.nome}`
+                                : ""}
+                              {chave.imovel ? ` · ${chave.imovel.label}` : ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      {chaveVinculadaEmUso(
+                        chaveOptions,
+                        form.empreendimentoId,
+                        form.imovelId,
+                      )
+                        ? "A chave vinculada está em uso e não foi selecionada."
+                        : "Se o empreendimento ou o imóvel tiver chave livre, ela entra automaticamente."}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {form.tipo === "retirada_chave" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Empreendimento</Label>
                     <Select
                       value={form.empreendimentoId || "__none__"}
                       onValueChange={(value) =>
@@ -2079,9 +2228,7 @@ function AgendaPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>
-                      Chave{form.tipo === "retirada_chave" ? "" : " (opc.)"}
-                    </Label>
+                    <Label>Chave</Label>
                     <Select
                       value={form.muralChaveId || "__none__"}
                       onValueChange={(value) => {
@@ -2127,32 +2274,6 @@ function AgendaPage() {
                       Agendar reserva a chave. A retirada no mural confirma, sem criar outro compromisso.
                     </p>
                   </div>
-                  {form.tipo === "visita" ? (
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>Imóvel (opc.)</Label>
-                      <Select
-                        value={form.imovelId || "__none__"}
-                        onValueChange={(value) =>
-                          setField("imovelId", value === "__none__" ? "" : value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar imóvel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">—</SelectItem>
-                          {imovelOptions.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground">
-                        Sem imóvel, a visita ocupa o empreendimento inteiro. Com imóvel, só essa unidade fica reservada.
-                      </p>
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 
