@@ -60,6 +60,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { SOFT_BTN } from "@/lib/soft-btn";
+import { ListasDocumentosPanel } from "@/components/listas-documentos-panel";
 import {
   deleteContratoDocumento,
   fetchContratoDocumentos,
