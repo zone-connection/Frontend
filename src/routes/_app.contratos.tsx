@@ -48,8 +48,11 @@ import {
   Handshake,
   LayoutGrid,
   Loader2,
+  Pencil,
   Receipt,
+  Save,
   Sparkles,
+  Trash2,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -57,7 +60,13 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { SOFT_BTN } from "@/lib/soft-btn";
-import { ListasDocumentosPanel } from "@/components/listas-documentos-panel";
+import {
+  deleteContratoDocumento,
+  fetchContratoDocumentos,
+  saveContratoDocumento,
+  type ContratoDocumento,
+} from "@/lib/contratos-api";
+import { ApiError } from "@/lib/api";
 
 /** Modelos que o corretor não pode emitir. */
 const TEMPLATES_BLOQUEADOS_CORRETOR: ReadonlySet<ContratoTemplateId> = new Set([
@@ -689,6 +698,87 @@ function ContratoPreview({
   );
 }
 
+function formatQuando(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function HistoricoContratos({
+  title,
+  description,
+  empty,
+  itens,
+  onOpen,
+  onRemove,
+}: {
+  title: string;
+  description: string;
+  empty: string;
+  itens: ContratoDocumento[];
+  onOpen: (item: ContratoDocumento) => void;
+  onRemove: (item: ContratoDocumento) => void;
+}) {
+  return (
+    <PagePanel inset="muted" title={title} description={description}>
+      {itens.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="space-y-2">
+          {itens.map((item) => {
+            const template = getContratoTemplate(
+              item.templateId as ContratoTemplateId,
+            );
+            return (
+              <li
+                key={item.id}
+                className="flex items-start justify-between gap-3 rounded-xl border border-black/5 bg-card px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{item.titulo}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {template?.titulo ?? item.templateId} ·{" "}
+                    {formatQuando(item.baixadoAt ?? item.updatedAt)}
+                    {item.autor?.name ? ` · ${item.autor.name}` : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-0.5">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    title="Visualizar e editar"
+                    onClick={() => onOpen(item)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    title="Apagar"
+                    onClick={() => onRemove(item)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </PagePanel>
+  );
+}
+
 function ContratosPage() {
   const { lead: leadId, modelo } = Route.useSearch();
   const { logoUrl, tenant } = useTenantTheme();
@@ -697,6 +787,9 @@ function ContratosPage() {
   const [selected, setSelected] = useState<ContratoTemplate | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [documentos, setDocumentos] = useState<ContratoDocumento[]>([]);
   const openedFromQuery = useRef("");
   const [leadPrefill, setLeadPrefill] = useState<{
     nome: string;
@@ -751,12 +844,19 @@ function ContratosPage() {
     };
   }, [logoUrl, tenant?.primaryColor]);
 
+  useEffect(() => {
+    void fetchContratoDocumentos()
+      .then(setDocumentos)
+      .catch(() => undefined);
+  }, []);
+
   const openTemplate = (template: ContratoTemplate) => {
     if (!canUseContratoTemplate(template.id)) {
       toast.error("Seu perfil não tem acesso a este modelo.");
       return;
     }
     const base = prefillFromTenant(template, tenant);
+    setEditingId(null);
     setSelected(template);
     setForm(leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base);
     setIntermediacaoSection("contratante");
@@ -796,6 +896,98 @@ function ContratosPage() {
     // openTemplate depende do lead já carregado
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelo, leadPrefill, leadId]);
+
+  const rascunhos = useMemo(
+    () => documentos.filter((item) => item.status === "rascunho"),
+    [documentos],
+  );
+  const baixados = useMemo(
+    () => documentos.filter((item) => item.status === "baixado"),
+    [documentos],
+  );
+
+  function upsertLocal(saved: ContratoDocumento) {
+    setDocumentos((prev) => {
+      const rest = prev.filter((item) => item.id !== saved.id);
+      return [saved, ...rest];
+    });
+    setEditingId(saved.id);
+  }
+
+  function openDocumento(item: ContratoDocumento) {
+    const template = getContratoTemplate(item.templateId as ContratoTemplateId);
+    if (!template || !canUseContratoTemplate(template.id)) {
+      toast.error("Este modelo não está disponível para o seu perfil.");
+      return;
+    }
+    setEditingId(item.id);
+    setSelected(template);
+    setForm({ ...emptyContratoForm(template), ...item.values });
+    setIntermediacaoSection("contratante");
+  }
+
+  async function persistDocumento(status: "rascunho" | "baixado") {
+    if (!selected) return null;
+    const atual = documentos.find((item) => item.id === editingId);
+    const saved = await saveContratoDocumento(
+      {
+        templateId: selected.id,
+        values: form,
+        titulo:
+          form.nome?.trim() ||
+          form.contratanteNome?.trim() ||
+          selected.titulo,
+        ...(status === "baixado" || atual?.status !== "baixado"
+          ? { status }
+          : {}),
+      },
+      editingId ?? undefined,
+    );
+    upsertLocal(saved);
+    return saved;
+  }
+
+  async function saveDraft() {
+    if (!selected) return;
+    setSavingDraft(true);
+    try {
+      await persistDocumento("rascunho");
+      toast.success("Rascunho salvo. Você pode continuar depois.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível salvar o rascunho.",
+      );
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  async function removeDocumento(item: ContratoDocumento) {
+    if (
+      !window.confirm(
+        `Apagar ${item.status === "rascunho" ? "o rascunho" : "o contrato"} “${item.titulo}”?`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteContratoDocumento(item.id);
+      setDocumentos((prev) => prev.filter((row) => row.id !== item.id));
+      if (editingId === item.id) {
+        setEditingId(null);
+        setSelected(null);
+      }
+      toast.success("Contrato removido.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível apagar o contrato.",
+      );
+    }
+  }
 
   const requiredMissing = useMemo(() => {
     if (!selected) return [];
@@ -840,7 +1032,13 @@ function ContratosPage() {
         await downloadContratoPdf(selected.id as ContratoTemplateId, form, brand);
         toast.success("PDF gerado e baixado.");
       }
+      try {
+        await persistDocumento("baixado");
+      } catch {
+        toast.message("O arquivo baixou, mas o histórico não foi salvo.");
+      }
       setSelected(null);
+      setEditingId(null);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Não foi possível gerar o contrato.",
@@ -862,7 +1060,7 @@ function ContratosPage() {
         description={
           getSession()?.role === "super_admin"
             ? "Escolha o plano, preencha os dados da imobiliária contratante e baixe o PDF."
-            : "Escolha o modelo por categoria, preencha os dados e baixe o PDF."
+            : "Escolha o modelo, salve rascunho para não perder e baixe o PDF. O histórico fica nesta tela."
         }
       />
 
@@ -900,6 +1098,25 @@ function ContratosPage() {
           />
         </div>
       </PagePanel>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <HistoricoContratos
+          title="Rascunhos"
+          description="Contratos salvos para editar depois."
+          empty="Nenhum rascunho. Preencha um modelo e clique em Salvar rascunho."
+          itens={rascunhos}
+          onOpen={openDocumento}
+          onRemove={removeDocumento}
+        />
+        <HistoricoContratos
+          title="Contratos baixados"
+          description="Histórico dos PDFs e Word gerados."
+          empty="Nenhum contrato baixado ainda."
+          itens={baixados}
+          onOpen={openDocumento}
+          onRemove={removeDocumento}
+        />
+      </div>
 
       <div className="space-y-5">
         {canViewListasDocumentos() ? (
@@ -957,14 +1174,19 @@ function ContratosPage() {
       <FormDialogShell
         open={Boolean(selected)}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) {
+            setSelected(null);
+            setEditingId(null);
+          }
         }}
         icon={<FileText className="size-5" />}
         title={selected?.titulo ?? "Contrato"}
         description={
           selected?.id === "intermediacao"
             ? "Preencha os campos e baixe em PDF ou Word."
-            : "Preencha os campos. O PDF será baixado ao gerar."
+            : editingId
+              ? "Edite o rascunho ou o contrato salvo e baixe de novo quando quiser."
+              : "Preencha os campos. Salve rascunho para não perder o que já preencheu."
         }
         className={selected?.id === "intermediacao" ? "max-w-3xl" : "max-w-6xl"}
         footer={
@@ -974,16 +1196,30 @@ function ContratosPage() {
               variant="outline"
               className={SOFT_BTN}
               onClick={() => setSelected(null)}
-              disabled={generating}
+              disabled={generating || savingDraft}
             >
               Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={SOFT_BTN}
+              disabled={generating || savingDraft}
+              onClick={() => void saveDraft()}
+            >
+              {savingDraft ? (
+                <Loader2 className="mr-1 size-4 animate-spin" />
+              ) : (
+                <Save className="mr-1 size-4" />
+              )}
+              Salvar rascunho
             </Button>
             {selected?.id === "intermediacao" ? (
               <Button
                 type="button"
                 variant="outline"
                 className={SOFT_BTN}
-                disabled={generating}
+                disabled={generating || savingDraft}
                 onClick={() => void exportContract("docx")}
               >
                 {generating ? (
@@ -994,7 +1230,7 @@ function ContratosPage() {
                 Baixar Word
               </Button>
             ) : null}
-            <Button type="submit" form="contrato-form" disabled={generating}>
+            <Button type="submit" form="contrato-form" disabled={generating || savingDraft}>
               {generating ? (
                 <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (

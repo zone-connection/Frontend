@@ -1,4 +1,52 @@
-import { apiFetchFile } from "@/lib/api";
+import { apiFetch, apiFetchFile } from "@/lib/api";
+import type { ContratoTemplateId } from "@/lib/contratos-templates";
+
+export type ContratoDocumentoStatus = "rascunho" | "baixado";
+
+export type ContratoDocumento = {
+  id: string;
+  templateId: ContratoTemplateId | string;
+  titulo: string;
+  values: Record<string, string>;
+  status: ContratoDocumentoStatus;
+  baixadoAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  autor: { id: string; name: string };
+};
+
+export type UpsertContratoDocumentoInput = {
+  templateId: string;
+  values: Record<string, string>;
+  status?: ContratoDocumentoStatus;
+  titulo?: string;
+};
+
+export async function fetchContratoDocumentos() {
+  return apiFetch<ContratoDocumento[]>("/contratos/documentos");
+}
+
+export async function saveContratoDocumento(
+  input: UpsertContratoDocumentoInput,
+  id?: string,
+) {
+  if (id) {
+    return apiFetch<ContratoDocumento>(`/contratos/documentos/${id}`, {
+      method: "PATCH",
+      body: input,
+    });
+  }
+  return apiFetch<ContratoDocumento>("/contratos/documentos", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function deleteContratoDocumento(id: string) {
+  return apiFetch<{ ok: true }>(`/contratos/documentos/${id}`, {
+    method: "DELETE",
+  });
+}
 
 export async function downloadContratoApiPdf(
   templateId: string,
