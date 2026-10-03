@@ -522,7 +522,7 @@ export function CatalogUnidadeImoveis({
         className="max-w-3xl"
         icon={<Building2 className="h-5 w-5" />}
         title={editing ? "Editar imóvel" : "Novo imóvel de captação"}
-        description="Ficha da unidade: captação, venda de usados e portal do proprietário."
+        description="A mesma ficha vale na captação, no catálogo de empreendimentos, na venda de usados e no portal."
       >
         <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
           <FormDialogBody>

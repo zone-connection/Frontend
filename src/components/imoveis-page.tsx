@@ -1495,20 +1495,34 @@ export function ImoveisPage({
   );
   const imoveisPager = useTablePager(sorted, sort);
 
+  const imoveisDeCaptacao = useMemo(
+    () =>
+      new Set(
+        items
+          .map((item) => item.imovelId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [items],
+  );
+
   const kpiImoveis = useMemo(
     () => ({
-      total: items.length + captacaoImoveis.length,
+      total:
+        items.length +
+        captacaoImoveis.filter((item) => !imoveisDeCaptacao.has(item.id))
+          .length,
       empreendimentos: items.length,
       litoral: items.filter((item) => empreendimentoHasLitoral(item)).length,
       matches: items.filter((item) => (item.matchTotal ?? 0) > 0).length,
     }),
-    [captacaoImoveis.length, items],
+    [captacaoImoveis, imoveisDeCaptacao, items],
   );
 
   const captacaoFiltered = useMemo(() => {
     if (embedded) return [];
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return captacaoImoveis.filter((item) => {
+      if (imoveisDeCaptacao.has(item.id)) return false;
       if (proprietarioId && item.proprietarioId !== proprietarioId) return false;
       if (quartos && item.quartos !== Number(quartos)) return false;
       if (!q) return true;
@@ -1525,7 +1539,7 @@ export function ImoveisPage({
         .toLocaleLowerCase("pt-BR");
       return hay.includes(q);
     });
-  }, [embedded, captacaoImoveis, proprietarioId, quartos, search]);
+  }, [embedded, captacaoImoveis, imoveisDeCaptacao, proprietarioId, quartos, search]);
 
   const catalogEmpty = sorted.length === 0 && captacaoFiltered.length === 0;
 
@@ -2057,6 +2071,16 @@ export function ImoveisPage({
                               {empreendimentoTipoLabel(item.tipo)}
                             </Badge>
                           ) : null}
+                          {item.imovelId ? (
+                            <Link
+                              to="/captacao/imoveis/$id"
+                              params={{ id: item.imovelId }}
+                            >
+                              <Badge className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}>
+                                Captação
+                              </Badge>
+                            </Link>
+                          ) : null}
                           {showCampo("status") && item.status ? (
                             <Badge
                               className={cn(
@@ -2474,6 +2498,16 @@ export function ImoveisPage({
                         {empreendimentoTipoLabel(item.tipo)}
                       </Badge>
                     ) : null}
+                    {item.imovelId ? (
+                      <Link
+                        to="/captacao/imoveis/$id"
+                        params={{ id: item.imovelId }}
+                      >
+                        <Badge className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}>
+                          Captação
+                        </Badge>
+                      </Link>
+                    ) : null}
                     {showCampo("status") && item.status ? (
                       <Badge
                         className={cn(
@@ -2704,7 +2738,7 @@ export function ImoveisPage({
                   Captação ou usado
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Unidade de um dono: ficha, fotos e venda de usados.
+                  Unidade de um dono. Entra na captação e no catálogo de empreendimentos.
                 </span>
               </span>
             </button>

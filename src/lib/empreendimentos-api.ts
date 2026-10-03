@@ -49,6 +49,7 @@ export type Empreendimento = {
   matchComputedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  imovelId?: string | null;
   construtora: { id: string; nome: string; cor: string | null } | null;
   localidade: { id: string; nome: string } | null;
   vitrine?: EmpreendimentoVitrine | null;
