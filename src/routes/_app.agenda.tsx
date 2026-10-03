@@ -97,6 +97,10 @@ import {
 } from "@/lib/agenda-api";
 import { AGENDA_LUX_SOFT } from "@/lib/agenda-lux-colors";
 import {
+  AgendamentoTipoOption,
+  AgendamentoTipoPicker,
+} from "@/components/agenda-tipo-option";
+import {
   AgendaVisitaOcupacao,
   fimBloqueioLocal,
   rotuloImovel,
