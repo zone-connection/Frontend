@@ -8,8 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { FinanceKpiCard } from "@/components/finance-kpi-card";
-import { PagePanel, PanelLink } from "@/components/page-panel";
+import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -46,7 +45,6 @@ import {
   Download,
   FileText,
   Handshake,
-  LayoutGrid,
   Loader2,
   Pencil,
   Receipt,
@@ -791,6 +789,9 @@ function ContratosPage() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [documentos, setDocumentos] = useState<ContratoDocumento[]>([]);
+  const [secao, setSecao] = useState<"catalogo" | "rascunhos" | "baixados">(
+    "catalogo",
+  );
   const openedFromQuery = useRef("");
   const [leadPrefill, setLeadPrefill] = useState<{
     nome: string;
@@ -954,6 +955,7 @@ function ContratosPage() {
     try {
       await persistDocumento("rascunho");
       toast.success("Rascunho salvo. Você pode continuar depois.");
+      setSecao("rascunhos");
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -1040,6 +1042,7 @@ function ContratosPage() {
       }
       setSelected(null);
       setEditingId(null);
+      setSecao("baixados");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Não foi possível gerar o contrato.",
@@ -1061,7 +1064,7 @@ function ContratosPage() {
         description={
           getSession()?.role === "super_admin"
             ? "Escolha o plano, preencha os dados da imobiliária contratante e baixe o PDF."
-            : "Escolha o modelo, salve rascunho para não perder e baixe o PDF. O histórico fica nesta tela."
+            : "Catálogo de modelos, rascunhos salvos e contratos já baixados."
         }
       />
 
@@ -1074,41 +1077,112 @@ function ContratosPage() {
         </div>
       ) : null}
 
-      <PagePanel
-        inset="muted"
-        title="Biblioteca de contratos"
-        description="Modelos disponíveis para o seu perfil."
-        action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
-      >
-        <div className="grid gap-3 grid-cols-2">
-          <FinanceKpiCard
-            variant="dash"
-            label="Modelos visíveis"
-            value={templatesVisiveis.length}
-            icon={FileText}
-            tone="emerald"
-            format="number"
-          />
-          <FinanceKpiCard
-            variant="dash"
-            label="Categorias"
-            value={gruposVisiveis.length}
-            icon={LayoutGrid}
-            tone="blue"
-            format="number"
-          />
-        </div>
-      </PagePanel>
+      <div className="inline-flex max-w-full flex-wrap rounded-full border bg-muted/40 p-1">
+        {(
+          [
+            {
+              id: "catalogo" as const,
+              label: "Catálogo de contratos",
+              count: templatesVisiveis.length,
+            },
+            {
+              id: "rascunhos" as const,
+              label: "Rascunhos",
+              count: rascunhos.length,
+            },
+            {
+              id: "baixados" as const,
+              label: "Contratos baixados",
+              count: baixados.length,
+            },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSecao(item.id)}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              secao === item.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {item.label}
+            <span className="ml-1.5 tabular-nums text-muted-foreground">
+              {item.count}
+            </span>
+          </button>
+        ))}
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {secao === "catalogo" ? (
+        <div className="space-y-5">
+          {canViewListasDocumentos() ? (
+            <ListasDocumentosPanel readOnly={!canManageListasDocumentos()} />
+          ) : null}
+          {gruposVisiveis.map((group) => (
+            <PagePanel
+              key={group.id}
+              title={group.title}
+              description={group.description}
+              inset="muted"
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {group.templates.map((template) => {
+                  const meta = TEMPLATE_META[template.id];
+                  const Icon = meta?.icon ?? FileText;
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => openTemplate(template)}
+                      className={cn(
+                        "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
+                        "hover:border-primary/35 hover:bg-primary/4 hover:shadow-md",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "mb-3 flex size-11 items-center justify-center rounded-xl",
+                          meta?.accentBg ?? "bg-primary/10",
+                          meta?.accent ?? "text-primary",
+                        )}
+                      >
+                        <Icon className="size-5" />
+                      </div>
+                      <h3 className="text-[15px] font-semibold leading-snug text-foreground">
+                        {template.titulo}
+                      </h3>
+                      <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">
+                        {template.descricao}
+                      </p>
+                      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition group-hover:gap-2">
+                        Preencher
+                        <ArrowRight className="size-3.5" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </PagePanel>
+          ))}
+        </div>
+      ) : null}
+
+      {secao === "rascunhos" ? (
         <HistoricoContratos
           title="Rascunhos"
           description="Contratos salvos para editar depois."
-          empty="Nenhum rascunho. Preencha um modelo e clique em Salvar rascunho."
+          empty="Nenhum rascunho. Abra um modelo no catálogo e clique em Salvar rascunho."
           itens={rascunhos}
           onOpen={openDocumento}
           onRemove={removeDocumento}
         />
+      ) : null}
+
+      {secao === "baixados" ? (
         <HistoricoContratos
           title="Contratos baixados"
           description="Histórico dos PDFs e Word gerados."
@@ -1117,60 +1191,7 @@ function ContratosPage() {
           onOpen={openDocumento}
           onRemove={removeDocumento}
         />
-      </div>
-
-      <div className="space-y-5">
-        {canViewListasDocumentos() ? (
-          <ListasDocumentosPanel readOnly={!canManageListasDocumentos()} />
-        ) : null}
-        {gruposVisiveis.map((group) => (
-          <PagePanel
-            key={group.id}
-            title={group.title}
-            description={group.description}
-            inset="muted"
-          >
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {group.templates.map((template) => {
-                const meta = TEMPLATE_META[template.id];
-                const Icon = meta?.icon ?? FileText;
-                return (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => openTemplate(template)}
-                    className={cn(
-                      "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
-                      "hover:border-primary/35 hover:bg-primary/4 hover:shadow-md",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "mb-3 flex size-11 items-center justify-center rounded-xl",
-                        meta?.accentBg ?? "bg-primary/10",
-                        meta?.accent ?? "text-primary",
-                      )}
-                    >
-                      <Icon className="size-5" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold leading-snug text-foreground">
-                      {template.titulo}
-                    </h3>
-                    <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">
-                      {template.descricao}
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition group-hover:gap-2">
-                      Preencher
-                      <ArrowRight className="size-3.5" />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </PagePanel>
-        ))}
-      </div>
+      ) : null}
 
       <FormDialogShell
         open={Boolean(selected)}
