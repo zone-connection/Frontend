@@ -67,10 +67,14 @@ export type DashboardAdmin = {
     entradas: DashboardMetric;
     /** Fichas de documentação criadas no mês. */
     documentacoes: DashboardMetric;
+    /** Fichas do mês com Status 1 aprovado (inclui c/ restrição). */
+    aprovacoes: DashboardMetric;
     /** Vendas do mês (documentação vendida). */
     vendas: DashboardMetric;
-    /** Regra: vendas / documentações × 100. */
+    /** Vendas ÷ documentações × 100. */
     taxa: DashboardMetric;
+    /** Vendas ÷ aprovações × 100. */
+    taxaAprovacao: DashboardMetric;
     vgv: DashboardMetric;
   };
   documentacaoPipeline: {
@@ -213,9 +217,11 @@ export type DashboardRankingCorretor = {
   entradas: DashboardMetric;
   visitas: number;
   documentacoes: number;
+  aprovacoes: number;
   vendas: DashboardMetric;
   vgv: DashboardMetric;
   taxaConversao: DashboardMetric;
+  taxaAprovacao: DashboardMetric;
   perdidos: number;
   meta: DashboardRankingMeta | null;
 };
@@ -231,9 +237,11 @@ export type DashboardRankingGerente = {
   entradas: DashboardMetric;
   visitas: number;
   documentacoes: number;
+  aprovacoes: number;
   vendas: DashboardMetric;
   vgv: DashboardMetric;
   taxaConversao: DashboardMetric;
+  taxaAprovacao: DashboardMetric;
   perdidos: number;
 };
 
@@ -245,11 +253,13 @@ export type DashboardRanking = {
   totais: {
     entradas: number;
     documentacoes: number;
+    aprovacoes: number;
     vendas: number;
     vgv: number;
     visitas: number;
     perdidos: number;
     taxaConversao: number;
+    taxaAprovacao: number;
     corretores: number;
     gerentes: number;
   };

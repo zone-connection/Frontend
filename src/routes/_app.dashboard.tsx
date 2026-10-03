@@ -36,6 +36,7 @@ import {
   Banknote,
   BriefcaseBusiness,
   CheckCircle2,
+  BadgeCheck,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -1012,7 +1013,7 @@ function DashboardAdminView() {
             isPlatformAdmin
               ? "% de conversão do mês (vs mês anterior)."
               : showDoc
-                ? "% das documentações do mês que viraram venda (vs mês anterior)."
+                ? "Documentações, aprovações e vendas do período (vs recorte anterior)."
                 : "Vendas do mês (vs mês anterior)."
           }
           action={
@@ -1042,6 +1043,7 @@ function DashboardAdminView() {
               ) : null}
               <div className="w-full min-w-0 flex-1 space-y-1.5">
                 {isPlatformAdmin || !showDoc ? null : (
+                  <>
                   <WashTile tone="sky" className="flex items-center gap-2.5 py-1.5">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white ring-2 ring-white/70">
                       <FileText className="size-3.5" />
@@ -1063,6 +1065,31 @@ function DashboardAdminView() {
                       />
                     </div>
                   </WashTile>
+                  <WashTile tone="violet" className="flex items-center gap-2.5 py-1.5">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-violet-500 text-white ring-2 ring-white/70">
+                      <BadgeCheck className="size-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          Aprovações
+                        </span>
+                        <span className="font-semibold tabular-nums">
+                          {summary.conversao.aprovacoes?.valor ?? 0}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Venda / aprovação:{" "}
+                        {(
+                          summary.conversao.taxaAprovacao?.valor ?? 0
+                        ).toLocaleString("pt-BR", {
+                          maximumFractionDigits: 1,
+                        })}
+                        %
+                      </p>
+                    </div>
+                  </WashTile>
+                  </>
                 )}
                 <WashTile tone="emerald" className="flex items-center gap-2.5 py-1.5">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white/70">
