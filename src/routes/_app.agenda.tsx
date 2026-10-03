@@ -61,6 +61,7 @@ import { TimePicker } from "@/components/time-picker";
 import { getSession } from "@/lib/auth";
 import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
 import { useLeads } from "@/lib/leads-store";
+import { interessesAtivos } from "@/lib/crm-types";
 import { ApiError } from "@/lib/api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import { fetchUsers } from "@/lib/users-api";
@@ -73,7 +74,6 @@ import {
   AGENDAMENTO_STATUS_LABEL,
   AGENDAMENTO_TIPOS,
   AGENDAMENTO_TIPO_LABEL,
-  AGENDAMENTO_TIPO_SOFT,
   WEEKDAY_OPTIONS,
   aprovarAgendamento,
   createAgendamento,
@@ -95,7 +95,7 @@ import {
   type AgendamentoTipo,
   type CreateAgendamentoInput,
 } from "@/lib/agenda-api";
-import { AgendamentoTipoOption, AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
+import { AGENDA_LUX_SOFT } from "@/lib/agenda-lux-colors";
 import {
   AgendaVisitaOcupacao,
   fimBloqueioLocal,
@@ -755,18 +755,24 @@ function AgendaPage() {
   }
 
   function selectLead(id: string) {
+    const lead = leads.find((item) => item.id === id);
+    const fromInterest = interessesAtivos(lead?.interesses)[0]?.empreendimentoId;
     setForm((prev) => ({
       ...prev,
       leadId: id,
       clienteId: "",
+      empreendimentoId: fromInterest || prev.empreendimentoId,
     }));
   }
 
   function selectCliente(id: string) {
+    const lead = leads.find((item) => item.id === id);
+    const fromInterest = interessesAtivos(lead?.interesses)[0]?.empreendimentoId;
     setForm((prev) => ({
       ...prev,
       clienteId: id,
       leadId: "",
+      empreendimentoId: fromInterest || prev.empreendimentoId,
     }));
   }
 
@@ -2014,7 +2020,7 @@ function AgendaPage() {
                 <div
                   className={cn(
                     "flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5 text-sm",
-                    AGENDAMENTO_TIPO_SOFT[form.tipo],
+                    AGENDA_LUX_SOFT[form.tipo],
                   )}
                 >
                   <Clock className="h-4 w-4 shrink-0" />

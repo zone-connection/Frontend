@@ -14,6 +14,41 @@ export type ContatoTipo = "lead" | "cliente";
 export type AnaliseStatus =
   "pendente" | "em_analise" | "aprovado" | "reprovado";
 
+export type InteresseEmpreendimentoStatus =
+  | "ativo"
+  | "pausado"
+  | "convertido"
+  | "descartado";
+
+export type LeadEmpreendimentoInteresse = {
+  id: string;
+  empreendimentoId: string;
+  status: InteresseEmpreendimentoStatus;
+  observacoes: string;
+  corretorId: string | null;
+  corretor: { id: string; name: string } | null;
+  dataInteresse: string;
+  ultimaInteracao: string | null;
+  removidoEm: string | null;
+  empreendimento: { id: string; nome: string; cidade: string | null };
+};
+
+export function interessesAtivos(
+  interesses: LeadEmpreendimentoInteresse[] | undefined,
+) {
+  return (interesses ?? []).filter(
+    (item) => !item.removidoEm && item.status !== "descartado",
+  );
+}
+
+export function interessesHistorico(
+  interesses: LeadEmpreendimentoInteresse[] | undefined,
+) {
+  return (interesses ?? []).filter(
+    (item) => Boolean(item.removidoEm) || item.status === "descartado",
+  );
+}
+
 export interface Lead {
   id: string;
   /** lead = captação; cliente = carteira pessoal do corretor. */
@@ -75,6 +110,7 @@ export interface Lead {
   vagasMin: number | null;
   /** Prospecção B2B (tenant da plataforma). */
   prospeccao?: LeadProspeccao | null;
+  interesses?: LeadEmpreendimentoInteresse[];
   /** Data de cadastro (ISO). */
   createdAt?: string;
   updatedAt: string;

@@ -85,7 +85,7 @@ import {
 } from "@/components/ui/popover";
 import { getSession } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
-import { brl, type Lead } from "@/lib/crm-types";
+import { brl, interessesAtivos, type Lead } from "@/lib/crm-types";
 import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
@@ -598,6 +598,7 @@ function patchFormFromLead(
       lead.construtoraId || doc?.construtoraId || current.construtoraId,
     empreendimentoId:
       lead.empreendimentoId ||
+      interessesAtivos(lead.interesses)[0]?.empreendimentoId ||
       doc?.empreendimentoId ||
       current.empreendimentoId,
     valor: vgv != null ? formatMoneyInput(vgv) : current.valor,

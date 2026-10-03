@@ -75,7 +75,8 @@ import {
 import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
-import { brl, type Lead } from "@/lib/crm-types";
+import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
+import { brl, interessesAtivos, type Lead } from "@/lib/crm-types";
 import { ApiError } from "@/lib/api";
 import { importLeads, checkImportDuplicates } from "@/lib/leads-api";
 import {
@@ -169,6 +170,7 @@ type FormState = {
   bairro: string;
   corretor: string;
   tags: string[];
+  pendingEmpreendimentoIds: string[];
   /** YYYY-MM-DD — cadastro retroativo. */
   createdAt: string;
   cpf: string;
@@ -198,6 +200,7 @@ function emptyForm(corretorDefault: string, origemDefault = ""): FormState {
     bairro: "",
     corretor: corretorDefault,
     tags: [],
+    pendingEmpreendimentoIds: [],
     createdAt: todayInput(),
     cpf: "",
     rg: "",
@@ -222,6 +225,7 @@ function leadToForm(lead: Lead): FormState {
     bairro: lead.bairro,
     corretor: lead.corretor,
     tags: [...lead.tags],
+    pendingEmpreendimentoIds: [],
     createdAt: lead.createdAt?.slice(0, 10) || todayInput(),
     cpf: lead.cpf ?? "",
     rg: lead.rg ?? "",
@@ -271,6 +275,7 @@ function Clientes() {
     updateLead,
     markLeadLost,
     markLeadsLost,
+    applyLead,
     resolveCorretorId,
     assignees,
     loading,
@@ -482,6 +487,9 @@ function Clientes() {
           ...(form.rg.trim() ? { rg: form.rg.trim() } : {}),
           ...(form.endereco.trim() ? { endereco: form.endereco.trim() } : {}),
           ...(form.cep.trim() ? { cep: form.cep.trim() } : {}),
+          ...(form.pendingEmpreendimentoIds.length
+            ? { empreendimentoIds: form.pendingEmpreendimentoIds }
+            : {}),
         });
         setFormOpen(false);
         toast.success(`Cliente "${nome}" cadastrado.`);
@@ -1349,6 +1357,20 @@ function Clientes() {
                   })}
                 </div>
               </div>
+              <EmpreendimentosInteressePanel
+                leadId={formMode === "edit" ? editingId : null}
+                interesses={
+                  formMode === "edit" && editingId
+                    ? clientes.find((c) => c.id === editingId)?.interesses
+                    : undefined
+                }
+                pendingIds={form.pendingEmpreendimentoIds}
+                onPendingChange={(ids) =>
+                  setForm((f) => ({ ...f, pendingEmpreendimentoIds: ids }))
+                }
+                onLeadChange={applyLead}
+                compact
+              />
             </FormSection>
             ) : null}
 
@@ -1500,6 +1522,20 @@ function Clientes() {
                             title={t}
                           >
                             {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {interessesAtivos(detail.interesses).length > 0 && (
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <div className="text-xs text-muted-foreground">
+                        Empreendimentos de interesse
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {interessesAtivos(detail.interesses).map((item) => (
+                          <Badge key={item.id} variant="secondary" title={item.empreendimento.cidade ?? undefined}>
+                            {item.empreendimento.nome}
                           </Badge>
                         ))}
                       </div>

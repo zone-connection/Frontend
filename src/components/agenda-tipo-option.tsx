@@ -1,27 +1,30 @@
 import {
-  AGENDAMENTO_TIPO_DOT,
   AGENDAMENTO_TIPO_LABEL,
-  AGENDAMENTO_TIPO_SOFT,
-  AGENDAMENTO_TIPO_WELL,
   type AgendamentoTipo,
 } from "@/lib/agenda-api";
+import {
+  AGENDA_LUX_CHIP,
+  AGENDA_LUX_DOT,
+  AGENDA_LUX_SOFT,
+  AGENDA_LUX_WELL,
+} from "@/lib/agenda-lux-colors";
 import { cn } from "@/lib/utils";
 import {
   Ban,
   CalendarDays,
-  CheckSquare,
+  FileText,
+  Handshake,
+  Home,
   KeyRound,
-  MapPin,
   Phone,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 
 export const AGENDAMENTO_TIPO_ICON: Record<AgendamentoTipo, LucideIcon> = {
-  visita: MapPin,
+  visita: Home,
   ligacao: Phone,
-  reuniao: Users,
-  tarefa: CheckSquare,
+  reuniao: Handshake,
+  tarefa: FileText,
   outro: CalendarDays,
   bloqueio: Ban,
   retirada_chave: KeyRound,
@@ -39,7 +42,7 @@ export function AgendamentoTipoDot({
     <span
       className={cn(
         "size-2.5 shrink-0 rounded-full",
-        AGENDAMENTO_TIPO_DOT[tipo],
+        AGENDA_LUX_DOT[tipo],
         className,
       )}
       aria-hidden
@@ -88,8 +91,11 @@ export function AgendamentoTipoPicker({
             className={cn(
               "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition",
               selected
-                ? cn(AGENDAMENTO_TIPO_SOFT[tipo], "shadow-sm")
-                : "border-transparent bg-muted/50 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
+                ? cn(AGENDA_LUX_CHIP[tipo], "border-transparent shadow-sm")
+                : cn(
+                    AGENDA_LUX_SOFT[tipo],
+                    "bg-background hover:brightness-[0.98]",
+                  ),
               disabled && "cursor-not-allowed",
             )}
           >
@@ -97,8 +103,8 @@ export function AgendamentoTipoPicker({
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm",
                 selected
-                  ? AGENDAMENTO_TIPO_WELL[tipo]
-                  : "bg-background text-muted-foreground",
+                  ? "bg-white/20 text-white"
+                  : AGENDA_LUX_WELL[tipo],
               )}
             >
               <Icon className="h-4 w-4" />

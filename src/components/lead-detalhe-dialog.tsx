@@ -75,6 +75,7 @@ import {
   type ProblemaMonitoramento,
 } from "@/lib/lead-monitoramento";
 import { mapApiLead, updateLeadApi, type UpdateLeadInput } from "@/lib/leads-api";
+import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -918,6 +919,13 @@ export function LeadDetalheDialog({
                         </div>
                       ) : null}
                     </section>
+                    {lead ? (
+                      <EmpreendimentosInteressePanel
+                        leadId={lead.id}
+                        interesses={lead.interesses}
+                        onLeadChange={onUpdated}
+                      />
+                    ) : null}
 
                     {isProspeccao ? (
                       <section className="rounded-xl border bg-background/30 p-4">

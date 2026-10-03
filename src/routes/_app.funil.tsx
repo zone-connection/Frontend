@@ -63,6 +63,7 @@ import {
   isLeadInAtrasoScope,
 } from "@/lib/permissions";
 import { useLeads } from "@/lib/leads-store";
+import { EmpreendimentosInteresseChips } from "@/components/empreendimentos-interesse-panel";
 import { useCatalog } from "@/lib/catalog-store";
 import {
   LeadFunilAlerta,
@@ -1620,6 +1621,7 @@ export function ComercialFunilBoard({
                         {l.renda != null ? brl(l.renda) : "—"}
                       </span>
                     </div>
+                    <EmpreendimentosInteresseChips interesses={l.interesses} />
                     <div className="flex items-center justify-between mt-2 pt-2 border-t text-[11px] text-muted-foreground">
                       {isPlatformAdmin ? (
                         <span />

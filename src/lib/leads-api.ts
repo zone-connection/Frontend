@@ -3,6 +3,7 @@ import type {
   AnaliseStatus,
   ContatoTipo,
   Lead,
+  LeadEmpreendimentoInteresse,
   StageId,
 } from "@/lib/crm-types";
 import type { LeadProspeccao } from "@/lib/lead-prospeccao";
@@ -58,6 +59,7 @@ export interface ApiLead {
   construtora?: { id: string; nome: string } | null;
   empreendimentoId?: string | null;
   empreendimento?: { id: string; nome: string; cidade: string | null } | null;
+  interessesEmpreendimento?: LeadEmpreendimentoInteresse[];
   analise?: {
     id?: string;
     status: AnaliseStatus;
@@ -123,6 +125,7 @@ export type CreateLeadInput = {
   equipeId?: string | null;
   /** Data de cadastro retroativa (YYYY-MM-DD ou ISO). */
   createdAt?: string | null;
+  empreendimentoIds?: string[];
 };
 
 export type UpdateLeadInput = Partial<CreateLeadInput>;
@@ -156,6 +159,7 @@ export function mapApiLead(api: ApiLead): Lead {
     construtora: api.construtora ?? null,
     empreendimentoId: api.empreendimentoId ?? null,
     empreendimento: api.empreendimento ?? null,
+    interesses: api.interessesEmpreendimento ?? [],
     stage: api.stage,
     funilId: api.funilId ?? null,
     prioridade: api.prioridade,
@@ -406,6 +410,47 @@ export async function updateLeadApi(
   input: UpdateLeadInput,
 ): Promise<ApiLead> {
   return apiFetch<ApiLead>(`/leads/${id}`, { method: "PATCH", body: input });
+}
+
+export async function addLeadInteresseApi(
+  leadId: string,
+  input: {
+    empreendimentoId: string;
+    observacoes?: string;
+    status?: string;
+    corretorId?: string | null;
+    dataInteresse?: string | null;
+  },
+): Promise<ApiLead> {
+  return apiFetch<ApiLead>(`/leads/${leadId}/interesses`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function updateLeadInteresseApi(
+  leadId: string,
+  interesseId: string,
+  input: {
+    observacoes?: string;
+    status?: string;
+    corretorId?: string | null;
+    dataInteresse?: string | null;
+  },
+): Promise<ApiLead> {
+  return apiFetch<ApiLead>(`/leads/${leadId}/interesses/${interesseId}`, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
+export async function removeLeadInteresseApi(
+  leadId: string,
+  interesseId: string,
+): Promise<ApiLead> {
+  return apiFetch<ApiLead>(`/leads/${leadId}/interesses/${interesseId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function updateLeadStageApi(

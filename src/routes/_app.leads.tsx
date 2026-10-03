@@ -95,6 +95,7 @@ import {
   type Lead,
 } from "@/lib/crm-types";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
   catalogColorBadgeClass,
   catalogColorBadgeStyle,
@@ -266,6 +267,7 @@ type FormState = {
   quartosMin: string;
   /** Mínimo de vagas desejado. */
   vagasMin: string;
+  pendingEmpreendimentoIds: string[];
   /** UUID da equipe (gerente). Vazio = sem seleção. */
   equipeId: string;
   /** UUID do corretor. "__pool__" = pool da equipe. Vazio = sem seleção. */
@@ -381,6 +383,7 @@ const emptyForm = (origemDefault = ""): FormState => ({
   orcamentoMax: "",
   quartosMin: "",
   vagasMin: "",
+  pendingEmpreendimentoIds: [],
   equipeId: "",
   corretorId: "",
   createdAt: todayInput(),
@@ -431,6 +434,7 @@ function leadToForm(lead: Lead): FormState {
       lead.orcamentoMax != null ? formatMoneyInput(lead.orcamentoMax) : "",
     quartosMin: lead.quartosMin != null ? String(lead.quartosMin) : "",
     vagasMin: lead.vagasMin != null ? String(lead.vagasMin) : "",
+    pendingEmpreendimentoIds: [],
     equipeId: lead.equipeId ?? "",
     corretorId: lead.corretorId ?? (lead.equipeId ? "__pool__" : ""),
     createdAt: lead.createdAt?.slice(0, 10) || todayInput(),
@@ -1268,6 +1272,9 @@ function LeadsPage() {
         ...(equipeId !== undefined ? { equipeId } : {}),
         ...(corretorId !== undefined ? { corretorId } : {}),
         ...(form.createdAt ? { createdAt: form.createdAt } : {}),
+        ...(form.pendingEmpreendimentoIds.length
+          ? { empreendimentoIds: form.pendingEmpreendimentoIds }
+          : {}),
       });
       setOpen(false);
       toast.success(`Lead ${nome} criado com sucesso.`);
@@ -2765,6 +2772,20 @@ function LeadsPage() {
                   ))}
                 </div>
               </div>
+              <EmpreendimentosInteressePanel
+                leadId={formMode === "edit" ? editingId : null}
+                interesses={
+                  formMode === "edit" && editingId
+                    ? leads.find((l) => l.id === editingId)?.interesses
+                    : undefined
+                }
+                pendingIds={form.pendingEmpreendimentoIds}
+                onPendingChange={(ids) =>
+                  setField("pendingEmpreendimentoIds", ids)
+                }
+                onLeadChange={applyLead}
+                compact
+              />
             </FormSection>
             ) : null}
 
