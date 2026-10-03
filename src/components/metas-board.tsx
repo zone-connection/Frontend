@@ -418,7 +418,12 @@ function MetasTable({
                 {META_TIPO_LABEL[meta.tipo]}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {META_PERIODO_LABEL[meta.periodo]}
+                <p>{META_PERIODO_LABEL[meta.periodo]}</p>
+                <p className="text-xs">
+                  {(meta.ciclo ?? "atual") === "anterior"
+                    ? "Período anterior"
+                    : "Período atual"}
+                </p>
               </TableCell>
               <TableCell className="min-w-40">
                 <div className="flex items-center gap-2">
@@ -445,6 +450,15 @@ function MetasTable({
                 <p className="text-xs text-muted-foreground">
                   {metaStatusText(meta)}
                 </p>
+                {meta.ciclo !== "anterior" && meta.anterior ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Anterior: {formatValor(meta.anterior.atual, meta.tipo)} /{" "}
+                    {formatValor(meta.anterior.valor, meta.tipo)} (
+                    {meta.anterior.percentual}%) ·{" "}
+                    {meta.percentual - meta.anterior.percentual >= 0 ? "+" : ""}
+                    {meta.percentual - meta.anterior.percentual} pp
+                  </p>
+                ) : null}
               </TableCell>
               <TableCell>
                 <Badge
@@ -546,6 +560,14 @@ function MetaCard({
               <CalendarDays className="h-3 w-3 text-primary" />
               {META_PERIODO_LABEL[meta.periodo]}
             </span>
+            <Badge
+              className="h-5 border-transparent px-1.5 text-[10px]"
+              variant="secondary"
+            >
+              {(meta.ciclo ?? "atual") === "anterior"
+                ? "Anterior"
+                : "Atual"}
+            </Badge>
             {!hideEscopo && meta.escopo !== "corretor" && meta.escopo !== "imobiliaria" ? (
               <span className="hidden truncate text-[11px] text-muted-foreground sm:inline">
                 {META_ESCOPO_LABEL[meta.escopo]}
@@ -592,6 +614,24 @@ function MetaCard({
             tone={tone.bar}
             className="mt-1.5 h-2"
           />
+          {meta.ciclo !== "anterior" && meta.anterior ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Período anterior: {formatValor(meta.anterior.atual, meta.tipo)} /{" "}
+              {formatValor(meta.anterior.valor, meta.tipo)} (
+              {meta.anterior.percentual}%)
+              <span
+                className={cn(
+                  "ml-1 font-medium",
+                  meta.percentual - meta.anterior.percentual >= 0
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-destructive",
+                )}
+              >
+                {meta.percentual - meta.anterior.percentual >= 0 ? "+" : ""}
+                {meta.percentual - meta.anterior.percentual} pp vs anterior
+              </span>
+            </p>
+          ) : null}
           <p className="mt-1 truncate text-[11px] text-muted-foreground">
             {meta.origem === "pessoal"
               ? "Definida por você"
@@ -648,7 +688,13 @@ function EmptyColumn({ text }: { text: string }) {
   );
 }
 
-export function MetasResumo({ metas }: { metas: Meta[] }) {
+export function MetasResumo({
+  metas,
+  comparar = false,
+}: {
+  metas: Meta[];
+  comparar?: boolean;
+}) {
   const concluidas = metas.filter((meta) => meta.percentual >= 100).length;
   const media =
     metas.length === 0
@@ -657,8 +703,24 @@ export function MetasResumo({ metas }: { metas: Meta[] }) {
           metas.reduce((soma, meta) => soma + meta.percentual, 0) /
             metas.length,
         );
+  const comAnterior = metas.filter((meta) => meta.anterior);
+  const mediaAnterior =
+    comAnterior.length === 0
+      ? null
+      : Math.round(
+          comAnterior.reduce(
+            (soma, meta) => soma + (meta.anterior?.percentual ?? 0),
+            0,
+          ) / comAnterior.length,
+        );
+  const delta = mediaAnterior == null ? null : media - mediaAnterior;
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+    <div
+      className={cn(
+        "grid min-w-0 flex-1 gap-2",
+        comparar ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3",
+      )}
+    >
       <ResumoChip label="Metas" value={String(metas.length)} />
       <ResumoChip
         label="Atingidas"
@@ -671,10 +733,24 @@ export function MetasResumo({ metas }: { metas: Meta[] }) {
         tone="emerald"
       />
       <ResumoChip
-        label="Média"
+        label={comparar ? "Média atual" : "Média"}
         value={`${media}%`}
         tone={media >= 100 ? "emerald" : "blue"}
       />
+      {comparar ? (
+        <ResumoChip
+          label="Vs período anterior"
+          value={
+            delta == null ? "—" : `${delta >= 0 ? "+" : ""}${delta} pp`
+          }
+          hint={
+            mediaAnterior == null
+              ? "Sem meta anterior"
+              : `Anterior ${mediaAnterior}%`
+          }
+          tone={delta != null && delta >= 0 ? "emerald" : "blue"}
+        />
+      ) : null}
     </div>
   );
 }

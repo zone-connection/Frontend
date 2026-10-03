@@ -115,6 +115,7 @@ function Page() {
   const [tab, setTab] = useState<MetasTab>("todas");
   const [filterTipo, setFilterTipo] = useState("__all__");
   const [filterPeriodo, setFilterPeriodo] = useState("__all__");
+  const [filterCiclo, setFilterCiclo] = useState("atual");
   const [vista, setVista] = useMetasVista();
 
   const load = useCallback(async () => {
@@ -245,6 +246,10 @@ function Page() {
       if (filterPeriodo !== "__all__" && meta.periodo !== filterPeriodo) {
         return false;
       }
+      const ciclo = meta.ciclo ?? "atual";
+      if (filterCiclo === "atual" && ciclo !== "atual") return false;
+      if (filterCiclo === "anterior" && ciclo !== "anterior") return false;
+      if (filterCiclo === "comparar" && ciclo !== "atual") return false;
       if (!isGestor) {
         if (tab === "atribuidas") return meta.origem !== "pessoal";
         if (tab === "pessoais") return meta.origem === "pessoal";
@@ -255,7 +260,7 @@ function Page() {
       if (tab === "corretor") return meta.escopo === "corretor";
       return true;
     });
-  }, [filterPeriodo, filterTipo, isGestor, metas, tab]);
+  }, [filterCiclo, filterPeriodo, filterTipo, isGestor, metas, tab]);
 
   const filteredImobiliaria = useMemo(
     () => filteredMetas.filter((meta) => meta.escopo === "imobiliaria"),
@@ -567,7 +572,10 @@ function Page() {
               FILTER_BAR_SURFACE,
             )}
           >
-            <MetasResumo metas={filteredMetas} />
+            <MetasResumo
+              metas={filteredMetas}
+              comparar={filterCiclo === "comparar"}
+            />
             <div className="flex flex-wrap items-center gap-2">
               <div className={FILTER_VISTA_WRAP}>
                 <Button
@@ -623,6 +631,18 @@ function Page() {
                       {META_PERIODO_LABEL[periodo]}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterCiclo} onValueChange={setFilterCiclo}>
+                <SelectTrigger className={cn("h-9 w-[13.5rem]", FILTER_CONTROL)}>
+                  <SelectValue placeholder="Ciclo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="atual">Período atual</SelectItem>
+                  <SelectItem value="anterior">Período anterior</SelectItem>
+                  <SelectItem value="comparar">
+                    Comparar com o atual
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

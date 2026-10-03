@@ -63,6 +63,14 @@ export type Meta = {
     equipeGerenciada: { id: string; name: string } | null;
   } | null;
   criador: { id: string; name: string };
+  ciclo?: "atual" | "anterior";
+  anterior?: {
+    valor: number;
+    atual: number;
+    percentual: number;
+    inicio: string;
+    fim: string;
+  } | null;
 };
 
 export type CreateMetaInput = {
