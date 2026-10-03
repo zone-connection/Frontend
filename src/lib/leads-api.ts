@@ -384,6 +384,7 @@ export async function distribuirLeadsEquipes(
 export async function distribuirLeadsCorretores(input: {
   alocacoes?: Array<{ corretorId: string; quantidade: number }>;
   porCorretor?: number;
+  leadIds?: string[];
 }): Promise<{
   ok: boolean;
   total: number;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError } from "@/lib/api";
 import {
@@ -33,11 +41,18 @@ export function LeadsDistribuirDialog({
   open,
   onOpenChange,
   onDone,
+  selectedLeadIds = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDone: () => void;
+  selectedLeadIds?: string[];
 }) {
+  const selecionados = useMemo(
+    () => [...new Set(selectedLeadIds)],
+    [selectedLeadIds],
+  );
+  const usarSelecao = selecionados.length > 0;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resumo, setResumo] = useState<DistribuirResumo | null>(null);
@@ -46,6 +61,7 @@ export function LeadsDistribuirDialog({
   const [qtdCorretores, setQtdCorretores] = useState<Record<string, number>>(
     {},
   );
+  const [corretorPreferido, setCorretorPreferido] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,10 +69,12 @@ export function LeadsDistribuirDialog({
       const data = await fetchDistribuirResumo();
       setResumo(data);
       const defaultDestino: Destino =
-        data.equipes.length > 0 ? "equipes" : "corretores";
+        usarSelecao || data.equipes.length === 0 ? "corretores" : "equipes";
       setDestino(defaultDestino);
+      setCorretorPreferido("");
 
-      const splitEq = splitEvenly(data.disponiveis, data.equipes.length);
+      const pool = usarSelecao ? selecionados.length : data.disponiveis;
+      const splitEq = splitEvenly(pool, data.equipes.length);
       const nextEq: Record<string, number> = {};
       data.equipes.forEach((eq, i) => {
         nextEq[eq.equipeId] = splitEq[i] ?? 0;
@@ -65,7 +83,7 @@ export function LeadsDistribuirDialog({
 
       const online = data.corretores.filter((c) => c.online);
       const destinosCr = online.length > 0 ? online : data.corretores;
-      const splitCr = splitEvenly(data.disponiveis, destinosCr.length);
+      const splitCr = splitEvenly(pool, destinosCr.length);
       const nextCr: Record<string, number> = {};
       data.corretores.forEach((c) => {
         nextCr[c.id] = 0;
@@ -84,7 +102,7 @@ export function LeadsDistribuirDialog({
     } finally {
       setLoading(false);
     }
-  }, [onOpenChange]);
+  }, [onOpenChange, selecionados.length, usarSelecao]);
 
   useEffect(() => {
     if (open) void load();
@@ -99,11 +117,18 @@ export function LeadsDistribuirDialog({
       Object.values(qtdCorretores).reduce((s, n) => s + (Number(n) || 0), 0),
     [qtdCorretores],
   );
+  const disponiveis = usarSelecao
+    ? selecionados.length
+    : (resumo?.disponiveis ?? 0);
 
   async function autoDividir() {
     if (!resumo) return;
-    if (resumo.disponiveis <= 0) {
-      toast.error("Não há leads no pool do admin para distribuir.");
+    if (disponiveis <= 0) {
+      toast.error(
+        usarSelecao
+          ? "Selecione leads na lista para distribuir."
+          : "Não há leads no pool do admin para distribuir.",
+      );
       return;
     }
     if (destino === "equipes") {
@@ -111,7 +136,7 @@ export function LeadsDistribuirDialog({
         toast.error("Nenhuma equipe cadastrada.");
         return;
       }
-      const split = splitEvenly(resumo.disponiveis, resumo.equipes.length);
+      const split = splitEvenly(disponiveis, resumo.equipes.length);
       const next: Record<string, number> = {};
       resumo.equipes.forEach((eq, i) => {
         next[eq.equipeId] = split[i] ?? 0;
@@ -127,7 +152,7 @@ export function LeadsDistribuirDialog({
       );
       return;
     }
-    const split = splitEvenly(resumo.disponiveis, online.length);
+    const split = splitEvenly(disponiveis, online.length);
     const next: Record<string, number> = {};
     resumo.corretores.forEach((c) => {
       next[c.id] = 0;
@@ -139,6 +164,7 @@ export function LeadsDistribuirDialog({
     setSaving(true);
     try {
       const result = await distribuirLeadsCorretores({
+        ...(usarSelecao ? { leadIds: selecionados } : {}),
         alocacoes: resumo.corretores.map((c) => ({
           corretorId: c.id,
           quantidade: Number(next[c.id]) || 0,
@@ -166,6 +192,40 @@ export function LeadsDistribuirDialog({
 
   async function handleConfirm() {
     if (!resumo) return;
+    if (usarSelecao) {
+      if (!corretorPreferido) {
+        toast.error("Escolha o corretor que vai receber os leads.");
+        return;
+      }
+      setSaving(true);
+      try {
+        const result = await distribuirLeadsCorretores({
+          leadIds: selecionados,
+          alocacoes: [
+            {
+              corretorId: corretorPreferido,
+              quantidade: selecionados.length,
+            },
+          ],
+        });
+        const nome =
+          resumo.corretores.find((c) => c.id === corretorPreferido)?.nome ??
+          "o corretor";
+        toast.success(`${result.total} lead(s) enviados para ${nome}.`);
+        onOpenChange(false);
+        onDone();
+      } catch (err) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível distribuir os leads.",
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const soma = destino === "equipes" ? somaEquipes : somaCorretores;
     if (soma <= 0) {
       toast.error("Informe quantidades maiores que zero.");
@@ -218,22 +278,30 @@ export function LeadsDistribuirDialog({
     }
   }
 
-  const podeConfirmar =
-    !!resumo &&
-    resumo.disponiveis > 0 &&
-    (destino === "equipes"
-      ? resumo.equipes.length > 0 && somaEquipes > 0
-      : resumo.corretores.length > 0 && somaCorretores > 0);
+  const podeConfirmar = usarSelecao
+    ? !!resumo &&
+      selecionados.length > 0 &&
+      !!corretorPreferido &&
+      resumo.corretores.length > 0
+    : !!resumo &&
+      resumo.disponiveis > 0 &&
+      (destino === "equipes"
+        ? resumo.equipes.length > 0 && somaEquipes > 0
+        : resumo.corretores.length > 0 && somaCorretores > 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Distribuir leads</DialogTitle>
+          <DialogTitle>
+            {usarSelecao
+              ? `Distribuir ${selecionados.length} lead(s) selecionado(s)`
+              : "Distribuir leads"}
+          </DialogTitle>
           <DialogDescription>
-            Envie leads do pool do admin (sem equipe e sem corretor), incluindo
-            os de retrabalho. Por equipes: o lead vai para o pool da equipe; por
-            corretores: já fica com um corretor.
+            {usarSelecao
+              ? "Só os leads marcados na lista vão para o corretor que você escolher."
+              : "Envie leads do pool do admin (sem equipe e sem corretor), incluindo os de retrabalho. Por equipes: o lead vai para o pool da equipe; por corretores: já fica com um corretor."}
           </DialogDescription>
         </DialogHeader>
 
@@ -241,6 +309,44 @@ export function LeadsDistribuirDialog({
           <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
             Carregando…
+          </div>
+        ) : usarSelecao ? (
+          <div className="space-y-4 overflow-auto flex-1 min-h-0">
+            <p className="text-sm">
+              Selecionados:{" "}
+              <span className="font-semibold tabular-nums">
+                {selecionados.length}
+              </span>
+            </p>
+            {resumo.corretores.length === 0 ? (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Cadastre corretores ativos em Usuários para poder distribuir.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Corretor
+                </Label>
+                <Select
+                  value={corretorPreferido || undefined}
+                  onValueChange={setCorretorPreferido}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="h-10 bg-background">
+                    <SelectValue placeholder="Escolha o corretor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resumo.corretores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                        {c.equipeNome ? ` · ${c.equipeNome}` : ""}
+                        {c.online ? " · Online" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4 overflow-auto flex-1 min-h-0">

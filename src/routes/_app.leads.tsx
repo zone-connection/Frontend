@@ -1619,7 +1619,9 @@ function LeadsPage() {
                   data-guia="leads-distribuir"
                 >
                   <Share2 className="w-4 h-4 mr-1" />
-                  Distribuir
+                  {selectedCount > 0
+                    ? `Distribuir (${selectedCount})`
+                    : "Distribuir"}
                 </Button>
               )}
               {canExportLeads ? (
@@ -4390,7 +4392,11 @@ function LeadsPage() {
         <LeadsDistribuirDialog
           open={distribuirOpen}
           onOpenChange={setDistribuirOpen}
-          onDone={() => void refresh()}
+          selectedLeadIds={[...selectedIds]}
+          onDone={() => {
+            setSelectedIds(new Set());
+            void refresh();
+          }}
         />
       )}
       <LeadReatribuirDialog
