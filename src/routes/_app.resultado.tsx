@@ -70,12 +70,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FILTER_CONTROL, FILTER_SEARCH_ICON } from "@/lib/filter-bar";
+import { FILTER_CONTROL, FILTER_LABEL, FILTER_SEARCH_ICON, FILTER_BAR_SURFACE } from "@/lib/filter-bar";
 import { FlowTrack } from "@/components/flow-bar";
 import { origemBadgeClass, STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { phoneDigits } from "@/lib/phone";
 import { displayEmail } from "@/lib/email";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { fetchLeadAssignees, type LeadAssignee } from "@/lib/leads-api";
 
 export const Route = createFileRoute("/_app/resultado")({
   head: () => ({ meta: [{ title: "Análise — Zone Connection" }] }),
@@ -100,6 +101,38 @@ function statusBadgeClass(status: AnaliseStatus) {
   if (status === "em_analise")
     return `${size} bg-sky-500/15 text-sky-700 border-sky-500/30`;
   return `${size} bg-amber-500/15 text-amber-800 border-amber-500/30`;
+}
+
+function currentYearMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMesLabel(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return ym;
+  const label = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function listMesOptions(): { value: string; label: string }[] {
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1;
+  const options: { value: string; label: string }[] = [];
+  for (let i = 0; i < 24; i++) {
+    const value = `${year}-${String(month).padStart(2, "0")}`;
+    options.push({ value, label: formatMesLabel(value) });
+    month -= 1;
+    if (month < 1) {
+      month = 12;
+      year -= 1;
+    }
+  }
+  return options;
 }
 
 function isLeadVendido(stage: string) {
@@ -141,7 +174,10 @@ function matchesKpiFilter(
   );
 }
 
-function rankingFromItems(items: Analise[]): AnaliseRankingRow[] {
+function rankingFromItems(
+  items: Analise[],
+  vendaSlugs: string[],
+): AnaliseRankingRow[] {
   const byCorretor = new Map<string, AnaliseRankingRow>();
   for (const item of items) {
     const key = item.lead.corretorId ?? "__none__";
@@ -162,6 +198,9 @@ function rankingFromItems(items: Analise[]): AnaliseRankingRow[] {
     } else if (item.status === "reprovado") {
       bucket.reprovados += 1;
     }
+    if (matchesKpiFilter(item, "vendidos", vendaSlugs)) {
+      bucket.vendidos += 1;
+    }
     byCorretor.set(key, bucket);
   }
   return [...byCorretor.values()].sort(
@@ -180,21 +219,35 @@ function AnalisePage() {
   const [vgvModalOpen, setVgvModalOpen] = useState(false);
   const [vgvValor, setVgvValor] = useState("");
   const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null);
+  const [filterMes, setFilterMes] = useState(currentYearMonth);
+  const [filterCorretorId, setFilterCorretorId] = useState("__all__");
+  const [assignees, setAssignees] = useState<LeadAssignee[]>([]);
   const [corretorSearch, setCorretorSearch] = useState("");
   const [corretorPage, setCorretorPage] = useState(1);
   const [selectedCorretorId, setSelectedCorretorId] = useState<string | null>(
     null,
   );
 
+  const analiseQuery = useMemo(
+    () => ({
+      mes: filterMes === "__all__" ? undefined : filterMes,
+      corretorId:
+        filterCorretorId !== "__all__" ? filterCorretorId : undefined,
+    }),
+    [filterCorretorId, filterMes],
+  );
+
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [analises, summary] = await Promise.all([
-        fetchAnalises(),
-        fetchAnaliseResumo().catch(() => null),
+      const [analises, summary, assigneesAtuais] = await Promise.all([
+        fetchAnalises(analiseQuery),
+        fetchAnaliseResumo(analiseQuery).catch(() => null),
+        fetchLeadAssignees().catch(() => [] as LeadAssignee[]),
       ]);
       setItems(analises);
       setResumo(summary);
+      setAssignees(assigneesAtuais);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -204,7 +257,7 @@ function AnalisePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [analiseQuery]);
 
   useEffect(() => {
     void loadItems();
@@ -246,12 +299,12 @@ function AnalisePage() {
   }
 
   const corretorRanking = useMemo(() => {
-    const rows = resumo?.ranking ?? rankingFromItems(items);
+    const rows = resumo?.ranking ?? rankingFromItems(items, vendaSlugs);
     return rows.map((row) => ({
       ...row,
       id: row.corretorId ?? "__none__",
     }));
-  }, [resumo, items]);
+  }, [resumo, items, vendaSlugs]);
 
   const corretorRankingFiltered = useMemo(() => {
     const q = corretorSearch.trim().toLowerCase();
@@ -343,7 +396,7 @@ function AnalisePage() {
       setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
       setDetail(updated);
       setVgvValor("");
-      void fetchAnaliseResumo()
+      void fetchAnaliseResumo(analiseQuery)
         .then(setResumo)
         .catch(() => undefined);
 
@@ -411,8 +464,57 @@ function AnalisePage() {
     <div>
       <PageHeader
         title="Análise"
-        description="Acompanhe processos em análise por status e por corretor."
+        description="Acompanhe processos em análise por mês, status e corretor."
       />
+
+      {!busy ? (
+        <div
+          className={cn(
+            "mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end",
+            FILTER_BAR_SURFACE,
+          )}
+        >
+          <div className="min-w-[11rem] flex-1">
+            <Label className={FILTER_LABEL}>Mês</Label>
+            <Select value={filterMes} onValueChange={setFilterMes}>
+              <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="__all__">Todo o período</SelectItem>
+                {listMesOptions().map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-[11rem] flex-1">
+            <Label className={FILTER_LABEL}>Corretor</Label>
+            <Select
+              value={filterCorretorId}
+              onValueChange={(value) => {
+                setFilterCorretorId(value);
+                setSelectedCorretorId(null);
+                setCorretorPage(1);
+              }}
+            >
+              <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
+                <SelectValue placeholder="Corretor" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="__all__">Todos os corretores</SelectItem>
+                {assignees.map((pessoa) => (
+                  <SelectItem key={pessoa.id} value={pessoa.id}>
+                    {pessoa.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : null}
 
       {busy ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
@@ -506,6 +608,9 @@ function AnalisePage() {
                         {item.lead.corretor?.name ?? "Sem corretor"}
                         {item.cidade ? ` · ${item.cidade}` : ""}
                       </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        Aprovador: {item.analista?.name ?? "—"}
+                      </div>
                     </div>
                     <Badge
                       variant="outline"
@@ -565,13 +670,19 @@ function AnalisePage() {
                     <th className="px-3 py-2.5 font-medium text-right tabular-nums">
                       Aprovados
                     </th>
+                    <th className="px-3 py-2.5 font-medium text-right tabular-nums">
+                      Reprovados
+                    </th>
+                    <th className="px-3 py-2.5 font-medium text-right tabular-nums">
+                      Vendidos
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {corretorRankingVisible.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={7}
                         className="px-3 py-8 text-center text-muted-foreground"
                       >
                         Nenhum corretor encontrado para “{corretorSearch.trim()}
@@ -621,6 +732,12 @@ function AnalisePage() {
                           </td>
                           <td className="px-3 py-2.5 text-right tabular-nums text-emerald-600">
                             {row.aprovados}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-destructive">
+                            {row.reprovados}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums text-teal-700">
+                            {row.vendidos}
                           </td>
                         </tr>
                       );
@@ -714,6 +831,9 @@ function AnalisePage() {
                           <div className="text-xs text-muted-foreground truncate">
                             {item.cidade || "—"}
                           </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            Aprovador: {item.analista?.name ?? "—"}
+                          </div>
                         </div>
                         <Badge
                           variant="outline"
@@ -805,6 +925,10 @@ function AnalisePage() {
                   <DetailField
                     label="Gerente do corretor"
                     value={detail.lead.corretor?.equipe?.gerente.name ?? "—"}
+                  />
+                  <DetailField
+                    label="Aprovador"
+                    value={detail.analista?.name ?? "—"}
                   />
                 </div>
               </FormSection>
@@ -900,7 +1024,7 @@ function AnalisePage() {
                         );
                         setDetail(updated);
                         setStatusDraft(updated.status);
-                        void fetchAnaliseResumo()
+                        void fetchAnaliseResumo(analiseQuery)
                           .then(setResumo)
                           .catch(() => undefined);
                         toast.success("Processo assumido (Em análise).");

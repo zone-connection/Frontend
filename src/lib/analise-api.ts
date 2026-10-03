@@ -61,10 +61,12 @@ export type UpdateAnaliseInput = {
 export async function fetchAnalises(params?: {
   corretorId?: string;
   status?: AnaliseStatus;
+  mes?: string;
 }): Promise<Analise[]> {
   const qs = new URLSearchParams();
   if (params?.corretorId) qs.set("corretorId", params.corretorId);
   if (params?.status) qs.set("status", params.status);
+  if (params?.mes) qs.set("mes", params.mes);
   const query = qs.toString();
   return apiFetch<Analise[]>(`/analise${query ? `?${query}` : ""}`);
 }
@@ -90,8 +92,15 @@ export type AnaliseResumo = {
   vendaSlugs: string[];
 };
 
-export async function fetchAnaliseResumo(): Promise<AnaliseResumo> {
-  return apiFetch<AnaliseResumo>("/analise/resumo");
+export async function fetchAnaliseResumo(params?: {
+  corretorId?: string;
+  mes?: string;
+}): Promise<AnaliseResumo> {
+  const qs = new URLSearchParams();
+  if (params?.corretorId) qs.set("corretorId", params.corretorId);
+  if (params?.mes) qs.set("mes", params.mes);
+  const query = qs.toString();
+  return apiFetch<AnaliseResumo>(`/analise/resumo${query ? `?${query}` : ""}`);
 }
 
 export async function fetchAnalise(id: string): Promise<Analise> {
