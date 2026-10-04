@@ -28,7 +28,7 @@ import { ArrowRight, Check, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 type Aba = "paradas" | "portal" | "exclusividade";
-type FiltroStatus = "todos" | "critico" | "atencao";
+type FiltroStatus = "todos" | "paradas" | "critico" | "atencao";
 
 export const Route = createFileRoute("/_app/captacao/fila")({
   validateSearch: (search: Record<string, unknown>): { aba?: Aba } => {
@@ -64,16 +64,18 @@ function FilaCaptacaoPage() {
     };
   }, []);
 
-  const paradasAbertas = useMemo(
+  const todos = useMemo(
     () =>
       captacoes
+        .filter((item) => item.funilEtapa.papel !== "perdido")
         .map(captacaoToAcompanhamento)
-        .filter((item) => item.diasSemMovimento >= 7),
+        .sort((a, b) => b.diasSemMovimento - a.diasSemMovimento),
     [captacoes],
   );
-  const visiveis = paradasAbertas.filter((item) => {
+  const visiveis = todos.filter((item) => {
     if (filtro === "critico") return item.diasSemMovimento >= 14;
     if (filtro === "atencao") return item.diasSemMovimento >= 7 && item.diasSemMovimento < 14;
+    if (filtro === "paradas") return item.diasSemMovimento >= 7;
     return true;
   });
   const portalItens = captacoes.filter(
@@ -97,7 +99,7 @@ function FilaCaptacaoPage() {
             });
           }}
           items={[
-            { id: "paradas", label: `Paradas (${paradasAbertas.length})` },
+            { id: "paradas", label: `Captações (${todos.length})` },
             { id: "portal", label: `Portal (${portalItens.length})` },
             { id: "exclusividade", label: `Exclusividade (${exclusividades.length})` },
           ]}
@@ -108,7 +110,8 @@ function FilaCaptacaoPage() {
             value={filtro}
             onChange={(e) => setFiltro(e.target.value as FiltroStatus)}
           >
-            <option value="todos">Todos os status</option>
+            <option value="todos">Todas</option>
+            <option value="paradas">Paradas (7+ dias)</option>
             <option value="critico">Crítico (14+ dias)</option>
             <option value="atencao">Atenção (7–13 dias)</option>
           </select>
@@ -117,7 +120,7 @@ function FilaCaptacaoPage() {
       {aba === "paradas" ? (
         <ul className="space-y-4">
           {visiveis.length === 0 ? (
-            <Vazio text="Nenhuma captação parada neste filtro." />
+            <Vazio text="Nenhuma captação neste filtro." />
           ) : (
             visiveis.map((item) => (
               <li key={item.id}>
@@ -301,8 +304,20 @@ function CaptacaoCard({
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Próximos passos
             </p>
-            <StatusChip tone={item.diasSemMovimento >= 14 ? "orange" : "muted"}>
-              {item.diasSemMovimento} dias parada
+            <StatusChip
+              tone={
+                item.diasSemMovimento >= 14
+                  ? "orange"
+                  : item.diasSemMovimento >= 7
+                    ? "orange"
+                    : "muted"
+              }
+            >
+              {item.diasSemMovimento >= 7
+                ? `${item.diasSemMovimento} dias parada`
+                : item.diasSemMovimento <= 0
+                  ? "Em dia"
+                  : `${item.diasSemMovimento} dias`}
             </StatusChip>
           </div>
           <ul className="space-y-2">
