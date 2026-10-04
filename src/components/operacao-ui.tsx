@@ -10,7 +10,10 @@ export function ModulePageTransition({
   children: React.ReactNode;
 }) {
   return (
-    <div key={pathname} className="module-page-in">
+    <div
+      key={pathname}
+      className="module-page-in flex min-h-0 flex-1 flex-col"
+    >
       {children}
     </div>
   );

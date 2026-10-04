@@ -172,6 +172,21 @@ export function rotuloPropostaVinculo(vinculo: PropostaVinculoResumo) {
   return "Vínculo";
 }
 
+/** Rótulo curto para a lista: só o imóvel (rua e número). */
+export function rotuloPropostaVinculoCurto(vinculo: PropostaVinculoResumo) {
+  if (vinculo.imovel) {
+    return (
+      [vinculo.imovel.logradouro, vinculo.imovel.numero]
+        .filter(Boolean)
+        .join(", ") || "Imóvel"
+    );
+  }
+  if (vinculo.empreendimento) {
+    return vinculo.empreendimento.nome;
+  }
+  return "Vínculo";
+}
+
 /** Campos simples (um valor). */
 export const PROPOSTA_SIMPLES_KEYS = [
   "entrada",

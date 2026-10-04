@@ -2024,7 +2024,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             "max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6",
-            lockPageScroll && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
+            lockPageScroll &&
+              "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
           )}
         >
           {operacaoAtiva?.id === "lancamentos" &&
@@ -2047,7 +2048,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div
                 className={cn(
                   lockPageScroll &&
-                    "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
+                    "flex min-h-0 h-full flex-1 flex-col overflow-hidden",
                 )}
               >
                 {children}

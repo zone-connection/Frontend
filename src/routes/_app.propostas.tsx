@@ -129,7 +129,7 @@ import {
   propostaDiferenca,
   propostaStatusClass,
   propostaValorLiquido,
-  rotuloPropostaVinculo,
+  rotuloPropostaVinculoCurto,
   updateProposta,
   type CreatePropostaInput,
   type Proposta,
@@ -1693,12 +1693,30 @@ function Page() {
                       {p.construtora ? ` · ${p.construtora.nome}` : ""}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[220px] text-xs text-muted-foreground">
-                    {(p.vinculos ?? []).length === 0
-                      ? "—"
-                      : (p.vinculos ?? [])
-                          .map((vinculo) => rotuloPropostaVinculo(vinculo))
-                          .join(" · ")}
+                  <TableCell className="max-w-[140px] align-top">
+                    {(p.vinculos ?? []).length === 0 ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {(p.vinculos ?? []).slice(0, 6).map((vinculo) => (
+                          <div
+                            key={vinculo.id}
+                            className="truncate text-xs text-foreground"
+                            title={rotuloPropostaVinculoCurto(vinculo)}
+                          >
+                            {rotuloPropostaVinculoCurto(vinculo)}
+                          </div>
+                        ))}
+                        {(p.vinculos ?? []).length > 6 ? (
+                          <div className="text-[11px] font-medium text-muted-foreground">
+                            +{(p.vinculos ?? []).length - 6}{" "}
+                            {(p.vinculos ?? []).length - 6 === 1
+                              ? "imóvel"
+                              : "imóveis"}
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
                     <div>{p.corretor?.name ?? "—"}</div>

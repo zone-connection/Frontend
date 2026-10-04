@@ -644,7 +644,7 @@ function CorretorTriagem() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0">
         <PageHeader
           eyebrow="Triagem"
@@ -845,7 +845,7 @@ function CorretorTriagem() {
           )}
         </div>
 
-        <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-col overflow-hidden max-lg:min-h-80 lg:col-span-7")}>
+        <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-80 lg:col-span-7")}>
           {!selectedContact ? (
             <>
               <div className="shrink-0 px-4 pt-4 pb-1">
@@ -1339,7 +1339,7 @@ function ManagerTriagem() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0">
         <PageHeader
           eyebrow="Triagem"
@@ -1420,7 +1420,7 @@ function ManagerTriagem() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 max-lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden">
         {isPlatformAdmin ? null : (
-        <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-col overflow-hidden max-lg:min-h-80 lg:col-span-3")}>
+        <section className={cn(SOFT_SURFACE, "flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-80 lg:col-span-3")}>
           <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-4 pb-2">
             <div>
               <h2 className="text-sm font-semibold">Corretores</h2>
@@ -1528,7 +1528,7 @@ function ManagerTriagem() {
 
         <section className={cn(
           SOFT_SURFACE,
-          "flex min-h-0 flex-col overflow-hidden max-lg:min-h-80",
+          "flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-80",
           isPlatformAdmin ? "lg:col-span-4" : "lg:col-span-4",
         )}>
           {!isPlatformAdmin && !selectedCorretorId ? (
@@ -1652,7 +1652,7 @@ function ManagerTriagem() {
 
         <section className={cn(
           SOFT_SURFACE,
-          "flex min-h-0 flex-col overflow-hidden max-lg:min-h-80",
+          "flex min-h-0 flex-1 flex-col overflow-hidden max-lg:min-h-80",
           isPlatformAdmin ? "lg:col-span-8" : "lg:col-span-5",
         )}>
           {!isPlatformAdmin && !selectedCorretorId ? (
