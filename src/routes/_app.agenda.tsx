@@ -58,6 +58,7 @@ import {
   type AgendaViewMode,
 } from "@/components/agenda-board";
 import { TimePicker } from "@/components/time-picker";
+import { IdSearchSelect } from "@/components/id-search-select";
 import { getSession } from "@/lib/auth";
 import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
 import { useLeads } from "@/lib/leads-store";
@@ -1966,51 +1967,41 @@ function AgendaPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Lead</Label>
-                    <Select
-                      value={form.leadId || "__none__"}
-                      onValueChange={(v) =>
-                        v === "__none__"
-                          ? setField("leadId", "")
-                          : selectLead(v)
+                    <IdSearchSelect
+                      value={form.leadId}
+                      options={leadOptions.map((l) => ({
+                        id: l.id,
+                        label: l.nome,
+                        keywords: `${l.telefone} ${l.cidade} ${l.bairro}`,
+                      }))}
+                      onChange={(id) =>
+                        id ? selectLead(id) : setField("leadId", "")
                       }
+                      placeholder="Selecionar lead"
+                      searchPlaceholder="Pesquisar lead…"
+                      emptyLabel="Nenhum lead cadastrado"
+                      noneLabel="—"
                       disabled={formMode === "edit" || leadsLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar lead" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">—</SelectItem>
-                        {leadOptions.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            {l.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Cliente</Label>
-                    <Select
-                      value={form.clienteId || "__none__"}
-                      onValueChange={(v) =>
-                        v === "__none__"
-                          ? setField("clienteId", "")
-                          : selectCliente(v)
+                    <IdSearchSelect
+                      value={form.clienteId}
+                      options={clienteOptions.map((l) => ({
+                        id: l.id,
+                        label: l.nome,
+                        keywords: `${l.telefone} ${l.cidade} ${l.bairro}`,
+                      }))}
+                      onChange={(id) =>
+                        id ? selectCliente(id) : setField("clienteId", "")
                       }
+                      placeholder="Selecionar cliente"
+                      searchPlaceholder="Pesquisar cliente…"
+                      emptyLabel="Nenhum cliente cadastrado"
+                      noneLabel="—"
                       disabled={formMode === "edit" || leadsLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">—</SelectItem>
-                        {clienteOptions.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            {l.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                 </div>
               </FormSection>

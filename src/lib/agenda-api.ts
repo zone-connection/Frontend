@@ -132,101 +132,86 @@ export const AGENDAMENTO_VISUAL_LABEL: Record<AgendamentoVisual, string> = {
 };
 
 /**
- * Cores dos eventos = paleta da marca (navy #053647, ciano #079ED4,
- * teal #0e6f8a e a escala dos KPIs). Sem laranja/roxo/verde soltos.
- *
- * visita        → primary #079ed4
- * ligacao       → kpi-seq-4 #057aa8
- * reuniao       → navy #053647
- * tarefa        → CTA teal #0e6f8a
- * outro         → chart-5 #64748b
- * aniversario   → kpi-seq-1 #5bc4e8
- * bloqueio      → slate
+ * Cores dos eventos = as mesmas das pílulas da agenda.
+ * visita azul, ligação verde, reunião roxa, tarefa laranja,
+ * outro teal, bloqueio vermelho, aniversário rosa.
  */
 
 /** Hachura do bloqueio: reforça o tipo mesmo em blocos pequenos. */
 const BLOQUEIO_HATCH =
-  "bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(5,54,71,0.2)_4px,rgba(5,54,71,0.2)_8px)]";
+  "bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(180,74,74,0.28)_4px,rgba(180,74,74,0.28)_8px)]";
 
 /** Blocos sólidos (calendário semana/mês). */
 export const AGENDAMENTO_TIPO_BLOCK: Record<AgendamentoVisual, string> = {
-  visita: "bg-[#079ed4] border-[#0689bd] text-white",
-  ligacao: "bg-[#057aa8] border-[#04648a] text-white",
-  reuniao: "bg-[#053647] border-[#032b43] text-white",
-  tarefa: "bg-[#0e6f8a] border-[#0a5a75] text-white",
-  outro: "bg-[#64748b] border-[#475569] text-white",
-  bloqueio: `bg-slate-400/80 border-slate-500 text-white border-dashed ${BLOQUEIO_HATCH}`,
+  visita: "bg-[#2f79e8] border-[#2563c9] text-white",
+  ligacao: "bg-[#22a06b] border-[#1b8558] text-white",
+  reuniao: "bg-[#7c5cbf] border-[#6849a8] text-white",
+  tarefa: "bg-[#e0892a] border-[#c4731c] text-white",
+  outro: "bg-[#2aa3a3] border-[#218686] text-white",
+  bloqueio: `bg-[#d45c5c] border-[#b94a4a] text-white ${BLOQUEIO_HATCH}`,
   retirada_chave: "bg-[#075a82] border-[#054a6b] text-white",
-  aniversario: "bg-[#5bc4e8] border-[#079ed4] text-[#053647]",
+  aniversario: "bg-[#d46aa8] border-[#b85590] text-white",
 };
 
 /** Badges e ícones suaves. */
 export const AGENDAMENTO_TIPO_SOFT: Record<AgendamentoVisual, string> = {
-  visita:
-    "bg-[#079ed4]/12 text-[#04648a] dark:text-[#5bc4e8] border-[#079ed4]/30",
-  ligacao:
-    "bg-[#057aa8]/12 text-[#04648a] dark:text-[#5bc4e8] border-[#057aa8]/30",
-  reuniao:
-    "bg-[#053647]/10 text-[#053647] dark:bg-white/10 dark:text-slate-100 border-[#053647]/25 dark:border-white/20",
-  tarefa:
-    "bg-[#0e6f8a]/12 text-[#0a5a75] dark:text-[#5bc4e8] border-[#0e6f8a]/30",
-  outro:
-    "bg-[#64748b]/12 text-[#475569] dark:text-slate-300 border-[#64748b]/30",
-  bloqueio:
-    "bg-slate-500/10 text-slate-700 dark:text-slate-200 border-slate-500/35 border-dashed",
-  retirada_chave:
-    "bg-[#075a82]/12 text-[#075a82] dark:text-[#7ec8e8] border-[#075a82]/30",
-  aniversario:
-    "bg-[#5bc4e8]/20 text-[#04648a] dark:text-[#5bc4e8] border-[#5bc4e8]/40",
+  visita: "bg-[#2f79e8]/12 text-[#1d4fad] border-[#2f79e8]/30",
+  ligacao: "bg-[#22a06b]/12 text-[#157a50] border-[#22a06b]/30",
+  reuniao: "bg-[#7c5cbf]/12 text-[#5a3d99] border-[#7c5cbf]/30",
+  tarefa: "bg-[#e0892a]/12 text-[#b56a16] border-[#e0892a]/30",
+  outro: "bg-[#2aa3a3]/12 text-[#1c7a7a] border-[#2aa3a3]/30",
+  bloqueio: "bg-[#d45c5c]/12 text-[#a63d3d] border-[#d45c5c]/30",
+  retirada_chave: "bg-[#075a82]/12 text-[#075a82] border-[#075a82]/30",
+  aniversario: "bg-[#d46aa8]/12 text-[#a34a80] border-[#d46aa8]/30",
 };
 
 /** Ícone (cards, seletor de tipo). */
 export const AGENDAMENTO_TIPO_WELL: Record<AgendamentoVisual, string> = {
-  visita: "bg-[#079ed4] text-white",
-  ligacao: "bg-[#057aa8] text-white",
-  reuniao: "bg-[#053647] text-white",
-  tarefa: "bg-[#0e6f8a] text-white",
-  outro: "bg-[#64748b] text-white",
-  bloqueio: "bg-slate-500 text-white",
+  visita: "bg-[#2f79e8] text-white",
+  ligacao: "bg-[#22a06b] text-white",
+  reuniao: "bg-[#7c5cbf] text-white",
+  tarefa: "bg-[#e0892a] text-white",
+  outro: "bg-[#2aa3a3] text-white",
+  bloqueio: "bg-[#d45c5c] text-white",
   retirada_chave: "bg-[#075a82] text-white",
-  aniversario: "bg-[#5bc4e8] text-[#053647]",
+  aniversario: "bg-[#d46aa8] text-white",
 };
 
 /** Faixa / acento sólido do tipo. */
 export const AGENDAMENTO_TIPO_ACCENT: Record<AgendamentoVisual, string> = {
-  visita: "bg-[#079ed4]",
-  ligacao: "bg-[#057aa8]",
-  reuniao: "bg-[#053647]",
-  tarefa: "bg-[#0e6f8a]",
-  outro: "bg-[#64748b]",
-  bloqueio: "bg-slate-400",
+  visita: "bg-[#2f79e8]",
+  ligacao: "bg-[#22a06b]",
+  reuniao: "bg-[#7c5cbf]",
+  tarefa: "bg-[#e0892a]",
+  outro: "bg-[#2aa3a3]",
+  bloqueio: "bg-[#d45c5c]",
   retirada_chave: "bg-[#075a82]",
-  aniversario: "bg-[#5bc4e8]",
+  aniversario: "bg-[#d46aa8]",
 };
 
-/** Cards da visão dia: fundo do sistema + faixa da marca à esquerda. */
+/** Cards da visão lista: fundo do sistema + faixa colorida à esquerda. */
 export const AGENDAMENTO_TIPO_CARD: Record<AgendamentoVisual, string> = {
-  visita: "bg-card border-border border-l-[#079ed4] text-foreground",
-  ligacao: "bg-card border-border border-l-[#057aa8] text-foreground",
-  reuniao: "bg-card border-border border-l-[#053647] text-foreground",
-  tarefa: "bg-card border-border border-l-[#0e6f8a] text-foreground",
-  outro: "bg-card border-border border-l-[#64748b] text-foreground",
+  visita: "bg-card border-border border-l-[#2f79e8] text-foreground",
+  ligacao: "bg-card border-border border-l-[#22a06b] text-foreground",
+  reuniao: "bg-card border-border border-l-[#7c5cbf] text-foreground",
+  tarefa: "bg-card border-border border-l-[#e0892a] text-foreground",
+  outro: "bg-card border-border border-l-[#2aa3a3] text-foreground",
   bloqueio:
-    "bg-muted/40 border-slate-400/50 border-l-slate-400 border-dashed text-foreground",
+    "bg-muted/40 border-[#d45c5c]/40 border-l-[#d45c5c] text-foreground",
   retirada_chave: "bg-card border-border border-l-[#075a82] text-foreground",
-  aniversario: "bg-card border-border border-l-[#5bc4e8] text-foreground",
+  aniversario: "bg-card border-border border-l-[#d46aa8] text-foreground",
 };
 
 /** Marcador da legenda e dos seletores de tipo. */
 export const AGENDAMENTO_TIPO_DOT: Record<AgendamentoVisual, string> = {
-  visita: "bg-[#079ed4]",
-  ligacao: "bg-[#057aa8]",
-  reuniao: "bg-[#053647]",
-  tarefa: "bg-[#0e6f8a]",
-  outro: "bg-[#64748b]",
-  bloqueio: "bg-slate-400 ring-1 ring-slate-500",
+  visita: "bg-[#2f79e8]",
+  ligacao: "bg-[#22a06b]",
+  reuniao: "bg-[#7c5cbf]",
+  tarefa: "bg-[#e0892a]",
+  outro: "bg-[#2aa3a3]",
+  bloqueio: "bg-[#d45c5c]",
   retirada_chave: "bg-[#075a82]",
-  aniversario: "bg-[#5bc4e8]",
+  aniversario: "bg-[#d46aa8]",
 };
 
 export function isAgendamentoAniversario(item: {
