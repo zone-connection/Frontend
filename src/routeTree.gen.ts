@@ -74,6 +74,7 @@ import { Route as ProdutosIaWhatsappRouteImport } from './routes/produtos.ia-wha
 import { Route as ProdutosSitesInstitucionaisRouteImport } from './routes/produtos.sites-institucionais'
 import { Route as AppCaptacaoCaptacoesRouteImport } from './routes/_app.captacao.captacoes'
 import { Route as AppCaptacaoFilaRouteImport } from './routes/_app.captacao.fila'
+import { Route as AppCaptacaoFilaIdRouteImport } from './routes/_app.captacao.fila_.$id'
 import { Route as AppCaptacaoFunilRouteImport } from './routes/_app.captacao.funil'
 import { Route as AppCaptacaoImoveisRouteImport } from './routes/_app.captacao.imoveis'
 import { Route as AppCaptacaoProprietariosRouteImport } from './routes/_app.captacao.proprietarios'
@@ -440,6 +441,11 @@ const AppCaptacaoFilaRoute = AppCaptacaoFilaRouteImport.update({
   path: '/fila',
   getParentRoute: () => AppCaptacaoRoute,
 } as any)
+const AppCaptacaoFilaIdRoute = AppCaptacaoFilaIdRouteImport.update({
+  id: '/fila_/$id',
+  path: '/fila/$id',
+  getParentRoute: () => AppCaptacaoRoute,
+} as any)
 const AppCaptacaoFunilRoute = AppCaptacaoFunilRouteImport.update({
   id: '/funil',
   path: '/funil',
@@ -723,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/captacao/fila': typeof AppCaptacaoFilaRoute
+  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
@@ -825,6 +832,7 @@ export interface FileRoutesByTo {
   '/parceiros': typeof ParceirosIndexRoute
   '/portal': typeof PortalIndexRoute
   '/captacao/fila': typeof AppCaptacaoFilaRoute
+  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/visao-geral': typeof AppCaptacaoVisaoGeralRoute
   '/financeiro/categorias': typeof AppFinanceiroCategoriasRoute
@@ -930,6 +938,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/_app/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/_app/captacao/fila': typeof AppCaptacaoFilaRoute
+  '/_app/captacao/fila_/$id': typeof AppCaptacaoFilaIdRoute
   '/_app/captacao/funil': typeof AppCaptacaoFunilRoute
   '/_app/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/_app/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
@@ -1038,6 +1047,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/captacao/captacoes'
     | '/captacao/fila'
+    | '/captacao/fila/$id'
     | '/captacao/funil'
     | '/captacao/imoveis'
     | '/captacao/proprietarios'
@@ -1140,6 +1150,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/portal'
     | '/captacao/fila'
+    | '/captacao/fila/$id'
     | '/captacao/funil'
     | '/captacao/visao-geral'
     | '/financeiro/categorias'
@@ -1244,6 +1255,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/_app/captacao/captacoes'
     | '/_app/captacao/fila'
+    | '/_app/captacao/fila_/$id'
     | '/_app/captacao/funil'
     | '/_app/captacao/imoveis'
     | '/_app/captacao/proprietarios'
@@ -1759,6 +1771,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCaptacaoFilaRouteImport
       parentRoute: typeof AppCaptacaoRoute
     }
+    '/_app/captacao/fila_/$id': {
+      id: '/_app/captacao/fila_/$id'
+      path: '/fila/$id'
+      fullPath: '/captacao/fila/$id'
+      preLoaderRoute: typeof AppCaptacaoFilaIdRouteImport
+      parentRoute: typeof AppCaptacaoRoute
+    }
     '/_app/captacao/funil': {
       id: '/_app/captacao/funil'
       path: '/funil'
@@ -2087,6 +2106,7 @@ const AppCaptacaoProprietariosRouteWithChildren =
 interface AppCaptacaoRouteChildren {
   AppCaptacaoCaptacoesRoute: typeof AppCaptacaoCaptacoesRouteWithChildren
   AppCaptacaoFilaRoute: typeof AppCaptacaoFilaRoute
+  AppCaptacaoFilaIdRoute: typeof AppCaptacaoFilaIdRoute
   AppCaptacaoFunilRoute: typeof AppCaptacaoFunilRoute
   AppCaptacaoImoveisRoute: typeof AppCaptacaoImoveisRouteWithChildren
   AppCaptacaoProprietariosRoute: typeof AppCaptacaoProprietariosRouteWithChildren
@@ -2096,6 +2116,7 @@ interface AppCaptacaoRouteChildren {
 const AppCaptacaoRouteChildren: AppCaptacaoRouteChildren = {
   AppCaptacaoCaptacoesRoute: AppCaptacaoCaptacoesRouteWithChildren,
   AppCaptacaoFilaRoute: AppCaptacaoFilaRoute,
+  AppCaptacaoFilaIdRoute: AppCaptacaoFilaIdRoute,
   AppCaptacaoFunilRoute: AppCaptacaoFunilRoute,
   AppCaptacaoImoveisRoute: AppCaptacaoImoveisRouteWithChildren,
   AppCaptacaoProprietariosRoute: AppCaptacaoProprietariosRouteWithChildren,
