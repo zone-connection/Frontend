@@ -1,227 +1,156 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { DemoPreviewNote } from "@/components/demo-preview-note";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
-import { Button } from "@/components/ui/button";
+import { SOFT_SURFACE } from "@/lib/soft-surface";
+import { ApiError } from "@/lib/api";
+import { imovelCapaUrl } from "@/lib/captacao-api";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  INTERESSE_LABEL,
+  fetchTodasVisitasUsado,
   VISITA_STATUS_LABEL,
-  imovelById,
-  patchVisita,
-  perfilById,
-  useDemoOperacao,
-  type VisitaInteresse,
-  type VisitaStatus,
-} from "@/lib/demo-operacao-usados";
+  type VisitaUsado,
+  type VisitaUsadoStatus,
+} from "@/lib/imoveis-usados-api";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-type Periodo = "hoje" | "semana" | "realizadas";
+type Periodo = "todas" | "agendada" | "realizada";
 
 export const Route = createFileRoute("/_app/imoveis-usados/visitas")({
   validateSearch: (search: Record<string, unknown>): { periodo?: Periodo } => {
     const periodo = search.periodo;
-    if (periodo === "hoje" || periodo === "semana" || periodo === "realizadas") {
+    if (periodo === "todas" || periodo === "agendada" || periodo === "realizada") {
       return { periodo };
     }
     return {};
   },
-  component: VisitasDemoPage,
+  component: VisitasPage,
 });
 
-const INTERESSES: VisitaInteresse[] = [
-  "muito_interessado",
-  "interessado",
-  "pouco_interessado",
-  "sem_interesse",
-];
-
-function toneVisita(status: VisitaStatus) {
+function toneVisita(status: VisitaUsadoStatus) {
   if (status === "confirmada" || status === "realizada") return "emerald" as const;
   if (status === "nao_compareceu" || status === "cancelada") return "orange" as const;
-  if (status === "agendada") return "teal" as const;
-  return "muted" as const;
+  return "teal" as const;
 }
 
-function VisitasDemoPage() {
+type VisitaLista = VisitaUsado & {
+  vendaUsado?: {
+    id: string;
+    imovel: {
+      id?: string;
+      titulo?: string;
+      cidade?: string;
+      fotoUrl?: string | null;
+      tipo?: string;
+    };
+  };
+};
+
+function VisitasPage() {
   const { periodo } = Route.useSearch();
   const navigate = useNavigate();
-  const { visitas } = useDemoOperacao();
-  const aba: Periodo = periodo ?? "hoje";
-  const [feedbackId, setFeedbackId] = useState<string | null>(null);
-  const [interesse, setInteresse] = useState<VisitaInteresse>("interessado");
-  const [texto, setTexto] = useState("");
+  const aba: Periodo = periodo ?? "todas";
+  const [items, setItems] = useState<VisitaLista[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const abertas = visitas.filter(
-    (item) => item.status === "agendada" || item.status === "confirmada",
-  );
-  const lista = visitas.filter((item) => {
-    if (aba === "realizadas") return item.status === "realizada";
-    if (aba === "hoje") return item.quando === "hoje" && item.status !== "realizada";
-    return (
-      (item.quando === "hoje" || item.quando === "semana") &&
-      item.status !== "realizada"
-    );
-  });
+  useEffect(() => {
+    fetchTodasVisitasUsado()
+      .then(setItems)
+      .catch((err) => {
+        toast.error(
+          err instanceof ApiError ? err.message : "Não foi possível listar as visitas.",
+        );
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const lista = useMemo(() => {
+    if (aba === "todas") return items;
+    return items.filter((item) => item.status === aba);
+  }, [aba, items]);
 
   return (
     <>
       <PageHeader
-        title="Agenda de visitas"
-        description="Hoje e esta semana, com confirmação e retorno da visita."
+        title="Visitas"
+        description="Agenda de visitas nos imóveis em venda de usados."
       />
-      <DemoPreviewNote />
       <PillTabs
         value={aba}
         onChange={(id) => {
           void navigate({
             to: "/imoveis-usados/visitas",
-            search: { periodo: id as Periodo },
+            search: id === "todas" ? {} : { periodo: id as Periodo },
           });
         }}
         items={[
-          { id: "hoje", label: `Hoje (${abertas.filter((item) => item.quando === "hoje").length})` },
-          { id: "semana", label: `Esta semana (${abertas.length})` },
+          { id: "todas", label: `Todas (${items.length})` },
           {
-            id: "realizadas",
-            label: `Realizadas (${visitas.filter((item) => item.status === "realizada").length})`,
+            id: "agendada",
+            label: `Agendadas (${items.filter((i) => i.status === "agendada").length})`,
+          },
+          {
+            id: "realizada",
+            label: `Realizadas (${items.filter((i) => i.status === "realizada").length})`,
           },
         ]}
       />
-      <ul className="space-y-3">
-        {lista.length === 0 ? (
-          <li className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
-            Nenhuma visita neste recorte.
-          </li>
-        ) : (
-          lista.map((visita) => {
-            const imovel = imovelById(visita.imovelId);
-            const pessoa = perfilById(visita.interessadoId);
-            return (
-              <li key={visita.id} className="rounded-2xl border bg-card p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {visita.diaLabel} · {visita.hora}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">{imovel?.titulo}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pessoa?.nome} · {visita.corretor}
-                      {imovel ? ` · ${imovel.bairro}` : ""}
-                    </p>
-                  </div>
-                  <StatusChip tone={toneVisita(visita.status)}>
-                    {VISITA_STATUS_LABEL[visita.status]}
-                  </StatusChip>
-                </div>
-                {visita.interesse ? (
-                  <p className="mt-2 text-sm">
-                    {INTERESSE_LABEL[visita.interesse]}
-                    {visita.feedback ? ` — ${visita.feedback}` : ""}
-                  </p>
-                ) : null}
-                {visita.status === "agendada" || visita.status === "confirmada" ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {visita.status === "agendada" ? (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          patchVisita(visita.id, { status: "confirmada" });
-                          toast.success("Visita confirmada.");
-                        }}
-                      >
-                        Confirmar
-                      </Button>
+      {loading ? (
+        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando…
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {lista.length === 0 ? (
+            <li className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+              Nenhuma visita neste filtro.
+            </li>
+          ) : (
+            lista.map((item) => {
+              const imovel = item.vendaUsado?.imovel;
+              const capa = imovelCapaUrl(imovel);
+              return (
+                <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
+                  <div className="flex gap-3">
+                    {capa ? (
+                      <img src={capa} alt="" className="h-16 w-20 shrink-0 rounded-lg object-cover" />
                     ) : null}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setFeedbackId(visita.id);
-                        setInteresse("interessado");
-                        setTexto("");
-                      }}
-                    >
-                      Marcar realizada
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        patchVisita(visita.id, { status: "nao_compareceu" });
-                        toast.success("Registrado como não compareceu.");
-                      }}
-                    >
-                      Não compareceu
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        patchVisita(visita.id, { status: "cancelada" });
-                        toast.success("Visita cancelada.");
-                      }}
-                    >
-                      Cancelar
-                    </Button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {imovel?.titulo ?? "Imóvel"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.interessado.nome} · {item.responsavel.name}
+                          </p>
+                        </div>
+                        <StatusChip tone={toneVisita(item.status)}>
+                          {VISITA_STATUS_LABEL[item.status]}
+                        </StatusChip>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(item.dataHora).toLocaleString("pt-BR")}
+                      </p>
+                      {item.vendaUsado?.id ? (
+                        <Link
+                          to="/imoveis-usados/vendas/$id"
+                          params={{ id: item.vendaUsado.id }}
+                          className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+                        >
+                          Abrir venda
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
-                ) : null}
-              </li>
-            );
-          })
-        )}
-      </ul>
-      <Dialog open={Boolean(feedbackId)} onOpenChange={(open) => !open && setFeedbackId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Retorno da visita</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <div className="flex flex-wrap gap-2">
-              {INTERESSES.map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={interesse === item ? "default" : "outline"}
-                  onClick={() => setInteresse(item)}
-                >
-                  {INTERESSE_LABEL[item]}
-                </Button>
-              ))}
-            </div>
-            <Textarea
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="O que o interessado comentou"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                if (!feedbackId) return;
-                patchVisita(feedbackId, {
-                  status: "realizada",
-                  interesse,
-                  feedback: texto.trim() || "Visita realizada.",
-                });
-                setFeedbackId(null);
-                toast.success("Visita registrada com o retorno.");
-              }}
-            >
-              Salvar retorno
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
     </>
   );
 }

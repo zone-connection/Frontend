@@ -342,12 +342,44 @@ export function imovelFotoItens(item: {
   return item.fotoUrl ? [{ url: item.fotoUrl }] : [];
 }
 
+const IMOVEL_CAPA_POR_TIPO: Record<string, readonly string[]> = {
+  apartamento: [
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
+  ],
+  casa: [
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+  ],
+  terreno: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=1200&q=80",
+  ],
+  sala_comercial: [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
+  ],
+};
+
 export function imovelCapaUrl(item: {
+  id?: string;
+  tipo?: string;
   fotos?: Array<{ url: string }>;
   fotoUrl?: string | null;
 } | null | undefined) {
   if (!item) return null;
-  return item.fotos?.[0]?.url ?? item.fotoUrl ?? null;
+  const real = item.fotos?.[0]?.url ?? item.fotoUrl ?? null;
+  if (real && real.trim()) return real;
+  const tipo = item.tipo ?? "apartamento";
+  const salt = item.id ?? tipo;
+  const pool = IMOVEL_CAPA_POR_TIPO[tipo] ?? IMOVEL_CAPA_POR_TIPO.apartamento ?? [];
+  let hash = 0;
+  for (let i = 0; i < salt.length; i += 1) {
+    hash = (hash * 31 + salt.charCodeAt(i)) >>> 0;
+  }
+  return pool[hash % pool.length] ?? null;
 }
 
 export function deleteProprietario(id: string) {

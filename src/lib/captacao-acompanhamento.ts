@@ -1,5 +1,5 @@
 import type { Captacao, CaptacaoHistorico } from "@/lib/captacao-api";
-import { CAPTACAO_IMOVEL_TIPO_LABEL } from "@/lib/captacao-api";
+import { CAPTACAO_IMOVEL_TIPO_LABEL, imovelCapaUrl } from "@/lib/captacao-api";
 import type { CaptacaoParada } from "@/lib/demo-operacao-usados";
 
 export type AcompanhamentoPessoa = {
@@ -163,7 +163,7 @@ export function captacaoToAcompanhamento(c: Captacao): AcompanhamentoItem {
     lastMs != null
       ? diasFromMs(lastMs)
       : diasFromMs(Date.now() - new Date(c.updatedAt).getTime());
-  const foto = c.imovel.fotos?.[0]?.url ?? c.imovel.fotoUrl ?? null;
+  const foto = imovelCapaUrl(c.imovel);
   const cidade = [c.imovel.bairro, c.imovel.cidade, c.imovel.estado].filter(Boolean).join(", ");
   const historicos = (c.historicos ?? []).map((h) => historicoToEvento(h));
   if (dias >= 7) {

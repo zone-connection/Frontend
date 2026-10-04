@@ -310,6 +310,19 @@ export function fetchVisitasUsado(vendaId: string) {
   return apiFetch<VisitaUsado[]>(`/imoveis-usados/${vendaId}/visitas`);
 }
 
+export function fetchTodasVisitasUsado() {
+  return apiFetch<
+    Array<
+      VisitaUsado & {
+        vendaUsado?: {
+          id: string;
+          imovel: { titulo?: string; cidade?: string; bairro?: string; fotoUrl?: string | null; tipo?: string; id?: string; logradouro?: string; numero?: string };
+        };
+      }
+    >
+  >("/imoveis-usados/visitas");
+}
+
 export function createVisitaUsado(
   vendaId: string,
   body: Record<string, unknown>,
@@ -344,6 +357,19 @@ export function feedbackVisitaUsado(
 
 export function fetchPropostasUsado(vendaId: string) {
   return apiFetch<PropostaUsado[]>(`/imoveis-usados/${vendaId}/propostas`);
+}
+
+export function fetchTodasPropostasUsado() {
+  return apiFetch<
+    Array<
+      PropostaUsado & {
+        vendaUsado?: {
+          id: string;
+          imovel: { titulo?: string; cidade?: string; fotoUrl?: string | null; tipo?: string; id?: string };
+        };
+      }
+    >
+  >("/imoveis-usados/propostas");
 }
 
 export function createPropostaUsado(

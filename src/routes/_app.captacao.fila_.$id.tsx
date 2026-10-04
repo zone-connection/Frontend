@@ -28,12 +28,10 @@ import {
   loadTarefas,
   mergeEventos,
   motivosDaCaptacao,
-  paradaToAcompanhamento,
   saveTarefas,
   type AcompanhamentoItem,
   type AcompanhamentoTarefa,
 } from "@/lib/captacao-acompanhamento";
-import { patchParada, useDemoOperacao } from "@/lib/demo-operacao-usados";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -54,7 +52,6 @@ export const Route = createFileRoute("/_app/captacao/fila_/$id")({
 
 function CaptacaoAcompanhamentoDetalhePage() {
   const { id } = Route.useParams();
-  const { paradas } = useDemoOperacao();
   const [item, setItem] = useState<AcompanhamentoItem | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [contatoAberto, setContatoAberto] = useState(false);
@@ -65,15 +62,6 @@ function CaptacaoAcompanhamentoDetalhePage() {
 
   useEffect(() => {
     let alive = true;
-    const demo = paradas.find((p) => p.id === id);
-    if (demo) {
-      const mapped = paradaToAcompanhamento(demo);
-      setItem(mapped);
-      setTarefas(loadTarefas(mapped));
-      return () => {
-        alive = false;
-      };
-    }
     fetchCaptacao(id)
       .then((c) => {
         if (!alive) return;
@@ -87,7 +75,7 @@ function CaptacaoAcompanhamentoDetalhePage() {
     return () => {
       alive = false;
     };
-  }, [id, paradas, tick]);
+  }, [id, tick]);
 
   const eventos = useMemo(() => (item ? mergeEventos(item) : []), [item, tick]);
   const gap = item ? gapPretendido(item) : null;
@@ -402,12 +390,6 @@ function CaptacaoAcompanhamentoDetalhePage() {
                   detalhe: texto,
                   tom: "contato",
                 });
-                if (item.fonte === "demo") {
-                  patchParada(item.id, {
-                    diasSemMovimento: 0,
-                    ultimoContato: "agora",
-                  });
-                }
                 setNota("");
                 setContatoAberto(false);
                 setTick((n) => n + 1);

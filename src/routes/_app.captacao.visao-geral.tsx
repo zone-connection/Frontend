@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import {
   fetchCaptacaoResumo,
+  fetchCaptacoes,
   type CaptacaoResumo,
 } from "@/lib/captacao-api";
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
-import { useDemoOperacao } from "@/lib/demo-operacao-usados";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 import { Building2, Home, Kanban, Loader2, Plus, Users } from "lucide-react";
@@ -28,19 +28,38 @@ function CaptacaoVisaoGeralPage() {
   const [resumo, setResumo] = useState<CaptacaoResumo | null>(null);
   const [funil, setFunil] = useState<Funil | null>(null);
   const [loading, setLoading] = useState(true);
-  const demo = useDemoOperacao();
-  const paradas = demo.paradas.filter((item) => item.diasSemMovimento >= 7).length;
-  const portal = demo.portal.filter((item) => item.desfecho === "aberto").length;
-  const exclusividade = demo.exclusividades.filter((item) => item.venceEmDias <= 30).length;
+  const [paradas, setParadas] = useState(0);
+  const [portal, setPortal] = useState(0);
+  const [exclusividade, setExclusividade] = useState(0);
 
   useEffect(() => {
     void Promise.all([
       fetchCaptacaoResumo(),
       fetchFunilAtivo("captacao").catch(() => null),
+      fetchCaptacoes().catch(() => []),
     ])
-      .then(([nextResumo, nextFunil]) => {
+      .then(([nextResumo, nextFunil, captacoes]) => {
         setResumo(nextResumo);
         setFunil(nextFunil);
+        setParadas(
+          captacoes.filter((item) => {
+            const ms = item.monitoramento?.tempoSemMovimentacaoMs;
+            const dias =
+              ms != null
+                ? Math.floor(ms / 86_400_000)
+                : Math.floor(
+                    (Date.now() - new Date(item.updatedAt).getTime()) /
+                      86_400_000,
+                  );
+            return dias >= 7;
+          }).length,
+        );
+        setPortal(
+          captacoes.filter(
+            (item) => item.sugestaoProprietario || item.canceladoPeloProprietario,
+          ).length,
+        );
+        setExclusividade(captacoes.filter((item) => item.exclusividade).length);
       })
       .catch((err) => {
         toast.error(
@@ -130,7 +149,7 @@ function CaptacaoVisaoGeralPage() {
           </div>
           <OperationSection
             title="Acompanhamento"
-            description="Prévia da fila: paradas, portal do proprietário e exclusividade."
+            description="Fila real: captações paradas, avisos do portal e exclusividade."
           >
             <div className="grid gap-3 sm:grid-cols-3">
               <FinanceKpiCard

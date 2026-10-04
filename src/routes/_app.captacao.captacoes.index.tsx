@@ -45,6 +45,7 @@ import {
   fetchCaptacoes,
   fetchProprietarios,
   formatBrl,
+  imovelCapaUrl,
   type Captacao,
   type CaptacaoResponsavel,
   type Imovel,
@@ -66,6 +67,7 @@ import {
   TABLE_LUX,
 } from "@/lib/filter-bar";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { ImovelFotoThumb } from "@/components/imovel-foto-thumb";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { cn } from "@/lib/utils";
@@ -445,8 +447,10 @@ function CaptacoesPage() {
                     <Link
                       to="/captacao/imoveis/$id"
                       params={{ id: item.imovel.id }}
-                      className="min-w-0 hover:underline"
+                      className="flex min-w-0 items-center gap-2 hover:underline"
                     >
+                      <ImovelFotoThumb src={imovelCapaUrl(item.imovel)} alt="" />
+                      <span className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {item.imovel.titulo}
                       </p>
@@ -455,6 +459,7 @@ function CaptacoesPage() {
                           {item.imovel.cidade}
                         </p>
                       ) : null}
+                      </span>
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
@@ -582,21 +587,19 @@ function CaptacoesPage() {
               key={item.id}
               className="group overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md"
             >
-              <div className="relative h-40 overflow-hidden bg-linear-to-br from-primary/25 via-primary/10 to-muted">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Building2 className="h-10 w-10 text-primary/35" />
-                </div>
-                {item.imovel.fotoUrl ? (
+              <div className="relative h-40 overflow-hidden bg-muted">
+                {imovelCapaUrl(item.imovel) ? (
                   <img
-                    src={item.imovel.fotoUrl}
+                    src={imovelCapaUrl(item.imovel) ?? ""}
                     alt=""
                     className="relative h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
                   />
-                ) : null}
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Building2 className="h-10 w-10 text-muted-foreground/40" />
+                  </div>
+                )}
                 <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
                 {item.imovel.cidade ? (
                   <Badge className="absolute bottom-3 right-3 border-white/20 bg-black/45 text-white hover:bg-black/55">

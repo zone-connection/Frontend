@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { DemoPreviewNote } from "@/components/demo-preview-note";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,19 +12,17 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
-import { formatBrl, fetchCaptacoes } from "@/lib/captacao-api";
 import {
+  fetchCaptacoes,
+  formatBrl,
+  type Captacao,
+} from "@/lib/captacao-api";
+import {
+  appendEventoLocal,
   captacaoToAcompanhamento,
   gapPretendido,
-  paradaToAcompanhamento,
   type AcompanhamentoItem,
 } from "@/lib/captacao-acompanhamento";
-import {
-  patchExclusividade,
-  patchParada,
-  patchPortal,
-  useDemoOperacao,
-} from "@/lib/demo-operacao-usados";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Check, MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -47,42 +44,42 @@ export const Route = createFileRoute("/_app/captacao/fila")({
 function FilaCaptacaoPage() {
   const { aba: abaSearch } = Route.useSearch();
   const navigate = useNavigate();
-  const { paradas, portal, exclusividades } = useDemoOperacao();
   const aba: Aba = abaSearch ?? "paradas";
   const [contatoId, setContatoId] = useState<string | null>(null);
   const [nota, setNota] = useState("");
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
-  const [apiItems, setApiItems] = useState<AcompanhamentoItem[] | null>(null);
+  const [captacoes, setCaptacoes] = useState<Captacao[]>([]);
 
   useEffect(() => {
     let alive = true;
     fetchCaptacoes()
       .then((list) => {
-        if (!alive) return;
-        const mapped = list
-          .map(captacaoToAcompanhamento)
-          .filter((item) => item.diasSemMovimento >= 7);
-        setApiItems(mapped);
+        if (alive) setCaptacoes(list);
       })
       .catch(() => {
-        if (alive) setApiItems([]);
+        if (alive) setCaptacoes([]);
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  const demoItems = paradas.map(paradaToAcompanhamento);
-  const fromApi = (apiItems ?? []).length > 0;
-  const paradasAbertas = fromApi ? (apiItems ?? []) : demoItems.filter((item) => item.diasSemMovimento >= 7);
+  const paradasAbertas = useMemo(
+    () =>
+      captacoes
+        .map(captacaoToAcompanhamento)
+        .filter((item) => item.diasSemMovimento >= 7),
+    [captacoes],
+  );
   const visiveis = paradasAbertas.filter((item) => {
     if (filtro === "critico") return item.diasSemMovimento >= 14;
     if (filtro === "atencao") return item.diasSemMovimento >= 7 && item.diasSemMovimento < 14;
     return true;
   });
-
-  const portalAberto = portal.filter((item) => item.desfecho === "aberto");
-  const exclusividadePerto = exclusividades.filter((item) => item.venceEmDias <= 30);
+  const portalItens = captacoes.filter(
+    (item) => item.sugestaoProprietario || item.canceladoPeloProprietario,
+  );
+  const exclusividades = captacoes.filter((item) => item.exclusividade);
 
   return (
     <>
@@ -90,7 +87,6 @@ function FilaCaptacaoPage() {
         title="Acompanhamento"
         description="Acompanhe as negociações, visualize os próximos passos e mantenha seus clientes sempre no radar."
       />
-      {!fromApi ? <DemoPreviewNote /> : null}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <PillTabs
           value={aba}
@@ -102,8 +98,8 @@ function FilaCaptacaoPage() {
           }}
           items={[
             { id: "paradas", label: `Paradas (${paradasAbertas.length})` },
-            { id: "portal", label: `Portal (${portalAberto.length})` },
-            { id: "exclusividade", label: `Exclusividade (${exclusividadePerto.length})` },
+            { id: "portal", label: `Portal (${portalItens.length})` },
+            { id: "exclusividade", label: `Exclusividade (${exclusividades.length})` },
           ]}
         />
         {aba === "paradas" ? (
@@ -139,87 +135,65 @@ function FilaCaptacaoPage() {
       ) : null}
       {aba === "portal" ? (
         <ul className="space-y-3">
-          {portal.map((item) => (
-            <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">{item.imovel}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {item.proprietario} · {item.quando}
-                  </p>
+          {portalItens.length === 0 ? (
+            <Vazio text="Nenhum aviso do portal do proprietário." />
+          ) : (
+            portalItens.map((item) => (
+              <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{item.imovel.titulo}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.proprietario.nome} · {item.responsavel.name}
+                    </p>
+                  </div>
+                  <StatusChip tone={item.canceladoPeloProprietario ? "orange" : "teal"}>
+                    {item.canceladoPeloProprietario
+                      ? "Cancelado pelo dono"
+                      : "Sugerido pelo dono"}
+                  </StatusChip>
                 </div>
-                <StatusChip tone={item.tipo === "sugerido" ? "teal" : "orange"}>
-                  {item.desfecho === "negociacao"
-                    ? "Em negociação"
-                    : item.desfecho === "perda"
-                      ? "Perda registrada"
-                      : item.tipo === "sugerido"
-                        ? "Sugerido pelo dono"
-                        : "Cancelado pelo dono"}
-                </StatusChip>
-              </div>
-              <p className="mt-2 text-sm">{item.detalhe}</p>
-              {item.desfecho === "aberto" ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      patchPortal(item.id, { desfecho: "negociacao" });
-                      toast.success("Captação assumida para negociação.");
-                    }}
-                  >
-                    Assumir negociação
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      patchPortal(item.id, { desfecho: "perda" });
-                      toast.success("Perda registrada.");
-                    }}
-                  >
-                    Registrar perda
-                  </Button>
-                </div>
-              ) : null}
-            </li>
-          ))}
+                <Link
+                  to="/captacao/fila/$id"
+                  params={{ id: item.id }}
+                  className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+                >
+                  Ver detalhes
+                </Link>
+              </li>
+            ))
+          )}
         </ul>
       ) : null}
       {aba === "exclusividade" ? (
         <ul className="space-y-3">
-          {exclusividades.map((item) => (
-            <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">{item.imovel}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {item.proprietario} · {item.responsavel}
-                  </p>
+          {exclusividades.length === 0 ? (
+            <Vazio text="Nenhuma captação com exclusividade." />
+          ) : (
+            exclusividades.map((item) => (
+              <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{item.imovel.titulo}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.proprietario.nome} · {item.responsavel.name}
+                    </p>
+                  </div>
+                  <StatusChip tone="violet">Exclusividade</StatusChip>
                 </div>
-                <StatusChip tone={item.venceEmDias <= 30 ? "orange" : "muted"}>
-                  {item.venceEmDias <= 30
-                    ? `Vence em ${item.venceEmDias} dias`
-                    : `${item.venceEmDias} dias`}
-                </StatusChip>
-              </div>
-              <p className="mt-2 text-sm tabular-nums">{formatBrl(item.valor)}</p>
-              {item.venceEmDias <= 30 ? (
-                <Button
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => {
-                    patchExclusividade(item.id, { venceEmDias: 90 });
-                    toast.success("Exclusividade renovada por 90 dias.");
-                  }}
+                <p className="mt-2 text-sm tabular-nums">
+                  {formatBrl(item.valorPretendido ?? item.valorAvaliacao)}
+                </p>
+                <Link
+                  to="/captacao/fila/$id"
+                  params={{ id: item.id }}
+                  className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
                 >
-                  Renovar 90 dias
-                </Button>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">Dentro do prazo.</p>
-              )}
-            </li>
-          ))}
+                  Ver detalhes
+                </Link>
+              </li>
+            ))
+          )}
         </ul>
       ) : null}
       <Dialog open={Boolean(contatoId)} onOpenChange={(open) => !open && setContatoId(null)}>
@@ -236,13 +210,16 @@ function FilaCaptacaoPage() {
             <Button
               onClick={() => {
                 if (!contatoId) return;
-                const texto = nota.trim();
-                patchParada(contatoId, {
-                  diasSemMovimento: 0,
-                  ultimoContato: texto ? `agora — ${texto}` : "agora",
+                const texto = nota.trim() || "Contato registrado";
+                appendEventoLocal(contatoId, {
+                  id: crypto.randomUUID(),
+                  at: new Date().toISOString(),
+                  titulo: "Contato",
+                  detalhe: texto,
+                  tom: "contato",
                 });
                 setContatoId(null);
-                toast.success("Contato registrado. A captação saiu da fila de paradas.");
+                toast.success("Contato registrado.");
               }}
             >
               Salvar contato

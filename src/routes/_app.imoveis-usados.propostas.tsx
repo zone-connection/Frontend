@@ -1,245 +1,163 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { DemoPreviewNote } from "@/components/demo-preview-note";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
-import { Button } from "@/components/ui/button";
+import { SOFT_SURFACE } from "@/lib/soft-surface";
+import { ApiError } from "@/lib/api";
+import { formatBrl, imovelCapaUrl } from "@/lib/captacao-api";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatBrl } from "@/lib/captacao-api";
-import {
-  PROPOSTA_FILA_LABEL,
-  imovelById,
-  patchProposta,
-  perfilById,
-  useDemoOperacao,
-  type PropostaFila,
-} from "@/lib/demo-operacao-usados";
-import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
+  fetchTodasPropostasUsado,
+  PROPOSTA_STATUS_LABEL,
+  type PropostaUsado,
+  type PropostaUsadoStatus,
+} from "@/lib/imoveis-usados-api";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-type Fila = PropostaFila | "todas";
+type Fila = PropostaUsadoStatus | "todas";
 
 export const Route = createFileRoute("/_app/imoveis-usados/propostas")({
   validateSearch: (search: Record<string, unknown>): { fila?: Fila } => {
     const fila = search.fila;
     if (
       fila === "todas" ||
-      fila === "aguardando_proprietario" ||
-      fila === "aguardando_comprador" ||
+      fila === "rascunho" ||
+      fila === "enviada" ||
       fila === "em_analise" ||
       fila === "aceita" ||
-      fila === "recusada"
+      fila === "recusada" ||
+      fila === "cancelada"
     ) {
       return { fila };
     }
     return {};
   },
-  component: PropostasDemoPage,
+  component: PropostasPage,
 });
 
 const FILAS: Fila[] = [
-  "aguardando_proprietario",
-  "aguardando_comprador",
+  "todas",
+  "enviada",
   "em_analise",
   "aceita",
   "recusada",
-  "todas",
 ];
 
-function toneFila(fila: PropostaFila) {
-  if (fila === "aceita") return "emerald" as const;
-  if (fila === "recusada") return "orange" as const;
-  if (fila === "em_analise") return "violet" as const;
-  if (fila === "aguardando_comprador") return "teal" as const;
+function toneFila(status: PropostaUsadoStatus) {
+  if (status === "aceita") return "emerald" as const;
+  if (status === "recusada" || status === "cancelada") return "orange" as const;
+  if (status === "em_analise") return "violet" as const;
   return "blue" as const;
 }
 
-function PropostasDemoPage() {
+type PropostaLista = PropostaUsado & {
+  vendaUsado?: {
+    id: string;
+    imovel: { id?: string; titulo?: string; fotoUrl?: string | null; tipo?: string };
+  };
+};
+
+function PropostasPage() {
   const { fila } = Route.useSearch();
   const navigate = useNavigate();
-  const { propostas } = useDemoOperacao();
-  const aba: Fila = fila ?? "aguardando_proprietario";
-  const [contraId, setContraId] = useState<string | null>(null);
-  const [valor, setValor] = useState("");
+  const aba: Fila = fila ?? "todas";
+  const [items, setItems] = useState<PropostaLista[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const lista = propostas.filter((item) => aba === "todas" || item.fila === aba);
+  useEffect(() => {
+    fetchTodasPropostasUsado()
+      .then(setItems)
+      .catch((err) => {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível listar as propostas.",
+        );
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const lista = useMemo(
+    () => (aba === "todas" ? items : items.filter((item) => item.status === aba)),
+    [aba, items],
+  );
 
   return (
     <>
       <PageHeader
         title="Caixa de propostas"
-        description="O que está parado na resposta do proprietário ou do comprador."
+        description="Propostas reais dos imóveis em venda de usados."
       />
-      <DemoPreviewNote />
       <PillTabs
         value={aba}
         onChange={(id) => {
           void navigate({
             to: "/imoveis-usados/propostas",
-            search: { fila: id as Fila },
+            search: id === "todas" ? {} : { fila: id as Fila },
           });
         }}
         items={FILAS.map((id) => ({
           id,
           label:
             id === "todas"
-              ? `Todas (${propostas.length})`
-              : `${PROPOSTA_FILA_LABEL[id]} (${propostas.filter((item) => item.fila === id).length})`,
+              ? `Todas (${items.length})`
+              : `${PROPOSTA_STATUS_LABEL[id]} (${items.filter((i) => i.status === id).length})`,
         }))}
       />
-      <ul className="space-y-3">
-        {lista.length === 0 ? (
-          <li className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
-            Nenhuma proposta nesta fila.
-          </li>
-        ) : (
-          lista.map((proposta) => {
-            const imovel = imovelById(proposta.imovelId);
-            const pessoa = perfilById(proposta.interessadoId);
-            return (
-              <li key={proposta.id} className="rounded-2xl border bg-card p-4 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{imovel?.titulo}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pessoa?.nome} · {proposta.corretor}
-                    </p>
+      {loading ? (
+        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando…
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {lista.length === 0 ? (
+            <li className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+              Nenhuma proposta neste filtro.
+            </li>
+          ) : (
+            lista.map((item) => {
+              const imovel = item.vendaUsado?.imovel;
+              const capa = imovelCapaUrl(imovel);
+              return (
+                <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
+                  <div className="flex gap-3">
+                    {capa ? (
+                      <img src={capa} alt="" className="h-16 w-20 shrink-0 rounded-lg object-cover" />
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">{imovel?.titulo ?? "Imóvel"}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.interessado.nome} · {item.responsavel.name}
+                          </p>
+                        </div>
+                        <StatusChip tone={toneFila(item.status)}>
+                          {PROPOSTA_STATUS_LABEL[item.status]}
+                        </StatusChip>
+                      </div>
+                      <p className="mt-1 text-sm font-semibold tabular-nums">
+                        {formatBrl(item.valorAtual ?? item.valor)}
+                      </p>
+                      {item.vendaUsado?.id ? (
+                        <Link
+                          to="/imoveis-usados/vendas/$id"
+                          params={{ id: item.vendaUsado.id }}
+                          className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+                        >
+                          Abrir venda
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
-                  <StatusChip tone={toneFila(proposta.fila)}>
-                    {PROPOSTA_FILA_LABEL[proposta.fila]}
-                  </StatusChip>
-                </div>
-                <p className="mt-2 text-sm">
-                  <span className="font-semibold tabular-nums">{formatBrl(proposta.valor)}</span>
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · pedido {formatBrl(proposta.pedido)}
-                    {proposta.diasParada > 0 ? ` · parada há ${proposta.diasParada} dias` : ""}
-                  </span>
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{proposta.nota}</p>
-                {proposta.fila === "aguardando_proprietario" ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        patchProposta(proposta.id, {
-                          fila: "aceita",
-                          diasParada: 0,
-                          nota: "Proprietário aceitou a proposta.",
-                        });
-                        toast.success("Aceite do proprietário registrado.");
-                      }}
-                    >
-                      Proprietário aceitou
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setContraId(proposta.id);
-                        setValor("");
-                      }}
-                    >
-                      Contraproposta
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        patchProposta(proposta.id, {
-                          fila: "recusada",
-                          diasParada: 0,
-                          nota: "Proprietário recusou.",
-                        });
-                        toast.success("Recusa do proprietário registrada.");
-                      }}
-                    >
-                      Recusou
-                    </Button>
-                  </div>
-                ) : null}
-                {proposta.fila === "aguardando_comprador" ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        patchProposta(proposta.id, {
-                          fila: "aceita",
-                          diasParada: 0,
-                          nota: "Comprador aceitou a contraproposta.",
-                        });
-                        toast.success("Aceite do comprador registrado.");
-                      }}
-                    >
-                      Comprador aceitou
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        patchProposta(proposta.id, {
-                          fila: "recusada",
-                          diasParada: 0,
-                          nota: "Comprador recusou a contraproposta.",
-                        });
-                        toast.success("Recusa do comprador registrada.");
-                      }}
-                    >
-                      Comprador recusou
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
-            );
-          })
-        )}
-      </ul>
-      <Dialog open={Boolean(contraId)} onOpenChange={(open) => !open && setContraId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Contraproposta do proprietário</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label>Valor</Label>
-            <Input
-              inputMode="numeric"
-              value={valor}
-              onChange={(e) => setValor(maskMoneyInput(e.target.value))}
-              placeholder="0,00"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                const numero = parseOptionalMoneyInput(valor);
-                if (!contraId || numero == null) {
-                  toast.error("Informe o valor da contraproposta.");
-                  return;
-                }
-                patchProposta(contraId, {
-                  fila: "aguardando_comprador",
-                  valor: numero,
-                  diasParada: 0,
-                  nota: `Contraproposta enviada ao comprador: ${formatBrl(numero)}.`,
-                });
-                setContraId(null);
-                toast.success("Contraproposta enviada ao comprador.");
-              }}
-            >
-              Enviar ao comprador
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
     </>
   );
 }
