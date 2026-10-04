@@ -40,6 +40,7 @@ export type ImovelDemo = {
   responsavel: string;
   proprietario: string;
   entrouRecente: boolean;
+  fotoUrl: string;
 };
 
 export type PerfilDemo = {
@@ -125,7 +126,7 @@ export type PosVendaDemo = {
   concluida: boolean;
 };
 
-export const IMOVEIS_DEMO: ImovelDemo[] = [
+const IMOVEIS_DEMO_BASE: Omit<ImovelDemo, "fotoUrl">[] = [
   {
     id: "apto-centro",
     titulo: "Apartamento 82 m²",
@@ -239,6 +240,36 @@ export const IMOVEIS_DEMO: ImovelDemo[] = [
     entrouRecente: false,
   },
 ];
+
+const DEMO_TIPO_CAPA: Record<ImovelDemo["tipo"], string[]> = {
+  Apartamento: [
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
+  ],
+  Casa: [
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80",
+  ],
+  Cobertura: [
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+  ],
+  Sala: [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+  ],
+  Terreno: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+  ],
+};
+
+export const IMOVEIS_DEMO: ImovelDemo[] = IMOVEIS_DEMO_BASE.map((item) => {
+  const pool = DEMO_TIPO_CAPA[item.tipo];
+  let hash = 0;
+  for (let i = 0; i < item.id.length; i += 1) {
+    hash = (hash * 31 + item.id.charCodeAt(i)) >>> 0;
+  }
+  return { ...item, fotoUrl: pool[hash % pool.length]! };
+});
 
 export const PERFIS_DEMO: PerfilDemo[] = [
   {

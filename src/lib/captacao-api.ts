@@ -342,6 +342,14 @@ export function imovelFotoItens(item: {
   return item.fotoUrl ? [{ url: item.fotoUrl }] : [];
 }
 
+export function imovelCapaUrl(item: {
+  fotos?: Array<{ url: string }>;
+  fotoUrl?: string | null;
+} | null | undefined) {
+  if (!item) return null;
+  return item.fotos?.[0]?.url ?? item.fotoUrl ?? null;
+}
+
 export function deleteProprietario(id: string) {
   return apiFetch<void>(`/captacao/proprietarios/${id}`, { method: "DELETE" });
 }

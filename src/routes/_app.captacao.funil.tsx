@@ -31,6 +31,7 @@ import {
   fetchCaptacao,
   fetchCaptacoes,
   formatBrl,
+  imovelCapaUrl,
   updateCaptacao,
   type Captacao,
 } from "@/lib/captacao-api";
@@ -321,6 +322,7 @@ function CaptacaoFunilPage() {
             meta: formatBrl(item.valorPretendido ?? item.valorAvaliacao),
             value: item.valorPretendido ?? item.valorAvaliacao ?? 0,
             href: `/captacao/captacoes/${item.id}`,
+            imageUrl: imovelCapaUrl(item.imovel),
             footer: item.responsavel.name.split(" ")[0],
             updatedAt: formatFunilDate(item.updatedAt),
             actionLabel: "Detalhes",

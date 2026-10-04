@@ -97,6 +97,7 @@ import {
 import { ApiError } from "@/lib/api";
 import {
   deleteCaptacaoImovelFoto,
+  imovelCapaUrl,
   imovelFotoItens,
   uploadCaptacaoImovelFoto,
 } from "@/lib/captacao-api";
@@ -393,6 +394,13 @@ function VendaUsadoDetalhePage() {
           </Button>
         }
       />
+      {imovelCapaUrl(im) ? (
+        <img
+          src={imovelCapaUrl(im) ?? ""}
+          alt=""
+          className="max-h-64 w-full rounded-2xl object-cover"
+        />
+      ) : null}
       <PillTabs
         items={[...TABS]}
         value={tab}

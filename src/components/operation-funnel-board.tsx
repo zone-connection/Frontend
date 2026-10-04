@@ -263,13 +263,22 @@ export function OperationFunnelBoard({
                         }}
                         onClick={() => openCard(card)}
                         className={cn(
-                          "cursor-grab select-none rounded-2xl border-black/5 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[opacity,box-shadow,transform] duration-200 hover:bg-muted/40 hover:shadow-md active:cursor-grabbing",
+                          "cursor-grab select-none overflow-hidden rounded-2xl border-black/5 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[opacity,box-shadow,transform] duration-200 hover:bg-muted/40 hover:shadow-md active:cursor-grabbing",
                           movingId !== card.id &&
                             monitoramentoCardClass(card.monitoramento),
                           movingId === card.id &&
                             "scale-[0.98] border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none",
                         )}
                       >
+                        {card.imageUrl ? (
+                          <div className="-mx-3 -mt-3 mb-3 h-24 overflow-hidden bg-muted">
+                            <img
+                              src={card.imageUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : null}
                         <div className="mb-1.5 flex items-start justify-between gap-2">
                           <div className="table-person-name flex min-w-0 items-center gap-2 text-sm">
                             <Avatar className="h-7 w-7 shrink-0">

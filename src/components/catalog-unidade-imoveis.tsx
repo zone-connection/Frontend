@@ -24,6 +24,7 @@ import {
   fetchProprietarios,
   formatBrl,
   IMOVEL_MAX_FOTOS,
+  imovelCapaUrl,
   imovelFotoItens,
   updateCaptacaoImovel,
   uploadCaptacaoImovelFoto,
@@ -379,7 +380,7 @@ export function CatalogUnidadeImoveis({
                         params={{ id: item.id }}
                         className="flex items-center gap-2 hover:underline"
                       >
-                        <ImovelFotoThumb src={item.fotoUrl} alt="" />
+                        <ImovelFotoThumb src={imovelCapaUrl(item)} alt="" />
                         {item.titulo}
                       </Link>
                     </td>
@@ -443,9 +444,9 @@ export function CatalogUnidadeImoveis({
             return (
               <Card key={item.id} className="overflow-hidden border-primary/15">
                 <CardContent className="p-0">
-                  {item.fotoUrl ? (
+                  {imovelCapaUrl(item) ? (
                     <img
-                      src={item.fotoUrl}
+                      src={imovelCapaUrl(item) ?? ""}
                       alt=""
                       className="h-36 w-full object-cover"
                     />

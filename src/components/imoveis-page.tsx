@@ -124,10 +124,12 @@ import {
   ImageUploadField,
 } from "@/components/image-upload-field";
 import { CatalogUnidadeImoveis } from "@/components/catalog-unidade-imoveis";
+import { ImovelFotoThumb } from "@/components/imovel-foto-thumb";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   fetchCaptacaoImoveis,
   formatBrl,
+  imovelCapaUrl,
   IMOVEL_CARACTERISTICAS_DIFERENCIAIS,
   IMOVEL_DETALHES_IMOVEL,
   IMOVEL_LOCALIZACAO_INFRA,
@@ -2209,21 +2211,7 @@ export function ImoveisPage({
                 >
                   <TableCell>
                     <div className="flex min-w-40 items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback
-                          className={cn(
-                            "text-xs text-white",
-                            lostLeadAvatarClass(item.titulo),
-                          )}
-                        >
-                          {item.titulo
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((part) => part[0]?.toUpperCase() ?? "")
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
+                      <ImovelFotoThumb src={imovelCapaUrl(item)} alt="" />
                       <div className="min-w-0">
                         <Link
                           to="/captacao/imoveis/$id"
@@ -2596,9 +2584,9 @@ export function ImoveisPage({
                 params={{ id: item.id }}
                 className="relative block h-40 overflow-hidden bg-muted/40"
               >
-                {item.fotoUrl ? (
+                {imovelCapaUrl(item) ? (
                   <img
-                    src={item.fotoUrl}
+                    src={imovelCapaUrl(item) ?? ""}
                     alt=""
                     width={520}
                     height={280}

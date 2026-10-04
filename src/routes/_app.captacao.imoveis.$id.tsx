@@ -10,6 +10,7 @@ import {
   deleteCaptacaoImovelFoto,
   fetchCaptacaoImovel,
   formatBrl,
+  imovelCapaUrl,
   imovelFotoItens,
   updateCaptacaoImovel,
   uploadCaptacaoImovelFoto,
@@ -121,9 +122,9 @@ function ImovelDetalhePage() {
         }
       />
       <div className="grid gap-6">
-      {item.fotoUrl ? (
+      {imovelCapaUrl(item) ? (
         <img
-          src={item.fotoUrl}
+          src={imovelCapaUrl(item) ?? ""}
           alt={item.titulo}
           className="max-h-72 w-full rounded-xl object-cover"
         />

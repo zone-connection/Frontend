@@ -18,6 +18,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
+import { imovelCapaUrl } from "@/lib/captacao-api";
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
 import {
   fetchVendasUsado,
@@ -279,6 +280,7 @@ function UsadosFunilPage() {
               meta: formatBrl(item.precoVenda),
               value: item.precoVenda ?? 0,
               href: `/imoveis-usados/vendas/${item.id}`,
+              imageUrl: imovelCapaUrl(item.imovel),
               footer: item.responsavel.name.split(" ")[0],
               updatedAt: formatFunilDate(item.dataDisponibilizacao),
               actionLabel: "Detalhes",

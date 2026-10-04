@@ -144,9 +144,18 @@ function EstoqueDemoPage() {
                   }}
                 >
                   <TableCell>
-                    <div className="text-sm font-medium">{item.titulo}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.bairro} · {item.cidade}
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={item.fotoUrl}
+                        alt=""
+                        className="h-12 w-16 shrink-0 rounded-md object-cover"
+                      />
+                      <div>
+                        <div className="text-sm font-medium">{item.titulo}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.bairro} · {item.cidade}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -214,6 +223,11 @@ function FichaEstoque({
   return (
     <>
       <SheetHeader className="pr-8 text-left">
+        <img
+          src={imovel.fotoUrl}
+          alt=""
+          className="mb-3 h-40 w-full rounded-xl object-cover"
+        />
         <SheetTitle>{imovel.titulo}</SheetTitle>
         <p className="text-sm text-muted-foreground">
           {imovel.bairro}, {imovel.cidade} · {imovel.proprietario}

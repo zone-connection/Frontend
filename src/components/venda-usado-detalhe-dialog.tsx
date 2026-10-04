@@ -26,7 +26,7 @@ import {
   catalogColorBadgeStyle,
 } from "@/lib/catalog-colors";
 import { OperacaoMonitoramentoCard } from "@/components/operacao-funil-alerta";
-import { CAPTACAO_IMOVEL_TIPO_LABEL } from "@/lib/captacao-api";
+import { CAPTACAO_IMOVEL_TIPO_LABEL, imovelCapaUrl } from "@/lib/captacao-api";
 import { displayEmail } from "@/lib/email";
 import { getWhatsAppUrl } from "@/lib/env";
 import {
@@ -205,6 +205,13 @@ export function VendaUsadoDetalheDialog({
       >
         {venda && contato && (
           <>
+            {imovelCapaUrl(venda.imovel) ? (
+              <img
+                src={imovelCapaUrl(venda.imovel) ?? ""}
+                alt=""
+                className="h-36 w-full shrink-0 object-cover"
+              />
+            ) : null}
             <header className="relative shrink-0 overflow-hidden border-b bg-gradient-to-br from-primary/12 via-card to-card px-4 pt-5 pb-4 sm:px-6">
               <div className="pointer-events-none absolute -top-16 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
               <div className="relative flex items-start gap-3">
