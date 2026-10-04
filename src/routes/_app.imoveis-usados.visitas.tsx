@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
-import { SOFT_SURFACE } from "@/lib/soft-surface";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
 import { imovelCapaUrl } from "@/lib/captacao-api";
 import {
@@ -11,8 +12,7 @@ import {
   type VisitaUsado,
   type VisitaUsadoStatus,
 } from "@/lib/imoveis-usados-api";
-import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Periodo = "todas" | "agendada" | "realizada";
@@ -102,9 +102,9 @@ function VisitasPage() {
           Carregando…
         </div>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {lista.length === 0 ? (
-            <li className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+            <li className="col-span-full rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
               Nenhuma visita neste filtro.
             </li>
           ) : (
@@ -112,39 +112,54 @@ function VisitasPage() {
               const imovel = item.vendaUsado?.imovel;
               const capa = imovelCapaUrl(imovel);
               return (
-                <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
-                  <div className="flex gap-3">
-                    {capa ? (
-                      <img src={capa} alt="" className="h-16 w-20 shrink-0 rounded-lg object-cover" />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">
-                            {imovel?.titulo ?? "Imóvel"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.interessado.nome} · {item.responsavel.name}
-                          </p>
+                <li key={item.id}>
+                  <Card className="group overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md">
+                    <div className="relative h-40 overflow-hidden bg-muted">
+                      {capa ? (
+                        <img
+                          src={capa}
+                          alt=""
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Building2 className="h-10 w-10 text-muted-foreground/40" />
                         </div>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
+                      <Badge className="absolute bottom-3 right-3 border-white/20 bg-black/45 text-white hover:bg-black/55">
+                        {new Date(item.dataHora).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                      </Badge>
+                    </div>
+                    <CardHeader className="pb-2 pt-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base leading-snug">
+                          {imovel?.titulo ?? "Imóvel"}
+                        </CardTitle>
                         <StatusChip tone={toneVisita(item.status)}>
                           {VISITA_STATUS_LABEL[item.status]}
                         </StatusChip>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(item.dataHora).toLocaleString("pt-BR")}
+                      <p className="text-xs text-muted-foreground">
+                        {item.interessado.nome} · {item.responsavel.name}
                       </p>
+                    </CardHeader>
+                    <CardContent>
                       {item.vendaUsado?.id ? (
                         <Link
                           to="/imoveis-usados/vendas/$id"
                           params={{ id: item.vendaUsado.id }}
-                          className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+                          className="text-sm font-medium text-primary hover:underline"
                         >
                           Abrir venda
                         </Link>
                       ) : null}
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </li>
               );
             })
