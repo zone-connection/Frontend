@@ -160,6 +160,18 @@ function PortalPropostasPage() {
                   <dt className="text-xs text-slate-500">Vinculada em</dt>
                   <dd>{new Date(aberta.data).toLocaleString("pt-BR")}</dd>
                 </div>
+                {aberta.corretorNome ? (
+                  <div>
+                    <dt className="text-xs text-slate-500">Corretor</dt>
+                    <dd className="font-medium">{aberta.corretorNome}</dd>
+                  </div>
+                ) : null}
+                {aberta.validade ? (
+                  <div>
+                    <dt className="text-xs text-slate-500">Validade</dt>
+                    <dd>{new Date(aberta.validade).toLocaleDateString("pt-BR")}</dd>
+                  </div>
+                ) : null}
                 {aberta.desconto ? (
                   <div>
                     <dt className="text-xs text-slate-500">Desconto</dt>
@@ -167,6 +179,11 @@ function PortalPropostasPage() {
                   </div>
                 ) : null}
               </dl>
+              {aberta.observacao ? (
+                <p className="rounded-xl border border-black/5 bg-slate-50 p-3 text-sm text-slate-700">
+                  {aberta.observacao}
+                </p>
+              ) : null}
               {(aberta.composicao ?? []).length > 0 && (
                 <ul className="space-y-1 rounded-xl border border-black/5 p-3 text-sm">
                   {aberta.composicao?.map((linha) => (

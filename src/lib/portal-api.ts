@@ -420,6 +420,9 @@ export type PortalProposta = {
   interessadoNome: string;
   unidade?: string | null;
   empreendimentoNome?: string | null;
+  observacao?: string | null;
+  validade?: string | null;
+  corretorNome?: string | null;
   composicao?: Array<{ label: string; valor: number }>;
   negociacao: {
     status: string;
@@ -530,15 +533,13 @@ export async function fetchPortalVisitasCarteira() {
   return rows;
 }
 
-export async function fetchPortalPropostasCarteira() {
-  const dash = await fetchPortalDashboard();
-  const rows = await Promise.all(
-    dash.imoveis.map(async (imovel) => {
-      const propostas = await fetchPortalPropostas(imovel.id);
-      return { imovel, propostas };
-    }),
-  );
-  return rows;
+export function fetchPortalPropostasCarteira() {
+  return portalFetch<
+    Array<{
+      imovel: { id: string; identificacao: string };
+      propostas: PortalProposta[];
+    }>
+  >("/portal-proprietario/propostas");
 }
 
 export async function fetchPortalDocumentosCarteira() {

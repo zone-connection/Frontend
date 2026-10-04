@@ -162,6 +162,9 @@ export type DemoDataCounts = {
   captacoes: number;
   interessadosUsados: number;
   vendasUsados: number;
+  presencas?: number;
+  muralChaves?: number;
+  vinculosProposta?: number;
 };
 
 export type PopulateDemoDataResult = {

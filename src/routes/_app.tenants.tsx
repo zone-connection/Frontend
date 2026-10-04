@@ -2087,7 +2087,7 @@ function TenantsPage() {
             />
             <span>
               <span className="font-medium">
-                Gerar 30% a mais de dados
+                Gerar 75% a mais de dados
               </span>
               <span className="block text-xs text-muted-foreground">
                 Acrescenta cerca de um terço a mais de leads, imóveis,
@@ -2158,6 +2158,12 @@ function TenantsPage() {
                         demoResult.counts.interessadosUsados ?? 0,
                       ],
                       ["Vendas de usados", demoResult.counts.vendasUsados ?? 0],
+                      ["Presenças", demoResult.counts.presencas ?? 0],
+                      ["Mural de chaves", demoResult.counts.muralChaves ?? 0],
+                      [
+                        "Vínculos proposta × imóvel",
+                        demoResult.counts.vinculosProposta ?? 0,
+                      ],
                     ] as [string, number][]
                   ).map(([label, value]) => (
                     <div
