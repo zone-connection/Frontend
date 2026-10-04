@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,16 @@ import {
   appendEventoLocal,
   captacaoToAcompanhamento,
   gapPretendido,
+  loadTarefas,
+  saveTarefas,
   type AcompanhamentoItem,
+  type AcompanhamentoTarefa,
 } from "@/lib/captacao-acompanhamento";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Check, MapPin } from "lucide-react";
+import { ArrowRight, Plus, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 type Aba = "paradas" | "portal" | "exclusividade";
 type FiltroStatus = "todos" | "paradas" | "critico" | "atencao";
@@ -81,7 +86,17 @@ function FilaCaptacaoPage() {
   const portalItens = captacoes.filter(
     (item) => item.sugestaoProprietario || item.canceladoPeloProprietario,
   );
-  const exclusividades = captacoes.filter((item) => item.exclusividade);
+  const exclusividades = useMemo(
+    () =>
+      captacoes
+        .filter(
+          (item) =>
+            item.exclusividade && item.funilEtapa.papel !== "perdido",
+        )
+        .map(captacaoToAcompanhamento)
+        .sort((a, b) => b.diasSemMovimento - a.diasSemMovimento),
+    [captacoes],
+  );
 
   return (
     <>
@@ -169,31 +184,20 @@ function FilaCaptacaoPage() {
         </ul>
       ) : null}
       {aba === "exclusividade" ? (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {exclusividades.length === 0 ? (
             <Vazio text="Nenhuma captação com exclusividade." />
           ) : (
             exclusividades.map((item) => (
-              <li key={item.id} className={cn(SOFT_SURFACE, "p-4")}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{item.imovel.titulo}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.proprietario.nome} · {item.responsavel.name}
-                    </p>
-                  </div>
-                  <StatusChip tone="violet">Exclusividade</StatusChip>
-                </div>
-                <p className="mt-2 text-sm tabular-nums">
-                  {formatBrl(item.valorPretendido ?? item.valorAvaliacao)}
-                </p>
-                <Link
-                  to="/captacao/fila/$id"
-                  params={{ id: item.id }}
-                  className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-                >
-                  Ver detalhes
-                </Link>
+              <li key={item.id}>
+                <CaptacaoCard
+                  item={item}
+                  chip={<StatusChip tone="violet">Exclusividade</StatusChip>}
+                  onContato={() => {
+                    setContatoId(item.id);
+                    setNota("");
+                  }}
+                />
               </li>
             ))
           )}
@@ -237,15 +241,25 @@ function FilaCaptacaoPage() {
 function CaptacaoCard({
   item,
   onContato,
+  chip,
 }: {
   item: AcompanhamentoItem;
   onContato: () => void;
+  chip?: ReactNode;
 }) {
   const gap = gapPretendido(item);
-  const passos =
-    item.proximosPassosPadrao.length > 0
-      ? item.proximosPassosPadrao
-      : ["Entrar em contato com o cliente", "Apresentar novas opções", "Atualizar no sistema"];
+  const [tarefas, setTarefas] = useState<AcompanhamentoTarefa[]>(() => loadTarefas(item));
+  const [novoPasso, setNovoPasso] = useState("");
+
+  useEffect(() => {
+    setTarefas(loadTarefas(item));
+  }, [item]);
+
+  function persist(next: AcompanhamentoTarefa[]) {
+    setTarefas(next);
+    saveTarefas(item.id, next);
+  }
+
   return (
     <article className={cn(SOFT_SURFACE, "overflow-hidden")}>
       <div className="grid gap-0 lg:grid-cols-[200px_minmax(0,1fr)_240px]">
@@ -265,6 +279,7 @@ function CaptacaoCard({
                 {item.proprietario.nome} · {item.segundaPessoa.nome}
               </p>
             </div>
+            {chip}
           </div>
           <p className="mt-3 text-sm tabular-nums">
             <span className="font-semibold">{item.pretendido != null ? formatBrl(item.pretendido) : "—"}</span>
@@ -321,15 +336,50 @@ function CaptacaoCard({
             </StatusChip>
           </div>
           <ul className="space-y-2">
-            {passos.map((passo) => (
-              <li key={passo} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border border-black/15">
-                  <Check className="size-2.5 opacity-0" />
-                </span>
-                {passo}
-              </li>
-            ))}
+            {tarefas.length === 0 ? (
+              <li className="text-xs text-muted-foreground">Nenhum passo ainda.</li>
+            ) : (
+              tarefas.map((passo) => (
+                <li key={passo.id} className="flex items-start gap-2 text-sm">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={passo.feita}
+                    onCheckedChange={(v) =>
+                      persist(
+                        tarefas.map((x) =>
+                          x.id === passo.id ? { ...x, feita: v === true } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <span className={cn("leading-snug", passo.feita && "text-muted-foreground line-through")}>
+                    {passo.titulo}
+                  </span>
+                </li>
+              ))
+            )}
           </ul>
+          <form
+            className="mt-3 space-y-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const titulo = novoPasso.trim();
+              if (!titulo) return;
+              persist([...tarefas, { id: crypto.randomUUID(), titulo, feita: false }]);
+              setNovoPasso("");
+            }}
+          >
+            <Input
+              value={novoPasso}
+              onChange={(e) => setNovoPasso(e.target.value)}
+              placeholder="Adicionar próximo passo"
+              className="h-8 text-sm"
+            />
+            <Button type="submit" size="sm" variant="outline" className="w-full">
+              <Plus className="mr-1 size-3.5" />
+              Adicionar
+            </Button>
+          </form>
         </div>
       </div>
     </article>
