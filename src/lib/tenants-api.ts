@@ -165,6 +165,8 @@ export type DemoDataCounts = {
   presencas?: number;
   muralChaves?: number;
   vinculosProposta?: number;
+  corretoresParceiros?: number;
+  parcerias?: number;
 };
 
 export type PopulateDemoDataResult = {

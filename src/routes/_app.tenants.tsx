@@ -2164,6 +2164,11 @@ function TenantsPage() {
                         "Vínculos proposta × imóvel",
                         demoResult.counts.vinculosProposta ?? 0,
                       ],
+                      [
+                        "Corretores parceiros",
+                        demoResult.counts.corretoresParceiros ?? 0,
+                      ],
+                      ["Parcerias", demoResult.counts.parcerias ?? 0],
                     ] as [string, number][]
                   ).map(([label, value]) => (
                     <div
@@ -2193,9 +2198,24 @@ function TenantsPage() {
                     </code>
                     {(demoResult.counts.proprietarios ?? 0) > 0 ? (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Portal do proprietário: Lúcia Andrade, Eliane Costa e
-                        Marina Freitas entram com o e-mail cadastrado e a mesma
-                        senha.
+                        Portal do proprietário: donos com acesso (ex.: Lúcia
+                        Andrade, Sandra Pires, Carlos Bezerra) entram com o
+                        e-mail cadastrado e a mesma senha. Há sugestões e
+                        cancelamentos pelo portal, visitas, propostas e
+                        checklist de documentos nos usados.
+                      </p>
+                    ) : null}
+                    {(demoResult.counts.parcerias ?? 0) > 0 ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Portal do corretor parceiro:{" "}
+                        <code>
+                          parceiro.renata.{demoResult.slug}@example.com
+                        </code>{" "}
+                        (parceria ativa) e{" "}
+                        <code>
+                          parceiro.marcos.{demoResult.slug}@example.com
+                        </code>{" "}
+                        (convite), com a mesma senha.
                       </p>
                     ) : null}
                   </div>
