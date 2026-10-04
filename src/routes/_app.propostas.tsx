@@ -183,6 +183,7 @@ import {
   FileText,
   Handshake,
   Loader2,
+  Link2,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -628,6 +629,7 @@ function PropostaActionMenus({
   onView,
   onEdit,
   onDelete,
+  onVincular,
   onRequestWhatsAppPhone,
   onOpenQr,
   brand,
@@ -637,6 +639,7 @@ function PropostaActionMenus({
   onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onVincular?: () => void;
   onRequestWhatsAppPhone: (proposta: Proposta) => void;
   onOpenQr: (proposta: Proposta) => void;
   brand: PropostaPdfBrand;
@@ -731,6 +734,12 @@ function PropostaActionMenus({
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>{shareItems}</DropdownMenuSubContent>
             </DropdownMenuSub>
+            {onVincular && (
+              <DropdownMenuItem onClick={onVincular}>
+                <Link2 className="h-4 w-4" />
+                Vincular imóvel
+              </DropdownMenuItem>
+            )}
             {onEdit && (
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
@@ -776,6 +785,13 @@ function PropostaActionMenus({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">{shareItems}</DropdownMenuContent>
       </DropdownMenu>
+
+      {onVincular && (
+        <Button type="button" size="sm" variant="outline" onClick={onVincular}>
+          <Link2 className="h-4 w-4 mr-1" />
+          Vincular
+        </Button>
+      )}
 
       {onEdit && (
         <Button type="button" size="sm" variant="outline" onClick={onEdit}>
@@ -866,6 +882,7 @@ function Page() {
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [qrTarget, setQrTarget] = useState<Proposta | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [vinculoTarget, setVinculoTarget] = useState<Proposta | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickNome, setQuickNome] = useState("");
@@ -1753,6 +1770,7 @@ function Page() {
                       onView={() => setSelected(p)}
                       onEdit={() => openEdit(p)}
                       onDelete={() => setDeleteId(p.id)}
+                      onVincular={() => setVinculoTarget(p)}
                       onRequestWhatsAppPhone={(item) => {
                         setWhatsAppTarget(item);
                         setWhatsAppPhone(
@@ -1894,26 +1912,14 @@ function Page() {
               valorNegociado={propostaValorLiquido(selected)}
               accent={tenant?.primaryColor}
             />
-            <PropostaVinculosPanel
-              propostaId={selected.id}
-              empreendimentos={empreendimentos}
-              onChanged={() => {
-                void fetchPropostas().then((propostas) => {
-                  setItems(propostas);
-                  setSelected(
-                    (atual) =>
-                      propostas.find((item) => item.id === atual?.id) ?? atual,
-                  );
-                });
-              }}
-            />
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3 py-2.5">
               <span className="text-xs text-muted-foreground">
-                Exportar ou enviar ao cliente
+                Exportar, enviar ao cliente ou vincular imóvel
               </span>
               <PropostaActionMenus
                 proposta={selected}
                 brand={pdfBrand}
+                onVincular={() => setVinculoTarget(selected)}
                 onRequestWhatsAppPhone={(item) => {
                   setWhatsAppTarget(item);
                   setWhatsAppPhone(
@@ -2227,6 +2233,41 @@ function Page() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(vinculoTarget)}
+        onOpenChange={(openDialog) => !openDialog && setVinculoTarget(null)}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Vincular imóvel ou empreendimento</DialogTitle>
+            <DialogDescription>
+              {vinculoTarget
+                ? `Proposta ${vinculoTarget.codigo} · ${vinculoTarget.clienteNome}`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          {vinculoTarget ? (
+            <PropostaVinculosPanel
+              propostaId={vinculoTarget.id}
+              empreendimentos={empreendimentos}
+              onChanged={() => {
+                void fetchPropostas().then((propostas) => {
+                  setItems(propostas);
+                  setSelected(
+                    (atual) =>
+                      propostas.find((item) => item.id === atual?.id) ?? atual,
+                  );
+                  setVinculoTarget(
+                    (atual) =>
+                      propostas.find((item) => item.id === atual?.id) ?? atual,
+                  );
+                });
+              }}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
 
