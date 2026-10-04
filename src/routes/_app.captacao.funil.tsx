@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { CaptacaoDetalheDialog } from "@/components/captacao-detalhe-dialog";
-import { FormDialogActions } from "@/components/form-dialog";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import {
   FunilScrollControls,
@@ -29,6 +28,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
+  fetchCaptacao,
   fetchCaptacoes,
   formatBrl,
   updateCaptacao,
@@ -44,7 +44,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { canViewTeamData } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { Loader2, Plus } from "lucide-react";
+import { FileText, Loader2, Plus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/funil")({
@@ -189,6 +189,16 @@ function CaptacaoFunilPage() {
   function openDetail(cardId: string) {
     const found = decoratedItems.find((item) => item.id === cardId) ?? null;
     setDetail(found);
+    void fetchCaptacao(cardId)
+      .then((full) => {
+        setDetail({
+          ...full,
+          monitoramento: found?.monitoramento ?? full.monitoramento,
+        });
+      })
+      .catch(() => {
+        /* mantém o card já aberto */
+      });
   }
 
   async function moveDetailToStage(etapaId: string) {
@@ -343,68 +353,59 @@ function CaptacaoFunilPage() {
         onOpenChange={(open) => {
           if (!open) setDetail(null);
         }}
-        footer={
+        sidebarActions={
+          detail
+            ? [
+                {
+                  label: "Abrir ficha",
+                  icon: FileText,
+                  href: `/captacao/captacoes/${detail.id}`,
+                },
+                {
+                  label: "Ver proprietário",
+                  icon: UserRound,
+                  href: `/captacao/proprietarios/${detail.proprietario.id}`,
+                },
+              ]
+            : []
+        }
+        stageControl={
           detail ? (
-            <FormDialogActions>
-              <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 sm:[&_button]:w-full">
-                <Button type="button" variant="outline" asChild>
-                  <Link
-                    to="/captacao/captacoes/$id"
-                    params={{ id: detail.id }}
-                  >
-                    Abrir ficha
-                  </Link>
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link
-                    to="/captacao/proprietarios/$id"
-                    params={{ id: detail.proprietario.id }}
-                  >
-                    Ver proprietário
-                  </Link>
-                </Button>
-                <div className="flex min-w-0 items-center gap-2 sm:col-span-2">
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    Etapa:
-                  </span>
-                  <Select
-                    value={detail.funilEtapaId}
-                    onValueChange={(value) => void moveDetailToStage(value)}
-                  >
-                    <SelectTrigger className="h-9 min-w-0 flex-1">
-                      <SelectValue placeholder="Selecione a etapa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          {stage.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {detail.funilEtapa.papel !== "perdido" ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:col-span-2"
-                    onClick={() => {
-                      const etapa = funil?.etapas.find(
-                        (item) => item.papel === "perdido" && item.active,
-                      );
-                      if (!etapa) {
-                        toast.error("Não há etapa de perdido no funil de captação.");
-                        return;
-                      }
-                      setLostTarget({ id: detail.id, etapaId: etapa.id });
-                    }}
-                  >
-                    Dar perda
-                  </Button>
-                ) : null}
-              </div>
-            </FormDialogActions>
+            <Select
+              value={detail.funilEtapaId}
+              onValueChange={(value) => void moveDetailToStage(value)}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="Selecione a etapa" />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id}>
+                    {stage.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : null
+        }
+        perdaAction={
+          detail && detail.funilEtapa.papel !== "perdido"
+            ? {
+                label: "Dar perda",
+                onClick: () => {
+                  const etapa = funil?.etapas.find(
+                    (item) => item.papel === "perdido" && item.active,
+                  );
+                  if (!etapa) {
+                    toast.error(
+                      "Não há etapa de perdido no funil de captação.",
+                    );
+                    return;
+                  }
+                  setLostTarget({ id: detail.id, etapaId: etapa.id });
+                },
+              }
+            : undefined
         }
       />
       <AlertDialog
