@@ -1,26 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { CaptacaoProximosPassos } from "@/components/captacao-proximos-passos";
+import { CaptacaoRegistrarContatoDialog } from "@/components/captacao-registrar-contato-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { fetchCaptacao, formatBrl } from "@/lib/captacao-api";
 import {
-  appendEventoLocal,
   captacaoToAcompanhamento,
   digitsForWhatsApp,
   gapPretendido,
@@ -42,9 +33,7 @@ import {
   MapPin,
   MoreHorizontal,
   Phone,
-  Plus,
 } from "lucide-react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/fila_/$id")({
   component: CaptacaoAcompanhamentoDetalhePage,
@@ -55,9 +44,7 @@ function CaptacaoAcompanhamentoDetalhePage() {
   const [item, setItem] = useState<AcompanhamentoItem | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [contatoAberto, setContatoAberto] = useState(false);
-  const [nota, setNota] = useState("");
   const [tarefas, setTarefas] = useState<AcompanhamentoTarefa[]>([]);
-  const [novaTarefa, setNovaTarefa] = useState("");
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -301,43 +288,7 @@ function CaptacaoAcompanhamentoDetalhePage() {
 
           <section className={cn(SOFT_SURFACE, "border-primary/20 p-4 sm:p-5")}>
             <p className="mb-3 text-sm font-semibold">Próximos passos</p>
-            <ul className="space-y-2.5">
-              {tarefas.map((t) => (
-                <li key={t.id} className="flex items-start gap-2">
-                  <Checkbox
-                    checked={t.feita}
-                    onCheckedChange={(v) =>
-                      persistTarefas(
-                        tarefas.map((x) => (x.id === t.id ? { ...x, feita: v === true } : x)),
-                      )
-                    }
-                  />
-                  <span className={cn("text-sm", t.feita && "text-muted-foreground line-through")}>
-                    {t.titulo}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <form
-              className="mt-4 flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const titulo = novaTarefa.trim();
-                if (!titulo) return;
-                persistTarefas([...tarefas, { id: crypto.randomUUID(), titulo, feita: false }]);
-                setNovaTarefa("");
-              }}
-            >
-              <Input
-                value={novaTarefa}
-                onChange={(e) => setNovaTarefa(e.target.value)}
-                placeholder="Nova tarefa"
-              />
-              <Button type="submit" variant="outline">
-                <Plus className="mr-1 size-4" />
-                Adicionar tarefa
-              </Button>
-            </form>
+            <CaptacaoProximosPassos tarefas={tarefas} onChange={persistTarefas} />
           </section>
         </div>
 
@@ -369,38 +320,12 @@ function CaptacaoAcompanhamentoDetalhePage() {
         </aside>
       </div>
 
-      <Dialog open={contatoAberto} onOpenChange={setContatoAberto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar contato</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            placeholder="O que foi combinado"
-          />
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                const texto = nota.trim() || "Contato registrado";
-                appendEventoLocal(item.id, {
-                  id: crypto.randomUUID(),
-                  at: new Date().toISOString(),
-                  titulo: "Contato",
-                  detalhe: texto,
-                  tom: "contato",
-                });
-                setNota("");
-                setContatoAberto(false);
-                setTick((n) => n + 1);
-                toast.success("Contato registrado.");
-              }}
-            >
-              Salvar contato
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CaptacaoRegistrarContatoDialog
+        item={item}
+        open={contatoAberto}
+        onOpenChange={setContatoAberto}
+        onSaved={() => setTick((n) => n + 1)}
+      />
     </div>
   );
 }

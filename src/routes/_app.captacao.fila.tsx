@@ -1,16 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { CaptacaoProximosPassos } from "@/components/captacao-proximos-passos";
+import { CaptacaoRegistrarContatoDialog } from "@/components/captacao-registrar-contato-dialog";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import {
   fetchCaptacoes,
@@ -18,7 +12,6 @@ import {
   type Captacao,
 } from "@/lib/captacao-api";
 import {
-  appendEventoLocal,
   captacaoToAcompanhamento,
   gapPretendido,
   loadTarefas,
@@ -27,10 +20,7 @@ import {
   type AcompanhamentoTarefa,
 } from "@/lib/captacao-acompanhamento";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Plus, MapPin } from "lucide-react";
-import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { ArrowRight, MapPin } from "lucide-react";
 
 type Aba = "paradas" | "portal" | "exclusividade";
 type FiltroStatus = "todos" | "paradas" | "critico" | "atencao";
@@ -50,8 +40,7 @@ function FilaCaptacaoPage() {
   const { aba: abaSearch } = Route.useSearch();
   const navigate = useNavigate();
   const aba: Aba = abaSearch ?? "paradas";
-  const [contatoId, setContatoId] = useState<string | null>(null);
-  const [nota, setNota] = useState("");
+  const [contatoItem, setContatoItem] = useState<AcompanhamentoItem | null>(null);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
   const [captacoes, setCaptacoes] = useState<Captacao[]>([]);
 
@@ -141,10 +130,7 @@ function FilaCaptacaoPage() {
               <li key={item.id}>
                 <CaptacaoCard
                   item={item}
-                  onContato={() => {
-                    setContatoId(item.id);
-                    setNota("");
-                  }}
+                  onContato={() => setContatoItem(item)}
                 />
               </li>
             ))
@@ -193,47 +179,20 @@ function FilaCaptacaoPage() {
                 <CaptacaoCard
                   item={item}
                   chip={<StatusChip tone="violet">Exclusividade</StatusChip>}
-                  onContato={() => {
-                    setContatoId(item.id);
-                    setNota("");
-                  }}
+                  onContato={() => setContatoItem(item)}
                 />
               </li>
             ))
           )}
         </ul>
       ) : null}
-      <Dialog open={Boolean(contatoId)} onOpenChange={(open) => !open && setContatoId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar contato</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            placeholder="O que foi combinado"
-          />
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                if (!contatoId) return;
-                const texto = nota.trim() || "Contato registrado";
-                appendEventoLocal(contatoId, {
-                  id: crypto.randomUUID(),
-                  at: new Date().toISOString(),
-                  titulo: "Contato",
-                  detalhe: texto,
-                  tom: "contato",
-                });
-                setContatoId(null);
-                toast.success("Contato registrado.");
-              }}
-            >
-              Salvar contato
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CaptacaoRegistrarContatoDialog
+        item={contatoItem}
+        open={Boolean(contatoItem)}
+        onOpenChange={(open) => {
+          if (!open) setContatoItem(null);
+        }}
+      />
     </>
   );
 }
@@ -249,7 +208,6 @@ function CaptacaoCard({
 }) {
   const gap = gapPretendido(item);
   const [tarefas, setTarefas] = useState<AcompanhamentoTarefa[]>(() => loadTarefas(item));
-  const [novoPasso, setNovoPasso] = useState("");
 
   useEffect(() => {
     setTarefas(loadTarefas(item));
@@ -335,51 +293,7 @@ function CaptacaoCard({
                   : `${item.diasSemMovimento} dias`}
             </StatusChip>
           </div>
-          <ul className="space-y-2">
-            {tarefas.length === 0 ? (
-              <li className="text-xs text-muted-foreground">Nenhum passo ainda.</li>
-            ) : (
-              tarefas.map((passo) => (
-                <li key={passo.id} className="flex items-start gap-2 text-sm">
-                  <Checkbox
-                    className="mt-0.5"
-                    checked={passo.feita}
-                    onCheckedChange={(v) =>
-                      persist(
-                        tarefas.map((x) =>
-                          x.id === passo.id ? { ...x, feita: v === true } : x,
-                        ),
-                      )
-                    }
-                  />
-                  <span className={cn("leading-snug", passo.feita && "text-muted-foreground line-through")}>
-                    {passo.titulo}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-          <form
-            className="mt-3 space-y-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const titulo = novoPasso.trim();
-              if (!titulo) return;
-              persist([...tarefas, { id: crypto.randomUUID(), titulo, feita: false }]);
-              setNovoPasso("");
-            }}
-          >
-            <Input
-              value={novoPasso}
-              onChange={(e) => setNovoPasso(e.target.value)}
-              placeholder="Adicionar próximo passo"
-              className="h-8 text-sm"
-            />
-            <Button type="submit" size="sm" variant="outline" className="w-full">
-              <Plus className="mr-1 size-3.5" />
-              Adicionar
-            </Button>
-          </form>
+          <CaptacaoProximosPassos compact tarefas={tarefas} onChange={persist} />
         </div>
       </div>
     </article>
