@@ -38,8 +38,8 @@ import { maskMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { reaisPorExtenso } from "@/lib/valor-extenso";
 import { formatCpfCnpj, formatRg, cn } from "@/lib/utils";
 import { useTenantTheme } from "@/lib/tenant-theme";
-import { getSession, fetchMe, type TenantBranding } from "@/lib/auth";
-import { fetchTenantCompany, uploadIntermediacaoModelo, deleteIntermediacaoModelo } from "@/lib/tenant-company-api";
+import { getSession, type TenantBranding } from "@/lib/auth";
+import { fetchTenantCompany } from "@/lib/tenant-company-api";
 import {
   ArrowRight,
   Ban,
@@ -54,7 +54,6 @@ import {
   Sparkles,
   Trash2,
   Users,
-  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,15 +61,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { ListasDocumentosPanel } from "@/components/listas-documentos-panel";
 import {
-  analisarIntermediacaoArquivo,
-  confirmarModeloIntermediacao,
   deleteContratoDocumento,
-  downloadIntermediacaoModeloDocx,
-  downloadIntermediacaoModeloPdf,
   fetchContratoDocumentos,
   saveContratoDocumento,
   type ContratoDocumento,
-  type IntermediacaoAnalise,
 } from "@/lib/contratos-api";
 import { ApiError } from "@/lib/api";
 
@@ -834,19 +828,6 @@ function ContratosPage() {
   } | null>(null);
   const [intermediacaoSection, setIntermediacaoSection] =
     useState<IntermediacaoSectionId>("contratante");
-  const [modeloProprio, setModeloProprio] = useState<{
-    url: string;
-    nome: string;
-    templatePronto: boolean;
-  } | null>(null);
-  const [modeloBusy, setModeloBusy] = useState(false);
-  const [analise, setAnalise] = useState<IntermediacaoAnalise | null>(null);
-  const [analiseFile, setAnaliseFile] = useState<File | null>(null);
-  const [analiseMarcado, setAnaliseMarcado] = useState<Record<string, boolean>>(
-    {},
-  );
-  const isAdmin = getSession()?.role === "admin";
-  const modeloInputRef = useRef<HTMLInputElement>(null);
 
   const templatesVisiveis = useMemo(
     () => contratoTemplatesForRole(getSession()?.role),
@@ -874,184 +855,10 @@ function ContratosPage() {
   }, [logoUrl, tenant?.primaryColor]);
 
   useEffect(() => {
-    const fromSession = tenant?.intermediacaoModeloUrl
-      ? {
-          url: tenant.intermediacaoModeloUrl,
-          nome: tenant.intermediacaoModeloNome?.trim() || "Contrato da imobiliária",
-          templatePronto: Boolean(tenant.intermediacaoTemplateUrl),
-        }
-      : null;
-    setModeloProprio(fromSession);
-    let cancelled = false;
-    void fetchTenantCompany()
-      .then((company) => {
-        if (cancelled) return;
-        applyModeloFromCompany(company);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    tenant?.intermediacaoModeloUrl,
-    tenant?.intermediacaoModeloNome,
-    tenant?.intermediacaoTemplateUrl,
-  ]);
-
-  useEffect(() => {
     void fetchContratoDocumentos()
       .then(setDocumentos)
       .catch(() => undefined);
   }, []);
-
-  function applyModeloFromCompany(company: {
-    intermediacaoModeloUrl?: string | null;
-    intermediacaoModeloNome?: string | null;
-    intermediacaoTemplateUrl?: string | null;
-  }) {
-    setModeloProprio(
-      company.intermediacaoModeloUrl
-        ? {
-            url: company.intermediacaoModeloUrl,
-            nome:
-              company.intermediacaoModeloNome?.trim() ||
-              "Contrato da imobiliária",
-            templatePronto: Boolean(company.intermediacaoTemplateUrl),
-          }
-        : null,
-    );
-  }
-
-  async function handleUploadModelo(file: File | undefined) {
-    if (!file || !isAdmin) return;
-    const nome = file.name.toLowerCase();
-    if (nome.endsWith(".doc") && !nome.endsWith(".docx")) {
-      toast.error("Arquivo .doc antigo não é suportado. Salve como .docx.");
-      return;
-    }
-    if (!nome.endsWith(".pdf") && !nome.endsWith(".docx")) {
-      toast.error("Envie um PDF pesquisável ou Word (.docx).");
-      return;
-    }
-    setModeloBusy(true);
-    try {
-      const [updated, lido] = await Promise.all([
-        uploadIntermediacaoModelo(file),
-        analisarIntermediacaoArquivo(file, "extrair"),
-      ]);
-      applyModeloFromCompany(updated);
-      await fetchMe().catch(() => null);
-      setAnaliseFile(file);
-      setAnalise(lido);
-      const marcado: Record<string, boolean> = {};
-      for (const item of lido.fields) marcado[item.key] = true;
-      setAnaliseMarcado(marcado);
-      toast.success("Arquivo enviado. Confira os dados lidos antes de aplicar.");
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível ler o contrato.",
-      );
-    } finally {
-      setModeloBusy(false);
-      if (modeloInputRef.current) modeloInputRef.current.value = "";
-    }
-  }
-
-  async function handleRemoveModelo() {
-    if (!isAdmin) return;
-    setModeloBusy(true);
-    try {
-      const updated = await deleteIntermediacaoModelo();
-      applyModeloFromCompany(updated);
-      await fetchMe().catch(() => null);
-      setAnalise(null);
-      setAnaliseFile(null);
-      toast.success("Contrato da imobiliária removido.");
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível remover o contrato.",
-      );
-    } finally {
-      setModeloBusy(false);
-    }
-  }
-
-  const COMPANY_FORM_KEYS = new Set([
-    "banco",
-    "agencia",
-    "conta",
-    "pix",
-    "representanteLegal",
-    "contratadaNome",
-    "contratadaCnpj",
-    "contratadaCreci",
-    "contratadaEmail",
-    "contratadaEndereco",
-  ]);
-
-  function applyAnaliseToForm() {
-    if (!analise) return;
-    const skipped: string[] = [];
-    setForm((prev) => {
-      const next = { ...prev };
-      for (const item of analise.fields) {
-        if (!analiseMarcado[item.key] || !item.value.trim()) continue;
-        if (COMPANY_FORM_KEYS.has(item.key) && next[item.key]?.trim()) {
-          skipped.push(item.key);
-          continue;
-        }
-        next[item.key] = item.value;
-      }
-      return next;
-    });
-    if (skipped.length) {
-      toast.message(
-        "Dados da imobiliária no cadastro foram mantidos. Ajuste à mão se quiser sobrescrever.",
-      );
-    } else {
-      toast.success("Dados lidos aplicados no formulário. Confira antes de baixar.");
-    }
-  }
-
-  async function confirmarComoModelo() {
-    if (!isAdmin || !analiseFile) {
-      toast.error("Envie um Word (.docx) ou PDF para usar como modelo.");
-      return;
-    }
-    const mappings = (analise?.fields ?? [])
-      .filter((item) => analiseMarcado[item.key] && (item.snippet || item.value))
-      .map((item) => ({
-        key: item.key,
-        snippet: item.snippet.trim() || item.value.trim(),
-      }));
-    if (!mappings.length) {
-      toast.error("Marque ao menos um campo com o trecho encontrado no documento.");
-      return;
-    }
-    setModeloBusy(true);
-    try {
-      const updated = await confirmarModeloIntermediacao(analiseFile, mappings);
-      applyModeloFromCompany(updated);
-      await fetchMe().catch(() => null);
-      toast.success(
-        analiseFile.name.toLowerCase().endsWith(".pdf")
-          ? "Modelo PDF gravado. O Baixar PDF usa o layout da imobiliária."
-          : "Modelo Word gravado. O Baixar Word usa o layout da imobiliária.",
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível gravar o modelo.",
-      );
-    } finally {
-      setModeloBusy(false);
-    }
-  }
 
   const openTemplate = (template: ContratoTemplate) => {
     if (!canUseContratoTemplate(template.id)) {
@@ -1248,24 +1055,8 @@ function ContratosPage() {
         primaryColor: logoColor ?? tenant?.primaryColor,
       };
       if (format === "docx" && selected.id === "intermediacao") {
-        if (
-          modeloProprio?.templatePronto &&
-          !modeloProprio.nome.toLowerCase().endsWith(".pdf")
-        ) {
-          await downloadIntermediacaoModeloDocx(form);
-          toast.success("Word da imobiliária preenchido e baixado.");
-        } else {
-          await downloadContratoDocx(form, brand);
-          toast.success("Word gerado e baixado.");
-        }
-      } else if (
-        format === "pdf" &&
-        selected.id === "intermediacao" &&
-        modeloProprio?.templatePronto &&
-        modeloProprio.nome.toLowerCase().endsWith(".pdf")
-      ) {
-        await downloadIntermediacaoModeloPdf(form);
-        toast.success("PDF da imobiliária preenchido e baixado.");
+        await downloadContratoDocx(form, brand);
+        toast.success("Word gerado e baixado.");
       } else {
         await downloadContratoPdf(selected.id as ContratoTemplateId, form, brand);
         toast.success("PDF gerado e baixado.");
@@ -1442,11 +1233,7 @@ function ContratosPage() {
         title={selected?.titulo ?? "Contrato"}
         description={
           selected?.id === "intermediacao"
-            ? modeloProprio
-              ? "Baixe o contrato da imobiliária ou preencha o modelo do sistema."
-              : isAdmin
-                ? "Envie o contrato da imobiliária ou preencha o modelo do sistema."
-                : "Preencha os campos e baixe em PDF ou Word."
+            ? "Preencha os campos e baixe em PDF ou Word."
             : editingId
               ? "Edite o rascunho ou o contrato salvo e baixe de novo quando quiser."
               : "Preencha os campos. Salve rascunho para não perder o que já preencheu."
@@ -1477,19 +1264,6 @@ function ContratosPage() {
               )}
               Salvar rascunho
             </Button>
-            {selected?.id === "intermediacao" && modeloProprio ? (
-              <Button
-                type="button"
-                className={SOFT_BTN}
-                disabled={modeloBusy}
-                onClick={() => {
-                  window.open(modeloProprio.url, "_blank", "noopener,noreferrer");
-                }}
-              >
-                <Download className="mr-1 size-4" />
-                Baixar contrato da imobiliária
-              </Button>
-            ) : null}
             {selected?.id === "intermediacao" ? (
               <Button
                 type="button"
@@ -1504,10 +1278,6 @@ function ContratosPage() {
                   <Download className="mr-1 size-4" />
                 )}
                 Baixar Word
-                {modeloProprio?.templatePronto &&
-                !modeloProprio.nome.toLowerCase().endsWith(".pdf")
-                  ? " da imobiliária"
-                  : ""}
               </Button>
             ) : null}
             <Button type="submit" form="contrato-form" disabled={generating || savingDraft}>
@@ -1516,12 +1286,7 @@ function ContratosPage() {
               ) : (
                 <Download className="mr-1 size-4" />
               )}
-              {selected?.id === "intermediacao"
-                ? modeloProprio?.templatePronto &&
-                  modeloProprio.nome.toLowerCase().endsWith(".pdf")
-                  ? "Baixar PDF da imobiliária"
-                  : "Baixar PDF"
-                : "Gerar PDF"}
+              {selected?.id === "intermediacao" ? "Baixar PDF" : "Gerar PDF"}
             </Button>
           </FormDialogActions>
         }
@@ -1541,153 +1306,6 @@ function ContratosPage() {
             >
               {selected.id === "intermediacao" ? (
                 <>
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">Contrato da imobiliária</p>
-                      <p className="text-xs text-muted-foreground">
-                        {modeloProprio
-                          ? `${modeloProprio.templatePronto ? "Modelo preenchível ativo. " : "Arquivo salvo. Confirme o mapeamento no painel abaixo para preencher o Word. "}Arquivo atual: ${modeloProprio.nome}`
-                          : isAdmin
-                            ? "Envie o PDF ou Word (.docx). Depois de conferir os dados, use como modelo da imobiliária — o sistema preenche o mesmo layout."
-                            : "A imobiliária ainda não enviou o contrato próprio. Use o modelo do sistema abaixo."}
-                      </p>
-                    </div>
-                    {modeloProprio ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(modeloProprio.url, "_blank", "noopener,noreferrer")
-                        }
-                      >
-                        <Download className="mr-1 size-3.5" />
-                        Baixar
-                      </Button>
-                    ) : null}
-                  </div>
-                  {isAdmin ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <input
-                        ref={modeloInputRef}
-                        type="file"
-                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        className="hidden"
-                        onChange={(e) =>
-                          void handleUploadModelo(e.target.files?.[0])
-                        }
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={modeloBusy}
-                        onClick={() => modeloInputRef.current?.click()}
-                      >
-                        {modeloBusy ? (
-                          <Loader2 className="mr-1 size-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="mr-1 size-3.5" />
-                        )}
-                        {modeloProprio ? "Trocar arquivo" : "Enviar PDF ou Word"}
-                      </Button>
-                      {modeloProprio ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive"
-                          disabled={modeloBusy}
-                          onClick={() => void handleRemoveModelo()}
-                        >
-                          Remover
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                {analise ? (
-                  <div className="rounded-xl border bg-card p-3">
-                    <p className="text-sm font-medium">Dados lidos</p>
-                    <p className="text-xs text-muted-foreground">
-                      Extração automática ({analise.fonte === "ia+regras" ? "IA + regras" : "regras"}). Confira cada campo — não grava no lead.
-                    </p>
-                    {analise.avisos.length ? (
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-800">
-                        {analise.avisos.map((aviso) => (
-                          <li key={aviso}>{aviso}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <div className="mt-2 max-h-56 space-y-1 overflow-auto">
-                      {analise.fields.map((item) => {
-                        const label =
-                          selected?.fields.find((field) => field.key === item.key)
-                            ?.label ?? item.key;
-                        return (
-                          <label
-                            key={item.key}
-                            className="flex items-start gap-2 rounded-md px-1 py-1 text-xs hover:bg-muted/50"
-                          >
-                            <Checkbox
-                              checked={Boolean(analiseMarcado[item.key])}
-                              onCheckedChange={(value) =>
-                                setAnaliseMarcado((prev) => ({
-                                  ...prev,
-                                  [item.key]: value === true,
-                                }))
-                              }
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="font-medium">{label}</span>
-                              <span className="ml-1 text-[10px] uppercase text-muted-foreground">
-                                {item.confidence}
-                              </span>
-                              <span className="mt-0.5 block truncate text-muted-foreground">
-                                {item.value}
-                              </span>
-                              {item.warning ? (
-                                <span className="block text-amber-700">{item.warning}</span>
-                              ) : null}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => applyAnaliseToForm()}
-                      >
-                        Aplicar no formulário
-                      </Button>
-                      {isAdmin ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={modeloBusy}
-                          onClick={() => void confirmarComoModelo()}
-                        >
-                          Usar como modelo da imobiliária
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setAnalise(null);
-                          setAnaliseFile(null);
-                        }}
-                      >
-                        Descartar
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
                 <div className="grid grid-cols-2 gap-2 rounded-xl border bg-muted/30 p-2 sm:grid-cols-3">
                   {INTERMEDIACAO_SECTIONS.map((section) => (
                     <Button

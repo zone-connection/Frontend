@@ -68,23 +68,6 @@ export async function deleteTenantCompanyLogo(): Promise<TenantCompanyProfile> {
   });
 }
 
-export async function uploadIntermediacaoModelo(
-  file: File,
-): Promise<TenantCompanyProfile> {
-  const data = new FormData();
-  data.append("file", file);
-  return apiFetch<TenantCompanyProfile>("/tenant/company/intermediacao-modelo", {
-    method: "POST",
-    body: data,
-  });
-}
-
-export async function deleteIntermediacaoModelo(): Promise<TenantCompanyProfile> {
-  return apiFetch<TenantCompanyProfile>("/tenant/company/intermediacao-modelo", {
-    method: "DELETE",
-  });
-}
-
 export type TenantOperationModules = {
   comercial: boolean;
   captacao: boolean;
