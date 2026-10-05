@@ -86,6 +86,11 @@ import {
 import { getSession } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { brl, interessesAtivos, type Lead } from "@/lib/crm-types";
+import {
+  matchesPeriodoFiltro,
+  PERIODO_OPTIONS,
+  type PeriodoFiltro,
+} from "@/lib/financeiro-mock";
 import { canViewTeamData, isCorretorLike } from "@/lib/permissions";
 import { TableSortSelect } from "@/components/table-sort-select";
 import {
@@ -886,6 +891,7 @@ function Page() {
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>("tudo");
   const [status, setStatus] = useState<PropostaStatus | "todos">("todos");
   const [corretorId, setCorretorId] = useState("todos");
   const [equipeId, setEquipeId] = useState("todos");
@@ -1138,6 +1144,7 @@ function Page() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((p) => {
+      if (!matchesPeriodoFiltro(p.createdAt, periodo)) return false;
       if (status !== "todos" && p.status !== status) return false;
       if (corretorId !== "todos" && p.corretorId !== corretorId) return false;
       if (equipeId !== "todos") {
@@ -1160,7 +1167,7 @@ function Page() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [items, search, status, corretorId, equipeId]);
+  }, [items, search, periodo, status, corretorId, equipeId]);
 
   const sortedRows = useMemo(
     () =>
@@ -1174,7 +1181,7 @@ function Page() {
   );
   const pager = useTablePager(
     sortedRows,
-    `${search}|${status}|${corretorId}|${equipeId}|${sort}`,
+    `${search}|${periodo}|${status}|${corretorId}|${equipeId}|${sort}`,
   );
 
   const kpis = useMemo(() => {
@@ -1203,6 +1210,7 @@ function Page() {
 
   const hasActive = Boolean(
     search ||
+    periodo !== "tudo" ||
     status !== "todos" ||
     corretorId !== "todos" ||
     (!isGerente && equipeId !== "todos"),
@@ -1661,6 +1669,21 @@ function Page() {
           className={FILTER_CONTROL}
         />
         <Select
+          value={periodo}
+          onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}
+        >
+          <SelectTrigger className={cn("w-full sm:w-42.5", FILTER_CONTROL)}>
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            {PERIODO_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={status}
           onValueChange={(v) => setStatus(v as PropostaStatus | "todos")}
         >
@@ -1713,6 +1736,7 @@ function Page() {
             className={FILTER_CLEAR_BTN}
             onClick={() => {
               setSearch("");
+              setPeriodo("tudo");
               setStatus("todos");
               setCorretorId("todos");
               setEquipeId("todos");
