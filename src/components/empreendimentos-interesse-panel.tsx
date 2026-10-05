@@ -16,10 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   interessesAtivos,
   interessesHistorico,
+  rotuloInteresseAlvo,
   type InteresseEmpreendimentoStatus,
   type Lead,
   type LeadEmpreendimentoInteresse,
 } from "@/lib/crm-types";
+import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import {
   addLeadInteresseApi,
@@ -51,7 +53,7 @@ function FormSectionShell({ children }: { children: React.ReactNode }) {
         <div>
           <h3 className="text-sm font-medium">Empreendimentos de interesse</h3>
           <p className="text-xs text-muted-foreground">
-            Um cliente pode acompanhar vários empreendimentos ao mesmo tempo.
+            Lançamentos e imóveis de captação. Um contato pode ter vários ao mesmo tempo.
           </p>
         </div>
       </div>
@@ -76,7 +78,13 @@ export function EmpreendimentosInteressePanel({
   compact?: boolean;
 }) {
   const [catalog, setCatalog] = useState<
-    Array<{ id: string; nome: string; cidade: string | null }>
+    Array<{
+      key: string;
+      id: string;
+      kind: "emp" | "cap";
+      nome: string;
+      cidade: string | null;
+    }>
   >([]);
   const [pick, setPick] = useState("");
   const [busy, setBusy] = useState(false);
@@ -85,32 +93,57 @@ export function EmpreendimentosInteressePanel({
   const [status, setStatus] = useState<InteresseEmpreendimentoStatus>("ativo");
 
   useEffect(() => {
-    void fetchEmpreendimentos({ ativo: true })
-      .then((items) =>
-        setCatalog(
-          items.map((item) => ({
+    void Promise.all([
+      fetchEmpreendimentos({ ativo: true }).catch(() => []),
+      fetchCaptacaoImoveis().catch(() => []),
+    ]).then(([emps, imoveis]) => {
+      const empRows = emps.map((item) => ({
+        key: `e:${item.id}`,
+        id: item.id,
+        kind: "emp" as const,
+        nome: item.nome,
+        cidade: item.cidade,
+      }));
+      const empIds = new Set(emps.map((item) => item.id));
+      const capRows = imoveis
+        .filter((item) => !item.empreendimentoId || !empIds.has(item.empreendimentoId))
+        .map((item) => {
+          const endereco = [item.logradouro, item.numero].filter(Boolean).join(", ");
+          const cidade = [item.bairro, item.cidade].filter(Boolean).join(" · ") || null;
+          return {
+            key: `i:${item.id}`,
             id: item.id,
-            nome: item.nome,
-            cidade: item.cidade,
-          })),
-        ),
-      )
-      .catch(() => setCatalog([]));
+            kind: "cap" as const,
+            nome: endereco || item.titulo || "Imóvel de captação",
+            cidade,
+          };
+        });
+      setCatalog([...empRows, ...capRows]);
+    });
   }, []);
 
   const ativos = interessesAtivos(interesses);
   const historico = interessesHistorico(interesses);
   const taken = new Set(
-    leadId ? ativos.map((item) => item.empreendimentoId) : (pendingIds ?? []),
+    leadId
+      ? ativos.flatMap((item) => {
+          const keys: string[] = [];
+          if (item.empreendimentoId) keys.push(`e:${item.empreendimentoId}`);
+          if (item.imovelId) keys.push(`i:${item.imovelId}`);
+          return keys;
+        })
+      : (pendingIds ?? []),
   );
   const options = useMemo(
     () =>
       catalog
-        .filter((item) => !taken.has(item.id))
+        .filter((item) => !taken.has(item.key))
         .map((item) => ({
-          id: item.id,
-          label: item.cidade ? `${item.nome} · ${item.cidade}` : item.nome,
-          keywords: `${item.nome} ${item.cidade ?? ""}`,
+          id: item.key,
+          label: `${item.kind === "cap" ? "Captação · " : ""}${
+            item.cidade ? `${item.nome} · ${item.cidade}` : item.nome
+          }`,
+          keywords: `${item.nome} ${item.cidade ?? ""} ${item.kind === "cap" ? "captacao captação imóvel" : "empreendimento lançamento"}`,
         })),
     [catalog, taken],
   );
@@ -121,9 +154,10 @@ export function EmpreendimentosInteressePanel({
 
   async function addSelected() {
     if (!pick) {
-      toast.error("Pesquise e selecione um empreendimento.");
+      toast.error("Pesquise e selecione um empreendimento ou imóvel.");
       return;
     }
+    const escolhido = catalog.find((item) => item.key === pick);
     if (!leadId) {
       if (taken.has(pick)) return;
       onPendingChange?.([...(pendingIds ?? []), pick]);
@@ -132,12 +166,15 @@ export function EmpreendimentosInteressePanel({
     }
     setBusy(true);
     try {
-      const updated = await addLeadInteresseApi(leadId, {
-        empreendimentoId: pick,
-      });
+      const updated = await addLeadInteresseApi(
+        leadId,
+        escolhido?.kind === "cap"
+          ? { imovelId: escolhido.id }
+          : { empreendimentoId: escolhido?.id ?? pick.replace(/^e:/, "") },
+      );
       await applyLead(updated);
       setPick("");
-      toast.success("Empreendimento adicionado aos interesses.");
+      toast.success("Adicionado aos interesses.");
     } catch (err) {
       toast.error(userFacingError(err, "Não foi possível adicionar o interesse."));
     } finally {
@@ -147,7 +184,7 @@ export function EmpreendimentosInteressePanel({
 
   async function removeItem(item: LeadEmpreendimentoInteresse | { id: string }) {
     if (!leadId) {
-      onPendingChange?.((pendingIds ?? []).filter((id) => id !== item.id));
+      onPendingChange?.((pendingIds ?? []).filter((id) => id !== item.id && id !== (item as { key?: string }).key));
       return;
     }
     setBusy(true);
@@ -181,8 +218,13 @@ export function EmpreendimentosInteressePanel({
   }
 
   const pendingItems = (pendingIds ?? [])
-    .map((id) => catalog.find((item) => item.id === id) ?? { id, nome: id, cidade: null })
-    .filter(Boolean);
+    .map((key) => catalog.find((item) => item.key === key) ?? {
+      key,
+      id: key,
+      kind: key.startsWith("i:") ? ("cap" as const) : ("emp" as const),
+      nome: key,
+      cidade: null,
+    });
 
   return (
     <FormSectionShell>
@@ -192,9 +234,9 @@ export function EmpreendimentosInteressePanel({
             value={pick}
             options={options}
             onChange={setPick}
-            placeholder="Pesquisar empreendimento…"
-            searchPlaceholder="Nome ou cidade"
-            emptyLabel="Nenhum empreendimento cadastrado"
+            placeholder="Pesquisar empreendimento ou captação…"
+            searchPlaceholder="Nome, rua ou cidade"
+            emptyLabel="Nenhum imóvel cadastrado"
             noneLabel="Selecione"
             allowNone
             disabled={busy}
@@ -217,15 +259,20 @@ export function EmpreendimentosInteressePanel({
           {pendingItems.length ? (
             pendingItems.map((item) => (
               <Badge
-                key={item.id}
+                key={item.key}
                 variant="secondary"
                 className="gap-1 rounded-full py-1 pl-2.5 pr-1"
               >
+                {item.kind === "cap" ? "Captação · " : ""}
                 {item.nome}
                 <button
                   type="button"
                   className="rounded-full p-0.5 hover:bg-background"
-                  onClick={() => void removeItem(item)}
+                  onClick={() =>
+                    onPendingChange?.(
+                      (pendingIds ?? []).filter((id) => id !== item.key),
+                    )
+                  }
                   aria-label={`Remover ${item.nome}`}
                 >
                   <X className="h-3 w-3" />
@@ -249,11 +296,13 @@ export function EmpreendimentosInteressePanel({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {item.empreendimento.nome}
+                      {rotuloInteresseAlvo(item)}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {item.empreendimento.cidade || "—"} · interesse em{" "}
-                      {formatDate(item.dataInteresse)}
+                      {item.imovel
+                        ? "Captação"
+                        : item.empreendimento?.cidade || "—"}{" "}
+                      · interesse em {formatDate(item.dataInteresse)}
                       {item.corretor?.name ? ` · ${item.corretor.name}` : ""}
                     </p>
                   </div>
@@ -353,7 +402,7 @@ export function EmpreendimentosInteressePanel({
             ))
           ) : (
             <p className="text-xs text-muted-foreground">
-              Nenhum empreendimento de interesse ativo.
+              Nenhum interesse ativo.
             </p>
           )}
           {historico.length ? (
@@ -365,7 +414,7 @@ export function EmpreendimentosInteressePanel({
                 {historico.map((item) => (
                   <li key={item.id} className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {item.empreendimento.nome}
+                      {rotuloInteresseAlvo(item)}
                     </span>
                     {" · "}
                     {STATUS_LABEL[item.status]} · {formatDate(item.dataInteresse)}
@@ -400,9 +449,9 @@ export function EmpreendimentosInteresseChips({
         <span
           key={item.id}
           className="max-w-[140px] truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
-          title={item.empreendimento.nome}
+          title={rotuloInteresseAlvo(item)}
         >
-          {item.empreendimento.nome}
+          {rotuloInteresseAlvo(item)}
         </span>
       ))}
       {extra > 0 ? (

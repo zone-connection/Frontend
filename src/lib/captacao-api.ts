@@ -157,6 +157,7 @@ export type Imovel = {
   observacoes: string;
   titulo: string;
   valor: number | null;
+  empreendimentoId?: string | null;
   captacao: { id: string; etapa: string | null } | null;
   proprietario?: { id: string; nome: string; telefone?: string; email?: string };
   captacoes?: Array<{

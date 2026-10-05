@@ -22,7 +22,8 @@ export type InteresseEmpreendimentoStatus =
 
 export type LeadEmpreendimentoInteresse = {
   id: string;
-  empreendimentoId: string;
+  empreendimentoId: string | null;
+  imovelId?: string | null;
   status: InteresseEmpreendimentoStatus;
   observacoes: string;
   corretorId: string | null;
@@ -30,8 +31,28 @@ export type LeadEmpreendimentoInteresse = {
   dataInteresse: string;
   ultimaInteracao: string | null;
   removidoEm: string | null;
-  empreendimento: { id: string; nome: string; cidade: string | null };
+  empreendimento: { id: string; nome: string; cidade: string | null } | null;
+  imovel?: {
+    id: string;
+    logradouro: string;
+    numero: string;
+    bairro: string;
+    cidade: string;
+  } | null;
 };
+
+export function rotuloInteresseAlvo(item: LeadEmpreendimentoInteresse) {
+  if (item.imovel) {
+    const endereco = [item.imovel.logradouro, item.imovel.numero]
+      .filter(Boolean)
+      .join(", ");
+    const local = [item.imovel.bairro, item.imovel.cidade]
+      .filter(Boolean)
+      .join(" · ");
+    return [endereco || "Imóvel de captação", local].filter(Boolean).join(" — ");
+  }
+  return item.empreendimento?.nome ?? "Empreendimento";
+}
 
 export function interessesAtivos(
   interesses: LeadEmpreendimentoInteresse[] | undefined,
@@ -47,6 +68,16 @@ export function interessesHistorico(
   return (interesses ?? []).filter(
     (item) => Boolean(item.removidoEm) || item.status === "descartado",
   );
+}
+
+export function splitPendingInteresseKeys(keys: string[]) {
+  const empreendimentoIds: string[] = [];
+  const imovelIds: string[] = [];
+  for (const raw of keys) {
+    if (raw.startsWith("i:")) imovelIds.push(raw.slice(2));
+    else empreendimentoIds.push(raw.startsWith("e:") ? raw.slice(2) : raw);
+  }
+  return { empreendimentoIds, imovelIds };
 }
 
 export interface Lead {

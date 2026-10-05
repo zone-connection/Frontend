@@ -76,7 +76,7 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
-import { brl, interessesAtivos, type Lead } from "@/lib/crm-types";
+import { brl, interessesAtivos, rotuloInteresseAlvo, splitPendingInteresseKeys, type Lead } from "@/lib/crm-types";
 import { ApiError } from "@/lib/api";
 import { importLeads, checkImportDuplicates } from "@/lib/leads-api";
 import {
@@ -488,7 +488,7 @@ function Clientes() {
           ...(form.endereco.trim() ? { endereco: form.endereco.trim() } : {}),
           ...(form.cep.trim() ? { cep: form.cep.trim() } : {}),
           ...(form.pendingEmpreendimentoIds.length
-            ? { empreendimentoIds: form.pendingEmpreendimentoIds }
+            ? splitPendingInteresseKeys(form.pendingEmpreendimentoIds)
             : {}),
         });
         setFormOpen(false);
@@ -824,7 +824,7 @@ function Clientes() {
                 ) : (
                   <Trash2 className="w-4 h-4 mr-1" />
                 )}
-                Excluir ({selectedCount})
+                Perda ({selectedCount})
               </Button>
             )}
             <Button
@@ -1006,7 +1006,7 @@ function Clientes() {
                         onClick={() => setDeleteTarget(l)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Excluir
+                        Perda
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1535,7 +1535,7 @@ function Clientes() {
                       <div className="flex flex-wrap gap-1.5">
                         {interessesAtivos(detail.interesses).map((item) => (
                           <Badge key={item.id} variant="secondary" title={item.empreendimento.cidade ?? undefined}>
-                            {item.empreendimento.nome}
+                            {rotuloInteresseAlvo(item)}
                           </Badge>
                         ))}
                       </div>
@@ -1568,7 +1568,7 @@ function Clientes() {
                 onClick={() => setDeleteTarget(detail)}
               >
                 <Trash2 className="w-4 h-4" />
-                Excluir
+                Perda
               </Button>
             </FormDialogActions>
           </>
@@ -1639,7 +1639,7 @@ function Clientes() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Por que está excluindo este cliente?
+              Por que está registrando a perda deste cliente?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
@@ -1666,7 +1666,7 @@ function Clientes() {
                 void confirmDelete();
               }}
             >
-              Confirmar exclusão
+              Confirmar perda
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1685,11 +1685,11 @@ function Clientes() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Excluir {selectedCount} cliente(s) selecionado(s)?
+              Registrar perda de {selectedCount} cliente(s) selecionado(s)?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Os clientes sairão da carteira e irão para Perda de cliente
-              (visível só para o corretor). Informe o motivo da exclusão.
+              (visível só para o corretor). Informe o motivo da perda.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-1">
@@ -1711,7 +1711,7 @@ function Clientes() {
                 void confirmBulkDelete();
               }}
             >
-              Excluir selecionados
+              Registrar perda
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

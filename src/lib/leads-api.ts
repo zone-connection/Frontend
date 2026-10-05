@@ -126,6 +126,7 @@ export type CreateLeadInput = {
   /** Data de cadastro retroativa (YYYY-MM-DD ou ISO). */
   createdAt?: string | null;
   empreendimentoIds?: string[];
+  imovelIds?: string[];
 };
 
 export type UpdateLeadInput = Partial<CreateLeadInput>;
@@ -415,7 +416,8 @@ export async function updateLeadApi(
 export async function addLeadInteresseApi(
   leadId: string,
   input: {
-    empreendimentoId: string;
+    empreendimentoId?: string;
+    imovelId?: string;
     observacoes?: string;
     status?: string;
     corretorId?: string | null;

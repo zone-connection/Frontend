@@ -1,7 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { FlowBar } from "@/components/flow-bar";
 import { cn } from "@/lib/utils";
-import { BadgeCheck, FileText, ShoppingBag } from "lucide-react";
+import { BadgeCheck, CircleHelp, FileText, ShoppingBag } from "lucide-react";
 
 export function taxaVendasSobreBase(vendas: number, base: number) {
   if (!Number.isFinite(vendas) || !Number.isFinite(base) || base <= 0) {
@@ -50,10 +56,30 @@ export function ConversaoComparativa({
   return (
     <Card className={cn("overflow-hidden rounded-2xl", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-        {subtitle ? (
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        ) : null}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-base">{title}</CardTitle>
+            {subtitle ? (
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
+            ) : null}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground"
+                aria-label="Como ler estes números"
+              >
+                <CircleHelp className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 text-sm leading-relaxed">
+              {textoAnaliseConversao(documentacoes, aprovacoes, vendas)}
+            </PopoverContent>
+          </Popover>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
@@ -112,10 +138,6 @@ export function ConversaoComparativa({
             tone="emerald"
           />
         </div>
-
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {textoAnaliseConversao(documentacoes, aprovacoes, vendas)}
-        </p>
       </CardContent>
     </Card>
   );

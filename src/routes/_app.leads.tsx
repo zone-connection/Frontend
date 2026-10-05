@@ -92,6 +92,7 @@ import {
   brl,
   isLeadCarteiraPropria,
   prioridadeBadgeClass,
+  splitPendingInteresseKeys,
   type Lead,
 } from "@/lib/crm-types";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
@@ -1273,7 +1274,7 @@ function LeadsPage() {
         ...(corretorId !== undefined ? { corretorId } : {}),
         ...(form.createdAt ? { createdAt: form.createdAt } : {}),
         ...(form.pendingEmpreendimentoIds.length
-          ? { empreendimentoIds: form.pendingEmpreendimentoIds }
+          ? splitPendingInteresseKeys(form.pendingEmpreendimentoIds)
           : {}),
       });
       setOpen(false);
@@ -1685,7 +1686,7 @@ function LeadsPage() {
                     ) : (
                       <Trash2 className="w-4 h-4 mr-1" />
                     )}
-                    Excluir ({selectedCount})
+                    Perda ({selectedCount})
                   </Button>
                   <Button
                     variant="destructive"
@@ -3024,7 +3025,7 @@ function LeadsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Por que está excluindo este lead?
+              Por que está registrando a perda deste lead?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteLead
@@ -3051,7 +3052,7 @@ function LeadsPage() {
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Confirmar exclusão
+              Confirmar perda
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3070,11 +3071,11 @@ function LeadsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Excluir {selectedCount} lead(s) selecionado(s)?
+              Registrar perda de {selectedCount} lead(s) selecionado(s)?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Os leads sairão da lista e do funil, e irão para Leads Perdidos
-              (visível só para o administrador). Informe o motivo da exclusão.
+              (visível só para o administrador). Informe o motivo da perda.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-1">
@@ -3096,7 +3097,7 @@ function LeadsPage() {
                 void confirmBulkDelete();
               }}
             >
-              Excluir selecionados
+              Registrar perda
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3984,7 +3985,7 @@ function LeadsPage() {
                               className="text-destructive focus:text-destructive"
                               onClick={() => setDeleteLead(l)}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                              <Trash2 className="w-4 h-4 mr-2" /> Perda
                             </DropdownMenuItem>
                             {canDeleteLeads ? (
                               <DropdownMenuItem
