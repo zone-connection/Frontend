@@ -1473,22 +1473,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       user?.role === "super_admin"
         ? navSections.filter((section) => section.id !== "agenda")
         : navSections.filter((section) => !OPERACAO_SECTION_IDS.has(section.id));
-    const acimaDaOperacao = new Set([
-      "dashboard",
-      "agenda",
-      "catalogo",
-      "treinamento",
-    ]);
+    const beforeOperacao = new Set(["dashboard"]);
+    const afterOperacaoTop = new Set(["agenda", "catalogo", "treinamento"]);
     const menuSlots: Array<
       | { kind: "section"; section: (typeof sections)[number] }
       | { kind: "operacao" }
     > = [
       ...sections
-        .filter((section) => acimaDaOperacao.has(section.id))
+        .filter((section) => beforeOperacao.has(section.id))
         .map((section) => ({ kind: "section" as const, section })),
       { kind: "operacao" },
       ...sections
-        .filter((section) => !acimaDaOperacao.has(section.id))
+        .filter((section) => afterOperacaoTop.has(section.id))
+        .map((section) => ({ kind: "section" as const, section })),
+      ...sections
+        .filter(
+          (section) =>
+            !beforeOperacao.has(section.id) &&
+            !afterOperacaoTop.has(section.id),
+        )
         .map((section) => ({ kind: "section" as const, section })),
     ];
     const operacaoMenu = renderOperacaoMenu(collapsedView, onNavigate);
