@@ -115,6 +115,18 @@ import {
 import { isStatusAprovadoDoc } from "@/lib/documentacao-status";
 import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import {
+  CAPTACAO_IMOVEL_TIPO_LABEL,
+  fetchCaptacoes,
+  type Captacao,
+  type CaptacaoImovelTipo,
+  type Imovel,
+} from "@/lib/captacao-api";
+import {
+  fetchVendasUsado,
+  VENDA_STATUS_LABEL,
+  type VendaUsado,
+} from "@/lib/imoveis-usados-api";
+import {
   createProposta,
   deleteProposta,
   fetchEnderecoPorCep,
@@ -131,6 +143,7 @@ import {
   propostaValorLiquido,
   rotuloPropostaVinculoCurto,
   updateProposta,
+  vincularProposta,
   type CreatePropostaInput,
   type Proposta,
   type PropostaSimplesKey,
@@ -265,6 +278,7 @@ type FormState = {
   clienteTelefoneComercial2: string;
   construtoraId: string;
   empreendimentoId: string;
+  vinculoImovelId: string;
   unidade: string;
   corretorId: string;
   valor: string;
@@ -325,6 +339,7 @@ const emptyForm = (): FormState => ({
   clienteTelefoneComercial2: "",
   construtoraId: "",
   empreendimentoId: "",
+  vinculoImovelId: "",
   unidade: "",
   corretorId: "",
   valor: "",
@@ -343,6 +358,12 @@ const emptyForm = (): FormState => ({
   validade: "",
   observacao: "",
 });
+
+function rotuloImovelForm(imovel: Imovel) {
+  const endereco = [imovel.logradouro, imovel.numero].filter(Boolean).join(", ");
+  const local = [imovel.bairro, imovel.cidade].filter(Boolean).join(" · ");
+  return [endereco || "Imóvel", local].filter(Boolean).join(" — ");
+}
 
 function OptionalField({
   label,
@@ -853,6 +874,9 @@ function Page() {
   const [items, setItems] = useState<Proposta[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
+  const [captacoesCatalogo, setCaptacoesCatalogo] = useState<Captacao[]>([]);
+  const [usadosCatalogo, setUsadosCatalogo] = useState<VendaUsado[]>([]);
+  const [imovelPickerOpen, setImovelPickerOpen] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [documentacoes, setDocumentacoes] = useState<Documentacao[]>([]);
   const [aprovadosPorDoc, setAprovadosPorDoc] = useState<Set<string>>(
@@ -927,7 +951,7 @@ function Page() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [propostas, cons, emps, eqs, docs] = await Promise.all([
+      const [propostas, cons, emps, eqs, docs, caps, usados] = await Promise.all([
         fetchPropostas(),
         fetchConstrutoras().catch(() => [] as Construtora[]),
         fetchEmpreendimentos().catch(() => [] as Empreendimento[]),
@@ -935,6 +959,8 @@ function Page() {
           ? fetchEquipes().catch(() => [] as Equipe[])
           : Promise.resolve([] as Equipe[]),
         fetchDocumentacoes().catch(() => []),
+        fetchCaptacoes().catch(() => [] as Captacao[]),
+        fetchVendasUsado().catch(() => [] as VendaUsado[]),
       ]);
       setItems(propostas);
       setDocumentacoes(docs);
@@ -947,6 +973,8 @@ function Page() {
       );
       setConstrutoras(cons);
       setEmpreendimentos(emps);
+      setCaptacoesCatalogo(caps);
+      setUsadosCatalogo(usados);
       setEquipes(eqs);
     } catch (err) {
       const msg =
@@ -989,6 +1017,7 @@ function Page() {
         ...f,
         construtoraId: created.id,
         empreendimentoId: "",
+        vinculoImovelId: "",
       }));
       setQuickOpen(false);
       setQuickNome("");
@@ -1033,7 +1062,11 @@ function Page() {
         cor: empCor.trim() || undefined,
       });
       await loadLookups();
-      setForm((f) => ({ ...f, empreendimentoId: created.id }));
+      setForm((f) => ({
+        ...f,
+        empreendimentoId: created.id,
+        vinculoImovelId: "",
+      }));
       setEmpOpen(false);
       toast.success("Empreendimento cadastrado e selecionado.");
     } catch (err) {
@@ -1050,6 +1083,28 @@ function Page() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const captacoesUnicas = useMemo(() => {
+    const vistos = new Set<string>();
+    return captacoesCatalogo.filter((item) => {
+      if (vistos.has(item.imovelId)) return false;
+      vistos.add(item.imovelId);
+      return true;
+    });
+  }, [captacoesCatalogo]);
+
+  const imovelSelecionado = useMemo(() => {
+    if (!form.vinculoImovelId) return null;
+    const daCaptacao = captacoesUnicas.find(
+      (item) => item.imovelId === form.vinculoImovelId,
+    )?.imovel;
+    if (daCaptacao) return { origem: "captacao" as const, imovel: daCaptacao };
+    const daVenda = usadosCatalogo.find(
+      (item) => item.imovel.id === form.vinculoImovelId,
+    )?.imovel;
+    if (daVenda) return { origem: "usado" as const, imovel: daVenda };
+    return null;
+  }, [form.vinculoImovelId, captacoesUnicas, usadosCatalogo]);
 
   const filteredEmpreendimentos = useMemo(() => {
     if (!form.construtoraId) return empreendimentos;
@@ -1244,10 +1299,23 @@ function Page() {
             nome: empreendimento.nome,
             cidade: empreendimento.cidade,
           }
-        : null,
+        : imovelSelecionado
+          ? {
+              id: imovelSelecionado.imovel.id,
+              nome: rotuloImovelForm(imovelSelecionado.imovel),
+              cidade: imovelSelecionado.imovel.cidade || null,
+            }
+          : null,
       lead: null,
     };
-  }, [construtoras, corretorOptions, empreendimentos, form, user]);
+  }, [
+    construtoras,
+    corretorOptions,
+    empreendimentos,
+    form,
+    imovelSelecionado,
+    user,
+  ]);
 
   function openCreate() {
     setFormMode("create");
@@ -1301,6 +1369,8 @@ function Page() {
       clienteTelefoneComercial2: p.clienteTelefoneComercial2 ?? "",
       construtoraId: p.construtoraId ?? "",
       empreendimentoId: p.empreendimentoId ?? "",
+      vinculoImovelId:
+        p.vinculos?.find((item) => item.imovel?.id)?.imovel?.id ?? "",
       unidade: p.unidade ?? "",
       corretorId: p.corretorId ?? "",
       valor: formatMoneyInput(p.valor),
@@ -1450,10 +1520,31 @@ function Page() {
     setSaving(true);
     try {
       if (formMode === "create") {
-        await createProposta(payload);
+        const criada = await createProposta(payload);
+        if (form.vinculoImovelId) {
+          try {
+            await vincularProposta(criada.id, { imovelId: form.vinculoImovelId });
+          } catch {
+            toast.error("Proposta salva, mas o imóvel não foi vinculado.");
+          }
+        }
         toast.success("Proposta criada.");
       } else if (editingId) {
         await updateProposta(editingId, payload);
+        if (form.vinculoImovelId) {
+          const jaTem = items
+            .find((item) => item.id === editingId)
+            ?.vinculos?.some((item) => item.imovel?.id === form.vinculoImovelId);
+          if (!jaTem) {
+            try {
+              await vincularProposta(editingId, {
+                imovelId: form.vinculoImovelId,
+              });
+            } catch {
+              toast.error("Proposta atualizada, mas o imóvel não foi vinculado.");
+            }
+          }
+        }
         toast.success("Proposta atualizada.");
       }
       setOpen(false);
@@ -2240,7 +2331,7 @@ function Page() {
         open={Boolean(vinculoTarget)}
         onOpenChange={(openDialog) => !openDialog && setVinculoTarget(null)}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Vincular imóvel ou empreendimento</DialogTitle>
             <DialogDescription>
@@ -2781,6 +2872,185 @@ function Page() {
             {formSection === "imovel" ? (
               <FormSection title="Imóvel">
                 <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label>Imóvel da proposta</Label>
+                    <Popover
+                      modal
+                      open={imovelPickerOpen}
+                      onOpenChange={setImovelPickerOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={imovelPickerOpen}
+                          className="h-10 w-full justify-between font-normal"
+                        >
+                          <span className="truncate">
+                            {imovelSelecionado
+                              ? rotuloImovelForm(imovelSelecionado.imovel)
+                              : form.empreendimentoId
+                                ? filteredEmpreendimentos.find(
+                                    (item) => item.id === form.empreendimentoId,
+                                  )?.nome ?? "Empreendimento selecionado"
+                                : "Buscar captação, usado ou empreendimento..."}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-(--radix-popover-trigger-width) p-0"
+                        align="start"
+                        onWheel={(e) => e.stopPropagation()}
+                      >
+                        <Command>
+                          <CommandInput placeholder="Rua, bairro, proprietário ou empreendimento..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum imóvel encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="nenhum imovel"
+                                onSelect={() => {
+                                  setForm((f) => ({
+                                    ...f,
+                                    vinculoImovelId: "",
+                                    empreendimentoId: "",
+                                  }));
+                                  setImovelPickerOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    !form.vinculoImovelId && !form.empreendimentoId
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                Nenhum
+                              </CommandItem>
+                            </CommandGroup>
+                            <CommandGroup heading="Captações">
+                              {captacoesUnicas.map((item) => {
+                                const label = rotuloImovelForm(item.imovel);
+                                const tipo =
+                                  CAPTACAO_IMOVEL_TIPO_LABEL[
+                                    item.imovel.tipo as CaptacaoImovelTipo
+                                  ] ?? item.imovel.tipo;
+                                return (
+                                  <CommandItem
+                                    key={`cap-${item.imovelId}`}
+                                    value={`captacao ${label} ${tipo} ${item.imovel.proprietario?.nome ?? ""} ${item.funilEtapa?.label ?? ""}`}
+                                    onSelect={() => {
+                                      setForm((f) => ({
+                                        ...f,
+                                        vinculoImovelId: item.imovelId,
+                                        empreendimentoId: "",
+                                        construtoraId: "",
+                                      }));
+                                      setImovelPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        form.vinculoImovelId === item.imovelId
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span className="truncate">
+                                      {label}
+                                      <span className="block text-[11px] text-muted-foreground">
+                                        {[tipo, item.funilEtapa?.label, item.imovel.proprietario?.nome]
+                                          .filter(Boolean)
+                                          .join(" · ")}
+                                      </span>
+                                    </span>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                            <CommandGroup heading="Vendas de usados">
+                              {usadosCatalogo.map((item) => {
+                                const label = rotuloImovelForm(item.imovel);
+                                return (
+                                  <CommandItem
+                                    key={`usado-${item.id}`}
+                                    value={`usado ${label} ${item.status} ${item.imovel.proprietario?.nome ?? ""}`}
+                                    onSelect={() => {
+                                      setForm((f) => ({
+                                        ...f,
+                                        vinculoImovelId: item.imovel.id,
+                                        empreendimentoId: "",
+                                        construtoraId: "",
+                                      }));
+                                      setImovelPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        form.vinculoImovelId === item.imovel.id
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span className="truncate">
+                                      {label}
+                                      <span className="block text-[11px] text-muted-foreground">
+                                        {[
+                                          VENDA_STATUS_LABEL[item.status] ?? item.status,
+                                          item.imovel.proprietario?.nome,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" · ")}
+                                      </span>
+                                    </span>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                            <CommandGroup heading="Empreendimentos">
+                              {empreendimentos
+                                .filter((item) => item.ativo !== false)
+                                .map((item) => (
+                                  <CommandItem
+                                    key={`emp-${item.id}`}
+                                    value={`empreendimento ${item.nome} ${item.cidade ?? ""} ${item.endereco ?? ""}`}
+                                    onSelect={() => {
+                                      setForm((f) => ({
+                                        ...f,
+                                        vinculoImovelId: "",
+                                        empreendimentoId: item.id,
+                                        construtoraId: item.construtoraId ?? f.construtoraId,
+                                      }));
+                                      setImovelPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        form.empreendimentoId === item.id
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span className="truncate">
+                                      {item.nome}
+                                      <span className="block text-[11px] text-muted-foreground">
+                                        {item.cidade || "Sem cidade"}
+                                      </span>
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label>Construtora</Label>
@@ -2802,6 +3072,7 @@ function Page() {
                           ...f,
                           construtoraId: v === "__none__" ? "" : v,
                           empreendimentoId: "",
+                          vinculoImovelId: "",
                         }))
                       }
                     >
@@ -2838,6 +3109,7 @@ function Page() {
                         setForm((f) => ({
                           ...f,
                           empreendimentoId: v === "__none__" ? "" : v,
+                          vinculoImovelId: "",
                         }))
                       }
                     >

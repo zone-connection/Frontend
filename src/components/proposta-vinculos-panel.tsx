@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,17 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
-  fetchCaptacaoImoveis,
+  fetchCaptacoes,
+  type Captacao,
   type CaptacaoImovelTipo,
   type Imovel,
 } from "@/lib/captacao-api";
 import type { Empreendimento } from "@/lib/empreendimentos-api";
+import {
+  fetchVendasUsado,
+  VENDA_STATUS_LABEL,
+  type VendaUsado,
+} from "@/lib/imoveis-usados-api";
 import {
   fetchPropostaVinculos,
   removerPropostaVinculo,
@@ -42,6 +48,80 @@ const STATUS_AVISO: Record<string, string> = {
   sem_email: "Sem e-mail",
 };
 
+function textoImovel(imovel: Imovel) {
+  return [
+    imovel.logradouro,
+    imovel.numero,
+    imovel.bairro,
+    imovel.cidade,
+    imovel.proprietario?.nome,
+    imovel.tipo,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function rotuloEndereco(imovel: Imovel) {
+  return (
+    [imovel.logradouro, imovel.numero].filter(Boolean).join(", ") ||
+    CAPTACAO_IMOVEL_TIPO_LABEL[imovel.tipo as CaptacaoImovelTipo] ||
+    "Imóvel"
+  );
+}
+
+function ListaVinculo({
+  titulo,
+  vazio,
+  children,
+}: {
+  titulo: string;
+  vazio: string;
+  children: ReactNode;
+}) {
+  const temItens = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {titulo}
+      </p>
+      <ul className="max-h-64 space-y-1 overflow-auto rounded-xl border p-1">
+        {temItens ? (
+          children
+        ) : (
+          <li className="px-2 py-3 text-xs text-muted-foreground">{vazio}</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function ItemVinculo({
+  titulo,
+  detalhe,
+  disabled,
+  onClick,
+}: {
+  titulo: string;
+  detalhe: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        disabled={disabled}
+        className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
+        onClick={onClick}
+      >
+        <span className="font-medium">{titulo}</span>
+        <span className="block text-xs text-muted-foreground">{detalhe}</span>
+      </button>
+    </li>
+  );
+}
+
 export function PropostaVinculosPanel({
   propostaId,
   empreendimentos,
@@ -53,10 +133,10 @@ export function PropostaVinculosPanel({
 }) {
   const [vinculos, setVinculos] = useState<PropostaVinculo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [buscaImovel, setBuscaImovel] = useState("");
-  const [imoveis, setImoveis] = useState<Imovel[]>([]);
-  const [buscandoImovel, setBuscandoImovel] = useState(false);
-  const [buscaEmp, setBuscaEmp] = useState("");
+  const [busca, setBusca] = useState("");
+  const [captacoes, setCaptacoes] = useState<Captacao[]>([]);
+  const [vendasUsado, setVendasUsado] = useState<VendaUsado[]>([]);
+  const [carregandoCatalogo, setCarregandoCatalogo] = useState(true);
   const [salvando, setSalvando] = useState<string | null>(null);
 
   async function carregar() {
@@ -75,20 +155,17 @@ export function PropostaVinculosPanel({
   }, [propostaId]);
 
   useEffect(() => {
-    const termo = buscaImovel.trim();
-    if (termo.length < 2) {
-      setImoveis([]);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setBuscandoImovel(true);
-      void fetchCaptacaoImoveis({ search: termo })
-        .then(setImoveis)
-        .catch(() => setImoveis([]))
-        .finally(() => setBuscandoImovel(false));
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [buscaImovel]);
+    setCarregandoCatalogo(true);
+    void Promise.all([
+      fetchCaptacoes().catch(() => [] as Captacao[]),
+      fetchVendasUsado().catch(() => [] as VendaUsado[]),
+    ])
+      .then(([listaCaptacao, listaUsados]) => {
+        setCaptacoes(listaCaptacao);
+        setVendasUsado(listaUsados);
+      })
+      .finally(() => setCarregandoCatalogo(false));
+  }, []);
 
   const ativos = vinculos.filter((item) => !item.removidoEm);
   const historico = vinculos.filter((item) => item.removidoEm);
@@ -99,15 +176,34 @@ export function PropostaVinculosPanel({
     ativos.map((item) => item.empreendimento?.id).filter(Boolean),
   );
 
+  const termo = busca.trim().toLowerCase();
+
+  const captacoesFiltradas = useMemo(() => {
+    const vistos = new Set<string>();
+    const unicos = captacoes.filter((item) => {
+      if (vistos.has(item.imovelId)) return false;
+      vistos.add(item.imovelId);
+      return true;
+    });
+    if (!termo) return unicos;
+    return unicos.filter((item) => textoImovel(item.imovel).includes(termo));
+  }, [captacoes, termo]);
+
+  const usadosFiltrados = useMemo(() => {
+    if (!termo) return vendasUsado;
+    return vendasUsado.filter((item) =>
+      `${textoImovel(item.imovel)} ${item.status}`.includes(termo),
+    );
+  }, [vendasUsado, termo]);
+
   const empreendimentosFiltrados = useMemo(() => {
-    const termo = buscaEmp.trim().toLowerCase();
-    if (termo.length < 2) return [];
-    return empreendimentos
-      .filter((item) =>
-        `${item.nome} ${item.cidade ?? ""}`.toLowerCase().includes(termo),
-      )
-      .slice(0, 8);
-  }, [buscaEmp, empreendimentos]);
+    if (!termo) return empreendimentos.filter((item) => item.ativo !== false);
+    return empreendimentos.filter((item) =>
+      `${item.nome} ${item.cidade ?? ""} ${item.endereco ?? ""}`
+        .toLowerCase()
+        .includes(termo),
+    );
+  }, [empreendimentos, termo]);
 
   async function vincular(alvo: { imovelId?: string; empreendimentoId?: string }) {
     const chave = alvo.imovelId ?? alvo.empreendimentoId ?? "";
@@ -115,9 +211,7 @@ export function PropostaVinculosPanel({
     try {
       const criado = await vincularProposta(propostaId, alvo);
       toast.success(avisoNotificacao(criado));
-      setBuscaImovel("");
-      setBuscaEmp("");
-      setImoveis([]);
+      setBusca("");
       await carregar();
       onChanged?.();
     } catch (err) {
@@ -203,85 +297,95 @@ export function PropostaVinculosPanel({
         </ul>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="busca-imovel">
-            Vincular imóvel
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="busca-vinculo">
+            Buscar para vincular
           </label>
           <Input
-            id="busca-imovel"
-            value={buscaImovel}
-            placeholder="Rua, bairro, cidade ou proprietário"
-            onChange={(event) => setBuscaImovel(event.target.value)}
+            id="busca-vinculo"
+            value={busca}
+            placeholder="Rua, bairro, proprietário ou nome do empreendimento"
+            onChange={(event) => setBusca(event.target.value)}
           />
-          {buscandoImovel && (
-            <p className="text-xs text-muted-foreground">Buscando imóveis…</p>
-          )}
-          {imoveis.length > 0 && (
-            <ul className="max-h-48 space-y-1 overflow-auto rounded-xl border p-1">
-              {imoveis.slice(0, 8).map((imovel) => {
-                const tipo =
-                  CAPTACAO_IMOVEL_TIPO_LABEL[imovel.tipo as CaptacaoImovelTipo] ??
-                  imovel.tipo;
-                const jaVinculado = imoveisAtivos.has(imovel.id);
-                return (
-                  <li key={imovel.id}>
-                    <button
-                      type="button"
-                      disabled={jaVinculado || salvando === imovel.id}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
-                      onClick={() => void vincular({ imovelId: imovel.id })}
-                    >
-                      <span className="font-medium">
-                        {[imovel.logradouro, imovel.numero].filter(Boolean).join(", ") || tipo}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {[imovel.bairro, imovel.cidade].filter(Boolean).join(" · ")}
-                        {imovel.proprietario?.nome ? ` · ${imovel.proprietario.nome}` : ""}
-                        {jaVinculado ? " · já vinculado" : ""}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="busca-emp">
-            Vincular empreendimento
-          </label>
-          <Input
-            id="busca-emp"
-            value={buscaEmp}
-            placeholder="Nome do empreendimento"
-            onChange={(event) => setBuscaEmp(event.target.value)}
-          />
-          {empreendimentosFiltrados.length > 0 && (
-            <ul className="max-h-48 space-y-1 overflow-auto rounded-xl border p-1">
+        {carregandoCatalogo ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando imóveis e empreendimentos…
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            <ListaVinculo titulo="Captações" vazio="Nenhuma captação encontrada.">
+              {captacoesFiltradas.map((item) => {
+                const imovel = item.imovel;
+                const jaVinculado = imoveisAtivos.has(imovel.id);
+                return (
+                  <ItemVinculo
+                    key={item.id}
+                    titulo={rotuloEndereco(imovel)}
+                    detalhe={[
+                      CAPTACAO_IMOVEL_TIPO_LABEL[imovel.tipo as CaptacaoImovelTipo] ??
+                        imovel.tipo,
+                      [imovel.bairro, imovel.cidade].filter(Boolean).join(" · "),
+                      imovel.proprietario?.nome,
+                      item.funilEtapa?.label,
+                      jaVinculado ? "já vinculado" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    disabled={jaVinculado || salvando === imovel.id}
+                    onClick={() => void vincular({ imovelId: imovel.id })}
+                  />
+                );
+              })}
+            </ListaVinculo>
+
+            <ListaVinculo titulo="Vendas de usados" vazio="Nenhuma venda de usado encontrada.">
+              {usadosFiltrados.map((item) => {
+                const imovel = item.imovel;
+                const jaVinculado = imoveisAtivos.has(imovel.id);
+                return (
+                  <ItemVinculo
+                    key={item.id}
+                    titulo={rotuloEndereco(imovel)}
+                    detalhe={[
+                      VENDA_STATUS_LABEL[item.status] ?? item.status,
+                      [imovel.bairro, imovel.cidade].filter(Boolean).join(" · "),
+                      imovel.proprietario?.nome,
+                      jaVinculado ? "já vinculado" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    disabled={jaVinculado || salvando === imovel.id}
+                    onClick={() => void vincular({ imovelId: imovel.id })}
+                  />
+                );
+              })}
+            </ListaVinculo>
+
+            <ListaVinculo titulo="Empreendimentos" vazio="Nenhum empreendimento encontrado.">
               {empreendimentosFiltrados.map((item) => {
                 const jaVinculado = empreendimentosAtivos.has(item.id);
                 return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      disabled={jaVinculado || salvando === item.id}
-                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
-                      onClick={() => void vincular({ empreendimentoId: item.id })}
-                    >
-                      <span className="font-medium">{item.nome}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {item.cidade || "Sem cidade"}
-                        {jaVinculado ? " · já vinculado" : ""}
-                      </span>
-                    </button>
-                  </li>
+                  <ItemVinculo
+                    key={item.id}
+                    titulo={item.nome}
+                    detalhe={[
+                      item.cidade || "Sem cidade",
+                      jaVinculado ? "já vinculado" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    disabled={jaVinculado || salvando === item.id}
+                    onClick={() => void vincular({ empreendimentoId: item.id })}
+                  />
                 );
               })}
-            </ul>
-          )}
-        </div>
+            </ListaVinculo>
+          </div>
+        )}
       </div>
 
       {historico.length > 0 && (

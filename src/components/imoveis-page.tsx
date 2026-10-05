@@ -642,6 +642,9 @@ export function ImoveisPage({
   const [rendaMinima, setRendaMinima] = useState("");
   const [rendaMaxima, setRendaMaxima] = useState("");
   const [somenteLitoral, setSomenteLitoral] = useState(false);
+  const [origemCatalogo, setOrigemCatalogo] = useState<
+    "todos" | "lancamentos" | "captacoes"
+  >("todos");
   const [vista, setVista] = useImoveisVista();
   const [kindPickOpen, setKindPickOpen] = useState(false);
   const [unidadeCreateTick, setUnidadeCreateTick] = useState(0);
@@ -1408,7 +1411,8 @@ export function ImoveisPage({
       construtoraId ||
       rendaMinFiltro != null ||
       rendaMaxFiltro != null ||
-      somenteLitoral,
+      somenteLitoral ||
+      origemCatalogo !== "todos",
   );
 
   function clearFilters() {
@@ -1419,6 +1423,7 @@ export function ImoveisPage({
     setRendaMinima("");
     setRendaMaxima("");
     setSomenteLitoral(false);
+    setOrigemCatalogo("todos");
   }
 
   const filtered = useMemo(() => {
@@ -1485,16 +1490,15 @@ export function ImoveisPage({
     [filtered],
   );
 
-  const sorted = useMemo(
-    () =>
-      sortByTableOrder(
-        filtered,
-        sort,
-        (item) => item.nome,
-        (item) => item.createdAt,
-      ),
-    [filtered, sort],
-  );
+  const sorted = useMemo(() => {
+    if (origemCatalogo === "captacoes") return [];
+    return sortByTableOrder(
+      filtered,
+      sort,
+      (item) => item.nome,
+      (item) => item.createdAt,
+    );
+  }, [filtered, origemCatalogo, sort]);
   const imoveisPager = useTablePager(sorted, sort);
 
   const imoveisDeCaptacao = useMemo(
@@ -1521,7 +1525,7 @@ export function ImoveisPage({
   );
 
   const captacaoFiltered = useMemo(() => {
-    if (embedded) return [];
+    if (embedded || origemCatalogo === "lancamentos") return [];
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return captacaoImoveis.filter((item) => {
       if (imoveisDeCaptacao.has(item.id)) return false;
@@ -1541,7 +1545,15 @@ export function ImoveisPage({
         .toLocaleLowerCase("pt-BR");
       return hay.includes(q);
     });
-  }, [embedded, captacaoImoveis, imoveisDeCaptacao, proprietarioId, quartos, search]);
+  }, [
+    embedded,
+    origemCatalogo,
+    captacaoImoveis,
+    imoveisDeCaptacao,
+    proprietarioId,
+    quartos,
+    search,
+  ]);
 
   const catalogEmpty = sorted.length === 0 && captacaoFiltered.length === 0;
 
@@ -1778,7 +1790,25 @@ export function ImoveisPage({
             </div>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
+          <div>
+            <Label className={FILTER_LABEL}>Tipo</Label>
+            <Select
+              value={origemCatalogo}
+              onValueChange={(value) =>
+                setOrigemCatalogo(value as "todos" | "lancamentos" | "captacoes")
+              }
+            >
+              <SelectTrigger className={FILTER_CONTROL}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="lancamentos">Lançamentos</SelectItem>
+                <SelectItem value="captacoes">Captações</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className={FILTER_LABEL}>Ordenar</Label>
             <TableSortSelect
