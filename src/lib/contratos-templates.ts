@@ -396,30 +396,6 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
         required: false,
       },
       {
-        key: "proprietarioNome",
-        label: "Proprietário — nome/razão social",
-        type: "text",
-        required: false,
-      },
-      {
-        key: "proprietarioCnpj",
-        label: "Proprietário — CNPJ/CPF",
-        type: "cnpj",
-        required: false,
-      },
-      {
-        key: "proprietarioEndereco",
-        label: "Proprietário — endereço",
-        type: "text",
-        required: false,
-      },
-      {
-        key: "proprietarioTel",
-        label: "Proprietário — telefone",
-        type: "phone",
-        required: false,
-      },
-      {
         key: "construtora",
         label: "Construtora",
         type: "text",
@@ -784,7 +760,6 @@ export function applyLeadToContratoForm(
   fill("contratanteCep", cep);
   fill("construtora", lead.construtora?.nome?.trim() || "");
   fill("empreendimento", lead.empreendimento?.nome?.trim() || "");
-  fill("proprietarioNome", lead.construtora?.nome?.trim() || "");
   if (corretor) {
     fill("representanteLegal", corretor.name.trim());
     fill("corretorNome", corretor.name.trim());

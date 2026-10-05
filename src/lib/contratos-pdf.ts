@@ -1509,11 +1509,6 @@ async function pdfIntermediacao(
     ["ENDEREÇO", v(values, "contratanteEndereco")],
     ["CEP", v(values, "contratanteCep")],
   ]);
-  y = partySheet(doc, y, color, "PROPRIETÁRIO", [
-    ["NOME / RAZÃO SOCIAL", v(values, "proprietarioNome"), "CNPJ/CPF", v(values, "proprietarioCnpj")],
-    ["ENDEREÇO", v(values, "proprietarioEndereco")],
-    ["TELEFONE", v(values, "proprietarioTel")],
-  ]);
   y = partySheet(doc, y, color, "CONTRATADA", [
     ["IMOBILIÁRIA", v(values, "contratadaNome"), "CNPJ", v(values, "contratadaCnpj")],
     ["CRECI", v(values, "contratadaCreci"), "E-MAIL", v(values, "contratadaEmail")],

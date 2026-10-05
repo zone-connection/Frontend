@@ -372,12 +372,6 @@ export async function downloadContratoDocx(
             ["CEP", field(values, "contratanteCep")],
           ]),
           gap(),
-          partyTable("PROPRIETÁRIO", accent, fill, [
-            ["NOME / RAZÃO SOCIAL", field(values, "proprietarioNome"), "CNPJ/CPF", field(values, "proprietarioCnpj")],
-            ["ENDEREÇO", field(values, "proprietarioEndereco")],
-            ["TELEFONE", field(values, "proprietarioTel")],
-          ]),
-          gap(),
           partyTable("CONTRATADA", accent, fill, [
             ["IMOBILIÁRIA", field(values, "contratadaNome"), "CNPJ", field(values, "contratadaCnpj")],
             ["CRECI", field(values, "contratadaCreci"), "E-MAIL", field(values, "contratadaEmail")],

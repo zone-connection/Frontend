@@ -211,16 +211,6 @@ const INTERMEDIACAO_SECTIONS = [
     ],
   },
   {
-    id: "proprietario",
-    label: "Proprietário",
-    keys: [
-      "proprietarioNome",
-      "proprietarioCnpj",
-      "proprietarioEndereco",
-      "proprietarioTel",
-    ],
-  },
-  {
     id: "imovel",
     label: "Imóvel",
     keys: [
@@ -662,9 +652,6 @@ function ContratoPreview({
         <p>
           Contratante: <Fill>{value("contratanteNome")}</Fill>, CPF{" "}
           <Fill>{value("contratanteCpf")}</Fill>.
-        </p>
-        <p>
-          Proprietário: <Fill>{value("proprietarioNome")}</Fill>.
         </p>
         <p>
           Imóvel: <Fill>{value("empreendimento")}</Fill>, unidade{" "}
@@ -1444,6 +1431,7 @@ function ContratosPage() {
 
       <FormDialogShell
         open={Boolean(selected)}
+        closeOnOutsideClick={false}
         onOpenChange={(open) => {
           if (!open) {
             setSelected(null);
@@ -1730,7 +1718,6 @@ function ContratosPage() {
                       field.key === "endereco" ||
                       field.key === "descricaoImovel" ||
                       field.key === "contratanteEndereco" ||
-                      field.key === "proprietarioEndereco" ||
                       field.key === "observacoes" ||
                       field.key === "referente";
                     return (

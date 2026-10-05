@@ -20,6 +20,7 @@ export function FormDialogShell({
   footer,
   className,
   contentClassName,
+  closeOnOutsideClick = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +31,7 @@ export function FormDialogShell({
   footer?: ReactNode;
   className?: string;
   contentClassName?: string;
+  closeOnOutsideClick?: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,6 +45,12 @@ export function FormDialogShell({
           "max-h-[calc(100dvh-1.5rem)]",
           className,
         )}
+        onPointerDownOutside={
+          closeOnOutsideClick ? undefined : (event) => event.preventDefault()
+        }
+        onInteractOutside={
+          closeOnOutsideClick ? undefined : (event) => event.preventDefault()
+        }
       >
         <DialogHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-black/5 bg-muted/20 shrink-0">
           <div className="flex items-start gap-3">
