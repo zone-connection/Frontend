@@ -4,6 +4,12 @@ import { useTablePager } from "@/lib/use-table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -16,6 +22,7 @@ import {
   META_PERIODO_LABEL,
   META_TIPOS,
   META_TIPO_LABEL,
+  metaTitulo,
   type Meta,
   type MetaTipo,
 } from "@/lib/metas-api";
@@ -26,6 +33,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  Loader2,
   Pencil,
   Target,
   Trash2,
@@ -379,7 +387,7 @@ function MetasTable({
       <TableHeader>
         <TableRow>
           {showResponsavel ? <TableHead>Responsável</TableHead> : null}
-          <TableHead>Tipo</TableHead>
+          <TableHead>Título</TableHead>
           <TableHead>Período</TableHead>
           <TableHead>Progresso</TableHead>
           <TableHead>Realizado / meta</TableHead>
@@ -415,7 +423,10 @@ function MetasTable({
                 </TableCell>
               ) : null}
               <TableCell className="font-medium">
-                {META_TIPO_LABEL[meta.tipo]}
+                <p>{metaTitulo(meta)}</p>
+                <p className="text-xs font-normal text-muted-foreground">
+                  {META_TIPO_LABEL[meta.tipo]}
+                </p>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 <p>{META_PERIODO_LABEL[meta.periodo]}</p>
@@ -489,7 +500,7 @@ function MetasTable({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
                       onClick={() => onRemove(meta)}
                       title="Excluir"
                       aria-label="Excluir meta"
@@ -554,7 +565,7 @@ function MetaCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="min-w-0 truncate text-sm font-semibold leading-tight">
-              {META_TIPO_LABEL[meta.tipo]}
+              {metaTitulo(meta)}
             </p>
             <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
               <CalendarDays className="h-3 w-3 text-primary" />
@@ -652,7 +663,7 @@ function MetaCard({
             <Button
               size="icon"
               variant="ghost"
-              className="h-7 w-7 rounded-full text-destructive hover:text-destructive"
+              className="h-7 w-7 rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
               onClick={() => onRemove(meta)}
               aria-label="Excluir meta"
             >
@@ -1003,4 +1014,150 @@ function formatValor(valor: number, tipo: MetaTipo) {
         maximumFractionDigits: 2,
       })
     : valor.toLocaleString("pt-BR");
+}
+
+export function MetaDeleteDialog({
+  meta,
+  deleting,
+  onOpenChange,
+  onConfirm,
+}: {
+  meta: Meta | null;
+  deleting: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const Icon = meta ? META_TIPO_ICON[meta.tipo] : Target;
+  const responsavel = meta ? metaResponsavel(meta) : null;
+  const barra = meta ? Math.min(100, Math.max(0, meta.percentual)) : 0;
+  const tone = meta ? progressTone(meta.percentual) : null;
+
+  return (
+    <Dialog
+      open={Boolean(meta)}
+      onOpenChange={(open) => {
+        if (deleting) return;
+        onOpenChange(open);
+      }}
+    >
+      <DialogContent
+        className="w-[calc(100vw-1.5rem)] max-w-md overflow-hidden p-0 sm:w-full"
+        onPointerDownOutside={(event) => {
+          if (deleting) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (deleting) event.preventDefault();
+        }}
+      >
+        <div className="relative overflow-hidden px-5 pb-5 pt-6 sm:px-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-rose-500/15 blur-2xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-16 top-20 h-36 w-36 rounded-full bg-[#079ed4]/15 blur-2xl"
+          />
+
+          <div className="relative flex flex-col items-center text-center">
+            <div className="relative mb-4">
+              <div className="flex size-16 items-center justify-center rounded-3xl bg-rose-500/10 ring-1 ring-rose-500/20">
+                <Trash2 className="h-7 w-7 text-rose-600 dark:text-rose-400" />
+              </div>
+              <span className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-[#053647] text-white shadow-md">
+                <Target className="h-3.5 w-3.5" />
+              </span>
+            </div>
+            <DialogTitle className="text-xl tracking-tight">
+              Apagar esta meta?
+            </DialogTitle>
+            <DialogDescription className="mt-1.5 max-w-sm text-sm leading-relaxed">
+              O painel deixa de acompanhar este objetivo. Vendas e
+              documentações já registradas continuam no CRM.
+            </DialogDescription>
+          </div>
+
+          {meta && responsavel && tone ? (
+            <div
+              className={cn(
+                "relative mt-5 overflow-hidden rounded-2xl border border-black/5 border-l-[4px] bg-card p-3.5 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+                META_TIPO_CARD[meta.tipo],
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    META_TIPO_WELL[meta.tipo],
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold leading-tight">
+                    {metaTitulo(meta)}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {META_TIPO_LABEL[meta.tipo]} ·{" "}
+                    {META_PERIODO_LABEL[meta.periodo]} · {responsavel.name}
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <FlowTrack
+                      percent={barra}
+                      tone={tone.bar}
+                      className="h-2 min-w-0 flex-1"
+                    />
+                    <span
+                      className={cn(
+                        "w-10 shrink-0 text-right text-sm font-semibold tabular-nums",
+                        tone.pct,
+                      )}
+                    >
+                      {meta.percentual}%
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                    {formatValor(meta.atual, meta.tipo)} /{" "}
+                    {formatValor(meta.valor, meta.tipo)}
+                    {" · "}
+                    {metaStatusText(meta)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="relative mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-xl"
+              disabled={deleting}
+              onClick={() => onOpenChange(false)}
+            >
+              Manter meta
+            </Button>
+            <Button
+              type="button"
+              className="h-11 rounded-xl bg-rose-600 text-white shadow-sm hover:bg-rose-700"
+              disabled={deleting || !meta}
+              onClick={onConfirm}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Apagando…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Apagar meta
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

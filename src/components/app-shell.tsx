@@ -1492,18 +1492,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .filter((section) => !acimaDaOperacao.has(section.id))
         .map((section) => ({ kind: "section" as const, section })),
     ];
+    const operacaoMenu = renderOperacaoMenu(collapsedView, onNavigate);
+    const visibleSlots = menuSlots.filter((slot) =>
+      slot.kind === "operacao" ? Boolean(operacaoMenu) : true,
+    );
+    const sectionDivider = (index: number) =>
+      index > 0 ? "mt-1.5 border-t border-white/12 pt-2" : undefined;
+
     return (
-      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto space-y-1 px-2 py-3">
-        {menuSlots.map((slot) => {
+      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-3">
+        {visibleSlots.map((slot, index) => {
           if (slot.kind === "operacao") {
-            const menu = renderOperacaoMenu(collapsedView, onNavigate);
-            if (!menu) return null;
             return (
-              <div
-                key="operacao-menu"
-                className="mt-1 border-t border-sidebar-border pt-2"
-              >
-                {menu}
+              <div key="operacao-menu" className={sectionDivider(index)}>
+                {operacaoMenu}
               </div>
             );
           }
@@ -1527,8 +1529,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               pathname.startsWith(`${standaloneLeaf.to}/`);
             const isAgenda = standaloneLeaf.to === "/agenda";
             return (
+              <div key={section.id} className={sectionDivider(index)}>
               <Link
-                key={section.id}
                 to={standaloneLeaf.to}
                 preload="intent"
                 onClick={onNavigate}
@@ -1570,11 +1572,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </>
                 )}
               </Link>
+              </div>
             );
           }
 
           return (
-            <div key={section.id} className="space-y-0.5">
+            <div
+              key={section.id}
+              className={cn("space-y-0.5", sectionDivider(index))}
+            >
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}

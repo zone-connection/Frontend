@@ -139,9 +139,10 @@ export async function celebrateAfterDocumentacao(
       markCelebrated(key);
 
       const tipoLabel = META_TIPO_LABEL[meta.tipo];
+      const nome = meta.titulo?.trim() || tipoLabel;
       messages.push({
         title: "Meta batida!",
-        description: `Parabéns! Você atingiu a meta de ${tipoLabel.toLowerCase()}.`,
+        description: `Parabéns! Você atingiu a meta “${nome}”.`,
       });
     }
 

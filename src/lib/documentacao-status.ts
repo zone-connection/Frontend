@@ -70,7 +70,8 @@ export function status2Group(
 export function isStatusVendido(
   status: string | null | undefined,
 ): boolean {
-  return status2Group(status) === "vendido";
+  const g = status2Group(status);
+  return g === "vendido" || g === "bacen";
 }
 
 /** Etapa de venda do funil não entra na redistribuição. A ficha não entra nessa conta. */

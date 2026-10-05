@@ -1303,21 +1303,30 @@ function DocumentacaoPage() {
       return null;
     }
 
+    const vgv = parseOptionalMoneyInput(form.vgv);
+    const status2 =
+      vgv != null && vgv > 0 && !isStatusVendido(form.status2)
+        ? pickCatalogLabel(status2Catalog, ["Vendido", form.status2])
+        : form.status2.trim();
+    const dataVenda =
+      form.dataVenda ||
+      (vgv != null && vgv > 0 ? todayDateInput() : null);
+
     return {
       nome: form.nome.trim(),
       construtoraId: form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
       fonte: form.fonte,
       status1: form.status1.trim(),
-      status2: form.status2.trim(),
+      status2,
       corretorId: isSolo
         ? form.corretorId || user?.id || null
         : form.corretorId || null,
       gerenteId: isSolo ? null : form.gerenteId || null,
       createdAt: form.createdAt || null,
       dataAnalise: form.dataAnalise || null,
-      dataVenda: form.dataVenda || null,
-      vgv: parseOptionalMoneyInput(form.vgv),
+      dataVenda,
+      vgv,
       obs: form.obs.trim() || null,
       temEntrada: form.temEntrada,
       valorEntrada: form.temEntrada
@@ -2976,9 +2985,24 @@ function DocumentacaoPage() {
                     id="vgv"
                     inputMode="numeric"
                     value={form.vgv}
-                    onChange={(e) =>
-                      setField("vgv", maskMoneyInput(e.target.value))
-                    }
+                    onChange={(e) => {
+                      const vgv = maskMoneyInput(e.target.value);
+                      setForm((atual) => ({
+                        ...atual,
+                        vgv,
+                        status2:
+                          vgv && !isStatusVendido(atual.status2)
+                            ? pickCatalogLabel(status2Catalog, [
+                                "Vendido",
+                                atual.status2,
+                              ])
+                            : atual.status2,
+                        dataVenda:
+                          vgv && !atual.dataVenda
+                            ? todayDateInput()
+                            : atual.dataVenda,
+                      }));
+                    }}
                     disabled={readOnly}
                     placeholder="0,00"
                   />

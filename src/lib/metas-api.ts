@@ -63,6 +63,7 @@ export type Meta = {
     equipeGerenciada: { id: string; name: string } | null;
   } | null;
   criador: { id: string; name: string };
+  titulo: string;
   ciclo?: "atual" | "anterior";
   anterior?: {
     valor: number;
@@ -73,12 +74,18 @@ export type Meta = {
   } | null;
 };
 
+export function metaTitulo(meta: Pick<Meta, "titulo" | "tipo">) {
+  const titulo = meta.titulo?.trim();
+  return titulo || META_TIPO_LABEL[meta.tipo];
+}
+
 export type CreateMetaInput = {
   escopo?: MetaEscopo;
   corretorId?: string;
   gerenteId?: string;
   tipo: MetaTipo;
   periodo: MetaPeriodo;
+  titulo: string;
   valor: number;
 };
 
@@ -90,10 +97,18 @@ export function createMeta(input: CreateMetaInput) {
   return apiFetch<Meta>("/metas", { method: "POST", body: input });
 }
 
-export function updateMeta(id: string, valor: number) {
+export function updateMeta(
+  id: string,
+  input: {
+    valor: number;
+    titulo?: string;
+    tipo?: MetaTipo;
+    periodo?: MetaPeriodo;
+  },
+) {
   return apiFetch<Meta>(`/metas/${id}`, {
     method: "PATCH",
-    body: { valor },
+    body: input,
   });
 }
 

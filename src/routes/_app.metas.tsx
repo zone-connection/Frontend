@@ -24,6 +24,7 @@ import {
   FormSection,
 } from "@/components/form-dialog";
 import {
+  MetaDeleteDialog,
   MetasGestorBoard,
   MetasPorOrigem,
   MetasResumo,
@@ -44,6 +45,7 @@ import {
   createMeta,
   deleteMeta,
   fetchMetas,
+  metaTitulo,
   updateMeta,
   type Meta,
   type MetaEscopo,
@@ -104,10 +106,13 @@ function Page() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Meta | null>(null);
+  const [removing, setRemoving] = useState<Meta | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     escopo: "corretor" as MetaEscopo,
     corretorId: "",
     gerenteId: "",
+    titulo: "",
     tipo: "vendas" as MetaTipo,
     periodo: "mensal" as MetaPeriodo,
     valor: "",
@@ -335,6 +340,7 @@ function Page() {
         isSolo || isPlatformAdmin || isAdmin ? "imobiliaria" : "corretor",
       corretorId: "",
       gerenteId: "",
+      titulo: "",
       tipo: "vendas",
       periodo: "mensal",
       valor: "",
@@ -348,6 +354,7 @@ function Page() {
       escopo: meta.escopo,
       corretorId: meta.corretorId ?? "",
       gerenteId: meta.gerenteId ?? "",
+      titulo: meta.titulo?.trim() || META_TIPO_LABEL[meta.tipo],
       tipo: meta.tipo,
       periodo: meta.periodo,
       valor:
@@ -360,6 +367,11 @@ function Page() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    const titulo = form.titulo.trim();
+    if (titulo.length < 2) {
+      toast.error("Informe um título para a meta.");
+      return;
+    }
     const valor =
       form.tipo === "vgv"
         ? parseOptionalMoneyInput(form.valor)
@@ -394,7 +406,12 @@ function Page() {
     setSaving(true);
     try {
       if (editing) {
-        await updateMeta(editing.id, valor);
+        await updateMeta(editing.id, {
+          valor,
+          titulo,
+          tipo: form.tipo,
+          periodo: form.periodo,
+        });
         toast.success("Meta atualizada.");
       } else {
         await createMeta({
@@ -414,6 +431,7 @@ function Page() {
             : {}),
           tipo: form.tipo,
           periodo: form.periodo,
+          titulo,
           valor,
         });
         toast.success("Meta salva.");
@@ -431,23 +449,26 @@ function Page() {
     }
   }
 
-  async function remove(meta: Meta) {
-    if (
-      !window.confirm(
-        `Excluir a meta de ${META_TIPO_LABEL[meta.tipo].toLowerCase()}?`,
-      )
-    )
-      return;
+  function remove(meta: Meta) {
+    setRemoving(meta);
+  }
+
+  async function confirmRemove() {
+    if (!removing || deleting) return;
+    setDeleting(true);
     try {
-      await deleteMeta(meta.id);
-      toast.success("Meta excluída.");
+      await deleteMeta(removing.id);
+      toast.success("Meta apagada.");
+      setRemoving(null);
       await load();
     } catch (error) {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Não foi possível excluir a meta.",
+          : "Não foi possível apagar a meta.",
       );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -685,6 +706,15 @@ function Page() {
         </>
       )}
 
+      <MetaDeleteDialog
+        meta={removing}
+        deleting={deleting}
+        onOpenChange={(openDelete) => {
+          if (!openDelete && !deleting) setRemoving(null);
+        }}
+        onConfirm={() => void confirmRemove()}
+      />
+
       <FormDialogShell
         open={open}
         onOpenChange={setOpen}
@@ -693,15 +723,15 @@ function Page() {
         description={
           editing
             ? isSolo
-              ? "Ajuste o valor. Tipo e período não mudam depois de criada."
-              : "Ajuste o valor. Tipo, período e responsável não mudam depois de criada."
+              ? "Ajuste o título, o tipo, o período e o valor."
+              : "Ajuste o título, o tipo, o período e o valor. O responsável não muda."
             : isSolo || isPlatformAdmin
-              ? "Defina o tipo, o período e o valor da meta."
+              ? "Dê um nome à meta e defina o tipo, o período e o valor."
               : isAdmin
-                ? "Defina o responsável, o tipo e o período da meta."
+                ? "Dê um nome à meta e defina o responsável, o tipo e o período."
                 : isGerente
-                  ? "A meta será atribuída ao corretor selecionado."
-                  : "Defina uma meta pessoal para acompanhar o período."
+                  ? "Dê um nome à meta. Ela será atribuída ao corretor selecionado."
+                  : "Dê um nome à meta pessoal para acompanhar o período."
         }
         footer={
           <FormDialogActions>
@@ -733,6 +763,26 @@ function Page() {
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <FormDialogBody>
+            <FormSection
+              title="Título"
+              icon={<Target className="w-4 h-4 text-primary" />}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="meta-titulo">Nome da meta</Label>
+                <Input
+                  id="meta-titulo"
+                  value={form.titulo}
+                  maxLength={80}
+                  placeholder="Ex.: Vendas de outubro"
+                  onChange={(event) =>
+                    setForm((atual) => ({
+                      ...atual,
+                      titulo: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </FormSection>
             {isAdmin && !isSolo && !editing ? (
               <FormSection
                 title="Responsável"
@@ -850,10 +900,16 @@ function Page() {
                   <Label>Tipo</Label>
                     <MetaTipoPicker
                     value={form.tipo}
-                    disabled={Boolean(editing)}
                     tipos={tiposMeta}
                     onChange={(tipo) =>
-                      setForm((atual) => ({ ...atual, tipo }))
+                      setForm((atual) => ({
+                        ...atual,
+                        tipo,
+                        valor:
+                          tipo === "vgv"
+                            ? maskMoneyInput(atual.valor.replace(/\D/g, ""))
+                            : atual.valor.replace(/\D/g, ""),
+                      }))
                     }
                   />
                 </div>
@@ -861,7 +917,6 @@ function Page() {
                   <Label>Período</Label>
                   <Select
                     value={form.periodo}
-                    disabled={Boolean(editing)}
                     onValueChange={(periodo: MetaPeriodo) =>
                       setForm((atual) => ({ ...atual, periodo }))
                     }
