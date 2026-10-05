@@ -19,6 +19,7 @@ export type TenantCompanyProfile = Pick<
   | "representanteLegal"
   | "intermediacaoModeloUrl"
   | "intermediacaoModeloNome"
+  | "intermediacaoTemplateUrl"
   | "logoUrl"
 >;
 

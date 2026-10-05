@@ -62,10 +62,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { ListasDocumentosPanel } from "@/components/listas-documentos-panel";
 import {
+  analisarIntermediacaoArquivo,
+  confirmarModeloIntermediacao,
   deleteContratoDocumento,
+  downloadIntermediacaoModeloDocx,
   fetchContratoDocumentos,
   saveContratoDocumento,
   type ContratoDocumento,
+  type IntermediacaoAnalise,
 } from "@/lib/contratos-api";
 import { ApiError } from "@/lib/api";
 
@@ -845,8 +849,14 @@ function ContratosPage() {
   const [modeloProprio, setModeloProprio] = useState<{
     url: string;
     nome: string;
+    templatePronto: boolean;
   } | null>(null);
   const [modeloBusy, setModeloBusy] = useState(false);
+  const [analise, setAnalise] = useState<IntermediacaoAnalise | null>(null);
+  const [analiseFile, setAnaliseFile] = useState<File | null>(null);
+  const [analiseMarcado, setAnaliseMarcado] = useState<Record<string, boolean>>(
+    {},
+  );
   const isAdmin = getSession()?.role === "admin";
   const modeloInputRef = useRef<HTMLInputElement>(null);
 
@@ -880,6 +890,7 @@ function ContratosPage() {
       ? {
           url: tenant.intermediacaoModeloUrl,
           nome: tenant.intermediacaoModeloNome?.trim() || "Contrato da imobiliária",
+          templatePronto: Boolean(tenant.intermediacaoTemplateUrl),
         }
       : null;
     setModeloProprio(fromSession);
@@ -887,22 +898,17 @@ function ContratosPage() {
     void fetchTenantCompany()
       .then((company) => {
         if (cancelled) return;
-        setModeloProprio(
-          company.intermediacaoModeloUrl
-            ? {
-                url: company.intermediacaoModeloUrl,
-                nome:
-                  company.intermediacaoModeloNome?.trim() ||
-                  "Contrato da imobiliária",
-              }
-            : null,
-        );
+        applyModeloFromCompany(company);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [tenant?.intermediacaoModeloUrl, tenant?.intermediacaoModeloNome]);
+  }, [
+    tenant?.intermediacaoModeloUrl,
+    tenant?.intermediacaoModeloNome,
+    tenant?.intermediacaoTemplateUrl,
+  ]);
 
   useEffect(() => {
     void fetchContratoDocumentos()
@@ -913,6 +919,7 @@ function ContratosPage() {
   function applyModeloFromCompany(company: {
     intermediacaoModeloUrl?: string | null;
     intermediacaoModeloNome?: string | null;
+    intermediacaoTemplateUrl?: string | null;
   }) {
     setModeloProprio(
       company.intermediacaoModeloUrl
@@ -921,6 +928,7 @@ function ContratosPage() {
             nome:
               company.intermediacaoModeloNome?.trim() ||
               "Contrato da imobiliária",
+            templatePronto: Boolean(company.intermediacaoTemplateUrl),
           }
         : null,
     );
@@ -929,25 +937,33 @@ function ContratosPage() {
   async function handleUploadModelo(file: File | undefined) {
     if (!file || !isAdmin) return;
     const nome = file.name.toLowerCase();
-    if (
-      !nome.endsWith(".pdf") &&
-      !nome.endsWith(".doc") &&
-      !nome.endsWith(".docx")
-    ) {
-      toast.error("Envie um PDF ou Word (.doc / .docx).");
+    if (nome.endsWith(".doc") && !nome.endsWith(".docx")) {
+      toast.error("Arquivo .doc antigo não é suportado. Salve como .docx.");
+      return;
+    }
+    if (!nome.endsWith(".pdf") && !nome.endsWith(".docx")) {
+      toast.error("Envie um PDF pesquisável ou Word (.docx).");
       return;
     }
     setModeloBusy(true);
     try {
-      const updated = await uploadIntermediacaoModelo(file);
+      const [updated, lido] = await Promise.all([
+        uploadIntermediacaoModelo(file),
+        analisarIntermediacaoArquivo(file, "extrair"),
+      ]);
       applyModeloFromCompany(updated);
       await fetchMe().catch(() => null);
-      toast.success("Contrato da imobiliária enviado.");
+      setAnaliseFile(file);
+      setAnalise(lido);
+      const marcado: Record<string, boolean> = {};
+      for (const item of lido.fields) marcado[item.key] = true;
+      setAnaliseMarcado(marcado);
+      toast.success("Arquivo enviado. Confira os dados lidos antes de aplicar.");
     } catch (err) {
       toast.error(
         err instanceof ApiError
           ? err.message
-          : "Não foi possível enviar o contrato.",
+          : "Não foi possível ler o contrato.",
       );
     } finally {
       setModeloBusy(false);
@@ -962,12 +978,87 @@ function ContratosPage() {
       const updated = await deleteIntermediacaoModelo();
       applyModeloFromCompany(updated);
       await fetchMe().catch(() => null);
+      setAnalise(null);
+      setAnaliseFile(null);
       toast.success("Contrato da imobiliária removido.");
     } catch (err) {
       toast.error(
         err instanceof ApiError
           ? err.message
           : "Não foi possível remover o contrato.",
+      );
+    } finally {
+      setModeloBusy(false);
+    }
+  }
+
+  const COMPANY_FORM_KEYS = new Set([
+    "banco",
+    "agencia",
+    "conta",
+    "pix",
+    "representanteLegal",
+    "contratadaNome",
+    "contratadaCnpj",
+    "contratadaCreci",
+    "contratadaEmail",
+    "contratadaEndereco",
+  ]);
+
+  function applyAnaliseToForm() {
+    if (!analise) return;
+    const skipped: string[] = [];
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const item of analise.fields) {
+        if (!analiseMarcado[item.key] || !item.value.trim()) continue;
+        if (COMPANY_FORM_KEYS.has(item.key) && next[item.key]?.trim()) {
+          skipped.push(item.key);
+          continue;
+        }
+        next[item.key] = item.value;
+      }
+      return next;
+    });
+    if (skipped.length) {
+      toast.message(
+        "Dados da imobiliária no cadastro foram mantidos. Ajuste à mão se quiser sobrescrever.",
+      );
+    } else {
+      toast.success("Dados lidos aplicados no formulário. Confira antes de baixar.");
+    }
+  }
+
+  async function confirmarComoModelo() {
+    if (!isAdmin || !analiseFile) {
+      toast.error("Envie um Word (.docx) para usar como modelo da imobiliária.");
+      return;
+    }
+    if (!analiseFile.name.toLowerCase().endsWith(".docx")) {
+      toast.error("Só o Word (.docx) vira modelo preenchível. PDF serve só para extrair dados.");
+      return;
+    }
+    const mappings = (analise?.fields ?? [])
+      .filter((item) => analiseMarcado[item.key] && (item.snippet || item.value))
+      .map((item) => ({
+        key: item.key,
+        snippet: item.snippet.trim() || item.value.trim(),
+      }));
+    if (!mappings.length) {
+      toast.error("Marque ao menos um campo com o trecho encontrado no documento.");
+      return;
+    }
+    setModeloBusy(true);
+    try {
+      const updated = await confirmarModeloIntermediacao(analiseFile, mappings);
+      applyModeloFromCompany(updated);
+      await fetchMe().catch(() => null);
+      toast.success("Modelo da imobiliária gravado. O Word preenchido usará este layout.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível gravar o modelo.",
       );
     } finally {
       setModeloBusy(false);
@@ -1169,8 +1260,13 @@ function ContratosPage() {
         primaryColor: logoColor ?? tenant?.primaryColor,
       };
       if (format === "docx" && selected.id === "intermediacao") {
-        await downloadContratoDocx(form, brand);
-        toast.success("Word gerado e baixado.");
+        if (modeloProprio?.templatePronto) {
+          await downloadIntermediacaoModeloDocx(form);
+          toast.success("Word da imobiliária preenchido e baixado.");
+        } else {
+          await downloadContratoDocx(form, brand);
+          toast.success("Word gerado e baixado.");
+        }
       } else {
         await downloadContratoPdf(selected.id as ContratoTemplateId, form, brand);
         toast.success("PDF gerado e baixado.");
@@ -1408,6 +1504,7 @@ function ContratosPage() {
                   <Download className="mr-1 size-4" />
                 )}
                 Baixar Word
+                {modeloProprio?.templatePronto ? " da imobiliária" : ""}
               </Button>
             ) : null}
             <Button type="submit" form="contrato-form" disabled={generating || savingDraft}>
@@ -1442,9 +1539,9 @@ function ContratosPage() {
                       <p className="text-sm font-medium">Contrato da imobiliária</p>
                       <p className="text-xs text-muted-foreground">
                         {modeloProprio
-                          ? `Arquivo atual: ${modeloProprio.nome}`
+                          ? `${modeloProprio.templatePronto ? "Modelo preenchível ativo. " : "Arquivo salvo. Confirme o mapeamento no painel abaixo para preencher o Word. "}Arquivo atual: ${modeloProprio.nome}`
                           : isAdmin
-                            ? "Envie o PDF ou Word usado pela imobiliária. Ele fica disponível para download neste modelo."
+                            ? "Envie o PDF pesquisável ou Word (.docx). O sistema lê os dados e, no Word, pode virar o modelo preenchível."
                             : "A imobiliária ainda não enviou o contrato próprio. Use o modelo do sistema abaixo."}
                       </p>
                     </div>
@@ -1467,7 +1564,7 @@ function ContratosPage() {
                       <input
                         ref={modeloInputRef}
                         type="file"
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         className="hidden"
                         onChange={(e) =>
                           void handleUploadModelo(e.target.files?.[0])
@@ -1502,6 +1599,87 @@ function ContratosPage() {
                     </div>
                   ) : null}
                 </div>
+                {analise ? (
+                  <div className="rounded-xl border bg-card p-3">
+                    <p className="text-sm font-medium">Dados lidos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Extração automática ({analise.fonte === "ia+regras" ? "IA + regras" : "regras"}). Confira cada campo — não grava no lead.
+                    </p>
+                    {analise.avisos.length ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-800">
+                        {analise.avisos.map((aviso) => (
+                          <li key={aviso}>{aviso}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="mt-2 max-h-56 space-y-1 overflow-auto">
+                      {analise.fields.map((item) => {
+                        const label =
+                          selected?.fields.find((field) => field.key === item.key)
+                            ?.label ?? item.key;
+                        return (
+                          <label
+                            key={item.key}
+                            className="flex items-start gap-2 rounded-md px-1 py-1 text-xs hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={Boolean(analiseMarcado[item.key])}
+                              onCheckedChange={(value) =>
+                                setAnaliseMarcado((prev) => ({
+                                  ...prev,
+                                  [item.key]: value === true,
+                                }))
+                              }
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="font-medium">{label}</span>
+                              <span className="ml-1 text-[10px] uppercase text-muted-foreground">
+                                {item.confidence}
+                              </span>
+                              <span className="mt-0.5 block truncate text-muted-foreground">
+                                {item.value}
+                              </span>
+                              {item.warning ? (
+                                <span className="block text-amber-700">{item.warning}</span>
+                              ) : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => applyAnaliseToForm()}
+                      >
+                        Aplicar no formulário
+                      </Button>
+                      {isAdmin ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={modeloBusy}
+                          onClick={() => void confirmarComoModelo()}
+                        >
+                          Usar como modelo da imobiliária
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setAnalise(null);
+                          setAnaliseFile(null);
+                        }}
+                      >
+                        Descartar
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2 rounded-xl border bg-muted/30 p-2 sm:grid-cols-3">
                   {INTERMEDIACAO_SECTIONS.map((section) => (
                     <Button

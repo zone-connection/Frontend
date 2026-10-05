@@ -675,6 +675,11 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
   ...SAAS_CONTRATO_TEMPLATES,
 ];
 
+export const INTERMEDIACAO_FIELD_KEYS =
+  CONTRATO_TEMPLATES.find((item) => item.id === "intermediacao")?.fields.map(
+    (field) => field.key,
+  ) ?? [];
+
 export function getContratoTemplate(id: ContratoTemplateId) {
   return CONTRATO_TEMPLATES.find((t) => t.id === id) ?? null;
 }

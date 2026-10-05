@@ -28,6 +28,7 @@ export type TenantBranding = {
   representanteLegal?: string | null;
   intermediacaoModeloUrl?: string | null;
   intermediacaoModeloNome?: string | null;
+  intermediacaoTemplateUrl?: string | null;
   logoUrl: string | null;
   primaryColor: string | null;
   sidebarStyle: "default" | "dark" | "compact" | string;

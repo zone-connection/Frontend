@@ -48,6 +48,73 @@ export async function deleteContratoDocumento(id: string) {
   });
 }
 
+export type IntermediacaoAnaliseField = {
+  key: string;
+  value: string;
+  confidence: "alta" | "media" | "baixa";
+  snippet: string;
+  warning?: string;
+};
+
+export type IntermediacaoAnalise = {
+  intencao: "extrair" | "modelo";
+  kind: "docx" | "pdf";
+  textPreview: string;
+  fields: IntermediacaoAnaliseField[];
+  values: Record<string, string>;
+  avisos: string[];
+  fonte: "regras" | "ia+regras";
+};
+
+export async function analisarIntermediacaoArquivo(
+  file: File,
+  intencao: "extrair" | "modelo" = "extrair",
+) {
+  const data = new FormData();
+  data.append("file", file);
+  data.append("intencao", intencao);
+  return apiFetch<IntermediacaoAnalise>("/contratos/intermediacao/analisar", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function confirmarModeloIntermediacao(
+  file: File,
+  mappings: { key: string; snippet: string }[],
+) {
+  const data = new FormData();
+  data.append("file", file);
+  data.append("mappings", JSON.stringify(mappings));
+  return apiFetch<{
+    intermediacaoModeloUrl: string | null;
+    intermediacaoModeloNome: string;
+    intermediacaoTemplateUrl: string | null;
+  }>("/contratos/intermediacao/confirmar-modelo", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function downloadIntermediacaoModeloDocx(
+  values: Record<string, string>,
+) {
+  const { blob, filename } = await apiFetchFile("/contratos/intermediacao/docx", {
+    method: "POST",
+    body: { templateId: "intermediacao", values },
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename || "contrato-intermediacao.docx";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadContratoApiPdf(
+
 export async function downloadContratoApiPdf(
   templateId: string,
   values: Record<string, string>,
