@@ -1394,6 +1394,7 @@ function ContratosPage() {
                 Baixar contrato da imobiliária
               </Button>
             ) : null}
+            {selected?.id === "intermediacao" ? (
               <Button
                 type="button"
                 variant="outline"
