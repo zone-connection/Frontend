@@ -114,8 +114,6 @@ export async function downloadIntermediacaoModeloDocx(
 }
 
 export async function downloadContratoApiPdf(
-
-export async function downloadContratoApiPdf(
   templateId: string,
   values: Record<string, string>,
 ) {
