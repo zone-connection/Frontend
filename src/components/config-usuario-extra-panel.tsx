@@ -34,6 +34,7 @@ import {
   effectivePermissions,
   type UserPermissions,
 } from "@/lib/user-permissions";
+import { isPermissionModuleInTenant } from "@/lib/tenant-modules";
 import { Copy, KeyRound, Loader2, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -114,16 +115,21 @@ export function ConfigUsuarioExtraPanel() {
   const [deleteTarget, setDeleteTarget] = useState<ApiUser | null>(null);
 
   const extras = users.filter((u) => u.id !== session?.id);
+  const plano = session?.tenant?.plano ?? null;
+  const tenantModules = session?.tenant?.modules ?? null;
 
   const moduleGroups = useMemo(
     () =>
       PERMISSION_GROUPS.map((group) => ({
         ...group,
         modules: PERMISSION_MODULES.filter(
-          (m) => m.group === group.id && SOLO_ASSISTENTE_MODULES.has(m.key),
+          (m) =>
+            m.group === group.id &&
+            SOLO_ASSISTENTE_MODULES.has(m.key) &&
+            isPermissionModuleInTenant(m.key, plano, tenantModules),
         ),
       })).filter((g) => g.modules.length > 0),
-    [],
+    [plano, tenantModules],
   );
 
   const load = useCallback(async () => {

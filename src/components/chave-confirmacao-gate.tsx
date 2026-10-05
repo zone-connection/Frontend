@@ -21,7 +21,7 @@ export function ChaveConfirmacaoGate() {
 
   const carregar = useCallback(async () => {
     const session = getSession();
-    if (session?.tenant?.modules?.muralChavesOptIn !== true) {
+    if (session?.tenant?.modules?.muralChaves !== true) {
       setItens([]);
       return;
     }

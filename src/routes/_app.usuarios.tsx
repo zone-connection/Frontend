@@ -650,7 +650,10 @@ function Usuarios() {
     }
     setFormMode("create");
     setEditingId(null);
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      role: isSolo ? "assistente" : "corretor",
+    });
     setUserFormSection("identidade");
     setFormOpen(true);
   }
@@ -694,8 +697,17 @@ function Usuarios() {
       toast.error("Apenas administradores podem editar usuários.");
       return;
     }
-    if (!isAdmin && form.role !== "corretor") {
+    if (!isAdmin && !isSolo && form.role !== "corretor") {
       toast.error("Gerentes e analistas podem cadastrar somente corretores.");
+      return;
+    }
+    if (
+      formMode === "create" &&
+      !importAllowedRoles.includes(form.role)
+    ) {
+      toast.error(
+        "Este perfil não está disponível no plano desta imobiliária.",
+      );
       return;
     }
     const name = form.name.trim();
@@ -893,13 +905,13 @@ function Usuarios() {
   }
 
   const importAllowedRoles = useMemo<Role[]>(() => {
+    if (isSolo) return ["assistente"];
     if (!isAdmin) return ["corretor"];
     const roles: Role[] = ["corretor", "treinee"];
     if (canCreateAdmin) roles.push("admin");
     if (canUseGerente) roles.push("gerente");
     if (canUseAnalista) roles.push("analista");
     if (canUseFinanceiro) roles.push("financeiro");
-    if (isSolo) roles.push("assistente");
     return roles;
   }, [
     isAdmin,
@@ -909,6 +921,12 @@ function Usuarios() {
     canUseFinanceiro,
     isSolo,
   ]);
+
+  const formRoleOptions = useMemo(() => {
+    const roles = new Set(importAllowedRoles);
+    if (formMode === "edit") roles.add(form.role);
+    return Array.from(roles);
+  }, [importAllowedRoles, formMode, form.role]);
 
   async function handleImportFile(file: File) {
     setImportParsing(true);
@@ -1112,18 +1130,25 @@ function Usuarios() {
           </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os perfis</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              {(canCreateAdmin || isSolo) && (
+                <SelectItem value="admin">Administrador</SelectItem>
+              )}
               {canUseGerente && (
                 <SelectItem value="gerente">Gerente</SelectItem>
               )}
               {canUseAnalista && (
                 <SelectItem value="analista">Analista</SelectItem>
               )}
-              <SelectItem value="treinee">Treinee</SelectItem>
+              {!isSolo && (
+                <SelectItem value="treinee">Treinee</SelectItem>
+              )}
               {canUseFinanceiro && (
                 <SelectItem value="financeiro">Financeiro</SelectItem>
               )}
               <SelectItem value="corretor">Corretor</SelectItem>
+              {isSolo && (
+                <SelectItem value="assistente">Assistente</SelectItem>
+              )}
             </SelectContent>
           </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1711,26 +1736,11 @@ function Usuarios() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {isAdmin && (
-                        <>
-                          {(canCreateAdmin || form.role === "admin") && (
-                            <SelectItem value="admin">Administrador</SelectItem>
-                          )}
-                          {canUseGerente && (
-                            <SelectItem value="gerente">Gerente</SelectItem>
-                          )}
-                          {canUseAnalista && (
-                            <SelectItem value="analista">Analista</SelectItem>
-                          )}
-                          <SelectItem value="treinee">Treinee</SelectItem>
-                          {canUseFinanceiro && (
-                            <SelectItem value="financeiro">
-                              Financeiro
-                            </SelectItem>
-                          )}
-                        </>
-                      )}
-                      <SelectItem value="corretor">Corretor</SelectItem>
+                      {formRoleOptions.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABEL[role]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

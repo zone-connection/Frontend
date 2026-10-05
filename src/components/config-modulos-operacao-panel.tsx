@@ -73,6 +73,9 @@ export function ConfigModulosOperacaoPanel() {
   const session = getSession();
   const isAdmin = session?.role === "admin";
   const isSolo = session?.tenant?.plano === "solo";
+  const muralOpsAtivas = Boolean(
+    ops?.captacao || ops?.imoveisUsados || ops?.locacao,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,6 +107,7 @@ export function ConfigModulosOperacaoPanel() {
     try {
       const data = await updateTenantOperationModules({ [key]: next });
       setOps(data.operations);
+      setMuralChaves(data.muralChaves === true);
       patchSessionTenantModules(data.modules);
       await fetchMe();
       await router.invalidate();
@@ -125,6 +129,12 @@ export function ConfigModulosOperacaoPanel() {
 
   async function toggleMuralChaves(checked: boolean) {
     if (!isAdmin) return;
+    if (checked && !muralOpsAtivas) {
+      toast.error(
+        "Ative Captação, Locação ou Venda de usados para usar o Mural de Chaves.",
+      );
+      return;
+    }
     setMuralChaves(checked);
     setSavingKey("muralChaves");
     try {
@@ -289,28 +299,31 @@ export function ConfigModulosOperacaoPanel() {
             <div className="min-w-0 flex-1">
               <CardTitle className="text-base">Mural de Chaves</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                Controle de quem está com cada chave. Começa oculto. Ao ativar,
-                o item aparece em Gestão para quem tem permissão.
+                Controle de quem está com cada chave. Só aparece em Gestão se
+                Captação, Locação ou Venda de usados estiver ativo, e o mural
+                estiver ligado.
               </p>
             </div>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-3">
-            <Badge variant={muralChaves ? "default" : "secondary"}>
-              {muralChaves ? "Ativado" : "Desativado"}
+            <Badge
+              variant={muralChaves && muralOpsAtivas ? "default" : "secondary"}
+            >
+              {muralChaves && muralOpsAtivas ? "Ativado" : "Desativado"}
             </Badge>
             <div className="flex items-center gap-2">
               <Switch
-                checked={muralChaves}
-                disabled={!isAdmin || savingKey === "muralChaves"}
+                checked={muralChaves && muralOpsAtivas}
+                disabled={!isAdmin || !muralOpsAtivas || savingKey === "muralChaves"}
                 onCheckedChange={(checked) => void toggleMuralChaves(checked)}
                 aria-label="Ativar Mural de Chaves"
               />
               <Button
                 type="button"
                 size="sm"
-                variant={muralChaves ? "outline" : "default"}
-                disabled={!isAdmin || savingKey === "muralChaves"}
-                onClick={() => void toggleMuralChaves(!muralChaves)}
+                variant={muralChaves && muralOpsAtivas ? "outline" : "default"}
+                disabled={!isAdmin || !muralOpsAtivas || savingKey === "muralChaves"}
+                onClick={() => void toggleMuralChaves(!(muralChaves && muralOpsAtivas))}
               >
                 {muralChaves ? "Desativar" : "Ativar"}
               </Button>

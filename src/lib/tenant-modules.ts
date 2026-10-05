@@ -208,7 +208,11 @@ export function modulesFromTenantJson(
   for (const key of ALL_TENANT_MODULE_KEYS) {
     if (typeof modules[key] === "boolean") base[key] = modules[key]!;
   }
-  base.muralChaves = modules.muralChavesOptIn === true;
+  base.muralChaves =
+    modules.muralChavesOptIn === true &&
+    (base.captacao === true ||
+      base.imoveisUsados === true ||
+      base.locacao === true);
   if (typeof modules.muralChavesOptIn === "boolean") {
     (base as Record<string, boolean>).muralChavesOptIn = modules.muralChavesOptIn;
   }
@@ -388,12 +392,16 @@ export function normalizeModulesForPlano(
   return next;
 }
 
-/** Mural fica oculto até o admin da imobiliária ativar. */
+/** Mural fica oculto até o admin ativar e existir captação, locação ou usados. */
 function applyMuralChavesVisibility(
   next: Record<string, boolean>,
   raw: Record<string, boolean>,
 ) {
-  next.muralChaves = raw.muralChavesOptIn === true;
+  next.muralChaves =
+    raw.muralChavesOptIn === true &&
+    (next.captacao === true ||
+      next.imoveisUsados === true ||
+      next.locacao === true);
   if (typeof raw.muralChavesOptIn === "boolean") {
     next.muralChavesOptIn = raw.muralChavesOptIn;
   }
@@ -442,4 +450,72 @@ export function setAdminGroupEnabled(
     next[mod.key] = enabled;
   }
   return next;
+}
+
+/** Permissão de tela → módulo do plano/tenant. `null` = sempre no plano. */
+const PERMISSION_MODULE_TENANT_KEY: Record<string, TenantModuleKey | null> = {
+  dashboard: "dashboard",
+  leads: "leads",
+  funil: "funil",
+  triagem: "triagem",
+  agenda: "agenda",
+  clientes: "clientes",
+  leadsPerdidos: "leadsPerdidos",
+  clientesPerdidos: "clientesPerdidos",
+  treinamento: null,
+  captacao: "captacao",
+  imoveisUsados: "imoveisUsados",
+  parcerias: "parcerias",
+  locacao: "locacao",
+  documentacao: "documentacao",
+  propostas: "propostas",
+  contratos: "contratos",
+  vendas: "vendas",
+  construtoras: "construtoras",
+  imoveis: "imoveis",
+  corretores: "corretores",
+  atrasos: "leads",
+  presenca: "presenca",
+  muralChaves: "muralChaves",
+  metas: "metas",
+  analise: "analise",
+  taxaConversao: "taxaConversao",
+  equipes: "equipes",
+  usuarios: "usuarios",
+  permissoes: "usuarios",
+  configuracoes: "configuracoes",
+  financeiro: "financeiro",
+  comissao: "financeiro",
+};
+
+export function isPermissionModuleInTenant(
+  moduleKey: string,
+  plano: TenantPlano | null | undefined,
+  modules: Record<string, boolean> | null | undefined,
+): boolean {
+  const routeByKey: Record<string, string> = {
+    permissoes: "/permissoes",
+    comissao: "/financeiro/comissao",
+    financeiro: "/financeiro",
+    clientes: "/clientes",
+    clientesPerdidos: "/clientes-perdidos",
+  };
+  const route = routeByKey[moduleKey];
+  if (route) {
+    if (!isSoloPathAllowed(route, plano ?? null)) return false;
+    if (!isFinanceiroPathAllowed(route, plano ?? null)) return false;
+  }
+
+  const tenantKey = PERMISSION_MODULE_TENANT_KEY[moduleKey];
+  if (tenantKey === undefined || tenantKey === null) return true;
+
+  const normalized = normalizeModulesForPlano(
+    plano ?? "ouro",
+    modulesFromTenantJson(modules),
+  );
+  if (isTenantOperationKey(tenantKey)) {
+    return isTenantOperationEnabled(normalized, tenantKey);
+  }
+  if (tenantKey === "muralChaves") return normalized.muralChaves === true;
+  return normalized[tenantKey] !== false;
 }

@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api";
-import { fetchMe, getSession, type Role } from "@/lib/auth";
+import { fetchMe, getSession } from "@/lib/auth";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { FILTER_CONTROL } from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
 import { fetchUsers, updateUser, type ApiUser } from "@/lib/users-api";
+import { isPermissionModuleInTenant } from "@/lib/tenant-modules";
 import {
   PERMISSION_ACTIONS,
   PERMISSION_GROUPS,
@@ -94,7 +95,7 @@ function Page() {
 
   function selectUser(user: ApiUser) {
     setSelectedId(user.id);
-    setDraft(effectivePermissions(user.role, user.permissions));
+    setDraft(effectivePermissions(user.role, user.permissions, plano));
   }
 
   function setModule(key: string, value: boolean) {
@@ -160,10 +161,33 @@ function Page() {
 
   function resetToRole() {
     if (!selected) return;
-    setDraft(defaultsFromRole(selected.role));
+    setDraft(defaultsFromRole(selected.role, plano));
   }
 
   const canEdit = session?.role === "admin";
+  const plano = session?.tenant?.plano ?? null;
+  const tenantModules = session?.tenant?.modules ?? null;
+
+  const visibleGroups = useMemo(
+    () =>
+      PERMISSION_GROUPS.map((group) => ({
+        ...group,
+        modules: PERMISSION_MODULES.filter(
+          (m) =>
+            m.group === group.id &&
+            isPermissionModuleInTenant(m.key, plano, tenantModules),
+        ),
+      })).filter((g) => g.modules.length > 0),
+    [plano, tenantModules],
+  );
+
+  const visibleActionModules = useMemo(
+    () =>
+      (["leads", "financeiro"] as const).filter((moduleKey) =>
+        isPermissionModuleInTenant(moduleKey, plano, tenantModules),
+      ),
+    [plano, tenantModules],
+  );
 
   return (
     <div>
@@ -273,10 +297,8 @@ function Page() {
                 )}
               </div>
 
-              {PERMISSION_GROUPS.map((group) => {
-                const modules = PERMISSION_MODULES.filter(
-                  (m) => m.group === group.id,
-                );
+              {visibleGroups.map((group) => {
+                const modules = group.modules;
                 return (
                   <div key={group.id} className="space-y-3">
                     <h3 className="text-sm font-semibold text-primary">
@@ -305,6 +327,7 @@ function Page() {
                 );
               })}
 
+              {visibleActionModules.length > 0 ? (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-primary">
                   Ações específicas
@@ -312,7 +335,7 @@ function Page() {
                 <p className="text-xs text-muted-foreground">
                   Controlam o que o usuário pode fazer dentro do módulo.
                 </p>
-                {(["leads", "financeiro"] as const).map((moduleKey) => {
+                {visibleActionModules.map((moduleKey) => {
                   const actions = PERMISSION_ACTIONS.filter(
                     (a) => a.module === moduleKey,
                   );
@@ -340,6 +363,7 @@ function Page() {
                   );
                 })}
               </div>
+              ) : null}
             </div>
           )}
         </section>

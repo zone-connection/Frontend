@@ -93,7 +93,7 @@ export function TenantThemeProvider({
       homePath: "/dashboard",
       modules,
       isModuleEnabled: (key: string) => {
-        if (key === "muralChaves") return modules.muralChavesOptIn === true;
+        if (key === "muralChaves") return modules.muralChaves === true;
         if (isTenantOperationKey(key)) {
           return isTenantOperationEnabled(modules, key);
         }
