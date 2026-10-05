@@ -159,6 +159,17 @@ function itemMatchesPath(item: NavItem, pathname: string) {
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 }
 
+function navItemIsNovo(item: NavItem): boolean {
+  if (isNavGroup(item)) {
+    return item.children.some((child) => isNavPathNovo(child.to));
+  }
+  return isNavPathNovo(item.to);
+}
+
+function navItemsHaveNovo(items: NavItem[]): boolean {
+  return items.some(navItemIsNovo);
+}
+
 type OperacaoId = "lancamentos" | "captacao" | "venda-usados" | "locacao";
 
 const OPERACAO_STORAGE_KEY = "crm-operacao-ativa";
@@ -1275,6 +1286,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="min-w-0 flex-1 truncate text-sm font-medium">
                 {operacaoAtiva.label}
               </span>
+              {navItemsHaveNovo(operacaoAtiva.items) ? (
+                <NovoBadge compact />
+              ) : null}
               <ChevronDown
                 className={cn(
                   "h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50 transition-transform",
@@ -1366,6 +1380,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <GroupIcon className="h-4 w-4 shrink-0" />
             <span className="flex-1 truncate text-left">{item.label}</span>
+            {navItemIsNovo(item) ? <NovoBadge compact /> : null}
             {groupOpen && !closingGroups[item.id] ? (
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
             ) : (
@@ -1584,6 +1599,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="flex-1 truncate text-left">
                       {section.label}
                     </span>
+                    {navItemsHaveNovo(section.items) ? (
+                      <NovoBadge compact />
+                    ) : null}
                     {isOpen && !sectionClosing ? (
                       <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                     ) : (
@@ -1634,6 +1652,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <span className="flex-1 truncate text-left">
                               {item.label}
                             </span>
+                            {navItemIsNovo(item) ? <NovoBadge compact /> : null}
                             {groupOpen && !closingGroups[item.id] ? (
                               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                             ) : (

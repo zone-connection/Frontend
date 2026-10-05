@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { NovoBadge } from "@/components/novo-badge";
 import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
@@ -1112,6 +1113,7 @@ function ContratosPage() {
             <span className="ml-1.5 tabular-nums text-muted-foreground">
               {item.count}
             </span>
+            <NovoBadge compact className="ml-1.5" />
           </button>
         ))}
       </div>

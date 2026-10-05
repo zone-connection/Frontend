@@ -29,6 +29,9 @@ export type Novidade = {
   configItems?: string[];
 };
 
+/** Só estas matérias levam o selo Novo no menu e no título da página. */
+const NOVO_DESDE = "2026-10-02";
+
 function planoCurto(plano: TenantPlano): string {
   return PLANO_LABELS[plano].split(" — ")[0] ?? plano;
 }
@@ -85,8 +88,8 @@ export const NOVIDADES: Novidade[] = [
     planos: ["solo", "bronze", "prata", "ouro"],
     planoDetalhe:
       "Exige o módulo Captação de Imóveis. Continua oculto se a imobiliária desligar o módulo.",
-    navPaths: ["/captacao/fila", "/captacao/funil"],
-    pagePaths: ["/captacao/fila", "/captacao/funil"],
+    navPaths: ["/captacao/fila", "/captacao/funil", "/captacao/captacoes"],
+    pagePaths: ["/captacao/fila", "/captacao/funil", "/captacao/captacoes"],
     activate: [
       "Ligue Captação de Imóveis em Configurações → Operação → Módulos, se ainda não estiver.",
       "Abra Captação → Acompanhamento.",
@@ -287,8 +290,8 @@ export const NOVIDADES: Novidade[] = [
     hrefLabel: "Abrir Leads",
     who: "Gerente e admin distribuem. Só o administrador exclui de vez.",
     planos: ["solo", "bronze", "prata", "ouro"],
-    navPaths: ["/leads"],
-    pagePaths: ["/leads"],
+    navPaths: ["/leads", "/funil"],
+    pagePaths: ["/leads", "/funil"],
     activate: [
       "Na lista de Leads, marque as linhas e use Distribuir.",
       "A exclusão definitiva aparece só para o administrador.",
@@ -436,10 +439,16 @@ export const NOVIDADES: Novidade[] = [
   },
 ];
 
+export function isNovidadeComSelo(item: Novidade): boolean {
+  return item.publishedAt >= NOVO_DESDE;
+}
+
 export function isNavPathNovo(to: string): boolean {
   const path = to.split("?")[0];
-  return NOVIDADES.some((item) =>
-    item.navPaths.some((route) => path === route || path.startsWith(`${route}/`)),
+  return NOVIDADES.some(
+    (item) =>
+      isNovidadeComSelo(item) &&
+      item.navPaths.some((route) => path === route || path.startsWith(`${route}/`)),
   );
 }
 
@@ -450,6 +459,7 @@ export function isPageNovo(
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
   const item = typeof search?.item === "string" ? search.item : undefined;
   return NOVIDADES.some((n) => {
+    if (!isNovidadeComSelo(n)) return false;
     if (n.configItems?.length) {
       if (path === "/configuracoes" || path.startsWith("/configuracoes/")) {
         return item ? n.configItems.includes(item) : false;
@@ -460,7 +470,9 @@ export function isPageNovo(
 }
 
 export function isConfigItemNovo(id: string): boolean {
-  return NOVIDADES.some((n) => n.configItems?.includes(id));
+  return NOVIDADES.some(
+    (n) => isNovidadeComSelo(n) && n.configItems?.includes(id),
+  );
 }
 
 export function formatNovidadeDate(iso: string): string {

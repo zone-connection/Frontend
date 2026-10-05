@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
+import { NovoBadge } from "@/components/novo-badge";
+import { isNavPathNovo } from "@/lib/novidades";
 import { cn } from "@/lib/utils";
 
 export function ModulePageTransition({
@@ -50,6 +52,7 @@ export function OperationSubnav({
             >
               {Icon ? <Icon className="h-4 w-4" /> : null}
               {tab.label}
+              {isNavPathNovo(tab.to) ? <NovoBadge compact /> : null}
             </Link>
           );
         })}
@@ -63,7 +66,7 @@ export function PillTabs({
   value,
   onChange,
 }: {
-  items: Array<{ id: string; label: string }>;
+  items: Array<{ id: string; label: string; novo?: boolean }>;
   value: string;
   onChange: (id: string) => void;
 }) {
@@ -75,13 +78,14 @@ export function PillTabs({
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "rounded-xl px-3 py-1.5 text-sm font-medium transition-colors",
+            "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors",
             value === item.id
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
           )}
         >
           {item.label}
+          {item.novo ? <NovoBadge compact /> : null}
         </button>
       ))}
     </nav>
