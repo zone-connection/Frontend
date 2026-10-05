@@ -225,14 +225,56 @@ export function isAgendamentoBloqueio(item: { tipo: AgendamentoTipo }) {
   return item.tipo === "bloqueio";
 }
 
+type AgendaImovelResumo = {
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+};
+
+export function imovelAgendaResumo(imovel: AgendaImovelResumo | null | undefined) {
+  if (!imovel) return null;
+  const endereco = [imovel.logradouro, imovel.numero].filter(Boolean).join(", ");
+  return (
+    endereco ||
+    [imovel.bairro, imovel.cidade].filter(Boolean).join(" · ") ||
+    "Imóvel"
+  );
+}
+
+/** Chave, imóvel ou empreendimento ligado à visita. */
+export function getAgendamentoVinculoLabel(item: {
+  empreendimento?: { nome: string } | null;
+  imovel?: AgendaImovelResumo | null;
+  muralChave?: { identificador: string } | null;
+}) {
+  const lugar =
+    item.empreendimento?.nome?.trim() || imovelAgendaResumo(item.imovel);
+  const chave = item.muralChave?.identificador?.trim();
+  if (chave && lugar) return `${chave} · ${lugar}`;
+  if (chave) return `Chave ${chave}`;
+  return lugar || null;
+}
+
+function visitaComLocal(tipo: AgendamentoTipo) {
+  return tipo === "visita" || tipo === "retirada_chave";
+}
+
 /** Título principal no card do calendário. */
 export function getAgendamentoCardTitle(item: {
   tipo: AgendamentoTipo;
   titulo: string;
   autor: { name: string };
+  empreendimento?: { nome: string } | null;
+  imovel?: AgendaImovelResumo | null;
+  muralChave?: { identificador: string } | null;
 }) {
   if (isAgendamentoBloqueio(item)) {
     return `Bloqueado · ${item.autor.name}`;
+  }
+  if (visitaComLocal(item.tipo)) {
+    const vinculo = getAgendamentoVinculoLabel(item);
+    if (vinculo) return vinculo;
   }
   return item.titulo;
 }
@@ -245,6 +287,7 @@ export function getAgendamentoCardSubtitle(item: {
   atribuidoParaId?: string | null;
   lead?: { nome: string } | null;
   empreendimento?: { nome: string } | null;
+  imovel?: AgendaImovelResumo | null;
   atribuidoPara?: { name: string } | null;
   toleranciaAtiva?: boolean;
   muralChave?: { identificador: string } | null;
@@ -253,24 +296,32 @@ export function getAgendamentoCardSubtitle(item: {
   if (isAgendamentoBloqueio(item)) {
     return item.titulo?.trim() || null;
   }
-  const vinculo = [
+  const vinculo = getAgendamentoVinculoLabel(item);
+  const vinculoNoTitulo = visitaComLocal(item.tipo) && Boolean(vinculo);
+  const tituloLivre =
+    item.titulo?.trim() && item.titulo.trim() !== vinculo
+      ? item.titulo.trim()
+      : null;
+  const chaveExtra =
+    !vinculoNoTitulo && item.muralChave
+      ? `Chave ${item.muralChave.identificador}${item.chaveRetiradaEm ? " retirada" : ""}`
+      : item.chaveRetiradaEm && item.muralChave
+        ? "chave retirada"
+        : null;
+  const partes = [
+    item.atribuidoParaId ? `De ${item.autor.name}` : null,
+    tituloLivre,
+    item.lead?.nome,
     item.tipo === "visita"
       ? item.atribuidoPara?.name ?? item.autor.name
       : null,
-    item.empreendimento?.nome,
-    item.tipo === "visita" && item.toleranciaAtiva ? "tolerância de 2 horas" : null,
-    item.muralChave
-      ? `Chave ${item.muralChave.identificador}${item.chaveRetiradaEm ? " retirada" : ""}`
+    vinculoNoTitulo ? null : vinculo,
+    chaveExtra,
+    item.tipo === "visita" && item.toleranciaAtiva
+      ? "tolerância de 2 horas"
       : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  if (item.atribuidoParaId) {
-    const base = `De ${item.autor.name}`;
-    const nome = item.lead?.nome;
-    return [base, nome, vinculo].filter(Boolean).join(" · ");
-  }
-  return [item.lead?.nome, vinculo].filter(Boolean).join(" · ") || null;
+  ].filter(Boolean);
+  return partes.length ? partes.join(" · ") : null;
 }
 
 /** Cor do evento: aniversário tem tom próprio; o resto segue o tipo. */

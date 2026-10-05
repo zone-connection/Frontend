@@ -6,6 +6,13 @@ import { useTablePager } from "@/lib/use-table-pager";
 import { EvolucaoBadge, FinanceKpiCard } from "@/components/finance-kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { FlowTrack, FLOW_BAR_GRADIENTS } from "@/components/flow-bar";
 import { Badge } from "@/components/ui/badge";
@@ -30,14 +37,20 @@ import { getSession } from "@/lib/auth";
 import { canViewModule } from "@/lib/permissions";
 import {
   fetchDashboardRanking,
+  fetchRankingCategoria,
   fetchCorretorVendas,
   type DashboardRanking,
   type DashboardRankingCorretor,
   type DashboardRankingGerente,
   type PeriodoGranularidade,
+  type RankingCategoria,
+  type RankingCategoriaResultado,
+  type RankingFaixa,
 } from "@/lib/dashboard-api";
+import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import {
   Building2,
+  CircleHelp,
   Crown,
   Goal,
   Loader2,
@@ -83,15 +96,27 @@ function money(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-const GRANULARIDADE_OPTIONS: {
-  value: PeriodoGranularidade;
+const FAIXA_OPTIONS: { value: RankingFaixa; label: string }[] = [
+  { value: "hoje", label: "Hoje" },
+  { value: "semana", label: "Esta semana" },
+  { value: "mes", label: "Este mês" },
+  { value: "trimestre", label: "Este trimestre" },
+  { value: "ano", label: "Este ano" },
+  { value: "personalizado", label: "Personalizado" },
+];
+
+const CATEGORIA_OPTIONS: {
+  value: RankingCategoria;
   label: string;
+  indicador: string;
+  modulo?: "captacao" | "imoveisUsados" | "locacao" | "comercial";
 }[] = [
-  { value: "mes", label: "Mensal" },
-  { value: "bimestre", label: "Bimestre" },
-  { value: "trimestre", label: "Trimestre" },
-  { value: "semestre", label: "Semestre" },
-  { value: "anual", label: "Anual" },
+  { value: "lancamentos", label: "Lançamentos", indicador: "VGV / vendas", modulo: "comercial" },
+  { value: "documentacoes", label: "Documentações", indicador: "Documentações" },
+  { value: "captacoes", label: "Captações", indicador: "Captações", modulo: "captacao" },
+  { value: "visitas", label: "Visitas", indicador: "Visitas" },
+  { value: "vendas_usados", label: "Vendas de usados", indicador: "Vendas", modulo: "imoveisUsados" },
+  { value: "locacoes", label: "Locações", indicador: "Locações", modulo: "locacao" },
 ];
 
 const PERIODO_NOUN: Record<PeriodoGranularidade, string> = {
@@ -174,14 +199,21 @@ function Page() {
   const user = getSession();
   const canView = canViewModule(user, "corretores");
   const isGerente = user?.role === "gerente";
+  const podeVerRegras = user?.role === "admin" || user?.role === "super_admin";
   /** Ranking entre gerentes: só admin. */
   const showRankingGerentes = user?.role === "admin";
   const agora = useMemo(() => agoraBrasil(), []);
+  const [categoria, setCategoria] = useState<RankingCategoria>("lancamentos");
+  const [faixa, setFaixa] = useState<RankingFaixa>("mes");
   const [granularidade, setGranularidade] =
     useState<PeriodoGranularidade>("mes");
   const [mes, setMes] = useState(agora.mes);
   const [ano, setAno] = useState(agora.ano);
+  const [de, setDe] = useState("");
+  const [ate, setAte] = useState("");
   const [data, setData] = useState<DashboardRanking | null>(null);
+  const [categoriaData, setCategoriaData] =
+    useState<RankingCategoriaResultado | null>(null);
   const [loading, setLoading] = useState(true);
   const [vendasAlvo, setVendasAlvo] = useState<{
     kind: "construtora" | "corretor";
@@ -197,14 +229,59 @@ function Page() {
     return list;
   }, [agora.ano]);
 
+  const categoriasVisiveis = useMemo(() => {
+    const modules = user?.tenant?.modules ?? null;
+    return CATEGORIA_OPTIONS.filter((item) => {
+      if (!item.modulo) return true;
+      return isTenantOperationEnabled(modules, item.modulo);
+    });
+  }, [user?.tenant?.modules]);
+
+  const periodoFiltros = useMemo(() => {
+    const base = { faixa, de: de || undefined, ate: ate || undefined };
+    if (faixa === "hoje" || faixa === "semana" || faixa === "personalizado") {
+      return base;
+    }
+    return {
+      ...base,
+      mes,
+      ano,
+      granularidade:
+        faixa === "ano"
+          ? "anual"
+          : faixa === "trimestre"
+            ? "trimestre"
+            : granularidade,
+    } as const;
+  }, [faixa, de, ate, mes, ano, granularidade]);
+
   const load = useCallback(async () => {
     if (!canView) {
       setLoading(false);
       return;
     }
+    if (faixa === "personalizado" && (!de || !ate)) {
+      setLoading(false);
+      setData(null);
+      setCategoriaData(null);
+      return;
+    }
     setLoading(true);
+    setData(null);
+    setCategoriaData(null);
     try {
-      setData(await fetchDashboardRanking({ mes, ano, granularidade }));
+      if (categoria === "lancamentos") {
+        setCategoriaData(null);
+        setData(await fetchDashboardRanking(periodoFiltros));
+      } else {
+        setData(null);
+        setCategoriaData(
+          await fetchRankingCategoria({
+            ...periodoFiltros,
+            categoria,
+          }),
+        );
+      }
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -212,10 +289,11 @@ function Page() {
           : "Não foi possível carregar o ranking.",
       );
       setData(null);
+      setCategoriaData(null);
     } finally {
       setLoading(false);
     }
-  }, [canView, mes, ano, granularidade]);
+  }, [canView, categoria, periodoFiltros]);
 
   useEffect(() => {
     void load();
@@ -232,10 +310,10 @@ function Page() {
     setLoadingVendas(true);
     const request =
       vendasAlvo.kind === "construtora"
-        ? fetchConstrutoraVendas(vendasAlvo.id, { mes, ano, granularidade }).then(
+        ? fetchConstrutoraVendas(vendasAlvo.id, periodoFiltros).then(
             (result) => result.items,
           )
-        : fetchCorretorVendas(vendasAlvo.id, { mes, ano, granularidade }).then(
+        : fetchCorretorVendas(vendasAlvo.id, periodoFiltros).then(
             (result) => result.items,
           );
     void request
@@ -257,34 +335,62 @@ function Page() {
     return () => {
       cancelled = true;
     };
-  }, [vendasAlvo, mes, ano, granularidade]);
+  }, [vendasAlvo, periodoFiltros]);
 
-  const periodoLabel = useMemo(
-    () => labelPeriodo(granularidade, snapMes(mes, granularidade), ano),
-    [granularidade, mes, ano],
-  );
+  const periodoLabel = useMemo(() => {
+    if (faixa === "hoje") return "hoje";
+    if (faixa === "semana") return "esta semana";
+    if (faixa === "personalizado") {
+      if (de && ate) {
+        return `${de.split("-").reverse().join("/")} a ${ate.split("-").reverse().join("/")}`;
+      }
+      return "período personalizado";
+    }
+    if (faixa === "ano") return String(ano);
+    if (faixa === "trimestre") {
+      return labelPeriodo("trimestre", snapMes(mes, "trimestre"), ano);
+    }
+    return labelPeriodo(granularidade, snapMes(mes, granularidade), ano);
+  }, [faixa, de, ate, granularidade, mes, ano]);
   const recortes = useMemo(
-    () => recortesDoPeriodo(granularidade),
-    [granularidade],
+    () => recortesDoPeriodo(faixa === "trimestre" ? "trimestre" : granularidade),
+    [faixa, granularidade],
   );
-  const periodoNoun = PERIODO_NOUN[granularidade];
+  const periodoNoun =
+    faixa === "hoje"
+      ? "dia"
+      : faixa === "semana"
+        ? "semana"
+        : faixa === "ano"
+          ? "ano"
+          : faixa === "trimestre"
+            ? "trimestre"
+            : PERIODO_NOUN[granularidade];
+  const categoriaAtual =
+    CATEGORIA_OPTIONS.find((item) => item.value === categoria) ??
+    CATEGORIA_OPTIONS[0];
   const filtros = (
     <div className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
         <Label className="text-[11px] text-muted-foreground">Período</Label>
         <Select
-          value={granularidade}
+          value={faixa}
           onValueChange={(value) => {
-            const next = value as PeriodoGranularidade;
-            setGranularidade(next);
-            setMes(snapMes(mes, next));
+            const next = value as RankingFaixa;
+            setFaixa(next);
+            if (next === "mes") setGranularidade("mes");
+            if (next === "trimestre") {
+              setGranularidade("trimestre");
+              setMes(snapMes(mes, "trimestre"));
+            }
+            if (next === "ano") setGranularidade("anual");
           }}
         >
-          <SelectTrigger className="h-9 w-32 bg-background">
+          <SelectTrigger className="h-9 min-w-40 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {GRANULARIDADE_OPTIONS.map((option) => (
+            {FAIXA_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -292,11 +398,35 @@ function Page() {
           </SelectContent>
         </Select>
       </div>
-      {granularidade !== "anual" ? (
+      {faixa === "personalizado" ? (
+        <>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">De</Label>
+            <Input
+              type="date"
+              className="h-9 w-36 bg-background"
+              value={de}
+              onChange={(e) => setDe(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Até</Label>
+            <Input
+              type="date"
+              className="h-9 w-36 bg-background"
+              value={ate}
+              onChange={(e) => setAte(e.target.value)}
+            />
+          </div>
+        </>
+      ) : null}
+      {faixa === "mes" || faixa === "trimestre" ? (
         <div className="space-y-1">
           <Label className="text-[11px] text-muted-foreground">Recorte</Label>
           <Select
-            value={String(snapMes(mes, granularidade))}
+            value={String(
+              snapMes(mes, faixa === "trimestre" ? "trimestre" : granularidade),
+            )}
             onValueChange={(value) => setMes(Number(value))}
           >
             <SelectTrigger className="h-9 min-w-38 bg-background">
@@ -312,6 +442,7 @@ function Page() {
           </Select>
         </div>
       ) : null}
+      {faixa === "mes" || faixa === "trimestre" || faixa === "ano" ? (
       <div className="space-y-1">
         <Label className="text-[11px] text-muted-foreground">Ano</Label>
         <Select value={String(ano)} onValueChange={(value) => setAno(Number(value))}>
@@ -327,6 +458,7 @@ function Page() {
           </SelectContent>
         </Select>
       </div>
+      ) : null}
     </div>
   );
 
@@ -351,17 +483,49 @@ function Page() {
         title="Ranking"
         description={
           isGerente
-            ? `Ranking dos corretores da sua equipe · ${periodoLabel}.`
-            : `Ranking completo e métricas de ${periodoLabel}.`
+            ? `Desempenho dos corretores da sua equipe · ${periodoLabel}.`
+            : `Rankings por categoria · ${periodoLabel}. Os números são calculados ao vivo no período escolhido.`
         }
         actions={filtros}
       />
 
-      {loading && !data ? (
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {categoriasVisiveis.map((item) => (
+          <Button
+            key={item.value}
+            type="button"
+            size="sm"
+            variant={categoria === item.value ? "default" : "outline"}
+            className="h-8 rounded-full"
+            onClick={() => setCategoria(item.value)}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </div>
+
+      {faixa === "personalizado" && (!de || !ate) ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">
+          Escolha a data inicial e a final para montar o ranking.
+        </p>
+      ) : loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
           Carregando ranking…
         </div>
+      ) : categoria !== "lancamentos" ? (
+        categoriaData ? (
+          <RankingCategoriaView
+            data={categoriaData}
+            indicador={categoriaAtual?.indicador ?? categoriaData.indicador}
+            podeVerRegras={podeVerRegras || categoriaData.podeVerRegras}
+          />
+        ) : (
+          <SemConexao
+            title="Sem dados"
+            description="Não foi possível carregar o ranking. Tente novamente."
+          />
+        )
       ) : !data ? (
         <SemConexao
           title="Sem dados"
@@ -574,10 +738,120 @@ function initials(name: string) {
     .join("");
 }
 
+function RankingCategoriaView({
+  data,
+  indicador,
+  podeVerRegras,
+}: {
+  data: RankingCategoriaResultado;
+  indicador: string;
+  podeVerRegras: boolean;
+}) {
+  const pager = useTablePager(data.linhas);
+  return (
+    <section className="mt-5 mb-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold">
+            Ranking — {data.indicador}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Indicador: {indicador}. Total no período: {data.totais.valor}.
+          </p>
+        </div>
+        {podeVerRegras ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-muted-foreground"
+              >
+                <CircleHelp className="h-4 w-4" />
+                Regras
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 text-sm leading-relaxed">
+              {data.regra}
+            </PopoverContent>
+          </Popover>
+        ) : null}
+      </div>
+      <PodioVendas
+        title={`Pódio · ${data.indicador}`}
+        emptyLabel="Nenhum resultado no período."
+        items={data.linhas
+          .filter((row) => row.valor > 0)
+          .map((row) => ({
+          id: row.corretorId,
+          nome: row.nome,
+          vendas: row.valor,
+          vgv: 0,
+        }))}
+      />
+      <Card className="overflow-hidden rounded-2xl">
+        <CardHeader className="border-b border-border/40">
+          <CardTitle className="text-base">Posição dos corretores</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {data.linhas.length === 0 ? (
+            <p className="px-6 py-8 text-sm text-muted-foreground">
+              Nenhum corretor no escopo deste ranking.
+            </p>
+          ) : (
+            <>
+              <Table className="[&_th]:px-4 [&_td]:px-4">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-16">Posição</TableHead>
+                    <TableHead>Corretor</TableHead>
+                    <TableHead className="text-right">{data.indicador}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pager.pageItems.map((row) => (
+                    <TableRow
+                      key={row.corretorId}
+                      className={cn(row.posicao <= 3 && "bg-primary/[0.04]")}
+                    >
+                      <TableCell className="font-black tabular-nums">
+                        {row.posicao}º
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{row.nome}</div>
+                        {row.equipe ? (
+                          <div className="text-[11px] text-muted-foreground">
+                            {row.equipe}
+                          </div>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">
+                        {row.valor}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePager
+                page={pager.page}
+                totalPages={pager.totalPages}
+                total={pager.total}
+                onPageChange={pager.setPage}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 function PodioVendas({
   title,
   items,
   onSelect,
+  emptyLabel,
 }: {
   title: string;
   items: Array<{ id: string; nome: string; vendas: number; vgv: number }>;
@@ -587,7 +861,9 @@ function PodioVendas({
     vendas: number;
     vgv: number;
   }) => void;
+  emptyLabel?: string;
 }) {
+  const showMoney = items.some((item) => item.vgv > 0);
   const slots = [
     {
       row: items[1],
@@ -626,7 +902,7 @@ function PodioVendas({
             <Trophy className="h-4 w-4" /> {title}
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
-            Nenhuma venda no período.
+            {emptyLabel ?? "Nenhuma venda no período."}
           </p>
         </CardContent>
       </Card>
@@ -678,11 +954,19 @@ function PodioVendas({
                       {row.nome}
                     </p>
                     <p className="text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
-                      {row.vendas} venda
-                      {row.vendas === 1 ? "" : "s"}
-                      <br className="sm:hidden" />
-                      <span className="hidden sm:inline"> · </span>
-                      {money(row.vgv)}
+                      {row.vendas}{" "}
+                      {showMoney
+                        ? row.vendas === 1
+                          ? "venda"
+                          : "vendas"
+                        : ""}
+                      {showMoney ? (
+                        <>
+                          <br className="sm:hidden" />
+                          <span className="hidden sm:inline"> · </span>
+                          {money(row.vgv)}
+                        </>
+                      ) : null}
                     </p>
                   </div>
 

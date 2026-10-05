@@ -522,6 +522,11 @@ function TimeGridBoard({
                         <div className="truncate text-[10px] font-semibold leading-tight">
                           {getAgendamentoCardTitle(item)}
                         </div>
+                        {cardHeight > 44 && getAgendamentoCardSubtitle(item) ? (
+                          <div className="truncate text-[9px] font-medium leading-tight opacity-85">
+                            {getAgendamentoCardSubtitle(item)}
+                          </div>
+                        ) : null}
                       </>
                     )}
                   </button>

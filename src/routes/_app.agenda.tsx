@@ -81,13 +81,11 @@ import {
   deleteAgendamento,
   fetchAgendamentos,
   fetchAgendaKpis,
-  fetchHistoricoVisita,
   fetchSolicitacoesAgenda,
   isAgendamentoAniversario,
   recusarAgendamento,
   updateAgendamento,
   type Agendamento,
-  type AgendamentoHistoricoItem,
   type AgendaKpis,
   type AgendamentoAlvo,
   type AgendamentoEscopo,
@@ -352,9 +350,6 @@ function AgendaPage() {
   const [imovelOptions, setImovelOptions] = useState<
     { id: string; label: string }[]
   >([]);
-  const [visitaHistorico, setVisitaHistorico] = useState<AgendamentoHistoricoItem[]>(
-    [],
-  );
   const [chaveOptions, setChaveOptions] = useState<MuralChave[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -445,24 +440,6 @@ function AgendaPage() {
       null
     );
   }, [filterCorretorId, search.nome, corretorFilterOptions]);
-
-  useEffect(() => {
-    if (!open || formMode !== "edit" || !editingId || form.tipo !== "visita") {
-      setVisitaHistorico([]);
-      return;
-    }
-    let cancelado = false;
-    void fetchHistoricoVisita(editingId)
-      .then((rows) => {
-        if (!cancelado) setVisitaHistorico(rows);
-      })
-      .catch(() => {
-        if (!cancelado) setVisitaHistorico([]);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [open, formMode, editingId, form.tipo]);
 
   useEffect(() => {
     let cancelado = false;
@@ -2326,18 +2303,6 @@ function AgendaPage() {
                         .join(" · ")
                     }
                   />
-                  {visitaHistorico.length > 0 ? (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium">Histórico</p>
-                      <ul className="space-y-1">
-                        {visitaHistorico.map((item) => (
-                          <li key={item.id} className="text-[11px] text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleString("pt-BR")} · {item.autor.name} · {item.detalhe}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 

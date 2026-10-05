@@ -49,6 +49,30 @@ export function formatNovidadePlanos(item: Novidade): string {
 
 export const NOVIDADES: Novidade[] = [
   {
+    id: "rankings-categorias",
+    title: "Rankings por captação, visita, documentação e usados",
+    kicker: "Gestão",
+    publishedAt: "2026-10-04",
+    summary:
+      "O ranking deixou de ser só lançamento. Escolha a categoria, o período (hoje, semana, mês, trimestre, ano ou intervalo) e veja posição e quantidade de cada corretor, recalculadas ao vivo.",
+    where: "Gestão → Ranking. Use as pílulas de categoria no topo e o filtro de período.",
+    href: "/corretores",
+    hrefLabel: "Abrir Ranking",
+    who: "Quem tem o módulo Ranking. Gerente vê a equipe. Admin vê a imobiliária e as regras de contabilização.",
+    planos: ["prata", "ouro"],
+    navPaths: ["/corretores"],
+    pagePaths: ["/corretores"],
+    activate: [
+      "Abra Gestão → Ranking.",
+      "Escolha Lançamentos, Documentações, Captações, Visitas, Vendas de usados ou Locações.",
+    ],
+    how: [
+      "Lançamentos continuam com VGV, pódio e construtoras.",
+      "Nas outras categorias a tabela mostra posição, corretor e o indicador do período.",
+      "Excluir ou alterar o registro no CRM atualiza o ranking na hora.",
+    ],
+  },
+  {
     id: "propostas-imoveis-periodo",
     title: "Proposta ligada a captação, usados e lançamentos",
     kicker: "Fechamento",

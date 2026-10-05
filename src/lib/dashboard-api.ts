@@ -167,6 +167,22 @@ export type PeriodoGranularidade =
   | "semestre"
   | "anual";
 
+export type RankingFaixa =
+  | "hoje"
+  | "semana"
+  | "mes"
+  | "trimestre"
+  | "ano"
+  | "personalizado";
+
+export type RankingCategoria =
+  | "lancamentos"
+  | "documentacoes"
+  | "captacoes"
+  | "visitas"
+  | "vendas_usados"
+  | "locacoes";
+
 export type DashboardFiltros = {
   /** Recorte do ranking. Omite = mês. */
   granularidade?: PeriodoGranularidade;
@@ -176,6 +192,10 @@ export type DashboardFiltros = {
   ano?: number;
   /** Origem do lead (catálogo). Omite = todas. */
   origem?: string;
+  faixa?: RankingFaixa;
+  de?: string;
+  ate?: string;
+  categoria?: RankingCategoria;
 };
 
 function dashboardQuery(params?: DashboardFiltros): string {
@@ -184,6 +204,10 @@ function dashboardQuery(params?: DashboardFiltros): string {
   if (params?.mes != null) qs.set("mes", String(params.mes));
   if (params?.ano != null) qs.set("ano", String(params.ano));
   if (params?.origem) qs.set("origem", params.origem);
+  if (params?.faixa) qs.set("faixa", params.faixa);
+  if (params?.de) qs.set("de", params.de);
+  if (params?.ate) qs.set("ate", params.ate);
+  if (params?.categoria) qs.set("categoria", params.categoria);
   const query = qs.toString();
   return query ? `?${query}` : "";
 }
@@ -278,6 +302,33 @@ export async function fetchDashboardRanking(
   params?: DashboardFiltros,
 ): Promise<DashboardRanking> {
   return apiFetch<DashboardRanking>(
+    `/dashboard/ranking${dashboardQuery({ ...params, categoria: "lancamentos" })}`,
+  );
+}
+
+export type RankingCategoriaLinha = {
+  posicao: number;
+  corretorId: string;
+  nome: string;
+  equipe: string | null;
+  valor: number;
+};
+
+export type RankingCategoriaResultado = {
+  categoria: RankingCategoria;
+  indicador: string;
+  unidade: "count";
+  regra: string;
+  podeVerRegras: boolean;
+  periodo: { inicio: string; fim: string };
+  totais: { corretores: number; valor: number };
+  linhas: RankingCategoriaLinha[];
+};
+
+export async function fetchRankingCategoria(
+  params: DashboardFiltros & { categoria: RankingCategoria },
+): Promise<RankingCategoriaResultado> {
+  return apiFetch<RankingCategoriaResultado>(
     `/dashboard/ranking${dashboardQuery(params)}`,
   );
 }
