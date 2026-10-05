@@ -21,6 +21,13 @@ export type TenantBranding = {
   telefone?: string | null;
   endereco?: string | null;
   cidade?: string | null;
+  banco?: string | null;
+  agencia?: string | null;
+  contaBancaria?: string | null;
+  pix?: string | null;
+  representanteLegal?: string | null;
+  intermediacaoModeloUrl?: string | null;
+  intermediacaoModeloNome?: string | null;
   logoUrl: string | null;
   primaryColor: string | null;
   sidebarStyle: "default" | "dark" | "compact" | string;

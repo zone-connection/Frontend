@@ -28,23 +28,48 @@ type FormState = {
   telefone: string;
   endereco: string;
   cidade: string;
+  banco: string;
+  agencia: string;
+  contaBancaria: string;
+  pix: string;
+  representanteLegal: string;
 };
 
-const emptyForm = (): FormState => ({
-  name: "",
-  documento: "",
-  creci: "",
-  email: "",
-  telefone: "",
-  endereco: "",
-  cidade: "",
-});
+function formFromCompany(company: {
+  name?: string | null;
+  documento?: string | null;
+  creci?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  banco?: string | null;
+  agencia?: string | null;
+  contaBancaria?: string | null;
+  pix?: string | null;
+  representanteLegal?: string | null;
+}): FormState {
+  return {
+    name: company.name ?? "",
+    documento: formatCpfCnpj(company.documento ?? ""),
+    creci: company.creci ?? "",
+    email: company.email ?? "",
+    telefone: company.telefone ? formatPhone(company.telefone) : "",
+    endereco: company.endereco ?? "",
+    cidade: company.cidade ?? "",
+    banco: company.banco ?? "",
+    agencia: company.agencia ?? "",
+    contaBancaria: company.contaBancaria ?? "",
+    pix: company.pix ?? "",
+    representanteLegal: company.representanteLegal ?? "",
+  };
+}
 
 export function ConfigEmpresaPanel() {
   const session = getSession();
   const isAdmin = session?.role === "admin";
   const isSolo = session?.tenant?.plano === "solo";
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<FormState>(() => formFromCompany({}));
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,15 +118,7 @@ export function ConfigEmpresaPanel() {
     void fetchTenantCompany()
       .then((company) => {
         if (cancelled) return;
-        setForm({
-          name: company.name ?? "",
-          documento: formatCpfCnpj(company.documento ?? ""),
-          creci: company.creci ?? "",
-          email: company.email ?? "",
-          telefone: company.telefone ? formatPhone(company.telefone) : "",
-          endereco: company.endereco ?? "",
-          cidade: company.cidade ?? "",
-        });
+        setForm(formFromCompany(company));
         setLogoUrl(company.logoUrl);
       })
       .catch((err) => {
@@ -188,16 +205,13 @@ export function ConfigEmpresaPanel() {
         telefone: form.telefone.trim(),
         endereco: form.endereco.trim(),
         cidade: form.cidade.trim(),
+        banco: form.banco.trim(),
+        agencia: form.agencia.trim(),
+        contaBancaria: form.contaBancaria.trim(),
+        pix: form.pix.trim(),
+        representanteLegal: form.representanteLegal.trim(),
       });
-      setForm({
-        name: updated.name ?? "",
-        documento: formatCpfCnpj(updated.documento ?? ""),
-        creci: updated.creci ?? "",
-        email: updated.email ?? "",
-        telefone: updated.telefone ? formatPhone(updated.telefone) : "",
-        endereco: updated.endereco ?? "",
-        cidade: updated.cidade ?? "",
-      });
+      setForm(formFromCompany(updated));
       await fetchMe().catch(() => null);
       toast.success(copy.saved);
     } catch (err) {
@@ -325,6 +339,62 @@ export function ConfigEmpresaPanel() {
               <p className="text-[11px] text-muted-foreground">
                 Usada na data/local do contrato de intermediação.
               </p>
+            </div>
+            <div className="sm:col-span-2 pt-1">
+              <p className="text-sm font-medium">Dados para pagamento</p>
+              <p className="text-xs text-muted-foreground">
+                Entram automaticamente na aba Pagamento do contrato de intermediação.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="empresa-banco">Banco</Label>
+              <Input
+                id="empresa-banco"
+                value={form.banco}
+                disabled={!isAdmin || saving}
+                placeholder="Ex.: Inter"
+                onChange={(e) => setField("banco", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="empresa-agencia">Agência</Label>
+              <Input
+                id="empresa-agencia"
+                value={form.agencia}
+                disabled={!isAdmin || saving}
+                placeholder="Ex.: 0001-9"
+                onChange={(e) => setField("agencia", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="empresa-conta">Conta</Label>
+              <Input
+                id="empresa-conta"
+                value={form.contaBancaria}
+                disabled={!isAdmin || saving}
+                placeholder="Ex.: 1902391-0"
+                onChange={(e) => setField("contaBancaria", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="empresa-pix">PIX (CNPJ ou chave)</Label>
+              <Input
+                id="empresa-pix"
+                value={form.pix}
+                disabled={!isAdmin || saving}
+                placeholder="CNPJ da conta ou chave PIX"
+                onChange={(e) => setField("pix", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="empresa-representante">Representante legal (conta)</Label>
+              <Input
+                id="empresa-representante"
+                value={form.representanteLegal}
+                disabled={!isAdmin || saving}
+                placeholder="Nome de quem assina pela imobiliária"
+                onChange={(e) => setField("representanteLegal", e.target.value)}
+              />
             </div>
           </div>
 

@@ -476,21 +476,18 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
         label: "Banco (pagamento)",
         type: "text",
         required: false,
-        defaultValue: "Inter",
       },
       {
         key: "agencia",
         label: "Agência",
         type: "text",
         required: false,
-        defaultValue: "0001-9",
       },
       {
         key: "conta",
         label: "Conta",
         type: "text",
         required: false,
-        defaultValue: "1902391-0",
       },
       {
         key: "pix",

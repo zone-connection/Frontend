@@ -38,7 +38,8 @@ import { maskMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { reaisPorExtenso } from "@/lib/valor-extenso";
 import { formatCpfCnpj, formatRg, cn } from "@/lib/utils";
 import { useTenantTheme } from "@/lib/tenant-theme";
-import { getSession, type TenantBranding } from "@/lib/auth";
+import { getSession, fetchMe, type TenantBranding } from "@/lib/auth";
+import { fetchTenantCompany, uploadIntermediacaoModelo, deleteIntermediacaoModelo } from "@/lib/tenant-company-api";
 import {
   ArrowRight,
   Ban,
@@ -53,7 +54,7 @@ import {
   Sparkles,
   Trash2,
   Users,
-  type LucideIcon,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -289,7 +290,16 @@ function maskField(field: ContratoField, raw: string) {
   return raw;
 }
 
-/** Prefill da CONTRATADA a partir do cadastro da imobiliária. */
+function todayIsoBrasil() {
+  const brasil = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  return brasil.toISOString().slice(0, 10);
+}
+
+function filled(value?: string | null) {
+  return Boolean(value?.trim());
+}
+
+/** Prefill da CONTRATADA e do pagamento a partir do cadastro da imobiliária. */
 function prefillFromTenant(
   template: ContratoTemplate,
   tenant: TenantBranding | null,
@@ -299,16 +309,27 @@ function prefillFromTenant(
   if (isSaasContratoTemplate(template.id)) return values;
 
   if (template.id === "intermediacao") {
-    if (tenant.name?.trim()) values.contratadaNome = tenant.name.trim();
-    if (tenant.documento?.trim()) {
+    if (filled(tenant.name)) values.contratadaNome = tenant.name!.trim();
+    if (filled(tenant.documento)) {
       values.contratadaCnpj = formatCpfCnpj(tenant.documento);
     }
-    if (tenant.creci?.trim()) values.contratadaCreci = tenant.creci.trim();
-    if (tenant.email?.trim()) values.contratadaEmail = tenant.email.trim();
-    if (tenant.endereco?.trim()) {
-      values.contratadaEndereco = tenant.endereco.trim();
+    if (filled(tenant.creci)) values.contratadaCreci = tenant.creci!.trim();
+    if (filled(tenant.email)) values.contratadaEmail = tenant.email!.trim();
+    if (filled(tenant.endereco)) {
+      values.contratadaEndereco = tenant.endereco!.trim();
     }
-    if (tenant.cidade?.trim()) values.cidade = tenant.cidade.trim();
+    if (filled(tenant.cidade)) values.cidade = tenant.cidade!.trim();
+    if (filled(tenant.banco)) values.banco = tenant.banco!.trim();
+    if (filled(tenant.agencia)) values.agencia = tenant.agencia!.trim();
+    if (filled(tenant.contaBancaria)) values.conta = tenant.contaBancaria!.trim();
+    if (filled(tenant.pix)) values.pix = tenant.pix!.trim();
+    else if (filled(tenant.documento) && !filled(values.pix)) {
+      values.pix = formatCpfCnpj(tenant.documento);
+    }
+    if (filled(tenant.representanteLegal)) {
+      values.representanteLegal = tenant.representanteLegal!.trim();
+    }
+    if (!filled(values.data)) values.data = todayIsoBrasil();
   }
 
   if (template.id === "checklist-renda-informal" && tenant.cidade?.trim()) {
@@ -821,6 +842,13 @@ function ContratosPage() {
   } | null>(null);
   const [intermediacaoSection, setIntermediacaoSection] =
     useState<IntermediacaoSectionId>("contratante");
+  const [modeloProprio, setModeloProprio] = useState<{
+    url: string;
+    nome: string;
+  } | null>(null);
+  const [modeloBusy, setModeloBusy] = useState(false);
+  const isAdmin = getSession()?.role === "admin";
+  const modeloInputRef = useRef<HTMLInputElement>(null);
 
   const templatesVisiveis = useMemo(
     () => contratoTemplatesForRole(getSession()?.role),
@@ -848,21 +876,120 @@ function ContratosPage() {
   }, [logoUrl, tenant?.primaryColor]);
 
   useEffect(() => {
+    const fromSession = tenant?.intermediacaoModeloUrl
+      ? {
+          url: tenant.intermediacaoModeloUrl,
+          nome: tenant.intermediacaoModeloNome?.trim() || "Contrato da imobiliária",
+        }
+      : null;
+    setModeloProprio(fromSession);
+    let cancelled = false;
+    void fetchTenantCompany()
+      .then((company) => {
+        if (cancelled) return;
+        setModeloProprio(
+          company.intermediacaoModeloUrl
+            ? {
+                url: company.intermediacaoModeloUrl,
+                nome:
+                  company.intermediacaoModeloNome?.trim() ||
+                  "Contrato da imobiliária",
+              }
+            : null,
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [tenant?.intermediacaoModeloUrl, tenant?.intermediacaoModeloNome]);
+
+  useEffect(() => {
     void fetchContratoDocumentos()
       .then(setDocumentos)
       .catch(() => undefined);
   }, []);
+
+  function applyModeloFromCompany(company: {
+    intermediacaoModeloUrl?: string | null;
+    intermediacaoModeloNome?: string | null;
+  }) {
+    setModeloProprio(
+      company.intermediacaoModeloUrl
+        ? {
+            url: company.intermediacaoModeloUrl,
+            nome:
+              company.intermediacaoModeloNome?.trim() ||
+              "Contrato da imobiliária",
+          }
+        : null,
+    );
+  }
+
+  async function handleUploadModelo(file: File | undefined) {
+    if (!file || !isAdmin) return;
+    const nome = file.name.toLowerCase();
+    if (
+      !nome.endsWith(".pdf") &&
+      !nome.endsWith(".doc") &&
+      !nome.endsWith(".docx")
+    ) {
+      toast.error("Envie um PDF ou Word (.doc / .docx).");
+      return;
+    }
+    setModeloBusy(true);
+    try {
+      const updated = await uploadIntermediacaoModelo(file);
+      applyModeloFromCompany(updated);
+      await fetchMe().catch(() => null);
+      toast.success("Contrato da imobiliária enviado.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível enviar o contrato.",
+      );
+    } finally {
+      setModeloBusy(false);
+      if (modeloInputRef.current) modeloInputRef.current.value = "";
+    }
+  }
+
+  async function handleRemoveModelo() {
+    if (!isAdmin) return;
+    setModeloBusy(true);
+    try {
+      const updated = await deleteIntermediacaoModelo();
+      applyModeloFromCompany(updated);
+      await fetchMe().catch(() => null);
+      toast.success("Contrato da imobiliária removido.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível remover o contrato.",
+      );
+    } finally {
+      setModeloBusy(false);
+    }
+  }
 
   const openTemplate = (template: ContratoTemplate) => {
     if (!canUseContratoTemplate(template.id)) {
       toast.error("Seu perfil não tem acesso a este modelo.");
       return;
     }
-    const base = prefillFromTenant(template, tenant);
     setEditingId(null);
     setSelected(template);
-    setForm(leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base);
     setIntermediacaoSection("contratante");
+    const apply = (company: TenantBranding | null) => {
+      const base = prefillFromTenant(template, company);
+      setForm(leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base);
+    };
+    apply(tenant);
+    void fetchTenantCompany()
+      .then((fresh) => apply({ ...(tenant ?? {}), ...fresh }))
+      .catch(() => undefined);
   };
 
   useEffect(() => {
@@ -925,8 +1052,20 @@ function ContratosPage() {
     }
     setEditingId(item.id);
     setSelected(template);
-    setForm({ ...emptyContratoForm(template), ...item.values });
     setIntermediacaoSection("contratante");
+    const apply = (company: TenantBranding | null) => {
+      const base = prefillFromTenant(template, company);
+      const saved = item.values ?? {};
+      const merged = { ...base };
+      for (const [key, value] of Object.entries(saved)) {
+        if (typeof value === "string" && value.trim()) merged[key] = value;
+      }
+      setForm(merged);
+    };
+    apply(tenant);
+    void fetchTenantCompany()
+      .then((fresh) => apply({ ...(tenant ?? {}), ...fresh }))
+      .catch(() => undefined);
   }
 
   async function persistDocumento(status: "rascunho" | "baixado") {
@@ -1207,7 +1346,11 @@ function ContratosPage() {
         title={selected?.titulo ?? "Contrato"}
         description={
           selected?.id === "intermediacao"
-            ? "Preencha os campos e baixe em PDF ou Word."
+            ? modeloProprio
+              ? "Baixe o contrato da imobiliária ou preencha o modelo do sistema."
+              : isAdmin
+                ? "Envie o contrato da imobiliária ou preencha o modelo do sistema."
+                : "Preencha os campos e baixe em PDF ou Word."
             : editingId
               ? "Edite o rascunho ou o contrato salvo e baixe de novo quando quiser."
               : "Preencha os campos. Salve rascunho para não perder o que já preencheu."
@@ -1238,7 +1381,19 @@ function ContratosPage() {
               )}
               Salvar rascunho
             </Button>
-            {selected?.id === "intermediacao" ? (
+            {selected?.id === "intermediacao" && modeloProprio ? (
+              <Button
+                type="button"
+                className={SOFT_BTN}
+                disabled={modeloBusy}
+                onClick={() => {
+                  window.open(modeloProprio.url, "_blank", "noopener,noreferrer");
+                }}
+              >
+                <Download className="mr-1 size-4" />
+                Baixar contrato da imobiliária
+              </Button>
+            ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -1279,6 +1434,73 @@ function ContratosPage() {
               }
             >
               {selected.id === "intermediacao" ? (
+                <>
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">Contrato da imobiliária</p>
+                      <p className="text-xs text-muted-foreground">
+                        {modeloProprio
+                          ? `Arquivo atual: ${modeloProprio.nome}`
+                          : isAdmin
+                            ? "Envie o PDF ou Word usado pela imobiliária. Ele fica disponível para download neste modelo."
+                            : "A imobiliária ainda não enviou o contrato próprio. Use o modelo do sistema abaixo."}
+                      </p>
+                    </div>
+                    {modeloProprio ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          window.open(modeloProprio.url, "_blank", "noopener,noreferrer")
+                        }
+                      >
+                        <Download className="mr-1 size-3.5" />
+                        Baixar
+                      </Button>
+                    ) : null}
+                  </div>
+                  {isAdmin ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <input
+                        ref={modeloInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        onChange={(e) =>
+                          void handleUploadModelo(e.target.files?.[0])
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={modeloBusy}
+                        onClick={() => modeloInputRef.current?.click()}
+                      >
+                        {modeloBusy ? (
+                          <Loader2 className="mr-1 size-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="mr-1 size-3.5" />
+                        )}
+                        {modeloProprio ? "Trocar arquivo" : "Enviar PDF ou Word"}
+                      </Button>
+                      {modeloProprio ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          disabled={modeloBusy}
+                          onClick={() => void handleRemoveModelo()}
+                        >
+                          Remover
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
                 <div className="grid grid-cols-2 gap-2 rounded-xl border bg-muted/30 p-2 sm:grid-cols-3">
                   {INTERMEDIACAO_SECTIONS.map((section) => (
                     <Button
@@ -1298,6 +1520,7 @@ function ContratosPage() {
                     </Button>
                   ))}
                 </div>
+                </>
               ) : null}
               <FormSection title="Dados do documento">
                 <div className="grid gap-3 sm:grid-cols-2">

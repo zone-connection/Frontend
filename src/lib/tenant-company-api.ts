@@ -12,6 +12,13 @@ export type TenantCompanyProfile = Pick<
   | "telefone"
   | "endereco"
   | "cidade"
+  | "banco"
+  | "agencia"
+  | "contaBancaria"
+  | "pix"
+  | "representanteLegal"
+  | "intermediacaoModeloUrl"
+  | "intermediacaoModeloNome"
   | "logoUrl"
 >;
 
@@ -23,6 +30,11 @@ export type UpdateTenantCompanyInput = {
   telefone?: string;
   endereco?: string;
   cidade?: string;
+  banco?: string;
+  agencia?: string;
+  contaBancaria?: string;
+  pix?: string;
+  representanteLegal?: string;
 };
 
 export async function fetchTenantCompany(): Promise<TenantCompanyProfile> {
@@ -51,6 +63,23 @@ export async function uploadTenantCompanyLogo(
 
 export async function deleteTenantCompanyLogo(): Promise<TenantCompanyProfile> {
   return apiFetch<TenantCompanyProfile>("/tenant/company/logo", {
+    method: "DELETE",
+  });
+}
+
+export async function uploadIntermediacaoModelo(
+  file: File,
+): Promise<TenantCompanyProfile> {
+  const data = new FormData();
+  data.append("file", file);
+  return apiFetch<TenantCompanyProfile>("/tenant/company/intermediacao-modelo", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function deleteIntermediacaoModelo(): Promise<TenantCompanyProfile> {
+  return apiFetch<TenantCompanyProfile>("/tenant/company/intermediacao-modelo", {
     method: "DELETE",
   });
 }
