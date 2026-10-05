@@ -1262,7 +1262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!operacaoAtiva || user?.role === "super_admin") return null;
     const ActiveIcon = operacaoAtiva.icon;
     return (
-      <div className="mb-2 space-y-1">
+      <div className="space-y-1 rounded-xl border border-white/12 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <button
           type="button"
           onClick={() => {
@@ -1276,14 +1276,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           title="Trocar operação"
           aria-expanded={operacaoPickerOpen}
           className={cn(
-            "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-2 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent",
+            "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sidebar-foreground transition-colors hover:bg-white/10",
             collapsedView && "justify-center px-2",
           )}
         >
           <ActiveIcon className="h-4 w-4 shrink-0" />
           {!collapsedView && (
             <>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-wide">
                 {operacaoAtiva.label}
               </span>
               {navItemsHaveNovo(operacaoAtiva.items) ? (
@@ -1352,7 +1352,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         )}
-        <div className="mx-1 border-t border-sidebar-border pt-1" />
       </div>
     );
   }
@@ -1539,7 +1538,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   "flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
                   active
                     ? "bg-sidebar-accent text-sidebar-foreground"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                 )}
               >
                 <span className="relative shrink-0">
@@ -1579,27 +1578,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={section.id}
-              className={cn("space-y-0.5", sectionDivider(index))}
+              className={cn(
+                "space-y-0.5 rounded-xl border border-white/12 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+                sectionDivider(index),
+              )}
             >
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 title={collapsedView ? section.label : undefined}
                 className={cn(
-                  "flex w-full cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
+                  "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold tracking-wide transition-colors",
                   sectionActive
-                    ? "bg-sidebar-accent text-sidebar-foreground"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                    ? "bg-white/12 text-sidebar-foreground"
+                    : "text-sidebar-foreground hover:bg-white/10",
                 )}
               >
-                <SectionIcon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    sectionActive
-                      ? "text-sidebar-foreground"
-                      : "text-sidebar-foreground/75",
-                  )}
-                />
+                <SectionIcon className="h-4 w-4 shrink-0 text-sidebar-foreground" />
                 {!collapsedView && (
                   <>
                     <span className="flex-1 truncate text-left">
