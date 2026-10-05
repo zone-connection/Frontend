@@ -66,6 +66,7 @@ import {
   confirmarModeloIntermediacao,
   deleteContratoDocumento,
   downloadIntermediacaoModeloDocx,
+  downloadIntermediacaoModeloPdf,
   fetchContratoDocumentos,
   saveContratoDocumento,
   type ContratoDocumento,
@@ -1031,11 +1032,7 @@ function ContratosPage() {
 
   async function confirmarComoModelo() {
     if (!isAdmin || !analiseFile) {
-      toast.error("Envie um Word (.docx) para usar como modelo da imobiliária.");
-      return;
-    }
-    if (!analiseFile.name.toLowerCase().endsWith(".docx")) {
-      toast.error("Só o Word (.docx) vira modelo preenchível. PDF serve só para extrair dados.");
+      toast.error("Envie um Word (.docx) ou PDF para usar como modelo.");
       return;
     }
     const mappings = (analise?.fields ?? [])
@@ -1053,7 +1050,11 @@ function ContratosPage() {
       const updated = await confirmarModeloIntermediacao(analiseFile, mappings);
       applyModeloFromCompany(updated);
       await fetchMe().catch(() => null);
-      toast.success("Modelo da imobiliária gravado. O Word preenchido usará este layout.");
+      toast.success(
+        analiseFile.name.toLowerCase().endsWith(".pdf")
+          ? "Modelo PDF gravado. O Baixar PDF usa o layout da imobiliária."
+          : "Modelo Word gravado. O Baixar Word usa o layout da imobiliária.",
+      );
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -1260,13 +1261,24 @@ function ContratosPage() {
         primaryColor: logoColor ?? tenant?.primaryColor,
       };
       if (format === "docx" && selected.id === "intermediacao") {
-        if (modeloProprio?.templatePronto) {
+        if (
+          modeloProprio?.templatePronto &&
+          !modeloProprio.nome.toLowerCase().endsWith(".pdf")
+        ) {
           await downloadIntermediacaoModeloDocx(form);
           toast.success("Word da imobiliária preenchido e baixado.");
         } else {
           await downloadContratoDocx(form, brand);
           toast.success("Word gerado e baixado.");
         }
+      } else if (
+        format === "pdf" &&
+        selected.id === "intermediacao" &&
+        modeloProprio?.templatePronto &&
+        modeloProprio.nome.toLowerCase().endsWith(".pdf")
+      ) {
+        await downloadIntermediacaoModeloPdf(form);
+        toast.success("PDF da imobiliária preenchido e baixado.");
       } else {
         await downloadContratoPdf(selected.id as ContratoTemplateId, form, brand);
         toast.success("PDF gerado e baixado.");
@@ -1504,7 +1516,10 @@ function ContratosPage() {
                   <Download className="mr-1 size-4" />
                 )}
                 Baixar Word
-                {modeloProprio?.templatePronto ? " da imobiliária" : ""}
+                {modeloProprio?.templatePronto &&
+                !modeloProprio.nome.toLowerCase().endsWith(".pdf")
+                  ? " da imobiliária"
+                  : ""}
               </Button>
             ) : null}
             <Button type="submit" form="contrato-form" disabled={generating || savingDraft}>
@@ -1513,7 +1528,12 @@ function ContratosPage() {
               ) : (
                 <Download className="mr-1 size-4" />
               )}
-              {selected?.id === "intermediacao" ? "Baixar PDF" : "Gerar PDF"}
+              {selected?.id === "intermediacao"
+                ? modeloProprio?.templatePronto &&
+                  modeloProprio.nome.toLowerCase().endsWith(".pdf")
+                  ? "Baixar PDF da imobiliária"
+                  : "Baixar PDF"
+                : "Gerar PDF"}
             </Button>
           </FormDialogActions>
         }
@@ -1541,7 +1561,7 @@ function ContratosPage() {
                         {modeloProprio
                           ? `${modeloProprio.templatePronto ? "Modelo preenchível ativo. " : "Arquivo salvo. Confirme o mapeamento no painel abaixo para preencher o Word. "}Arquivo atual: ${modeloProprio.nome}`
                           : isAdmin
-                            ? "Envie o PDF pesquisável ou Word (.docx). O sistema lê os dados e, no Word, pode virar o modelo preenchível."
+                            ? "Envie o PDF ou Word (.docx). Depois de conferir os dados, use como modelo da imobiliária — o sistema preenche o mesmo layout."
                             : "A imobiliária ainda não enviou o contrato próprio. Use o modelo do sistema abaixo."}
                       </p>
                     </div>
