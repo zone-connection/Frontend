@@ -36,8 +36,8 @@ import {
   completeOruloOAuth,
   connectOrulo,
   disconnectOrulo,
-  fetchOruloOAuthUrl,
   fetchOruloStatus,
+  startOruloEndUserOAuth,
   syncOrulo,
   type OruloStatus,
 } from "@/lib/orulo-api";
@@ -730,8 +730,9 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Importa empreendimentos do catálogo da Órulo, atualiza via webhook e
-          envia os links de publicação. Dados comerciais do corretor exigem
-          autorização extra (oruloEndUserAuth).
+          envia os links de publicação. Comissão, contatos comerciais e arquivos
+          de venda só abrem em tempo real depois que cada corretor autoriza
+          (oruloEndUserAuth) — esses dados não ficam gravados no CRM.
         </p>
 
         {loading ? (
@@ -766,10 +767,14 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
             ) : null}
             {status.oauthRedirectUri ? (
               <p className="text-xs text-muted-foreground">
-                Redirect URI do corretor:{" "}
+                Informe esta redirect URI ao time de integrações da Órulo
+                (HTTPS em produção):{" "}
                 <code className="rounded bg-muted px-1">
                   {status.oauthRedirectUri}
                 </code>
+                {status.endUserAuthorized
+                  ? " · Você já autorizou os dados comerciais neste usuário."
+                  : " · Você ainda não autorizou os dados comerciais neste usuário."}
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
@@ -820,8 +825,7 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
                 variant="outline"
                 disabled={busy}
                 onClick={() => {
-                  void fetchOruloOAuthUrl()
-                    .then((res) => window.location.assign(res.url))
+                  void startOruloEndUserOAuth("/configuracoes?secao=conta&item=conexoes")
                     .catch((err) =>
                       toast.error(
                         err instanceof ApiError
@@ -831,7 +835,9 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
                     );
                 }}
               >
-                Autorizar corretor
+                {status.endUserAuthorized
+                  ? "Reautorizar dados comerciais"
+                  : "Autorizar corretor (dados comerciais)"}
               </Button>
               {isAdmin ? (
                 <Button
@@ -848,6 +854,8 @@ function OruloConexoesCard({ callbackCode }: { callbackCode?: string }) {
                           connection: null,
                           webhookUrl: status.webhookUrl,
                           oauthRedirectUri: status.oauthRedirectUri,
+                          buildingCount: 0,
+                          endUserAuthorized: false,
                         });
                         toast.success("Órulo desconectada.");
                       })

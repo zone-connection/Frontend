@@ -27,7 +27,17 @@ function EmpreendimentoDetalhePage() {
         if (next.oruloBuildingId) {
           void fetchOruloComercial(next.id)
             .then(setComercial)
-            .catch(() => setComercial(null));
+            .catch((err) => {
+              setComercial({
+                orulo: true,
+                authorized: false,
+                oruloUrl: next.externalUrl ?? null,
+                buildingId: next.oruloBuildingId ?? undefined,
+              });
+              if (err instanceof ApiError && err.status !== 401) {
+                toast.error(err.message);
+              }
+            });
         } else {
           setComercial(null);
         }

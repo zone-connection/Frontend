@@ -234,6 +234,7 @@ export function canAccessRoute(
   if (path === "/perfil") return true;
   if (path === "/novidades") return true;
   if (path === "/caca-lead") return true;
+  if (path === "/orulo-oauth-callback") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;
   if (!isSoloPathAllowed(path, plano ?? null)) return false;

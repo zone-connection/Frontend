@@ -19,13 +19,17 @@ export type OruloStatus = {
   webhookUrl: string | null;
   oauthRedirectUri: string;
   buildingCount: number;
+  endUserAuthorized?: boolean;
 };
 
 export type OruloComercial = {
   orulo: boolean;
   authorized?: boolean;
+  stored?: boolean;
   oruloUrl: string | null;
+  website?: string | null;
   buildingId?: number;
+  commissionPct?: number | null;
   opportunity?: Record<string, unknown> | null;
   commercialContacts?: Record<string, unknown>[];
   files?: Record<string, unknown>[];
@@ -57,14 +61,34 @@ export function syncOrulo() {
   });
 }
 
-export function fetchOruloOAuthUrl() {
-  return apiFetch<{ url: string }>("/integrations/orulo/oauth/url");
+export function fetchOruloOAuthUrl(returnTo?: string) {
+  const query = returnTo
+    ? `?returnTo=${encodeURIComponent(returnTo)}`
+    : "";
+  return apiFetch<{ url: string; redirectUri: string }>(
+    `/integrations/orulo/oauth/url${query}`,
+  );
 }
 
-export function completeOruloOAuth(code: string) {
-  return apiFetch<{ connected: boolean }>("/integrations/orulo/oauth/complete", {
+export function startOruloEndUserOAuth(returnTo?: string) {
+  return fetchOruloOAuthUrl(returnTo ?? window.location.pathname).then((res) => {
+    window.location.assign(res.url);
+  });
+}
+
+export function completeOruloOAuth(code: string, state?: string) {
+  return apiFetch<{ connected: boolean; returnTo?: string }>(
+    "/integrations/orulo/oauth/complete",
+    {
+      method: "POST",
+      body: { code, state },
+    },
+  );
+}
+
+export function disconnectOruloEndUser() {
+  return apiFetch<{ connected: boolean }>("/integrations/orulo/oauth/disconnect", {
     method: "POST",
-    body: { code },
   });
 }
 

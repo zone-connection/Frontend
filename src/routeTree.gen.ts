@@ -43,6 +43,7 @@ import { Route as AppLocacaoRouteImport } from './routes/_app.locacao'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppMuralChavesRouteImport } from './routes/_app.mural-chaves'
 import { Route as AppNovidadesRouteImport } from './routes/_app.novidades'
+import { Route as AppOruloOauthCallbackRouteImport } from './routes/_app.orulo-oauth-callback'
 import { Route as AppParceriasRouteImport } from './routes/_app.parcerias'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppPermissoesRouteImport } from './routes/_app.permissoes'
@@ -283,6 +284,11 @@ const AppMuralChavesRoute = AppMuralChavesRouteImport.update({
 const AppNovidadesRoute = AppNovidadesRouteImport.update({
   id: '/novidades',
   path: '/novidades',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOruloOauthCallbackRoute = AppOruloOauthCallbackRouteImport.update({
+  id: '/orulo-oauth-callback',
+  path: '/orulo-oauth-callback',
   getParentRoute: () => AppRoute,
 } as any)
 const AppParceriasRoute = AppParceriasRouteImport.update({
@@ -698,6 +704,7 @@ export interface FileRoutesByFullPath {
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
+  '/orulo-oauth-callback': typeof AppOruloOauthCallbackRoute
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
@@ -803,6 +810,7 @@ export interface FileRoutesByTo {
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
   '/novidades': typeof AppNovidadesRoute
+  '/orulo-oauth-callback': typeof AppOruloOauthCallbackRoute
   '/parcerias': typeof AppParceriasRouteWithChildren
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
@@ -907,6 +915,7 @@ export interface FileRoutesById {
   '/_app/metas': typeof AppMetasRoute
   '/_app/mural-chaves': typeof AppMuralChavesRoute
   '/_app/novidades': typeof AppNovidadesRoute
+  '/_app/orulo-oauth-callback': typeof AppOruloOauthCallbackRoute
   '/_app/parcerias': typeof AppParceriasRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/permissoes': typeof AppPermissoesRoute
@@ -1016,6 +1025,7 @@ export interface FileRouteTypes {
     | '/metas'
     | '/mural-chaves'
     | '/novidades'
+    | '/orulo-oauth-callback'
     | '/parcerias'
     | '/perfil'
     | '/permissoes'
@@ -1121,6 +1131,7 @@ export interface FileRouteTypes {
     | '/metas'
     | '/mural-chaves'
     | '/novidades'
+    | '/orulo-oauth-callback'
     | '/parcerias'
     | '/perfil'
     | '/permissoes'
@@ -1224,6 +1235,7 @@ export interface FileRouteTypes {
     | '/_app/metas'
     | '/_app/mural-chaves'
     | '/_app/novidades'
+    | '/_app/orulo-oauth-callback'
     | '/_app/parcerias'
     | '/_app/perfil'
     | '/_app/permissoes'
@@ -1552,6 +1564,13 @@ declare module '@tanstack/react-router' {
       path: '/novidades'
       fullPath: '/novidades'
       preLoaderRoute: typeof AppNovidadesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/orulo-oauth-callback': {
+      id: '/_app/orulo-oauth-callback'
+      path: '/orulo-oauth-callback'
+      fullPath: '/orulo-oauth-callback'
+      preLoaderRoute: typeof AppOruloOauthCallbackRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/parcerias': {
@@ -2246,6 +2265,7 @@ interface AppRouteChildren {
   AppMetasRoute: typeof AppMetasRoute
   AppMuralChavesRoute: typeof AppMuralChavesRoute
   AppNovidadesRoute: typeof AppNovidadesRoute
+  AppOruloOauthCallbackRoute: typeof AppOruloOauthCallbackRoute
   AppParceriasRoute: typeof AppParceriasRouteWithChildren
   AppPerfilRoute: typeof AppPerfilRoute
   AppPermissoesRoute: typeof AppPermissoesRoute
@@ -2288,6 +2308,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMetasRoute: AppMetasRoute,
   AppMuralChavesRoute: AppMuralChavesRoute,
   AppNovidadesRoute: AppNovidadesRoute,
+  AppOruloOauthCallbackRoute: AppOruloOauthCallbackRoute,
   AppParceriasRoute: AppParceriasRouteWithChildren,
   AppPerfilRoute: AppPerfilRoute,
   AppPermissoesRoute: AppPermissoesRoute,

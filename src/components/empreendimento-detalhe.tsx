@@ -13,7 +13,7 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { tipologiasVisiveis } from "@/lib/empreendimento-tipologias";
-import { fetchOruloOAuthUrl, type OruloComercial } from "@/lib/orulo-api";
+import { startOruloEndUserOAuth, type OruloComercial } from "@/lib/orulo-api";
 import { getSession } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -804,17 +804,32 @@ export function EmpreendimentoDetalhe({
               </dl>
               <div className="mt-4 rounded-2xl bg-muted/60 p-3 text-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
-                  Ao vivo · não fica gravado no CRM
+                  Ao vivo · oruloEndUserAuth · não fica gravado no CRM
                 </p>
                 {comercial?.authorized === false ? (
                   <div className="mt-2 space-y-2">
-                    <p className="text-muted-foreground">Autorize para ver comissão e arquivos.</p>
+                    <p className="text-muted-foreground">
+                      Autorize sua conta Órulo para ver comissão, contatos
+                      comerciais e arquivos de venda em tempo real.
+                    </p>
+                    {comercial.oruloUrl ? (
+                      <p>
+                        Enquanto isso, abra a página na Órulo:{" "}
+                        <a
+                          href={comercial.oruloUrl}
+                          className="underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {comercial.oruloUrl}
+                        </a>
+                      </p>
+                    ) : null}
                     <Button
                       size="sm"
                       className="rounded-full"
                       onClick={() => {
-                        void fetchOruloOAuthUrl()
-                          .then((res) => window.location.assign(res.url))
+                        void startOruloEndUserOAuth(window.location.pathname)
                           .catch((err) =>
                             toast.error(
                               err instanceof ApiError
@@ -829,9 +844,46 @@ export function EmpreendimentoDetalhe({
                   </div>
                 ) : comercial?.authorized ? (
                   <div className="mt-2 space-y-2">
+                    {comercial.commissionPct != null ? (
+                      <p>Comissão da imobiliária · {comercial.commissionPct}%</p>
+                    ) : null}
+                    {comercial.website ? (
+                      <a
+                        href={comercial.website}
+                        className="block underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Site do empreendimento
+                      </a>
+                    ) : null}
+                    {comercial.oruloUrl ? (
+                      <a
+                        href={comercial.oruloUrl}
+                        className="block underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Página na Órulo
+                      </a>
+                    ) : null}
+                    {comercial.opportunity &&
+                    Object.keys(comercial.opportunity).length > 0 ? (
+                      <p className="text-muted-foreground">
+                        {String(
+                          comercial.opportunity.description ??
+                            comercial.opportunity.text ??
+                            comercial.opportunity.title ??
+                            "",
+                        )}
+                      </p>
+                    ) : null}
                     {(comercial.commercialContacts ?? []).map((contact, index) => (
                       <p key={String(contact.id ?? index)}>
                         {String(contact.name ?? "Contato")}
+                        {contact.email ? ` · ${String(contact.email)}` : ""}
+                        {contact.phone ? ` · ${String(contact.phone)}` : ""}
+                        {contact.whatsapp ? ` · WhatsApp ${String(contact.whatsapp)}` : ""}
                         {contact.real_estate_agency_commission != null
                           ? ` · ${String(contact.real_estate_agency_commission)}%`
                           : ""}
