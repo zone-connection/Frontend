@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { TarefasPainel } from "@/components/tarefas-painel";
-import { TarefasAgendaEmbed } from "@/components/tarefas-agenda-embed";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
+import { TarefasSemana } from "@/components/tarefas-semana";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
@@ -174,19 +174,24 @@ function TarefasPage() {
         abertas={painel.filter((item) => item.status === "aberta").length}
         onChange={(next) => {
           setSecao(next);
-          if (next === "calendario") setVisao("mes");
+          if (next === "calendario") setVisao("semana");
           if (next === "tarefas" || next === "geral") setVisao("lista");
         }}
       />
-      {secao === "agenda" ? (
-        <TarefasAgendaEmbed />
+      {secao === "calendario" ? (
+        <TarefasSemana
+          items={painel}
+          onOpen={(tarefa) => {
+            if (!tarefa.demonstracao) abrirEdicao(tarefa);
+          }}
+        />
       ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
           if (!tarefa.demonstracao) abrirEdicao(tarefa);
         }} />
       ) : (
       <TarefasPainel
-        modo={secao === "calendario" ? "calendario" : secao === "tarefas" ? "lista" : "geral"}
+        modo={secao === "tarefas" ? "lista" : "geral"}
         items={painel}
         filtro={filtro}
         visao={visao}

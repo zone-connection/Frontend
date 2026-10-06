@@ -1,6 +1,5 @@
 import {
   Building2,
-  Calendar,
   CalendarDays,
   Headset,
   LayoutGrid,
@@ -13,7 +12,6 @@ import { cn } from "@/lib/utils";
 export type TarefaSecao =
   | "geral"
   | "tarefas"
-  | "agenda"
   | "calendario"
   | "leads"
   | "imoveis"
@@ -22,7 +20,6 @@ export type TarefaSecao =
 const WORKSPACE: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
   { id: "geral", label: "Visão geral", icon: LayoutGrid },
   { id: "tarefas", label: "Minhas tarefas", icon: ListTodo },
-  { id: "agenda", label: "Agenda", icon: Calendar },
   { id: "calendario", label: "Calendário", icon: CalendarDays },
 ];
 
