@@ -71,6 +71,7 @@ export function TarefasPainel({
   onOpen,
   onComplete,
   onCreate,
+  modo = "geral",
 }: {
   items: TarefaVisivel[];
   filtro: TarefaFiltro;
@@ -82,6 +83,7 @@ export function TarefasPainel({
   onOpen: (tarefa: TarefaVisivel) => void;
   onComplete: (tarefa: TarefaVisivel) => void;
   onCreate: () => void;
+  modo?: "geral" | "lista" | "calendario";
 }) {
   const hoje = hojeYmd();
   const abertas = items.filter((item) => item.status === "aberta");
@@ -142,7 +144,9 @@ export function TarefasPainel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Minhas tarefas</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {modo === "calendario" ? "Calendário" : modo === "lista" ? "Minhas tarefas" : "Visão geral"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Um passo de cada vez. Tudo sob controle.
           </p>
@@ -153,14 +157,16 @@ export function TarefasPainel({
         </Button>
       </div>
 
+      {modo === "calendario" ? null : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Resumo icon={List} valor={hojeCount} titulo="Tarefas para hoje" detalhe="Seu foco para o dia" />
         <Resumo icon={CalendarDays} valor={proximas} titulo="Próximas tarefas" detalhe="O que vem pela frente" />
         <Resumo icon={Clock3} valor={atrasadas} titulo="Tarefas atrasadas" detalhe="Precisam da sua atenção" />
         <Resumo icon={CheckCircle2} valor={concluidas} titulo="Tarefas concluídas" detalhe="Cada conquista conta" />
       </div>
+      )}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
         <section className="min-w-0 rounded-2xl border bg-card">
           <div className="flex gap-6 overflow-x-auto border-b px-5 pt-4 text-sm">
             {FILTROS.map((item) => (
@@ -182,6 +188,7 @@ export function TarefasPainel({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            {modo === "lista" ? <p className="text-sm text-muted-foreground">Pendências da rotina</p> : (
             <div className="flex rounded-xl bg-muted/60 p-1">
               {(
                 [
@@ -204,7 +211,8 @@ export function TarefasPainel({
                 </button>
               ))}
             </div>
-            {visao === "lista" ? (
+            )}
+            {modo === "lista" || visao === "lista" ? (
               <p className="text-xs text-muted-foreground">Exemplos para explorar</p>
             ) : (
               <div className="flex items-center gap-1 text-sm">
@@ -222,7 +230,7 @@ export function TarefasPainel({
           </div>
 
           <div className="space-y-6 px-5 pb-5">
-            {visao === "lista" ? (
+            {modo !== "calendario" && visao === "lista" ? (
               grupos.map((grupo) => (
                 <div key={grupo.titulo} className="space-y-2">
                   <p className={cn("text-sm font-medium", grupo.titulo === "Atrasadas" && "text-red-600")}>
@@ -278,7 +286,7 @@ export function TarefasPainel({
               ))
             ) : (
               <TarefasCalendario
-                visao={visao}
+                visao={visao === "lista" ? "mes" : visao}
                 anchor={anchor}
                 items={visiveis}
                 onOpen={onOpen}
@@ -291,7 +299,7 @@ export function TarefasPainel({
           </div>
         </section>
 
-        <aside className="space-y-4">
+        {modo === "lista" ? null : <aside className="space-y-4">
           <div className="rounded-2xl border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium">Seu calendário</p>
@@ -342,7 +350,7 @@ export function TarefasPainel({
               <div className="h-full bg-emerald-600" style={{ width: `${progresso}%` }} />
             </div>
           </div>
-        </aside>
+        </aside>}
       </div>
     </div>
   );

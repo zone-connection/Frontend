@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { TarefasPainel } from "@/components/tarefas-painel";
+import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
+import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,7 @@ function TarefasPage() {
       ? true
       : (session?.tenant?.tarefasEnabled ?? null),
   );
+  const [secao, setSecao] = useState<TarefaSecao>("geral");
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
   const [visao, setVisao] = useState<TarefaVisao>("lista");
   const [anchor, setAnchor] = useState(hojeYmd);
@@ -165,7 +168,22 @@ function TarefasPage() {
           </Link>
         </p>
       ) : null}
+      <TarefasModuloNav
+        secao={secao}
+        abertas={painel.filter((item) => item.status === "aberta").length}
+        onChange={(next) => {
+          setSecao(next);
+          if (next === "calendario") setVisao("mes");
+          if (next === "tarefas" || next === "geral") setVisao("lista");
+        }}
+      />
+      {secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
+        <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
+          if (!tarefa.demonstracao) abrirEdicao(tarefa);
+        }} />
+      ) : (
       <TarefasPainel
+        modo={secao === "calendario" ? "calendario" : secao === "tarefas" ? "lista" : "geral"}
         items={painel}
         filtro={filtro}
         visao={visao}
@@ -204,6 +222,7 @@ function TarefasPage() {
           abrirNova();
         }}
       />
+      )}
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
