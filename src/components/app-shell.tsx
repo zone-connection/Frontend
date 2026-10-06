@@ -485,10 +485,10 @@ const NAV_SECTIONS: {
   },
   {
     id: "tarefas",
-    label: "Minhas tarefas",
+    label: "Tarefas",
     icon: ListTodo,
     standalone: true,
-    items: [{ to: "/tarefas", label: "Minhas tarefas", icon: ListTodo }],
+    items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
   },
   {
     id: "catalogo",
@@ -986,9 +986,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   (c.to !== "/financeiro/comissao" || canSeeComissao(user)),
                 );
                 return children.length ? { ...item, children } : null;
-              }
-              if (item.to === "/tarefas" && !user.tenant?.tarefasEnabled) {
-                return null;
               }
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;

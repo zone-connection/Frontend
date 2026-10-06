@@ -3,6 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
+import {
+  TarefasCalendario,
+  addDays,
+  dayLabel,
+  hojeYmd,
+  monthLabel,
+  shiftMonth,
+  startOfWeek,
+  type TarefaVisao,
+} from "@/components/tarefas-calendario";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -72,6 +82,8 @@ function TarefasPage() {
     session?.tenant?.tarefasEnabled ?? null,
   );
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
+  const [visao, setVisao] = useState<TarefaVisao>("lista");
+  const [anchor, setAnchor] = useState(hojeYmd);
   const [items, setItems] = useState<Tarefa[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -88,13 +100,15 @@ function TarefasPage() {
       const acesso = await fetchTarefasAcesso();
       setEnabled(acesso.enabled);
       if (!acesso.enabled) return;
-      setItems(await fetchTarefas({ filtro }));
+      setItems(
+        await fetchTarefas({ filtro: visao === "lista" ? filtro : "todas" }),
+      );
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha ao carregar tarefas.");
     } finally {
       setLoading(false);
     }
-  }, [filtro]);
+  }, [filtro, visao]);
 
   useEffect(() => {
     void load();
@@ -184,8 +198,8 @@ function TarefasPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Minhas tarefas"
-        description="Pendências, lembretes e follow-ups da rotina comercial."
+        title="Tarefas"
+        description="Sua rotina, com lista e calendário próprios. A agenda do CRM continua separada."
         actions={
           <Button onClick={abrirNova} disabled={!enabled}>
             <Plus className="mr-1.5 h-4 w-4" />
@@ -193,6 +207,69 @@ function TarefasPage() {
           </Button>
         }
       />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["lista", "Lista"],
+              ["dia", "Dia"],
+              ["semana", "Semana"],
+              ["mes", "Mês"],
+            ] as const
+          ).map(([id, label]) => (
+            <Button
+              key={id}
+              size="sm"
+              variant={visao === id ? "default" : "outline"}
+              onClick={() => setVisao(id)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        {visao !== "lista" ? (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setAnchor((current) =>
+                  visao === "mes"
+                    ? shiftMonth(current, -1)
+                    : addDays(current, visao === "dia" ? -1 : -7),
+                )
+              }
+            >
+              Anterior
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setAnchor(hojeYmd())}>
+              Hoje
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setAnchor((current) =>
+                  visao === "mes"
+                    ? shiftMonth(current, 1)
+                    : addDays(current, visao === "dia" ? 1 : 7),
+                )
+              }
+            >
+              Próximo
+            </Button>
+            <span className="text-sm font-medium">
+              {visao === "dia"
+                ? dayLabel(anchor)
+                : visao === "semana"
+                  ? `${formatDia(startOfWeek(anchor))} – ${formatDia(addDays(startOfWeek(anchor), 6))}`
+                  : monthLabel(anchor)}
+            </span>
+          </div>
+        ) : null}
+      </div>
+      {visao === "lista" ? (
+      <>
       <div className="flex flex-wrap gap-2">
         {FILTROS.map((item) => (
           <Button
@@ -285,6 +362,19 @@ function TarefasPage() {
           </ul>
         </section>
       ))}
+      </>
+      ) : (
+        <TarefasCalendario
+          visao={visao}
+          anchor={anchor}
+          items={items}
+          onOpen={abrirEdicao}
+          onPickDay={(day) => {
+            setAnchor(day);
+            setVisao("dia");
+          }}
+        />
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
