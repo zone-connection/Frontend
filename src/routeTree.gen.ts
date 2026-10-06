@@ -107,6 +107,8 @@ import { Route as AppParceriasVisaoGeralRouteImport } from './routes/_app.parcer
 import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.index'
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
 import { Route as PublicoEmpreendimentoIdRouteImport } from './routes/publico.empreendimento.$id'
+import { Route as PublicoPropostaTokenRouteImport } from './routes/publico.proposta.$token'
+import { Route as PublicoPropostaReciboCompradorTokenRouteImport } from './routes/publico.proposta.recibo.$compradorToken'
 import { Route as AppCaptacaoCaptacoesIndexRouteImport } from './routes/_app.captacao.captacoes.index'
 import { Route as AppCaptacaoCaptacoesIdRouteImport } from './routes/_app.captacao.captacoes.$id'
 import { Route as AppCaptacaoImoveisIndexRouteImport } from './routes/_app.captacao.imoveis.index'
@@ -618,6 +620,17 @@ const PublicoEmpreendimentoIdRoute = PublicoEmpreendimentoIdRouteImport.update({
   path: '/publico/empreendimento/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicoPropostaTokenRoute = PublicoPropostaTokenRouteImport.update({
+  id: '/publico/proposta/$token',
+  path: '/publico/proposta/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicoPropostaReciboCompradorTokenRoute =
+  PublicoPropostaReciboCompradorTokenRouteImport.update({
+    id: '/publico/proposta/recibo/$compradorToken',
+    path: '/publico/proposta/recibo/$compradorToken',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppCaptacaoCaptacoesIndexRoute =
   AppCaptacaoCaptacoesIndexRouteImport.update({
     id: '/',
@@ -767,6 +780,8 @@ export interface FileRoutesByFullPath {
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
+  '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -868,6 +883,8 @@ export interface FileRoutesByTo {
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
+  '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -978,6 +995,8 @@ export interface FileRoutesById {
   '/_app/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
+  '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/_app/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/_app/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
@@ -1088,6 +1107,8 @@ export interface FileRouteTypes {
     | '/parcerias/visao-geral'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
+    | '/publico/proposta/$token'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis/'
     | '/captacao/captacoes/$id'
     | '/captacao/imoveis/$id'
@@ -1189,6 +1210,8 @@ export interface FileRouteTypes {
     | '/parcerias/visao-geral'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
+    | '/publico/proposta/$token'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis'
     | '/captacao/captacoes/$id'
     | '/captacao/imoveis/$id'
@@ -1298,6 +1321,8 @@ export interface FileRouteTypes {
     | '/_app/parcerias/visao-geral'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
+    | '/publico/proposta/$token'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis/'
     | '/_app/captacao/captacoes/$id'
     | '/_app/captacao/imoveis/$id'
@@ -1324,6 +1349,8 @@ export interface RootRouteChildren {
   ProdutosSitesInstitucionaisRoute: typeof ProdutosSitesInstitucionaisRoute
   PublicoEmpreendimentoIdRoute: typeof PublicoEmpreendimentoIdRoute
   PublicoEmpreendimentoTenantSlugRoute: typeof PublicoEmpreendimentoTenantSlugRoute
+  PublicoPropostaTokenRoute: typeof PublicoPropostaTokenRoute
+  PublicoPropostaReciboCompradorTokenRoute: typeof PublicoPropostaReciboCompradorTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2014,6 +2041,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicoEmpreendimentoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/publico/proposta/$token': {
+      id: '/publico/proposta/$token'
+      path: '/publico/proposta/$token'
+      fullPath: '/publico/proposta/$token'
+      preLoaderRoute: typeof PublicoPropostaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publico/proposta/recibo/$compradorToken': {
+      id: '/publico/proposta/recibo/$compradorToken'
+      path: '/publico/proposta/recibo/$compradorToken'
+      fullPath: '/publico/proposta/recibo/$compradorToken'
+      preLoaderRoute: typeof PublicoPropostaReciboCompradorTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/captacao/captacoes/': {
       id: '/_app/captacao/captacoes/'
       path: '/'
@@ -2401,6 +2442,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosSitesInstitucionaisRoute: ProdutosSitesInstitucionaisRoute,
   PublicoEmpreendimentoIdRoute: PublicoEmpreendimentoIdRoute,
   PublicoEmpreendimentoTenantSlugRoute: PublicoEmpreendimentoTenantSlugRoute,
+  PublicoPropostaTokenRoute: PublicoPropostaTokenRoute,
+  PublicoPropostaReciboCompradorTokenRoute:
+    PublicoPropostaReciboCompradorTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

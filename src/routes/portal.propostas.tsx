@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PortalEmpty, PortalPageTitle } from "@/components/portal-ui";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,9 @@ import {
 import { ApiError } from "@/lib/api";
 import { formatBrl } from "@/lib/captacao-api";
 import {
+  aceitarPortalProposta,
   fetchPortalPropostasCarteira,
+  visualizarPortalProposta,
   type PortalProposta,
 } from "@/lib/portal-api";
 import { PROPOSTA_STATUS_LABEL, type PropostaStatus } from "@/lib/propostas-api";
@@ -48,6 +51,7 @@ function PortalPropostasPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [aberta, setAberta] = useState<Item | null>(null);
+  const [aceitando, setAceitando] = useState(false);
 
   useEffect(() => {
     void fetchPortalPropostasCarteira()
@@ -99,7 +103,12 @@ function PortalPropostasPage() {
                 <TableRow
                   key={`${item.imovel.id}-${item.id}`}
                   className="cursor-pointer hover:bg-slate-50"
-                  onClick={() => setAberta(item)}
+                  onClick={() => {
+                    setAberta(item);
+                    if (item.origem === "crm") {
+                      void visualizarPortalProposta(item.id).catch(() => {});
+                    }
+                  }}
                 >
                   <TableCell>
                     <Link
@@ -160,6 +169,18 @@ function PortalPropostasPage() {
                   <dt className="text-xs text-slate-500">Vinculada em</dt>
                   <dd>{new Date(aberta.data).toLocaleString("pt-BR")}</dd>
                 </div>
+                {aberta.interessadoTelefone ? (
+                  <div>
+                    <dt className="text-xs text-slate-500">Telefone</dt>
+                    <dd className="font-medium">{aberta.interessadoTelefone}</dd>
+                  </div>
+                ) : null}
+                {aberta.aceitaEm ? (
+                  <div>
+                    <dt className="text-xs text-slate-500">Aceita em</dt>
+                    <dd>{new Date(aberta.aceitaEm).toLocaleString("pt-BR")}</dd>
+                  </div>
+                ) : null}
                 {aberta.corretorNome ? (
                   <div>
                     <dt className="text-xs text-slate-500">Corretor</dt>
@@ -194,6 +215,61 @@ function PortalPropostasPage() {
                   ))}
                 </ul>
               )}
+              {aberta.origem === "crm" &&
+              aberta.status !== "aceita" &&
+              aberta.status !== "recusada" &&
+              aberta.status !== "expirada" ? (
+                <Button
+                  className="w-full"
+                  disabled={aceitando}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        "Aceitar esta proposta? Esta ação registra o aceite do proprietário.",
+                      )
+                    ) {
+                      return;
+                    }
+                    setAceitando(true);
+                    void aceitarPortalProposta(aberta.id)
+                      .then((result) => {
+                        toast.success("Proposta aceita.");
+                        setAberta({
+                          ...aberta,
+                          status: result.status,
+                          aceitaEm: result.aceitaEm,
+                        });
+                        setRows((prev) =>
+                          prev.map((row) => ({
+                            ...row,
+                            propostas: row.propostas.map((p) =>
+                              p.id === aberta.id
+                                ? {
+                                    ...p,
+                                    status: result.status,
+                                    aceitaEm: result.aceitaEm,
+                                  }
+                                : p,
+                            ),
+                          })),
+                        );
+                      })
+                      .catch((err) => {
+                        toast.error(
+                          err instanceof ApiError
+                            ? err.message
+                            : "Não foi possível aceitar.",
+                        );
+                      })
+                      .finally(() => setAceitando(false));
+                  }}
+                >
+                  {aceitando ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Aceitar proposta
+                </Button>
+              ) : null}
             </>
           )}
         </DialogContent>

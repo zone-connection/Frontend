@@ -20,6 +20,7 @@ import {
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
 import { fichaToPayload, imovelToFicha } from "@/lib/imovel-ficha";
 import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
+import { PropostaLinkPublicoButton } from "@/components/proposta-link-publico-button";
 import { fetchFunis, type Funil } from "@/lib/funis-api";
 import { PillTabs } from "@/components/operacao-ui";
 import {
@@ -389,9 +390,12 @@ function VendaUsadoDetalhePage() {
         title={im.titulo}
         description={`${formatBrl(item.precoVenda)} · ${VENDA_STATUS_LABEL[item.status]} · ${item.responsavel.name}`}
         actions={
-          <Button asChild size="sm" variant="outline">
-            <Link to="/imoveis">Voltar ao catálogo</Link>
-          </Button>
+          <div className="flex gap-2">
+            <PropostaLinkPublicoButton imovelId={im.id} />
+            <Button asChild size="sm" variant="outline">
+              <Link to="/imoveis">Voltar ao catálogo</Link>
+            </Button>
+          </div>
         }
       />
       {imovelCapaUrl(im) ? (

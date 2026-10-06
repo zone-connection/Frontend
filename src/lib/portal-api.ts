@@ -411,6 +411,7 @@ export function fetchPortalVisitas(id: string) {
 export type PortalProposta = {
   id: string;
   origem?: "crm" | "usado";
+  origemPublica?: boolean;
   numero: string;
   codigo?: string | null;
   valor: number | null;
@@ -418,12 +419,16 @@ export type PortalProposta = {
   status: string;
   data: string;
   interessadoNome: string;
+  interessadoTelefone?: string | null;
+  interessadoEmail?: string | null;
   unidade?: string | null;
   empreendimentoNome?: string | null;
   observacao?: string | null;
   validade?: string | null;
   corretorNome?: string | null;
   composicao?: Array<{ label: string; valor: number }>;
+  aceitaEm?: string | null;
+  parcelaCaixa?: number | null;
   negociacao: {
     status: string;
     valorInicial: number | null;
@@ -540,6 +545,20 @@ export function fetchPortalPropostasCarteira() {
       propostas: PortalProposta[];
     }>
   >("/portal-proprietario/propostas");
+}
+
+export function aceitarPortalProposta(id: string) {
+  return portalFetch<{ id: string; status: string; aceitaEm: string | null }>(
+    `/portal-proprietario/propostas/${id}/aceitar`,
+    { method: "POST" },
+  );
+}
+
+export function visualizarPortalProposta(id: string) {
+  return portalFetch<{ ok: boolean }>(
+    `/portal-proprietario/propostas/${id}/visualizar`,
+    { method: "POST" },
+  );
 }
 
 export async function fetchPortalDocumentosCarteira() {

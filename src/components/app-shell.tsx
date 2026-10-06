@@ -846,7 +846,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ),
     );
     const leadDest = canOpenFunil ? "/funil" : "/leads";
-    if (n.tipo === "proposta_vencimento_proximo") {
+    if (
+      n.tipo === "proposta_publica_recebida" ||
+      n.tipo === "proposta_publica_aceita" ||
+      n.tipo === "proposta_vencimento_proximo"
+    ) {
       if (
         user &&
         canAccessRoute(

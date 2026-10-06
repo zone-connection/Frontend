@@ -14,6 +14,8 @@ export type NotificacaoTipo =
   | "tarefa_atrasada"
   | "imovel_compativel"
   | "proposta_vencimento_proximo"
+  | "proposta_publica_recebida"
+  | "proposta_publica_aceita"
   | "lead_atribuido"
   | "lead_pool"
   | "chave_retirada"

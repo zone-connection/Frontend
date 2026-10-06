@@ -90,6 +90,8 @@ export type Proposta = {
   status: PropostaStatus;
   validade: string | null;
   enviadaEm: string | null;
+  origemPublica?: boolean;
+  aceitaEm?: string | null;
   observacao: string | null;
   createdAt: string;
   updatedAt: string;

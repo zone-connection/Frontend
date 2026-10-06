@@ -155,6 +155,11 @@ import {
   type PropostaStatus,
 } from "@/lib/propostas-api";
 import {
+  copiarLinkPropostaPublica,
+  fetchPropostaHistorico,
+  type PropostaHistoricoEvento,
+} from "@/lib/proposta-publica-api";
+import {
   downloadPropostaPdfCliente,
   downloadPropostaPdfCorretor,
   getPropostaMailtoUrl,
@@ -196,6 +201,7 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Clock3,
+  Copy,
   Download,
   Eye,
   FileText,
@@ -766,6 +772,28 @@ function PropostaActionMenus({
                 Vincular imóvel
               </DropdownMenuItem>
             )}
+            {proposta.vinculos?.some((v) => v.imovelId || v.imovel) && (
+              <DropdownMenuItem
+                onClick={() => {
+                  const id =
+                    proposta.vinculos?.find((v) => v.imovelId || v.imovel)
+                      ?.imovelId ??
+                    proposta.vinculos?.find((v) => v.imovel)?.imovel?.id;
+                  if (!id) {
+                    toast.error("Vincule um imóvel de captação ou usados.");
+                    return;
+                  }
+                  void copiarLinkPropostaPublica(id)
+                    .then(() => toast.success("Link da proposta copiado."))
+                    .catch(() =>
+                      toast.error("Não foi possível copiar o link."),
+                    );
+                }}
+              >
+                <Copy className="h-4 w-4" />
+                Link da proposta
+              </DropdownMenuItem>
+            )}
             {onEdit && (
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
@@ -816,6 +844,28 @@ function PropostaActionMenus({
         <Button type="button" size="sm" variant="outline" onClick={onVincular}>
           <Link2 className="h-4 w-4 mr-1" />
           Vincular
+        </Button>
+      )}
+      {proposta.vinculos?.some((v) => v.imovelId || v.imovel) && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const id =
+              proposta.vinculos?.find((v) => v.imovelId || v.imovel)?.imovelId ??
+              proposta.vinculos?.find((v) => v.imovel)?.imovel?.id;
+            if (!id) {
+              toast.error("Vincule um imóvel de captação ou usados.");
+              return;
+            }
+            void copiarLinkPropostaPublica(id)
+              .then(() => toast.success("Link da proposta copiado."))
+              .catch(() => toast.error("Não foi possível copiar o link."));
+          }}
+        >
+          <Copy className="h-4 w-4 mr-1" />
+          Link da proposta
         </Button>
       )}
 
@@ -877,6 +927,7 @@ function Page() {
   const { leads, assignees } = useLeads();
 
   const [items, setItems] = useState<Proposta[]>([]);
+  const [historico, setHistorico] = useState<PropostaHistoricoEvento[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [captacoesCatalogo, setCaptacoesCatalogo] = useState<Captacao[]>([]);
@@ -953,6 +1004,16 @@ function Page() {
       .then(setQrCodeUrl)
       .catch(() => setQrCodeUrl(""));
   }, [qrTarget]);
+
+  useEffect(() => {
+    if (!selected) {
+      setHistorico([]);
+      return;
+    }
+    void fetchPropostaHistorico(selected.id)
+      .then(setHistorico)
+      .catch(() => setHistorico([]));
+  }, [selected?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1991,14 +2052,16 @@ function Page() {
                     <XCircle className="mr-1 size-4" />
                     Recusar
                   </Button>
-                  <Button
-                    type="button"
-                    disabled={actionLoading}
-                    onClick={() => void patchStatus(selected.id, "aceita")}
-                  >
-                    <CheckCircle2 className="mr-1 size-4" />
-                    Aceitar
-                  </Button>
+                  {!selected.origemPublica && (
+                    <Button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => void patchStatus(selected.id, "aceita")}
+                    >
+                      <CheckCircle2 className="mr-1 size-4" />
+                      Aceitar
+                    </Button>
+                  )}
                 </>
               )}
             </FormDialogActions>
@@ -2253,6 +2316,31 @@ function Page() {
                 </p>
               </FormSection>
             ) : null}
+
+            <FormSection title="Histórico">
+              {historico.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum evento registrado.
+                </p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {historico.map((evento) => (
+                    <li
+                      key={evento.id}
+                      className="rounded-lg border bg-muted/20 px-3 py-2"
+                    >
+                      <p className="font-medium">
+                        {evento.tipo.replaceAll("_", " ")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {evento.atorNome ? `${evento.atorNome} · ` : ""}
+                        {new Date(evento.createdAt).toLocaleString("pt-BR")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FormSection>
           </FormDialogBody>
         )}
       </FormDialogShell>

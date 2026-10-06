@@ -25,6 +25,7 @@ import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
 import { fichaToPayload, imovelToFicha } from "@/lib/imovel-ficha";
 import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
+import { PropostaLinkPublicoButton } from "@/components/proposta-link-publico-button";
 import { Building2, Loader2, Pencil, Trash2 } from "lucide-react";
 import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
 import { toast } from "sonner";
@@ -98,6 +99,7 @@ function ImovelDetalhePage() {
               <Pencil className="mr-1 h-3.5 w-3.5" />
               Editar ficha
             </Button>
+            <PropostaLinkPublicoButton imovelId={item.id} />
             <Button
               size="sm"
               variant="outline"
