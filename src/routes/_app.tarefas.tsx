@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { TarefasPainel } from "@/components/tarefas-painel";
+import { TarefasAgendaEmbed } from "@/components/tarefas-agenda-embed";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
@@ -177,7 +178,9 @@ function TarefasPage() {
           if (next === "tarefas" || next === "geral") setVisao("lista");
         }}
       />
-      {secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
+      {secao === "agenda" ? (
+        <TarefasAgendaEmbed />
+      ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
           if (!tarefa.demonstracao) abrirEdicao(tarefa);
         }} />
