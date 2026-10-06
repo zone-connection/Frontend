@@ -1,18 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Lock, Plus } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/app-shell";
-import {
-  TarefasCalendario,
-  addDays,
-  dayLabel,
-  hojeYmd,
-  monthLabel,
-  shiftMonth,
-  startOfWeek,
-  type TarefaVisao,
-} from "@/components/tarefas-calendario";
+import { TarefasPainel } from "@/components/tarefas-painel";
+import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
+import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,10 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
-  PRIORIDADE_LABEL,
   comentarTarefa,
   createTarefa,
-  deleteTarefa,
   fetchTarefas,
   fetchTarefasAcesso,
   updateTarefa,
@@ -46,14 +35,6 @@ export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
   component: TarefasPage,
 });
-
-const FILTROS: { id: TarefaFiltro; label: string }[] = [
-  { id: "todas", label: "Todas" },
-  { id: "hoje", label: "Hoje" },
-  { id: "proximas", label: "Próximas" },
-  { id: "atrasadas", label: "Atrasadas" },
-  { id: "concluidas", label: "Concluídas" },
-];
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -88,7 +69,8 @@ function TarefasPage() {
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
   const [visao, setVisao] = useState<TarefaVisao>("lista");
   const [anchor, setAnchor] = useState(hojeYmd);
-  const [items, setItems] = useState<Tarefa[]>([]);
+  const [items, setItems] = useState<TarefaVisivel[]>([]);
+  const [demos, setDemos] = useState<TarefaVisivel[]>(() => tarefasDemonstracao());
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Tarefa | null>(null);
@@ -104,15 +86,13 @@ function TarefasPage() {
       const acesso = await fetchTarefasAcesso();
       setEnabled(acesso.enabled);
       if (!acesso.enabled) return;
-      setItems(
-        await fetchTarefas({ filtro: visao === "lista" ? filtro : "todas" }),
-      );
+      setItems(await fetchTarefas({ filtro: "todas" }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha ao carregar tarefas.");
     } finally {
       setLoading(false);
     }
-  }, [filtro, visao]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -173,217 +153,64 @@ function TarefasPage() {
     }
   }
 
-  const grupos = useMemo(() => {
-    if (filtro !== "todas" && filtro !== "hoje") return [{ titulo: "", items }];
-    const map = new Map<string, Tarefa[]>();
-    for (const item of items) {
-      const key = item.atrasada ? "Atrasadas" : item.data;
-      map.set(key, [...(map.get(key) ?? []), item]);
-    }
-    return [...map.entries()].map(([titulo, list]) => ({ titulo, items: list }));
-  }, [filtro, items]);
-
-  if (enabled === false) {
-    return (
-      <div className="mx-auto flex max-w-lg flex-col items-start gap-4 py-16">
-        <Lock className="h-8 w-8" />
-        <h1 className="text-2xl font-semibold">Gestão de tarefas</h1>
-        <p className="text-muted-foreground">
-          Tarefas entra a partir do plano Prata. Nos planos Solo e Bronze, o
-          recurso continua como adicional.
-        </p>
-        <Button asChild>
-          <Link to="/configuracoes">Conhecer recurso</Link>
-        </Button>
-      </div>
-    );
-  }
+  const painel = [...demos, ...items];
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Tarefas"
-        description="Sua rotina, com lista e calendário próprios. A agenda do CRM continua separada."
-        actions={
-          <Button onClick={abrirNova} disabled={!enabled}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nova tarefa
-          </Button>
-        }
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["lista", "Lista"],
-              ["dia", "Dia"],
-              ["semana", "Semana"],
-              ["mes", "Mês"],
-            ] as const
-          ).map(([id, label]) => (
-            <Button
-              key={id}
-              size="sm"
-              variant={visao === id ? "default" : "outline"}
-              onClick={() => setVisao(id)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-        {visao !== "lista" ? (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                setAnchor((current) =>
-                  visao === "mes"
-                    ? shiftMonth(current, -1)
-                    : addDays(current, visao === "dia" ? -1 : -7),
-                )
-              }
-            >
-              Anterior
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setAnchor(hojeYmd())}>
-              Hoje
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                setAnchor((current) =>
-                  visao === "mes"
-                    ? shiftMonth(current, 1)
-                    : addDays(current, visao === "dia" ? 1 : 7),
-                )
-              }
-            >
-              Próximo
-            </Button>
-            <span className="text-sm font-medium">
-              {visao === "dia"
-                ? dayLabel(anchor)
-                : visao === "semana"
-                  ? `${formatDia(startOfWeek(anchor))} – ${formatDia(addDays(startOfWeek(anchor), 6))}`
-                  : monthLabel(anchor)}
-            </span>
-          </div>
-        ) : null}
-      </div>
-      {visao === "lista" ? (
-      <>
-      <div className="flex flex-wrap gap-2">
-        {FILTROS.map((item) => (
-          <Button
-            key={item.id}
-            size="sm"
-            variant={filtro === item.id ? "default" : "outline"}
-            onClick={() => setFiltro(item.id)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </div>
-      {loading ? <p className="text-sm text-muted-foreground">Carregando…</p> : null}
-      {!loading && items.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Nenhuma tarefa neste filtro.
+      {enabled === false ? (
+        <p className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+          Os exemplos abaixo são demonstração. Tarefas reais entram a partir do plano Prata.{" "}
+          <Link to="/configuracoes" className="underline">
+            Conhecer recurso
+          </Link>
         </p>
       ) : null}
-      {grupos.map((grupo) => (
-        <section key={grupo.titulo || "lista"} className="space-y-2">
-          {grupo.titulo ? (
-            <h2 className="text-sm font-medium">
-              {grupo.titulo === "Atrasadas" ? "Atrasadas" : formatDia(grupo.titulo)}
-            </h2>
-          ) : null}
-          <ul className="space-y-2">
-            {grupo.items.map((tarefa) => (
-              <li
-                key={tarefa.id}
-                className={`rounded-xl border p-3 ${tarefa.atrasada ? "border-amber-500 bg-amber-500/10" : ""}`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{tarefa.titulo}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tarefa.horario ?? "Sem horário"} · {formatDia(tarefa.data)} ·{" "}
-                      {PRIORIDADE_LABEL[tarefa.prioridade]} · {tarefa.responsavel.name}
-                    </p>
-                    {tarefa.agendaEventoId ? (
-                      <p className="text-sm">
-                        <Link
-                          to="/agenda"
-                          search={{ dia: tarefa.data }}
-                          className="underline"
-                        >
-                          Também na agenda
-                        </Link>
-                      </p>
-                    ) : null}
-                    <p className="text-sm">
-                      {[
-                        tarefa.contexto.lead ? `Lead: ${tarefa.contexto.lead.nome}` : null,
-                        tarefa.contexto.imovel
-                          ? `Imóvel: ${tarefa.contexto.imovel.rotulo}`
-                          : null,
-                        tarefa.contexto.atendimento
-                          ? `Atendimento: ${tarefa.contexto.atendimento.titulo}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {tarefa.status === "aberta" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          void updateTarefa(tarefa.id, { status: "concluida" }).then(load)
-                        }
-                      >
-                        Concluir
-                      </Button>
-                    ) : null}
-                    <Button size="sm" variant="outline" onClick={() => abrirEdicao(tarefa)}>
-                      {tarefa.atrasada ? "Reagendar" : "Editar"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void deleteTarefa(tarefa.id).then(load)}
-                    >
-                      Excluir
-                    </Button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      </>
-      ) : (
-        <TarefasCalendario
-          visao={visao}
-          anchor={anchor}
-          items={items}
-          onOpen={abrirEdicao}
-          onPickDay={(day) => {
-            setAnchor(day);
-            setVisao("dia");
-          }}
-        />
-      )}
+      <TarefasPainel
+        items={painel}
+        filtro={filtro}
+        visao={visao}
+        anchor={anchor}
+        onFiltro={setFiltro}
+        onVisao={setVisao}
+        onAnchor={setAnchor}
+        onOpen={(tarefa) => {
+          if (tarefa.demonstracao) return;
+          abrirEdicao(tarefa);
+        }}
+        onComplete={(tarefa) => {
+          if (tarefa.demonstracao) {
+            setDemos((current) =>
+              current.map((item) =>
+                item.id === tarefa.id
+                  ? {
+                      ...item,
+                      status: item.status === "concluida" ? "aberta" : "concluida",
+                      atrasada: false,
+                    }
+                  : item,
+              ),
+            );
+            return;
+          }
+          void updateTarefa(tarefa.id, {
+            status: tarefa.status === "concluida" ? "aberta" : "concluida",
+          }).then(load);
+        }}
+        onCreate={() => {
+          if (enabled === false) {
+            toast.error("Tarefas reais entram a partir do plano Prata.");
+            return;
+          }
+          abrirNova();
+        }}
+      />
+      {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar tarefa" : "Nova tarefa"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">Um novo passo para o seu dia.</p>
           </DialogHeader>
           <div className="grid gap-3">
             <Field label="Título">
@@ -579,7 +406,7 @@ function TarefasPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
@@ -588,8 +415,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function formatDia(ymd: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
-  const [y, m, d] = ymd.split("-");
-  return `${d}/${m}/${y}`;
-}
