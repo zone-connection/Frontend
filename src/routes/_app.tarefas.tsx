@@ -179,12 +179,7 @@ function TarefasPage() {
         }}
       />
       {secao === "calendario" ? (
-        <TarefasSemana
-          items={painel}
-          onOpen={(tarefa) => {
-            if (!tarefa.demonstracao) abrirEdicao(tarefa);
-          }}
-        />
+        <TarefasSemana />
       ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
           if (!tarefa.demonstracao) abrirEdicao(tarefa);
