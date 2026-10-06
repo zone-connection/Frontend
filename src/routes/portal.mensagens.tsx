@@ -42,7 +42,7 @@ function PortalMensagensPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -56,11 +56,11 @@ function PortalMensagensPage() {
         subtitle="Ainda não há chat interno. Fale com o corretor pelo WhatsApp ou peça um retorno."
       />
       {contato ? (
-        <div className="rounded-2xl border border-slate-100 bg-white p-5">
-          <p className="text-sm font-semibold text-[#12343d]">
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm font-semibold">
             {contato.corretor?.nome ?? contato.imobiliaria.nome}
           </p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {contato.imobiliaria.nome}
             {contato.imobiliaria.telefone ? ` · ${contato.imobiliaria.telefone}` : ""}
           </p>
@@ -69,7 +69,7 @@ function PortalMensagensPage() {
               href={telHref(contato.corretor?.whatsapp ?? contato.corretor?.telefone ?? contato.imobiliaria.telefone)!}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex rounded-xl bg-[#0f4c5c] px-4 py-2 text-sm font-medium text-white"
+              className="mt-3 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
             >
               Abrir WhatsApp
             </a>
@@ -80,13 +80,13 @@ function PortalMensagensPage() {
       )}
 
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-[#12343d]">Pedir retorno por imóvel</h2>
+        <h2 className="text-sm font-semibold">Pedir retorno por imóvel</h2>
         {imoveis.map((imovel) => (
           <div
             key={imovel.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-4"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
           >
-            <p className="text-sm text-slate-700">{imovel.identificacao}</p>
+            <p className="text-sm">{imovel.identificacao}</p>
             <Button
               type="button"
               variant="outline"

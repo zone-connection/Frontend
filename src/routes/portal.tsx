@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { PortalShell } from "@/components/portal-shell";
 import { ensurePortalSession } from "@/lib/portal-auth";
+import { TenantThemeProvider } from "@/lib/tenant-theme";
 
 export const Route = createFileRoute("/portal")({
   ssr: false,
@@ -17,8 +18,10 @@ function PortalLayout() {
   const { proprietario } = Route.useRouteContext();
   if (!proprietario) return <Outlet />;
   return (
-    <PortalShell proprietario={proprietario}>
-      <Outlet />
-    </PortalShell>
+    <TenantThemeProvider user={null}>
+      <PortalShell proprietario={proprietario}>
+        <Outlet />
+      </PortalShell>
+    </TenantThemeProvider>
   );
 }

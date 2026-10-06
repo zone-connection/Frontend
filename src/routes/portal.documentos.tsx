@@ -26,7 +26,7 @@ function PortalDocumentosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -54,15 +54,15 @@ function PortalDocumentosPage() {
                 key={row.imovel.id}
                 to="/portal/imoveis/$id"
                 params={{ id: row.imovel.id }}
-                className="block rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+                className="block rounded-xl border bg-card p-5 shadow-sm"
               >
-                <p className="text-sm font-semibold text-[#12343d]">{row.imovel.identificacao}</p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="text-sm font-semibold">{row.imovel.identificacao}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {pendentes === 0
                     ? "Tudo certo: não falta nenhum item."
                     : `Faltam ${pendentes} ${pendentes === 1 ? "item" : "itens"}.`}
                 </p>
-                <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                   {row.docs.map((doc) => (
                     <li key={doc.id}>
                       {doc.status === "aprovado" ? "✓" : "○"} {doc.nome}

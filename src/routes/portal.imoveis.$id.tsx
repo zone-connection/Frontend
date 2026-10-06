@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PillTabs, situacaoTone, StatusChip } from "@/components/operacao-ui";
+import { PortalPageTitle } from "@/components/portal-ui";
 
 export const Route = createFileRoute("/portal/imoveis/$id")({
   ssr: false,
@@ -163,26 +164,31 @@ function PortalImovelPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/portal/imoveis" className="text-sm text-primary hover:underline">
-          ← Meus imóveis
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">{imovel.identificacao}</h1>
-          <StatusChip tone={situacaoTone(imovel.situacao)}>
-            {PORTAL_SITUACAO_LABEL[imovel.situacao]}
-          </StatusChip>
-          {imovel.captacao?.canceladoPeloProprietario ? (
-            <StatusChip tone="orange">Cancelado por você</StatusChip>
-          ) : null}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {formatBrl(imovel.precoVenda ?? imovel.valorPretendido)}
-        </p>
-        {imovel.proximoPasso ? (
-          <p className="mt-2 text-sm text-foreground/80">{imovel.proximoPasso}</p>
-        ) : null}
-      </div>
+      <PortalPageTitle
+        kicker="Carteira"
+        title={imovel.identificacao}
+        subtitle={
+          [
+            formatBrl(imovel.precoVenda ?? imovel.valorPretendido),
+            imovel.proximoPasso,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusChip tone={situacaoTone(imovel.situacao)}>
+              {PORTAL_SITUACAO_LABEL[imovel.situacao]}
+            </StatusChip>
+            {imovel.captacao?.canceladoPeloProprietario ? (
+              <StatusChip tone="orange">Cancelado por você</StatusChip>
+            ) : null}
+            <Button asChild variant="outline" size="sm">
+              <Link to="/portal/imoveis">Voltar</Link>
+            </Button>
+          </div>
+        }
+      />
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -301,7 +307,7 @@ function PortalImovelPage() {
         onChange={(id) => setTab(id as Tab)}
       />
       {tab === "Informações" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Informações</CardTitle>
           </CardHeader>
@@ -342,7 +348,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Histórico" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Histórico</CardTitle>
           </CardHeader>
@@ -359,7 +365,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Comercialização" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Comercialização</CardTitle>
           </CardHeader>
@@ -389,7 +395,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Visitas" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Visitas</CardTitle>
           </CardHeader>
@@ -452,7 +458,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Propostas" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Propostas</CardTitle>
           </CardHeader>
@@ -484,7 +490,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Fechamento" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Fechamento</CardTitle>
           </CardHeader>
@@ -514,7 +520,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Documentação" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Documentação</CardTitle>
           </CardHeader>
@@ -551,7 +557,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Contrato" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Contrato</CardTitle>
           </CardHeader>
@@ -571,7 +577,7 @@ function PortalImovelPage() {
         </Card>
       )}
       {tab === "Chaves" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Chaves</CardTitle>
           </CardHeader>
@@ -620,13 +626,13 @@ function PortalImovelPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="!left-4 !right-4 !top-4 !translate-x-0 !translate-y-0 mx-auto flex h-auto max-h-[calc(100dvh-2rem)] w-auto max-w-2xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 pointer-events-auto">
           <DialogHeader className="shrink-0 border-b border-slate-100 bg-[#f4f8f9] px-6 py-5 pr-12 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0d7a8c]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
               Meu imóvel
             </p>
-            <DialogTitle className="text-xl text-[#12343d]">
+            <DialogTitle className="text-xl">
               Editar informações
             </DialogTitle>
-            <DialogDescription className="text-slate-500">
+            <DialogDescription className="text-muted-foreground">
               A imobiliária vê estas alterações no funil de captação.
             </DialogDescription>
           </DialogHeader>
@@ -674,8 +680,8 @@ function PortalImovelPage() {
             }}
           >
             <div className="relative z-10 min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
-              <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_-18px_rgba(15,76,92,0.4)]">
-                <div className="mb-3 flex items-center gap-2 text-[#0f4c5c]">
+              <section className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2 text-primary">
                   <Home className="h-4 w-4" />
                   <h3 className="text-sm font-semibold">Imóvel e valor</h3>
                 </div>
@@ -736,7 +742,7 @@ function PortalImovelPage() {
                 />
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-tipo" className="text-slate-600">Tipo</Label>
+                    <Label htmlFor="edit-tipo">Tipo</Label>
                     <select
                       id="edit-tipo"
                       className="relative z-10 flex h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm pointer-events-auto"
@@ -751,9 +757,9 @@ function PortalImovelPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-valor" className="text-slate-600">
+                    <Label htmlFor="edit-valor">
                       <span className="inline-flex items-center gap-1.5">
-                        <Wallet className="h-3.5 w-3.5 text-[#0d7a8c]" />
+                        <Wallet className="h-3.5 w-3.5 text-primary" />
                         Valor pretendido
                       </span>
                     </Label>
@@ -769,14 +775,14 @@ function PortalImovelPage() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_-18px_rgba(15,76,92,0.4)]">
-                <div className="mb-3 flex items-center gap-2 text-[#0f4c5c]">
+              <section className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2 text-primary">
                   <MapPin className="h-4 w-4" />
                   <h3 className="text-sm font-semibold">Endereço</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-[1fr_7rem]">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-logradouro" className="text-slate-600">Logradouro</Label>
+                    <Label htmlFor="edit-logradouro">Logradouro</Label>
                     <Input
                       id="edit-logradouro"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -785,7 +791,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-numero" className="text-slate-600">Número</Label>
+                    <Label htmlFor="edit-numero">Número</Label>
                     <Input
                       id="edit-numero"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -795,7 +801,7 @@ function PortalImovelPage() {
                   </div>
                 </div>
                 <div className="mt-3 space-y-1.5">
-                  <Label htmlFor="edit-complemento" className="text-slate-600">Complemento</Label>
+                  <Label htmlFor="edit-complemento">Complemento</Label>
                   <Input
                     id="edit-complemento"
                     className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -806,7 +812,7 @@ function PortalImovelPage() {
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_4.5rem_7.5rem]">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-bairro" className="text-slate-600">Bairro</Label>
+                    <Label htmlFor="edit-bairro">Bairro</Label>
                     <Input
                       id="edit-bairro"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -815,7 +821,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-cidade" className="text-slate-600">Cidade</Label>
+                    <Label htmlFor="edit-cidade">Cidade</Label>
                     <Input
                       id="edit-cidade"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -824,7 +830,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-estado" className="text-slate-600">UF</Label>
+                    <Label htmlFor="edit-estado">UF</Label>
                     <Input
                       id="edit-estado"
                       maxLength={2}
@@ -834,7 +840,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-cep" className="text-slate-600">CEP</Label>
+                    <Label htmlFor="edit-cep">CEP</Label>
                     <Input
                       id="edit-cep"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
@@ -845,14 +851,14 @@ function PortalImovelPage() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_-18px_rgba(15,76,92,0.4)]">
-                <div className="mb-3 flex items-center gap-2 text-[#0f4c5c]">
+              <section className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2 text-primary">
                   <Ruler className="h-4 w-4" />
                   <h3 className="text-sm font-semibold">Características</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-area" className="text-slate-600">Área m²</Label>
+                    <Label htmlFor="edit-area">Área m²</Label>
                     <Input
                       id="edit-area"
                       inputMode="decimal"
@@ -862,7 +868,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-quartos" className="text-slate-600">Quartos</Label>
+                    <Label htmlFor="edit-quartos">Quartos</Label>
                     <Input
                       id="edit-quartos"
                       inputMode="numeric"
@@ -872,7 +878,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-suites" className="text-slate-600">Suítes</Label>
+                    <Label htmlFor="edit-suites">Suítes</Label>
                     <Input
                       id="edit-suites"
                       inputMode="numeric"
@@ -882,7 +888,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-banheiros" className="text-slate-600">Banheiros</Label>
+                    <Label htmlFor="edit-banheiros">Banheiros</Label>
                     <Input
                       id="edit-banheiros"
                       inputMode="numeric"
@@ -892,7 +898,7 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-vagas" className="text-slate-600">Vagas</Label>
+                    <Label htmlFor="edit-vagas">Vagas</Label>
                     <Input
                       id="edit-vagas"
                       inputMode="numeric"
@@ -903,7 +909,7 @@ function PortalImovelPage() {
                   </div>
                 </div>
                 <div className="mt-3 space-y-1.5">
-                  <Label htmlFor="edit-descricao" className="text-slate-600">Descrição</Label>
+                  <Label htmlFor="edit-descricao">Descrição</Label>
                   <textarea
                     id="edit-descricao"
                     rows={4}
@@ -927,7 +933,7 @@ function PortalImovelPage() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="rounded-full bg-[#0f4c5c] px-5 hover:bg-[#0c3d4a]"
+                className="px-5"
               >
                 {saving ? (
                   <>
@@ -980,7 +986,7 @@ function PortalImovelPage() {
         </AlertDialogContent>
       </AlertDialog>
       {tab === "Pós-venda" && (
-        <Card className="overflow-hidden rounded-2xl border-black/5 shadow-sm">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Pós-venda</CardTitle>
           </CardHeader>

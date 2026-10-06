@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -11,7 +11,7 @@ import {
   Tag,
   Users,
 } from "lucide-react";
-import { PortalEmpty, PortalImovelCard, PortalStatCard } from "@/components/portal-ui";
+import { PortalEmpty, PortalImovelCard, PortalPageTitle, PortalStatCard } from "@/components/portal-ui";
 import { ApiError } from "@/lib/api";
 import {
   fetchPortalDashboard,
@@ -24,6 +24,8 @@ export const Route = createFileRoute("/portal/")({
   ssr: false,
   component: PortalDashboardPage,
 });
+
+const portalRoute = getRouteApi("/portal");
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}`;
@@ -56,20 +58,20 @@ function DesempenhoChart({ items }: { items: PortalNovidade[] }) {
       <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full">
         <defs>
           <linearGradient id="portalArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#148ea3" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#148ea3" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         <polygon points={area} fill="url(#portalArea)" />
         <polyline
           points={pts.join(" ")}
           fill="none"
-          stroke="#0f4c5c"
+          stroke="var(--primary)"
           strokeWidth="2.5"
           strokeLinejoin="round"
         />
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+      <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
         {days.map((d) => (
           <span key={d.label}>{d.label}</span>
         ))}
@@ -79,6 +81,8 @@ function DesempenhoChart({ items }: { items: PortalNovidade[] }) {
 }
 
 function PortalDashboardPage() {
+  const { proprietario } = portalRoute.useRouteContext();
+  const first = proprietario?.nome?.trim().split(/\s+/)[0] ?? "proprietário";
   const [data, setData] = useState<PortalDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -105,7 +109,7 @@ function PortalDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -117,51 +121,55 @@ function PortalDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <PortalPageTitle
+        title={`Olá, ${first}`}
+        subtitle="Acompanhe o desempenho dos seus imóveis e negociações."
+      />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <PortalStatCard
           label="Imóveis"
           hint="Cadastrados"
           value={data.resumo.total}
           icon={Home}
-          accent="#0f4c5c"
+          tone="teal"
         />
         <PortalStatCard
           label="Captação"
           hint="Em andamento"
           value={data.resumo.captacao}
           icon={Users}
-          accent="#3b82f6"
+          tone="blue"
         />
         <PortalStatCard
           label="À venda"
           hint="Disponíveis"
           value={data.resumo.disponiveis}
           icon={Store}
-          accent="#16a34a"
+          tone="emerald"
         />
         <PortalStatCard
           label="Negociação"
           hint="Em andamento"
           value={data.resumo.negociacao}
           icon={Handshake}
-          accent="#7c3aed"
+          tone="violet"
         />
         <PortalStatCard
           label="Vendidos"
           hint="Concluídos"
           value={data.resumo.vendidos}
           icon={Tag}
-          accent="#ea580c"
+          tone="orange"
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)]">
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[#12343d]">Seus imóveis</h2>
+            <h2 className="text-base font-semibold">Seus imóveis</h2>
             <Link
               to="/portal/imoveis"
-              className="inline-flex items-center gap-1 text-sm font-medium text-[#0d7a8c] hover:underline"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
               Cadastrar ou ver todos
               <ArrowRight className="h-3.5 w-3.5" />
@@ -179,18 +187,18 @@ function PortalDashboardPage() {
         </section>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_8px_24px_-16px_rgba(15,76,92,0.35)]">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Kanban className="h-4 w-4 text-[#0d7a8c]" />
-                <h2 className="text-sm font-semibold text-[#12343d]">Novidades</h2>
+                <Kanban className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold">Novidades</h2>
               </div>
-              <Link to="/portal/novidades" className="text-xs font-medium text-[#0d7a8c]">
+              <Link to="/portal/novidades" className="text-xs font-medium text-primary">
                 Ver todas
               </Link>
             </div>
             {novidades.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 Quando a imobiliária avançar uma etapa, isso aparece aqui.
               </p>
             ) : (
@@ -198,11 +206,11 @@ function PortalDashboardPage() {
                 {novidades.map((item) => (
                   <li key={item.id}>
                     <Link to="/portal/imoveis/$id" params={{ id: item.imovelId }} className="block">
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-muted-foreground">
                         {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                       </p>
-                      <p className="text-xs font-medium text-[#0d7a8c]">{item.identificacao}</p>
-                      <p className="text-sm leading-snug text-slate-600">{item.texto}</p>
+                      <p className="text-xs font-medium text-primary">{item.identificacao}</p>
+                      <p className="text-sm leading-snug text-muted-foreground">{item.texto}</p>
                     </Link>
                   </li>
                 ))}
@@ -210,49 +218,49 @@ function PortalDashboardPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_8px_24px_-16px_rgba(15,76,92,0.35)]">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <div className="mb-1 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#12343d]">Desempenho geral</h2>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+              <h2 className="text-sm font-semibold">Desempenho geral</h2>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
                 Este mês
               </span>
             </div>
             <DesempenhoChart items={thisMonth.items} />
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <div>
-                <p className="text-[11px] text-slate-400">Novos imóveis</p>
-                <p className="text-lg font-semibold text-[#12343d]">{thisMonth.imoveis}</p>
+                <p className="text-[11px] text-muted-foreground">Novos imóveis</p>
+                <p className="text-lg font-semibold">{thisMonth.imoveis}</p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">Visitas</p>
-                <p className="text-lg font-semibold text-[#12343d]">{thisMonth.visitas}</p>
+                <p className="text-[11px] text-muted-foreground">Visitas</p>
+                <p className="text-lg font-semibold">{thisMonth.visitas}</p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">Propostas</p>
-                <p className="text-lg font-semibold text-[#12343d]">{thisMonth.propostas}</p>
+                <p className="text-[11px] text-muted-foreground">Propostas</p>
+                <p className="text-lg font-semibold">{thisMonth.propostas}</p>
               </div>
             </div>
           </div>
         </aside>
       </div>
 
-      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-3 rounded-xl border bg-card px-5 py-4 sm:flex-row sm:items-center">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f4c5c]/10 text-[#0f4c5c]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <ShieldCheck className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-[#12343d]">
+            <p className="text-sm font-semibold">
               Seu patrimônio, nossa prioridade
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Acompanhe cada etapa e tenha mais segurança nas suas negociações.
             </p>
           </div>
         </div>
         <Link
           to="/portal/documentos"
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#0d7a8c] hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
           Saiba mais
           <ArrowRight className="h-3.5 w-3.5" />

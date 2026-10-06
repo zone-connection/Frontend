@@ -27,7 +27,11 @@ import {
 } from "@/lib/portal-api";
 import { signOutPortal } from "@/lib/portal-auth";
 import { ApiError } from "@/lib/api";
+import { getWhatsAppUrl } from "@/lib/env";
+import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +42,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
+
+const SUPPORT_WHATSAPP_URL = getWhatsAppUrl(undefined, "558191702203");
 
 const NAV = [
   { to: "/portal", label: "Início", icon: LayoutDashboard, exact: true },
@@ -58,10 +77,6 @@ function initials(nome: string) {
   return (a + b).toUpperCase();
 }
 
-function firstName(nome: string) {
-  return nome.trim().split(/\s+/)[0] ?? nome;
-}
-
 function isActive(pathname: string, to: string, exact?: boolean) {
   if (exact) return pathname === "/portal" || pathname === "/portal/";
   return pathname === to || pathname.startsWith(`${to}/`);
@@ -76,10 +91,9 @@ export function PortalShell({
 }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { brandName, logoUrl } = useTenantTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [senhaOpen, setSenhaOpen] = useState(false);
-  const [contaOpen, setContaOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [novidades, setNovidades] = useState<PortalNovidade[]>([]);
   const naoLidas = countNovidadesNaoLidas(novidades);
   const [senhaAtual, setSenhaAtual] = useState("");
@@ -102,240 +116,296 @@ export function PortalShell({
       setSenhaNova("");
       setSenhaOpen(false);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível trocar a senha.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível trocar a senha.",
+      );
     } finally {
       setSenhaBusy(false);
     }
   }
 
-  const nav = (
-    <nav className="space-y-1">
-      {NAV.map((item) => {
-        const active = isActive(pathname, item.to, "exact" in item && item.exact);
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={() => setMenuOpen(false)}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-              active
-                ? "bg-white/15 font-medium text-white"
-                : "text-white/70 hover:bg-white/8 hover:text-white",
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            <span className="flex-1">{item.label}</span>
-            {item.to === "/portal/novidades" && naoLidas > 0 ? (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-400 px-1.5 text-[10px] font-semibold text-[#0f4c5c]">
-                {naoLidas > 9 ? "9+" : naoLidas}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  function renderNav(onNavigate?: () => void) {
+    return (
+      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-3">
+        {NAV.map((item) => {
+          const active = isActive(
+            pathname,
+            item.to,
+            "exact" in item && item.exact,
+          );
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={cn(
+                "relative mb-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-300 ease-out",
+                active
+                  ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground/75 hover:bg-white/6",
+              )}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">{item.label}</span>
+              {item.to === "/portal/novidades" && naoLidas > 0 ? (
+                <Badge className="h-5 min-w-5 px-1.5 text-[10px] bg-primary text-primary-foreground">
+                  {naoLidas > 9 ? "9+" : naoLidas}
+                </Badge>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  function renderAccountFooter() {
+    return (
+      <div className="border-t border-sidebar-border">
+        <a
+          href={SUPPORT_WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center gap-2 p-3 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+          title="Suporte técnico"
+        >
+          <Headset className="h-4 w-4 shrink-0" />
+          <span>Suporte técnico</span>
+        </a>
+        <button
+          type="button"
+          onClick={() => {
+            void signOutPortal().then(() =>
+              navigate({ to: "/portal/login", search: { email: undefined } }),
+            );
+          }}
+          className="flex w-full cursor-pointer items-center gap-2 p-3 text-xs text-[#f87171] hover:bg-[#f87171]/15 hover:text-[#fca5a5]"
+          title="Sair"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Sair da conta</span>
+        </button>
+      </div>
+    );
+  }
+
+  const brandLabel =
+    brandName === "Zone Connection" ? (
+      <>
+        Zone <span className="text-primary">Connection</span>
+      </>
+    ) : (
+      brandName
+    );
 
   return (
-    <div className="min-h-screen bg-[#f4f6f7] text-slate-800">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col bg-[#0f4c5c] px-4 py-5 text-white lg:flex">
-        <div className="mb-8 flex items-center gap-2.5 px-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
-            <KeyRound className="h-4 w-4" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold leading-tight">Portal do</p>
-            <p className="text-sm font-semibold leading-tight">Proprietário</p>
-          </div>
-        </div>
-        {nav}
-        <div className="mt-auto space-y-4">
-          <div className="rounded-2xl bg-[#0c3d4a] p-4">
-            <p className="text-sm font-semibold">Dúvidas ou suporte?</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/65">
-              Fale com nossa equipe sempre que precisar.
-            </p>
-            <Link
-              to="/portal/mensagens"
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#148ea3] py-2 text-sm font-medium hover:bg-[#17a0b8]"
-            >
-              <Headset className="h-4 w-4" />
-              Abrir atendimento
-            </Link>
-          </div>
-          <div className="flex items-center gap-3 px-1">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xs font-semibold">
-              {initials(proprietario.nome)}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{proprietario.nome}</p>
-              <p className="text-xs text-white/55">Proprietário</p>
+    <div className="flex min-h-screen w-full bg-background">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-3">
+          <img
+            src={logoUrl || DEFAULT_TENANT_LOGO}
+            alt={brandName}
+            className="h-8 w-8 shrink-0 object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold leading-tight">
+              {brandLabel}
+            </div>
+            <div className="truncate text-[10px] text-sidebar-foreground/60">
+              Portal do proprietário
             </div>
           </div>
         </div>
+        {renderNav()}
+        {renderAccountFooter()}
       </aside>
 
-      {menuOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Fechar menu"
-            onClick={() => setMenuOpen(false)}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden",
+          menuOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
+        )}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out md:hidden",
+          menuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navegação"
+      >
+        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
+          <img
+            src={logoUrl || DEFAULT_TENANT_LOGO}
+            alt={brandName}
+            className="h-8 w-8 shrink-0 object-contain"
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[260px] flex-col bg-[#0f4c5c] px-4 py-5 text-white">
-            <div className="mb-6 flex items-center justify-between px-2">
-              <p className="text-sm font-semibold">Portal do Proprietário</p>
-              <button type="button" onClick={() => setMenuOpen(false)}>
-                <X className="h-5 w-5" />
-              </button>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold leading-tight">
+              {brandLabel}
             </div>
-            {nav}
-          </aside>
+            <div className="truncate text-[10px] text-sidebar-foreground/60">
+              Portal do proprietário
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Fechar menu"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      ) : null}
+        {renderNav(() => setMenuOpen(false))}
+        {renderAccountFooter()}
+      </aside>
 
-      <div className="lg:pl-[260px]">
-        <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 backdrop-blur">
-          <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                type="button"
-                className="rounded-lg p-1.5 text-slate-500 lg:hidden"
-                onClick={() => setMenuOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-semibold text-[#12343d] sm:text-2xl">
-                  Olá, {firstName(proprietario.nome)} 👋
-                </h1>
-                <p className="hidden text-sm text-slate-500 sm:block">
-                  Acompanhe o desempenho dos seus imóveis e negociações.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <button
-                  type="button"
-                  className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100"
-                  onClick={() => {
-                    setNotifOpen((open) => !open);
-                    setContaOpen(false);
-                  }}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-6">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 md:hidden"
+            aria-label="Abrir menu"
+            onClick={() => setMenuOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="min-w-0 flex-1" />
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  aria-label="Notificações"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4" />
                   {naoLidas > 0 ? (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-semibold text-white">
+                    <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary">
                       {naoLidas > 9 ? "9+" : naoLidas}
-                    </span>
+                    </Badge>
                   ) : null}
-                </button>
-                {notifOpen ? (
-                  <div className="absolute right-0 top-11 z-30 w-80 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold">Novidades</p>
-                      <Link
-                        to="/portal/novidades"
-                        className="text-xs text-[#0d7a8c]"
-                        onClick={() => setNotifOpen(false)}
-                      >
-                        Ver todas
-                      </Link>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" side="bottom" sideOffset={8} className="w-80 p-0">
+                <div className="flex items-center justify-between border-b px-3 py-2">
+                  <p className="text-sm font-semibold">Novidades</p>
+                  {naoLidas > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        void marcarPortalNovidadesLidas()
+                          .then(setNovidades)
+                          .catch((err) => {
+                            toast.error(
+                              err instanceof ApiError
+                                ? err.message
+                                : "Não foi possível marcar como lidas.",
+                            );
+                          });
+                      }}
+                    >
+                      Marcar todas
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {novidades.length === 0 ? (
+                    <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      Nenhuma notificação
                     </div>
-                    {naoLidas > 0 ? (
-                      <button
-                        type="button"
-                        className="mb-2 w-full rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-[#0f4c5c] hover:bg-slate-50"
-                        onClick={() => {
-                          void marcarPortalNovidadesLidas()
-                            .then(setNovidades)
-                            .catch((err) => {
-                              toast.error(
-                                err instanceof ApiError
-                                  ? err.message
-                                  : "Não foi possível marcar como lidas.",
-                              );
-                            });
-                        }}
-                      >
-                        Marcar como lidas
-                      </button>
-                    ) : null}
-                    {novidades.slice(0, 5).map((item) => (
+                  ) : (
+                    novidades.slice(0, 8).map((item) => (
                       <Link
                         key={item.id}
                         to="/portal/imoveis/$id"
                         params={{ id: item.imovelId }}
-                        className="block rounded-lg px-2 py-2 hover:bg-slate-50"
-                        onClick={() => setNotifOpen(false)}
+                        className={cn(
+                          "block border-b px-3 py-2.5 last:border-0 hover:bg-accent/60",
+                          item.lida !== true && "bg-primary/5",
+                        )}
                       >
-                        <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                          {item.lida !== true ? (
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          ) : null}
-                          {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                        </p>
-                        <p className={cn("text-sm", item.lida !== true ? "font-medium text-slate-800" : "text-slate-700")}>
+                        <div className="text-xs font-medium leading-snug">
                           {item.texto}
-                        </p>
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                        </div>
                       </Link>
-                    ))}
-                    {novidades.length === 0 ? (
-                      <p className="px-2 py-4 text-sm text-slate-500">Nada novo por agora.</p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-              <div className="relative">
+                    ))
+                  )}
+                </div>
+                <div className="border-t px-3 py-2">
+                  <Link
+                    to="/portal/novidades"
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Ver todas
+                  </Link>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="hidden items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 text-sm sm:flex"
+                  className="flex items-center gap-2 rounded-full px-2.5 py-1.5 hover:bg-accent"
+                  aria-label="Menu da conta"
+                >
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="avatar-fallback-brand text-xs">
+                      {initials(proprietario.nome)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden text-left leading-tight sm:block">
+                    <div className="text-xs font-medium">{proprietario.nome}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Proprietário
+                    </div>
+                  </div>
+                  <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSenhaOpen(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" /> Trocar senha
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
                   onClick={() => {
-                    setContaOpen((open) => !open);
-                    setNotifOpen(false);
+                    void signOutPortal().then(() =>
+                      navigate({
+                        to: "/portal/login",
+                        search: { email: undefined },
+                      }),
+                    );
                   }}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0f4c5c] text-xs font-semibold text-white">
-                    {initials(proprietario.nome)}
-                  </span>
-                  <span className="max-w-32 truncate">{proprietario.nome}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                </button>
-                {contaOpen ? (
-                  <div className="absolute right-0 top-12 z-30 w-48 rounded-xl border border-slate-100 bg-white py-1 shadow-xl">
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        setContaOpen(false);
-                        setSenhaOpen(true);
-                      }}
-                    >
-                      <KeyRound className="h-4 w-4" />
-                      Trocar senha
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        void signOutPortal().then(() =>
-                          navigate({ to: "/portal/login", search: { email: undefined } }),
-                        );
-                      }}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sair
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
+                  <LogOut className="mr-2 h-4 w-4" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
-        <main className="px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+        <main className="max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6">
+          {children}
+        </main>
       </div>
 
       <Dialog open={senhaOpen} onOpenChange={setSenhaOpen}>
@@ -367,7 +437,7 @@ export function PortalShell({
                 required
               />
             </div>
-            <Button type="submit" disabled={senhaBusy} className="bg-[#0f4c5c] hover:bg-[#0c3d4a]">
+            <Button type="submit" disabled={senhaBusy}>
               {senhaBusy ? "Salvando…" : "Atualizar senha"}
             </Button>
           </form>

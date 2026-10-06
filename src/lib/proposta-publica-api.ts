@@ -122,10 +122,25 @@ export function fetchPropostaHistorico(propostaId: string) {
   );
 }
 
+export function publicSiteOrigin() {
+  const host =
+    typeof window !== "undefined" ? window.location.hostname : "";
+  if (host === "localhost" || host === "127.0.0.1") {
+    return window.location.origin;
+  }
+  return "https://www.zoneconnection.com.br";
+}
+
+export function publicPropostaUrl(token: string) {
+  return `${publicSiteOrigin()}/publico/proposta/${token}`;
+}
+
 export async function copiarLinkPropostaPublica(imovelId: string) {
-  const { url } = await criarLinkPropostaPublica(imovelId);
-  const absolute =
-    url.startsWith("http") ? url : `${window.location.origin}${url}`;
+  const { token, url } = await criarLinkPropostaPublica(imovelId);
+  const path = url.includes("/publico/")
+    ? url.slice(url.indexOf("/publico/"))
+    : `/publico/proposta/${token}`;
+  const absolute = `${publicSiteOrigin()}${path}`;
   await navigator.clipboard.writeText(absolute);
   return absolute;
 }

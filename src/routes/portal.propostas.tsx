@@ -70,7 +70,7 @@ function PortalPropostasPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -88,8 +88,8 @@ function PortalPropostasPage() {
           Ainda não há propostas vinculadas aos seus imóveis.
         </PortalEmpty>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
-          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-500">
+        <div className="overflow-hidden rounded-xl border bg-card">
+          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
             <TableHeader>
               <TableRow>
                 <TableHead>Imóvel</TableHead>
@@ -102,7 +102,7 @@ function PortalPropostasPage() {
               {itens.map((item) => (
                 <TableRow
                   key={`${item.imovel.id}-${item.id}`}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => {
                     setAberta(item);
                     if (item.origem === "crm") {
@@ -114,13 +114,13 @@ function PortalPropostasPage() {
                     <Link
                       to="/portal/imoveis/$id"
                       params={{ id: item.imovel.id }}
-                      className="text-sm font-medium text-[#12343d] hover:underline"
+                      className="text-sm font-medium hover:underline"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {item.imovel.identificacao}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {item.origem === "crm" ? item.numero : `#${item.numero}`}
                   </TableCell>
                   <TableCell className="text-right text-sm font-semibold tabular-nums">
@@ -154,54 +154,54 @@ function PortalPropostasPage() {
               </DialogHeader>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt className="text-xs text-slate-500">Interessado</dt>
+                  <dt className="text-xs text-muted-foreground">Interessado</dt>
                   <dd className="font-medium">{aberta.interessadoNome}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-slate-500">Status</dt>
+                  <dt className="text-xs text-muted-foreground">Status</dt>
                   <dd className="font-medium">{rotuloStatus(aberta.status)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-slate-500">Valor</dt>
+                  <dt className="text-xs text-muted-foreground">Valor</dt>
                   <dd className="font-semibold tabular-nums">{formatBrl(aberta.valor)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-slate-500">Vinculada em</dt>
+                  <dt className="text-xs text-muted-foreground">Vinculada em</dt>
                   <dd>{new Date(aberta.data).toLocaleString("pt-BR")}</dd>
                 </div>
                 {aberta.interessadoTelefone ? (
                   <div>
-                    <dt className="text-xs text-slate-500">Telefone</dt>
+                    <dt className="text-xs text-muted-foreground">Telefone</dt>
                     <dd className="font-medium">{aberta.interessadoTelefone}</dd>
                   </div>
                 ) : null}
                 {aberta.aceitaEm ? (
                   <div>
-                    <dt className="text-xs text-slate-500">Aceita em</dt>
+                    <dt className="text-xs text-muted-foreground">Aceita em</dt>
                     <dd>{new Date(aberta.aceitaEm).toLocaleString("pt-BR")}</dd>
                   </div>
                 ) : null}
                 {aberta.corretorNome ? (
                   <div>
-                    <dt className="text-xs text-slate-500">Corretor</dt>
+                    <dt className="text-xs text-muted-foreground">Corretor</dt>
                     <dd className="font-medium">{aberta.corretorNome}</dd>
                   </div>
                 ) : null}
                 {aberta.validade ? (
                   <div>
-                    <dt className="text-xs text-slate-500">Validade</dt>
+                    <dt className="text-xs text-muted-foreground">Validade</dt>
                     <dd>{new Date(aberta.validade).toLocaleDateString("pt-BR")}</dd>
                   </div>
                 ) : null}
                 {aberta.desconto ? (
                   <div>
-                    <dt className="text-xs text-slate-500">Desconto</dt>
+                    <dt className="text-xs text-muted-foreground">Desconto</dt>
                     <dd className="tabular-nums">{formatBrl(aberta.desconto)}</dd>
                   </div>
                 ) : null}
               </dl>
               {aberta.observacao ? (
-                <p className="rounded-xl border border-black/5 bg-slate-50 p-3 text-sm text-slate-700">
+                <p className="rounded-xl border bg-muted/40 p-3 text-sm">
                   {aberta.observacao}
                 </p>
               ) : null}
@@ -209,7 +209,7 @@ function PortalPropostasPage() {
                 <ul className="space-y-1 rounded-xl border border-black/5 p-3 text-sm">
                   {aberta.composicao?.map((linha) => (
                     <li key={linha.label} className="flex justify-between gap-3">
-                      <span className="text-slate-500">{linha.label}</span>
+                      <span className="text-muted-foreground">{linha.label}</span>
                       <span className="tabular-nums font-medium">{formatBrl(linha.valor)}</span>
                     </li>
                   ))}

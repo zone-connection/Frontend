@@ -43,7 +43,7 @@ function PortalVisitasPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -59,8 +59,8 @@ function PortalVisitasPage() {
       {itens.length === 0 ? (
         <PortalEmpty>Nenhuma visita registrada ainda.</PortalEmpty>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
-          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-500">
+        <div className="overflow-hidden rounded-xl border bg-card">
+          <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
             <TableHeader>
               <TableRow>
                 <TableHead>Imóvel</TableHead>
@@ -71,17 +71,17 @@ function PortalVisitasPage() {
             </TableHeader>
             <TableBody>
               {itens.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50">
+                <TableRow key={item.id} className="hover:bg-muted/50">
                   <TableCell>
                     <Link
                       to="/portal/imoveis/$id"
                       params={{ id: item.imovel.id }}
-                      className="text-sm font-medium text-[#12343d] hover:underline"
+                      className="text-sm font-medium hover:underline"
                     >
                       {item.imovel.identificacao}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {new Date(item.dataHora).toLocaleString("pt-BR")}
                   </TableCell>
                   <TableCell>
@@ -89,7 +89,7 @@ function PortalVisitasPage() {
                       {item.grupo}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-600">
+                  <TableCell className="text-sm">
                     {item.status}
                   </TableCell>
                 </TableRow>

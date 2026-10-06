@@ -116,7 +116,7 @@ function PortalImoveisPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando…
       </div>
@@ -125,21 +125,17 @@ function PortalImoveisPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
         <PortalPageTitle
           kicker="Carteira"
           title="Meus imóveis"
           subtitle="Cadastre uma sugestão: ela entra no funil de captação da imobiliária."
+          actions={
+            <Button type="button" onClick={() => setOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Novo imóvel
+            </Button>
+          }
         />
-        <Button
-          type="button"
-          className="bg-[#0f4c5c] hover:bg-[#0c3d4a]"
-          onClick={() => setOpen(true)}
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          Novo imóvel
-        </Button>
-      </div>
       {items.length === 0 ? (
         <PortalEmpty>Nenhum imóvel encontrado. Use “Novo imóvel” para sugerir um.</PortalEmpty>
       ) : (
@@ -270,7 +266,7 @@ function PortalImoveisPage() {
                 setFotos((atual) => atual.filter((_, i) => i !== index));
               }}
             />
-            <Button type="submit" disabled={saving} className="bg-[#0f4c5c] hover:bg-[#0c3d4a]">
+            <Button type="submit" disabled={saving}>
               {saving ? "Enviando…" : "Enviar para captação"}
             </Button>
           </form>
