@@ -12,7 +12,11 @@ export function TarefasRelacionadas({
   agendamentoId?: string;
   imovelId?: string;
 }) {
-  const enabled = getSession()?.tenant?.tarefasEnabled;
+  const session = getSession();
+  const enabled =
+    session?.tenant?.plano === "prata" ||
+    session?.tenant?.plano === "ouro" ||
+    session?.tenant?.tarefasEnabled;
   const [items, setItems] = useState<Tarefa[]>([]);
 
   useEffect(() => {

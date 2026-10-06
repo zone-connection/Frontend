@@ -79,7 +79,11 @@ function emptyForm(userId: string): TarefaInput {
 function TarefasPage() {
   const session = getSession();
   const [enabled, setEnabled] = useState<boolean | null>(
-    session?.tenant?.tarefasEnabled ?? null,
+    session?.tenant?.plano === "prata" ||
+      session?.tenant?.plano === "ouro" ||
+      session?.tenant?.tarefasEnabled
+      ? true
+      : (session?.tenant?.tarefasEnabled ?? null),
   );
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
   const [visao, setVisao] = useState<TarefaVisao>("lista");
@@ -185,8 +189,8 @@ function TarefasPage() {
         <Lock className="h-8 w-8" />
         <h1 className="text-2xl font-semibold">Gestão de tarefas</h1>
         <p className="text-muted-foreground">
-          Organize sua rotina diretamente pelo CRM. Este recurso está disponível
-          como adicional ao seu plano.
+          Tarefas entra a partir do plano Prata. Nos planos Solo e Bronze, o
+          recurso continua como adicional.
         </p>
         <Button asChild>
           <Link to="/configuracoes">Conhecer recurso</Link>
