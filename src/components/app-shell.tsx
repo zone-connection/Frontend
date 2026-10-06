@@ -8,6 +8,7 @@ import {
   Funnel,
   Crosshair,
   Calendar,
+  ListTodo,
   Building2,
   UserCircle2,
   UsersRound,
@@ -481,6 +482,13 @@ const NAV_SECTIONS: {
     icon: Calendar,
     standalone: true,
     items: [{ to: "/agenda", label: "Agenda", icon: Calendar }],
+  },
+  {
+    id: "tarefas",
+    label: "Minhas tarefas",
+    icon: ListTodo,
+    standalone: true,
+    items: [{ to: "/tarefas", label: "Minhas tarefas", icon: ListTodo }],
   },
   {
     id: "catalogo",
@@ -978,6 +986,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   (c.to !== "/financeiro/comissao" || canSeeComissao(user)),
                 );
                 return children.length ? { ...item, children } : null;
+              }
+              if (item.to === "/tarefas" && !user.tenant?.tarefasEnabled) {
+                return null;
               }
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;

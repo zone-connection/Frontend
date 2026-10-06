@@ -232,6 +232,9 @@ export function canAccessRoute(
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
   if (path === "/perfil") return true;
+  if (path === "/tarefas") {
+    return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
+  }
   if (path === "/novidades") return true;
   if (path === "/caca-lead") return true;
   if (path === "/orulo-oauth-callback") return true;

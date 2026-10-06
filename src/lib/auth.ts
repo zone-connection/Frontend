@@ -39,6 +39,7 @@ export type TenantBranding = {
   maxUsuarios?: number;
   usuariosExtras?: number;
   iaBotEnabled?: boolean;
+  tarefasEnabled?: boolean;
 };
 
 export interface AuthUser {

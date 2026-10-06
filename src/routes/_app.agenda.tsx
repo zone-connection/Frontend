@@ -144,6 +144,7 @@ type AgendaSearch = {
   corretorId?: string;
   nome?: string;
   google?: string;
+  dia?: string;
 };
 
 export const Route = createFileRoute("/_app/agenda")({
@@ -161,10 +162,15 @@ export const Route = createFileRoute("/_app/agenda")({
       typeof search.google === "string" && search.google.trim()
         ? search.google.trim()
         : undefined;
+    const dia =
+      typeof search.dia === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.dia)
+        ? search.dia
+        : undefined;
     return {
       ...(corretorId ? { corretorId } : {}),
       ...(corretorId && nome ? { nome } : {}),
       ...(google ? { google } : {}),
+      ...(dia ? { dia } : {}),
     };
   },
   component: AgendaPage,
@@ -316,9 +322,13 @@ function AgendaPage() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("calendario");
   const [section, setSection] = useState<AgendaSection>("agenda");
   const [view, setView] = useState<AgendaViewMode>("semana");
-  const [selectedDay, setSelectedDay] = useState<Date>(() =>
-    startOfDay(new Date()),
-  );
+  const [selectedDay, setSelectedDay] = useState<Date>(() => {
+    if (search.dia) {
+      const parsed = new Date(`${search.dia}T12:00:00`);
+      if (!Number.isNaN(parsed.getTime())) return startOfDay(parsed);
+    }
+    return startOfDay(new Date());
+  });
 
   const [items, setItems] = useState<Agendamento[]>([]);
   const [kpis, setKpis] = useState<AgendaKpis | null>(null);
