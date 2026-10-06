@@ -120,6 +120,7 @@ import {
   formatDate,
   statusBadgeClass,
   statusLabel,
+  tituloNoIntervalo,
   tituloVisivelNoPeriodo,
   type DespesaTipo,
   type NaturezaDespesa,
@@ -532,6 +533,8 @@ export function FinanceiroTitulosPanel({
   const [catalogTipos, setCatalogTipos] = useState<DespesaTipo[]>([]);
   const [search, setSearch] = useState("");
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("mes");
+  const [dataDe, setDataDe] = useState("");
+  const [dataAte, setDataAte] = useState("");
   const [status, setStatus] = useState<StatusTitulo | "todos">("todos");
   const [categoriaFiltro, setCategoriaFiltro] = useState("todos");
   const catalogLabel = tipo === "receber" ? "Categoria" : "Centro de custo";
@@ -839,7 +842,10 @@ export function FinanceiroTitulosPanel({
           tipo === "pagar" ? t.centro || t.categoria : t.categoria || t.centro;
         if (label !== categoriaFiltro) return false;
       }
-      if (!tituloVisivelNoPeriodo(t, periodo, now)) return false;
+      const intervaloAtivo = Boolean(dataDe || dataAte);
+      if (intervaloAtivo) {
+        if (!tituloNoIntervalo(t, dataDe, dataAte)) return false;
+      } else if (!tituloVisivelNoPeriodo(t, periodo, now)) return false;
       if (!q) return true;
       return (
         t.descricao.toLowerCase().includes(q) ||
@@ -847,7 +853,17 @@ export function FinanceiroTitulosPanel({
         (t.categoria ?? "").toLowerCase().includes(q)
       );
     });
-  }, [items, search, periodo, status, categoriaFiltro, tipo, ocultarComissao]);
+  }, [
+    items,
+    search,
+    periodo,
+    dataDe,
+    dataAte,
+    status,
+    categoriaFiltro,
+    tipo,
+    ocultarComissao,
+  ]);
 
   const kpis = useMemo(() => {
     const principal = (r: TituloFinanceiro) => Number(r.valor) || 0;
@@ -873,7 +889,7 @@ export function FinanceiroTitulosPanel({
   );
   const pager = useTablePager(
     displayRows,
-    `${search}|${periodo}|${status}|${categoriaFiltro}|${vistaParcelas}`,
+    `${search}|${periodo}|${dataDe}|${dataAte}|${status}|${categoriaFiltro}|${vistaParcelas}`,
   );
 
   function toggleGrupo(grupoId: string) {
@@ -1594,9 +1610,21 @@ export function FinanceiroTitulosPanel({
     }
   }
 
+  const periodoKpi =
+    dataDe || dataAte
+      ? "no período"
+      : periodo === "trimestre"
+        ? "neste trimestre"
+        : periodo === "ano"
+          ? "neste ano"
+          : periodo === "tudo"
+            ? "no total"
+            : "neste mês";
+
   const hasActive = Boolean(
     search ||
     periodo !== "mes" ||
+    Boolean(dataDe || dataAte) ||
     status !== "todos" ||
     categoriaFiltro !== "todos" ||
     origemFiltro !== "todos",
@@ -1640,14 +1668,26 @@ export function FinanceiroTitulosPanel({
       <PagePanel
         inset="muted"
         className="mb-4"
-        title="Indicadores do mês"
+        title={
+          dataDe || dataAte
+            ? "Indicadores do período"
+            : periodo === "trimestre"
+              ? "Indicadores do trimestre"
+              : periodo === "ano"
+                ? "Indicadores do ano"
+                : periodo === "tudo"
+                  ? "Indicadores"
+                  : "Indicadores do mês"
+        }
         description="Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
       >
       <section className="grid gap-3 sm:grid-cols-3">
         <FinanceKpiCard
           variant="dash"
           label={
-            tipo === "receber" ? "A receber neste mês" : "A pagar neste mês"
+            tipo === "receber"
+              ? `A receber ${periodoKpi}`
+              : `A pagar ${periodoKpi}`
           }
           value={kpis.aberto}
           icon={Clock3}
@@ -1656,7 +1696,7 @@ export function FinanceiroTitulosPanel({
         />
         <FinanceKpiCard
           variant="dash"
-          label="Atrasado neste mês"
+          label={`Atrasado ${periodoKpi}`}
           value={kpis.atrasado}
           icon={AlertTriangle}
           tone="rose"
@@ -1664,7 +1704,9 @@ export function FinanceiroTitulosPanel({
         />
         <FinanceKpiCard
           variant="dash"
-          label={tipo === "receber" ? "Recebido neste mês" : "Pago neste mês"}
+          label={
+            tipo === "receber" ? `Recebido ${periodoKpi}` : `Pago ${periodoKpi}`
+          }
           value={kpis.pago}
           icon={CheckCircle2}
           tone="emerald"
@@ -1679,6 +1721,10 @@ export function FinanceiroTitulosPanel({
         searchPlaceholder="Buscar título, parceiro…"
         periodo={periodo}
         onPeriodoChange={setPeriodo}
+        dataDe={dataDe}
+        onDataDeChange={setDataDe}
+        dataAte={dataAte}
+        onDataAteChange={setDataAte}
         status={status}
         onStatusChange={setStatus}
         tipo={categoriaFiltro}
@@ -1688,6 +1734,8 @@ export function FinanceiroTitulosPanel({
         onClear={() => {
           setSearch("");
           setPeriodo("mes");
+          setDataDe("");
+          setDataAte("");
           setStatus("todos");
           setCategoriaFiltro("todos");
           setOrigemFiltro("todos");

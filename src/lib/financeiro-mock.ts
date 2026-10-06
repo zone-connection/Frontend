@@ -414,3 +414,31 @@ export function tituloVisivelNoPeriodo(
   if (!venc || !start) return true;
   return venc < start;
 }
+
+/** Intervalo inclusivo. Pagos usam a data da baixa; os demais, o vencimento. */
+export function tituloNoIntervalo(
+  titulo: {
+    status: StatusTitulo;
+    vencimento: string;
+    dataPagamento?: string | null;
+  },
+  de?: string,
+  ate?: string,
+): boolean {
+  if (!de && !ate) return true;
+  const ref =
+    titulo.status === "pago"
+      ? titulo.dataPagamento || titulo.vencimento
+      : titulo.vencimento;
+  const d = parseFinanceiroDay(ref);
+  if (!d) return false;
+  if (de) {
+    const start = parseFinanceiroDay(de);
+    if (start && d < start) return false;
+  }
+  if (ate) {
+    const end = parseFinanceiroDay(ate);
+    if (end && d > end) return false;
+  }
+  return true;
+}

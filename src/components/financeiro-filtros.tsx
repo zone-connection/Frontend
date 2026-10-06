@@ -29,6 +29,10 @@ export function FinanceiroFiltrosBar({
   searchPlaceholder = "Buscar…",
   periodo,
   onPeriodoChange,
+  dataDe,
+  onDataDeChange,
+  dataAte,
+  onDataAteChange,
   status,
   onStatusChange,
   tipo,
@@ -43,6 +47,10 @@ export function FinanceiroFiltrosBar({
   searchPlaceholder?: string;
   periodo?: PeriodoFiltro;
   onPeriodoChange?: (v: PeriodoFiltro) => void;
+  dataDe?: string;
+  onDataDeChange?: (v: string) => void;
+  dataAte?: string;
+  onDataAteChange?: (v: string) => void;
   status?: StatusTitulo | "todos";
   onStatusChange?: (v: StatusTitulo | "todos") => void;
   tipo?: string;
@@ -81,6 +89,30 @@ export function FinanceiroFiltrosBar({
             ))}
           </SelectContent>
         </Select>
+      )}
+      {onDataDeChange != null && (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          De
+          <Input
+            type="date"
+            value={dataDe ?? ""}
+            onChange={(e) => onDataDeChange(e.target.value)}
+            className={cn("w-[148px]", FILTER_CONTROL)}
+            aria-label="Data inicial"
+          />
+        </label>
+      )}
+      {onDataAteChange != null && (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          Até
+          <Input
+            type="date"
+            value={dataAte ?? ""}
+            onChange={(e) => onDataAteChange(e.target.value)}
+            className={cn("w-[148px]", FILTER_CONTROL)}
+            aria-label="Data final"
+          />
+        </label>
       )}
       {onStatusChange != null && (
         <Select
