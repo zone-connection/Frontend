@@ -376,18 +376,18 @@ export function ConfigModulosOperacaoPanel() {
               </div>
               <div className="min-w-0 flex-1">
                 <CardTitle className="text-base">
-                  Gerentes veem leads gerais e de outras equipes
+                  Gerentes veem os novos leads
                 </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Quando ativo, cada gerente vê os leads das outras equipes e o
-                  pool geral. Desligado, o gerente fica só na própria equipe —
-                  sem leads gerais e sem as carteiras dos outros gerentes.
+                  Quando ativo, o gerente também vê os leads que ainda não
+                  foram para nenhuma equipe. Desligado, ele fica só na própria
+                  equipe. Leads de outras equipes continuam ocultos.
                 </p>
               </div>
             </CardHeader>
             <CardContent className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">Compartilhar entre gerentes</p>
+                <p className="text-sm font-medium">Mostrar novos leads ao gerente</p>
                 <p className="text-xs text-muted-foreground">
                   Só o admin controla. Corretores continuam vendo apenas a
                   própria carteira.
@@ -399,7 +399,7 @@ export function ConfigModulosOperacaoPanel() {
                 onCheckedChange={(checked) =>
                   void toggleGerenteVerLeadsGerais(checked)
                 }
-                aria-label="Gerentes veem leads gerais e de outras equipes"
+                aria-label="Gerentes veem os novos leads sem equipe"
               />
             </CardContent>
           </Card>

@@ -64,7 +64,7 @@ export function getAdminVerClientesCorretor(): boolean {
   return session.tenant?.modules?.[ADMIN_VER_CLIENTES_CORRETOR_KEY] === true;
 }
 
-/** Admin ligou: gerentes veem outras equipes e o pool geral. */
+/** Admin ligou: gerentes veem os novos leads sem equipe, não as outras equipes. */
 export function getGerenteVerLeadsGerais(): boolean {
   const session = getSession();
   return session?.tenant?.modules?.[GERENTE_VER_LEADS_GERAIS_KEY] === true;
