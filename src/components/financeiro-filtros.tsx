@@ -23,12 +23,36 @@ import {
 import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
 
+const MESES = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+function anosFiltro() {
+  const atual = new Date().getFullYear();
+  return [atual + 1, atual, atual - 1, atual - 2, atual - 3];
+}
+
 export function FinanceiroFiltrosBar({
   search,
   onSearchChange,
   searchPlaceholder = "Buscar…",
   periodo,
   onPeriodoChange,
+  ano,
+  onAnoChange,
+  mes,
+  onMesChange,
   dataDe,
   onDataDeChange,
   dataAte,
@@ -47,6 +71,10 @@ export function FinanceiroFiltrosBar({
   searchPlaceholder?: string;
   periodo?: PeriodoFiltro;
   onPeriodoChange?: (v: PeriodoFiltro) => void;
+  ano?: number;
+  onAnoChange?: (v: number) => void;
+  mes?: number | "todos";
+  onMesChange?: (v: number | "todos") => void;
   dataDe?: string;
   onDataDeChange?: (v: string) => void;
   dataAte?: string;
@@ -85,6 +113,43 @@ export function FinanceiroFiltrosBar({
             {PERIODO_OPTIONS.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {onAnoChange != null && (
+        <Select
+          value={String(ano ?? new Date().getFullYear())}
+          onValueChange={(v) => onAnoChange(Number(v))}
+        >
+          <SelectTrigger className={cn("w-full sm:w-[110px]", FILTER_CONTROL)}>
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent>
+            {anosFiltro().map((item) => (
+              <SelectItem key={item} value={String(item)}>
+                {item}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {onMesChange != null && (
+        <Select
+          value={mes === "todos" || mes == null ? "todos" : String(mes)}
+          onValueChange={(v) =>
+            onMesChange(v === "todos" ? "todos" : Number(v))
+          }
+        >
+          <SelectTrigger className={cn("w-full sm:w-[160px]", FILTER_CONTROL)}>
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meses</SelectItem>
+            {MESES.map((label, index) => (
+              <SelectItem key={label} value={String(index + 1)}>
+                {label}
               </SelectItem>
             ))}
           </SelectContent>

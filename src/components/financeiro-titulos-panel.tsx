@@ -533,6 +533,10 @@ export function FinanceiroTitulosPanel({
   const [catalogTipos, setCatalogTipos] = useState<DespesaTipo[]>([]);
   const [search, setSearch] = useState("");
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("mes");
+  const [ano, setAno] = useState(() => new Date().getFullYear());
+  const [mes, setMes] = useState<number | "todos">(
+    () => new Date().getMonth() + 1,
+  );
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [status, setStatus] = useState<StatusTitulo | "todos">("todos");
@@ -845,6 +849,11 @@ export function FinanceiroTitulosPanel({
       const intervaloAtivo = Boolean(dataDe || dataAte);
       if (intervaloAtivo) {
         if (!tituloNoIntervalo(t, dataDe, dataAte)) return false;
+      } else if (typeof mes === "number") {
+        const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
+        const ultimo = new Date(ano, mes, 0);
+        const fim = `${ultimo.getFullYear()}-${String(ultimo.getMonth() + 1).padStart(2, "0")}-${String(ultimo.getDate()).padStart(2, "0")}`;
+        if (!tituloNoIntervalo(t, inicio, fim)) return false;
       } else if (!tituloVisivelNoPeriodo(t, periodo, now)) return false;
       if (!q) return true;
       return (
@@ -857,6 +866,8 @@ export function FinanceiroTitulosPanel({
     items,
     search,
     periodo,
+    ano,
+    mes,
     dataDe,
     dataAte,
     status,
@@ -889,7 +900,7 @@ export function FinanceiroTitulosPanel({
   );
   const pager = useTablePager(
     displayRows,
-    `${search}|${periodo}|${dataDe}|${dataAte}|${status}|${categoriaFiltro}|${vistaParcelas}`,
+    `${search}|${periodo}|${ano}|${mes}|${dataDe}|${dataAte}|${status}|${categoriaFiltro}|${vistaParcelas}`,
   );
 
   function toggleGrupo(grupoId: string) {
@@ -1610,20 +1621,30 @@ export function FinanceiroTitulosPanel({
     }
   }
 
+  const mesNome =
+    typeof mes === "number"
+      ? new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
+          month: "long",
+        })
+      : "";
   const periodoKpi =
     dataDe || dataAte
       ? "no período"
-      : periodo === "trimestre"
-        ? "neste trimestre"
-        : periodo === "ano"
-          ? "neste ano"
-          : periodo === "tudo"
-            ? "no total"
-            : "neste mês";
+      : mesNome
+        ? `em ${mesNome} de ${ano}`
+        : periodo === "trimestre"
+          ? "neste trimestre"
+          : periodo === "ano"
+            ? "neste ano"
+            : periodo === "tudo"
+              ? "no total"
+              : "neste mês";
 
   const hasActive = Boolean(
     search ||
     periodo !== "mes" ||
+    mes !== new Date().getMonth() + 1 ||
+    ano !== new Date().getFullYear() ||
     Boolean(dataDe || dataAte) ||
     status !== "todos" ||
     categoriaFiltro !== "todos" ||
@@ -1671,13 +1692,15 @@ export function FinanceiroTitulosPanel({
         title={
           dataDe || dataAte
             ? "Indicadores do período"
-            : periodo === "trimestre"
-              ? "Indicadores do trimestre"
-              : periodo === "ano"
-                ? "Indicadores do ano"
-                : periodo === "tudo"
-                  ? "Indicadores"
-                  : "Indicadores do mês"
+            : mesNome
+              ? `Indicadores de ${mesNome}`
+              : periodo === "trimestre"
+                ? "Indicadores do trimestre"
+                : periodo === "ano"
+                  ? "Indicadores do ano"
+                  : periodo === "tudo"
+                    ? "Indicadores"
+                    : "Indicadores do mês"
         }
         description="Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
       >
@@ -1721,6 +1744,10 @@ export function FinanceiroTitulosPanel({
         searchPlaceholder="Buscar título, parceiro…"
         periodo={periodo}
         onPeriodoChange={setPeriodo}
+        ano={ano}
+        onAnoChange={setAno}
+        mes={mes}
+        onMesChange={setMes}
         dataDe={dataDe}
         onDataDeChange={setDataDe}
         dataAte={dataAte}
@@ -1734,6 +1761,8 @@ export function FinanceiroTitulosPanel({
         onClear={() => {
           setSearch("");
           setPeriodo("mes");
+          setAno(new Date().getFullYear());
+          setMes(new Date().getMonth() + 1);
           setDataDe("");
           setDataAte("");
           setStatus("todos");
