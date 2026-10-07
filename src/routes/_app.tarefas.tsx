@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { TarefasPainel } from "@/components/tarefas-painel";
@@ -62,6 +62,7 @@ function emptyForm(userId: string): TarefaInput {
 
 function TarefasPage() {
   const session = getSession();
+  const navigate = useNavigate();
   const [enabled, setEnabled] = useState<boolean | null>(
     session?.tenant?.plano === "prata" ||
       session?.tenant?.plano === "ouro" ||
@@ -191,8 +192,11 @@ function TarefasPage() {
         secao={secao}
         abertas={painel.filter((item) => item.status === "aberta").length}
         onChange={(next) => {
+          if (next === "calendario") {
+            void navigate({ to: "/agenda" });
+            return;
+          }
           setSecao(next);
-          if (next === "calendario") setVisao("semana");
           if (next === "tarefas" || next === "geral") setVisao("lista");
         }}
       />

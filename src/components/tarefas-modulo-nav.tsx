@@ -20,7 +20,7 @@ export type TarefaSecao =
 const WORKSPACE: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
   { id: "geral", label: "Visão geral", icon: LayoutGrid },
   { id: "tarefas", label: "Minhas tarefas", icon: ListTodo },
-  { id: "calendario", label: "Calendário", icon: CalendarDays },
+  { id: "calendario", label: "Agenda", icon: CalendarDays },
 ];
 
 const RELACIONAMENTOS: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
