@@ -75,7 +75,7 @@ function Chip({
       type="button"
       onClick={() => onOpen(tarefa)}
       className={cn(
-        "w-full truncate rounded-md px-1.5 py-1 text-left text-xs",
+        "w-full truncate rounded-md px-1.5 py-1 text-left text-xs font-medium transition hover:brightness-95",
         tarefa.status === "concluida" && "line-through opacity-60",
         tarefa.atrasada && "bg-amber-500/20 text-amber-950 dark:text-amber-100",
         !tarefa.atrasada && tarefa.prioridade === "alta" && "bg-red-500/15",

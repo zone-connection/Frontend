@@ -45,7 +45,7 @@ export function TarefasVinculos({
               <li key={tarefa.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left"
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border bg-background px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm"
                   onClick={() => onOpen(tarefa)}
                 >
                   <span>

@@ -60,6 +60,36 @@ function quando(tarefa: TarefaVisivel, hoje: string) {
   return `${dia}${tarefa.horario ? ` · ${tarefa.horario}` : ""}`;
 }
 
+function saudacao() {
+  const hora = new Date().getHours();
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+const TONS = {
+  sky: {
+    card: "border-sky-200/80 bg-gradient-to-br from-sky-50 to-card dark:border-sky-900/50 dark:from-sky-950/40",
+    icon: "bg-sky-500 text-white",
+    valor: "text-sky-700 dark:text-sky-300",
+  },
+  violet: {
+    card: "border-violet-200/80 bg-gradient-to-br from-violet-50 to-card dark:border-violet-900/50 dark:from-violet-950/40",
+    icon: "bg-violet-500 text-white",
+    valor: "text-violet-700 dark:text-violet-300",
+  },
+  rose: {
+    card: "border-rose-200/80 bg-gradient-to-br from-rose-50 to-card dark:border-rose-900/50 dark:from-rose-950/40",
+    icon: "bg-rose-500 text-white",
+    valor: "text-rose-700 dark:text-rose-300",
+  },
+  emerald: {
+    card: "border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-card dark:border-emerald-900/50 dark:from-emerald-950/40",
+    icon: "bg-emerald-500 text-white",
+    valor: "text-emerald-700 dark:text-emerald-300",
+  },
+} as const;
+
 export function TarefasPainel({
   items,
   filtro,
@@ -144,14 +174,17 @@ export function TarefasPainel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <p className="text-sm font-medium text-primary">{saudacao()}</p>
+          <h1 className="mt-0.5 text-3xl font-semibold tracking-tight">
             {modo === "calendario" ? "Calendário" : modo === "lista" ? "Minhas tarefas" : "Visão geral"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Um passo de cada vez. Tudo sob controle.
+            {atrasadas > 0
+              ? `${atrasadas} pendência${atrasadas === 1 ? "" : "s"} pedindo atenção. O resto do dia está no seu ritmo.`
+              : "Um passo de cada vez. Tudo sob controle."}
           </p>
         </div>
-        <Button onClick={onCreate}>
+        <Button className="shadow-md shadow-primary/20" onClick={onCreate}>
           <Plus className="h-4 w-4" />
           Nova tarefa
         </Button>
@@ -159,10 +192,10 @@ export function TarefasPainel({
 
       {modo === "calendario" ? null : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Resumo icon={List} valor={hojeCount} titulo="Tarefas para hoje" detalhe="Seu foco para o dia" />
-        <Resumo icon={CalendarDays} valor={proximas} titulo="Próximas tarefas" detalhe="O que vem pela frente" />
-        <Resumo icon={Clock3} valor={atrasadas} titulo="Tarefas atrasadas" detalhe="Precisam da sua atenção" />
-        <Resumo icon={CheckCircle2} valor={concluidas} titulo="Tarefas concluídas" detalhe="Cada conquista conta" />
+        <Resumo tone="sky" icon={List} valor={hojeCount} titulo="Tarefas para hoje" detalhe="Seu foco para o dia" />
+        <Resumo tone="violet" icon={CalendarDays} valor={proximas} titulo="Próximas tarefas" detalhe="O que vem pela frente" />
+        <Resumo tone="rose" icon={Clock3} valor={atrasadas} titulo="Tarefas atrasadas" detalhe="Precisam da sua atenção" pulse={atrasadas > 0} />
+        <Resumo tone="emerald" icon={CheckCircle2} valor={concluidas} titulo="Tarefas concluídas" detalhe="Cada conquista conta" />
       </div>
       )}
 
@@ -243,15 +276,16 @@ export function TarefasPainel({
                       <article
                         key={tarefa.id}
                         className={cn(
-                          "flex items-center gap-3 rounded-2xl border bg-background px-4 py-3.5",
-                          atrasada && "border-red-100 bg-red-50/70 dark:border-red-900/60 dark:bg-red-950/20",
+                          "group flex items-center gap-3 rounded-2xl border bg-background px-4 py-3.5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                          atrasada && "border-rose-200 bg-rose-50/80 dark:border-rose-900/60 dark:bg-rose-950/30",
+                          tarefa.status === "concluida" && "opacity-80",
                         )}
                       >
                         <button
                           type="button"
                           aria-label="Concluir tarefa"
                           className={cn(
-                            "h-5 w-5 shrink-0 rounded-full border-2 border-muted-foreground/40",
+                            "h-5 w-5 shrink-0 rounded-full border-2 border-muted-foreground/40 transition hover:scale-110 hover:border-emerald-500",
                             tarefa.status === "concluida" && "border-emerald-500 bg-emerald-500",
                           )}
                           onClick={() => onComplete(tarefa)}
@@ -265,18 +299,17 @@ export function TarefasPainel({
                             {contexto(tarefa) ? `  ·  ${contexto(tarefa)}` : ""}
                           </p>
                         </button>
-                        <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
-                          <span
-                            className={cn(
-                              "h-2 w-2 rounded-full",
-                              tarefa.prioridade === "alta" && "bg-red-500",
-                              tarefa.prioridade === "media" && "bg-amber-400",
-                              tarefa.prioridade === "baixa" && "bg-emerald-500",
-                            )}
-                          />
+                        <span
+                          className={cn(
+                            "hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
+                            tarefa.prioridade === "alta" && "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200",
+                            tarefa.prioridade === "media" && "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+                            tarefa.prioridade === "baixa" && "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+                          )}
+                        >
                           {PRIORIDADE_LABEL[tarefa.prioridade]}
                         </span>
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-800">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[11px] font-semibold text-white shadow-sm">
                           {iniciais(tarefa.responsavel.name)}
                         </span>
                       </article>
@@ -321,33 +354,44 @@ export function TarefasPainel({
               <p className="text-sm font-medium">Agenda de hoje</p>
               <p className="text-xs text-muted-foreground">{agendaHoje.length} itens</p>
             </div>
-            <ul className="mt-4 space-y-4">
+            <ul className="mt-4 space-y-3">
               {agendaHoje.length === 0 ? (
-                <li className="text-sm text-muted-foreground">Nada marcado para hoje.</li>
+                <li className="rounded-xl bg-muted/50 px-3 py-4 text-sm text-muted-foreground">
+                  Dia livre. Um bom momento para adiantar o que vem depois.
+                </li>
               ) : (
                 agendaHoje.map((tarefa) => (
-                  <li key={tarefa.id} className="grid grid-cols-[3.2rem_minmax(0,1fr)] gap-2">
-                    <p className="text-xs text-muted-foreground">{tarefa.horario ?? "—"}</p>
-                    <button type="button" className="text-left" onClick={() => onOpen(tarefa)}>
-                      <p className="text-sm font-medium leading-snug">{tarefa.titulo}</p>
-                      <p className="text-xs text-muted-foreground">{contexto(tarefa)}</p>
+                  <li key={tarefa.id}>
+                    <button
+                      type="button"
+                      className="grid w-full grid-cols-[3.2rem_minmax(0,1fr)] gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-muted/70"
+                      onClick={() => onOpen(tarefa)}
+                    >
+                      <p className="pt-0.5 text-xs font-medium text-primary">{tarefa.horario ?? "—"}</p>
+                      <span className="min-w-0 border-l-2 border-primary/40 pl-2">
+                        <span className="block text-sm font-medium leading-snug">{tarefa.titulo}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{contexto(tarefa)}</span>
+                      </span>
                     </button>
                   </li>
                 ))
               )}
             </ul>
           </div>
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-950">
+          <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-4 text-white shadow-lg shadow-emerald-500/20">
             <p className="font-medium">Mais foco. Menos pendências.</p>
-            <p className="mt-1 text-sm text-emerald-900/80">
+            <p className="mt-1 text-sm text-emerald-50/90">
               Pequenos passos hoje, grandes conquistas amanhã.
             </p>
             <div className="mt-4 flex items-center justify-between text-xs">
               <span>Progresso do dia</span>
-              <span>{progresso}%</span>
+              <span className="font-semibold">{progresso}%</span>
             </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-emerald-200">
-              <div className="h-full bg-emerald-600" style={{ width: `${progresso}%` }} />
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/25">
+              <div
+                className="h-full rounded-full bg-white transition-all duration-500"
+                style={{ width: `${progresso}%` }}
+              />
             </div>
           </div>
         </aside>}
@@ -422,19 +466,36 @@ function Resumo({
   valor,
   titulo,
   detalhe,
+  tone,
+  pulse,
 }: {
   icon: typeof List;
   valor: number;
   titulo: string;
   detalhe: string;
+  tone: keyof typeof TONS;
+  pulse?: boolean;
 }) {
+  const cores = TONS[tone];
   return (
-    <article className="rounded-2xl border bg-card p-4">
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{titulo}</span>
-        <Icon className="h-4 w-4" />
+    <article
+      className={cn(
+        "rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        cores.card,
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-muted-foreground">{titulo}</span>
+        <span className={cn("relative grid h-8 w-8 place-items-center rounded-xl", cores.icon)}>
+          {pulse ? (
+            <span className="absolute inset-0 animate-ping rounded-xl bg-rose-400/50" />
+          ) : null}
+          <Icon className="relative h-4 w-4" />
+        </span>
       </div>
-      <p className="mt-2 text-3xl font-semibold tabular-nums">{String(valor).padStart(2, "0")}</p>
+      <p className={cn("mt-2 text-3xl font-semibold tabular-nums", cores.valor)}>
+        {String(valor).padStart(2, "0")}
+      </p>
       <p className="text-xs text-muted-foreground">{detalhe}</p>
     </article>
   );
