@@ -6,6 +6,7 @@ import {
   Clock3,
   List,
   Plus,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +103,12 @@ export function TarefasPainel({
   onComplete,
   onCreate,
   modo = "geral",
+  podeVerEquipe = false,
+  verEquipe = false,
+  usuarios = [],
+  usuarioId = "",
+  onVerEquipe,
+  onUsuario,
 }: {
   items: TarefaVisivel[];
   filtro: TarefaFiltro;
@@ -114,6 +121,12 @@ export function TarefasPainel({
   onComplete: (tarefa: TarefaVisivel) => void;
   onCreate: () => void;
   modo?: "geral" | "lista" | "calendario";
+  podeVerEquipe?: boolean;
+  verEquipe?: boolean;
+  usuarios?: { id: string; name: string }[];
+  usuarioId?: string;
+  onVerEquipe?: (ativo: boolean) => void;
+  onUsuario?: (id: string) => void;
 }) {
   const hoje = hojeYmd();
   const abertas = items.filter((item) => item.status === "aberta");
@@ -184,11 +197,44 @@ export function TarefasPainel({
               : "Um passo de cada vez. Tudo sob controle."}
           </p>
         </div>
-        <Button className="shadow-md shadow-primary/20" onClick={onCreate}>
-          <Plus className="h-4 w-4" />
-          Nova tarefa
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {podeVerEquipe ? (
+            <Button
+              type="button"
+              variant={verEquipe ? "default" : "outline"}
+              onClick={() => onVerEquipe?.(!verEquipe)}
+            >
+              <Users className="h-4 w-4" />
+              {verEquipe ? "Minhas tarefas" : "Tarefas dos usuários"}
+            </Button>
+          ) : null}
+          <Button className="shadow-md shadow-primary/20" onClick={onCreate}>
+            <Plus className="h-4 w-4" />
+            Nova tarefa
+          </Button>
+        </div>
       </div>
+
+      {verEquipe ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card px-4 py-3">
+          <label className="text-sm font-medium" htmlFor="filtro-usuario-tarefa">
+            Usuário
+          </label>
+          <select
+            id="filtro-usuario-tarefa"
+            className="h-10 min-w-56 rounded-md border bg-background px-3 text-sm"
+            value={usuarioId}
+            onChange={(event) => onUsuario?.(event.target.value)}
+          >
+            <option value="">Todos os usuários</option>
+            {usuarios.map((usuario) => (
+              <option key={usuario.id} value={usuario.id}>
+                {usuario.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       {modo === "calendario" ? null : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

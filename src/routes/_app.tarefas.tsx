@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
-import { getSession } from "@/lib/auth";
+import { getSession, type Role } from "@/lib/auth";
 import {
   comentarTarefa,
   createTarefa,
@@ -81,7 +81,9 @@ function TarefasPage() {
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
   );
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; role: Role }[]>([]);
+  const [verEquipe, setVerEquipe] = useState(false);
+  const [usuarioId, setUsuarioId] = useState("");
   const [nota, setNota] = useState("");
 
   const load = useCallback(async () => {
@@ -105,7 +107,7 @@ function TarefasPage() {
   useEffect(() => {
     if (!enabled) return;
     void fetchUsers({ status: "ativo", limit: 200 }).then((res) => {
-      setUsers(res.data.map((u) => ({ id: u.id, name: u.name })));
+      setUsers(res.data.map((u) => ({ id: u.id, name: u.name, role: u.role })));
     });
   }, [enabled]);
 
@@ -157,7 +159,23 @@ function TarefasPage() {
     }
   }
 
-  const painel = [...demos, ...items];
+  const role = session?.role;
+  const podeVerEquipe = role === "admin" || role === "super_admin" || role === "gerente";
+  const atribuiveis = users.filter((usuario) => {
+    if (role === "admin" || role === "super_admin") return true;
+    if (role === "gerente") {
+      return usuario.role === "corretor" || usuario.role === "treinee" || usuario.id === session?.id;
+    }
+    return usuario.id === session?.id;
+  });
+  const usuariosFiltro = users.filter((usuario) => {
+    if (role === "admin" || role === "super_admin") return true;
+    return usuario.role === "corretor" || usuario.role === "treinee";
+  });
+  const reais = verEquipe
+    ? items.filter((item) => !usuarioId || item.responsavel.id === usuarioId)
+    : items.filter((item) => item.responsavel.id === session?.id);
+  const painel = verEquipe ? reais : [...demos, ...reais];
 
   return (
     <div className="space-y-4">
@@ -224,6 +242,15 @@ function TarefasPage() {
           }
           abrirNova();
         }}
+        podeVerEquipe={podeVerEquipe}
+        verEquipe={verEquipe}
+        usuarios={usuariosFiltro}
+        usuarioId={usuarioId}
+        onVerEquipe={(ativo) => {
+          setVerEquipe(ativo);
+          if (!ativo) setUsuarioId("");
+        }}
+        onUsuario={setUsuarioId}
       />
       )}
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
@@ -263,9 +290,10 @@ function TarefasPage() {
                 value={form.responsavelId}
                 onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}
               >
-                {users.map((u) => (
+                {atribuiveis.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
+                    {u.role === "corretor" ? " · Corretor" : u.role === "treinee" ? " · Trainee" : ""}
                   </option>
                 ))}
               </select>
