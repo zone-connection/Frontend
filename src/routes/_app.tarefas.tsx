@@ -35,6 +35,9 @@ import {
   type TarefaRecorrencia,
 } from "@/lib/tarefas-api";
 import { fetchUsers } from "@/lib/users-api";
+import { fetchLeads } from "@/lib/leads-api";
+import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
+import { IdSearchSelect } from "@/components/id-search-select";
 
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
@@ -86,6 +89,9 @@ function TarefasPage() {
     emptyForm(session?.id ?? ""),
   );
   const [users, setUsers] = useState<{ id: string; name: string; role: Role }[]>([]);
+  const [leads, setLeads] = useState<{ id: string; nome: string; extra: string }[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nome: string; extra: string }[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<{ id: string; nome: string }[]>([]);
   const [verEquipe, setVerEquipe] = useState(false);
   const [usuarioId, setUsuarioId] = useState("");
   const [nota, setNota] = useState("");
@@ -115,6 +121,31 @@ function TarefasPage() {
     });
   }, [enabled]);
 
+  useEffect(() => {
+    if (!open) return;
+    void fetchLeads({ tipo: "lead", limit: 200 }).then((res) => {
+      setLeads(
+        res.data.map((item) => ({
+          id: item.id,
+          nome: item.nome,
+          extra: [item.telefone, item.cidade].filter(Boolean).join(" "),
+        })),
+      );
+    });
+    void fetchLeads({ tipo: "cliente", limit: 200 }).then((res) => {
+      setClientes(
+        res.data.map((item) => ({
+          id: item.id,
+          nome: item.nome,
+          extra: [item.telefone, item.cidade].filter(Boolean).join(" "),
+        })),
+      );
+    });
+    void fetchEmpreendimentos({ ativo: true }).then((rows) => {
+      setEmpreendimentos(rows.map((item) => ({ id: item.id, nome: item.nome })));
+    });
+  }, [open]);
+
   function abrirNova() {
     setEditing(null);
     setNota("");
@@ -141,6 +172,7 @@ function TarefasPage() {
       leadId: tarefa.leadId ?? undefined,
       agendamentoId: tarefa.agendamentoId ?? undefined,
       imovelId: tarefa.imovelId ?? undefined,
+      empreendimentoId: tarefa.empreendimentoId ?? undefined,
     });
     setOpen(true);
   }
@@ -153,6 +185,7 @@ function TarefasPage() {
       leadId: form.leadId || undefined,
       agendamentoId: form.agendamentoId || undefined,
       imovelId: form.imovelId || undefined,
+      empreendimentoId: form.empreendimentoId || undefined,
     };
     try {
       if (editing) await updateTarefa(editing.id, payload);
@@ -326,6 +359,49 @@ function TarefasPage() {
                 <option value="baixa">Baixa</option>
               </select>
             </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Lead">
+                <IdSearchSelect
+                  value={leads.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
+                  options={leads.map((item) => ({
+                    id: item.id,
+                    label: item.nome,
+                    keywords: item.extra,
+                  }))}
+                  onChange={(id) => setForm({ ...form, leadId: id || undefined })}
+                  placeholder="Selecionar lead"
+                  searchPlaceholder="Pesquisar lead…"
+                  emptyLabel="Nenhum lead cadastrado"
+                />
+              </Field>
+              <Field label="Cliente">
+                <IdSearchSelect
+                  value={clientes.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
+                  options={clientes.map((item) => ({
+                    id: item.id,
+                    label: item.nome,
+                    keywords: item.extra,
+                  }))}
+                  onChange={(id) => setForm({ ...form, leadId: id || undefined })}
+                  placeholder="Selecionar cliente"
+                  searchPlaceholder="Pesquisar cliente…"
+                  emptyLabel="Nenhum cliente cadastrado"
+                />
+              </Field>
+            </div>
+            <Field label="Empreendimento">
+              <IdSearchSelect
+                value={form.empreendimentoId ?? ""}
+                options={empreendimentos.map((item) => ({
+                  id: item.id,
+                  label: item.nome,
+                }))}
+                onChange={(id) => setForm({ ...form, empreendimentoId: id || undefined })}
+                placeholder="Selecionar empreendimento"
+                searchPlaceholder="Pesquisar empreendimento…"
+                emptyLabel="Nenhum empreendimento cadastrado"
+              />
+            </Field>
             <Field label="Descrição">
               <Textarea
                 value={form.descricao ?? ""}
@@ -416,24 +492,6 @@ function TarefasPage() {
                 />
               </Field>
             ) : null}
-            <Field label="ID do lead (opcional)">
-              <Input
-                value={form.leadId ?? ""}
-                onChange={(e) => setForm({ ...form, leadId: e.target.value })}
-              />
-            </Field>
-            <Field label="ID do atendimento (opcional)">
-              <Input
-                value={form.agendamentoId ?? ""}
-                onChange={(e) => setForm({ ...form, agendamentoId: e.target.value })}
-              />
-            </Field>
-            <Field label="ID do imóvel (opcional)">
-              <Input
-                value={form.imovelId ?? ""}
-                onChange={(e) => setForm({ ...form, imovelId: e.target.value })}
-              />
-            </Field>
             {editing ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Notas</p>

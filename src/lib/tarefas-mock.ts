@@ -31,6 +31,7 @@ function base(
     leadId: null,
     agendamentoId: null,
     imovelId: null,
+    empreendimentoId: null,
     agendaEventoId: null,
     contexto: {
       lead: partial.lead ? { id: partial.lead, nome: partial.lead } : null,

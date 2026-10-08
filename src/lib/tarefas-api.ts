@@ -45,6 +45,7 @@ export type Tarefa = {
   leadId: string | null;
   agendamentoId: string | null;
   imovelId: string | null;
+  empreendimentoId: string | null;
   agendaEventoId: string | null;
   contexto: {
     lead: { id: string; nome: string } | null;
@@ -75,6 +76,7 @@ export type TarefaInput = {
   leadId?: string;
   agendamentoId?: string;
   imovelId?: string;
+  empreendimentoId?: string;
   status?: "aberta" | "concluida";
 };
 
