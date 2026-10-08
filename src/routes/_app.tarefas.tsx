@@ -19,7 +19,7 @@ import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPOS, AGENDAMENTO_TIPO_LABEL, type AgendamentoTipo } from "@/lib/agenda-api";
 import { TarefasPainel } from "@/components/tarefas-painel";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
-import { TarefasSemana } from "@/components/tarefas-semana";
+import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
@@ -49,10 +49,21 @@ import {
   type TarefaRecorrencia,
 } from "@/lib/tarefas-api";
 import { fetchUsers } from "@/lib/users-api";
+import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import { fetchLeads } from "@/lib/leads-api";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import { IdSearchSelect } from "@/components/id-search-select";
-import { createAgendamento } from "@/lib/agenda-api";
+import {
+  AGENDAMENTO_ALVO_LABEL,
+  AGENDAMENTO_ALVOS,
+  AGENDAMENTO_ESCOPO_LABEL,
+  createAgendamento,
+  updateAgendamento,
+  type Agendamento,
+  type AgendamentoAlvo,
+  type AgendamentoEscopo,
+  type AgendamentoRecurrenceFreq,
+} from "@/lib/agenda-api";
 import { rotuloImovel } from "@/components/agenda-visita-ocupacao";
 import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
 import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
@@ -199,7 +210,19 @@ function TarefasPage() {
     setOpen(true);
   }
 
-  async function salvar(extra?: { muralChaveId?: string; horarioFim?: string }) {
+  async function salvar(extra?: {
+    muralChaveId?: string;
+    horarioFim?: string;
+    local?: string;
+    toleranciaAtiva?: boolean;
+    escopo?: AgendamentoEscopo;
+    alvoTipo?: AgendamentoAlvo;
+    alvoEquipeId?: string;
+    atribuidoParaId?: string;
+    recurrenceFreq?: AgendamentoRecurrenceFreq;
+    recurrenceDays?: number[];
+    recurrenceUntil?: string;
+  }) {
     const tipo = form.tipo ?? "tarefa";
     const titulo = form.titulo.trim();
     if (titulo.length < 2) {
@@ -225,15 +248,25 @@ function TarefasPage() {
         await createAgendamento({
           titulo,
           tipo,
-          escopo: "pessoal",
-          atribuidoParaId: form.responsavelId || null,
-          leadId: form.leadId || null,
+          escopo: extra?.escopo ?? "pessoal",
+          atribuidoParaId: extra?.atribuidoParaId || form.responsavelId || null,
+          leadId: extra?.atribuidoParaId ? null : form.leadId || null,
+          alvoTipo: extra?.alvoTipo && extra.alvoTipo !== "nenhum" ? extra.alvoTipo : undefined,
+          alvoEquipeId: extra?.alvoTipo === "equipe" ? extra.alvoEquipeId || null : null,
           startsAt: isoLocal(form.data, inicio),
-          endsAt: isoLocal(form.data, fim),
+          endsAt:
+            extra?.horarioFim || tipo === "visita" || tipo === "reuniao" || tipo === "bloqueio"
+              ? isoLocal(form.data, fim)
+              : null,
+          local: extra?.local?.trim() || null,
           observacoes: form.descricao?.trim() || null,
           empreendimentoId: form.empreendimentoId || null,
           imovelId: form.imovelId || null,
           muralChaveId: extra?.muralChaveId || null,
+          toleranciaAtiva: tipo === "visita" ? Boolean(extra?.toleranciaAtiva) : false,
+          recurrenceFreq: tipo === "bloqueio" ? extra?.recurrenceFreq ?? "unica" : undefined,
+          recurrenceDays: tipo === "bloqueio" ? extra?.recurrenceDays : undefined,
+          recurrenceUntil: tipo === "bloqueio" ? extra?.recurrenceUntil || null : undefined,
         });
       } else {
         const payload: TarefaInput = {
@@ -313,16 +346,12 @@ function TarefasPage() {
         secao={secao}
         abertas={painel.filter((item) => item.status === "aberta").length}
         onChange={(next) => {
-          if (next === "calendario") {
-            void navigate({ to: "/agenda" });
-            return;
-          }
           setSecao(next);
           if (next === "tarefas" || next === "geral") setVisao("lista");
         }}
       />
       {secao === "calendario" ? (
-        <TarefasSemana />
+        <TarefasAgendaPainel />
       ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
           if (!tarefa.demonstracao) abrirEdicao(tarefa);
@@ -508,6 +537,17 @@ function CriarCompromisso({
   const [imoveis, setImoveis] = useState<{ id: string; label: string; hint: string }[]>([]);
   const [chaves, setChaves] = useState<MuralChave[]>([]);
   const [horarioFim, setHorarioFim] = useState("");
+  const [local, setLocal] = useState("");
+  const [tolerancia, setTolerancia] = useState(false);
+  const [escopo, setEscopo] = useState<AgendamentoEscopo>("pessoal");
+  const [alvoTipo, setAlvoTipo] = useState<AgendamentoAlvo>("nenhum");
+  const [alvoEquipeId, setAlvoEquipeId] = useState("");
+  const [atribuidoId, setAtribuidoId] = useState("");
+  const [repetir, setRepetir] = useState<AgendamentoRecurrenceFreq>("unica");
+  const [repetirAte, setRepetirAte] = useState("");
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const role = getSession()?.role;
+  const gestor = role === "admin" || role === "super_admin" || role === "gerente";
   const comPessoa = tipo === "tarefa" || tipo === "ligacao" || tipo === "reuniao" || tipo === "visita";
   const comLugar = tipo === "visita" || tipo === "retirada_chave";
   const chaveId = chaveLivre(chaves, form.imovelId, form.empreendimentoId);
@@ -553,6 +593,11 @@ function CriarCompromisso({
       .then(setChaves)
       .catch(() => setChaves([]));
   }, [comLugar]);
+
+  useEffect(() => {
+    if (!gestor) return;
+    void fetchEquipes().then(setEquipes).catch(() => setEquipes([]));
+  }, [gestor]);
   return (
     <div className="w-full space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -625,10 +670,85 @@ function CriarCompromisso({
         ) : null}
         </div>
 
-        {tipo === "bloqueio" ? (
-          <Section icon={Clock3} title="Término">
+        {tipo !== "ligacao" && tipo !== "outro" ? (
+          <Section icon={Clock3} title={tipo === "bloqueio" ? "Término" : "Término (opcional)"}>
             <Input className={selectClass} type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
           </Section>
+        ) : null}
+
+        {gestor && tipo !== "bloqueio" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Section icon={Users} title="Quem pode ver">
+              <select className={selectClass} value={alvoTipo} onChange={(e) => setAlvoTipo(e.target.value as AgendamentoAlvo)}>
+                {AGENDAMENTO_ALVOS.map((alvo) => (
+                  <option key={alvo} value={alvo}>{AGENDAMENTO_ALVO_LABEL[alvo]}</option>
+                ))}
+              </select>
+            </Section>
+            {alvoTipo === "equipe" ? (
+              <Section icon={Users} title="Equipe">
+                <select className={selectClass} value={alvoEquipeId} onChange={(e) => setAlvoEquipeId(e.target.value)}>
+                  <option value="">Selecione</option>
+                  {equipes.map((equipe) => (
+                    <option key={equipe.id} value={equipe.id}>{equipe.name}</option>
+                  ))}
+                </select>
+              </Section>
+            ) : (
+              <Section icon={UserRound} title="Atribuir a">
+                <select className={selectClass} value={atribuidoId} onChange={(e) => setAtribuidoId(e.target.value)}>
+                  <option value="">Ninguém (minha agenda)</option>
+                  {atribuiveis.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </Section>
+            )}
+          </div>
+        ) : null}
+
+        {!gestor && tipo !== "bloqueio" ? (
+          <Section icon={Users} title="Participação">
+            <select className={selectClass} value={escopo} onChange={(e) => setEscopo(e.target.value as AgendamentoEscopo)}>
+              <option value="pessoal">{AGENDAMENTO_ESCOPO_LABEL.pessoal}</option>
+              <option value="com_gerente">{AGENDAMENTO_ESCOPO_LABEL.com_gerente}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {escopo === "com_gerente"
+                ? "Será enviada uma solicitação para o gerente aprovar."
+                : "Fica só com você, sem aprovação."}
+            </p>
+          </Section>
+        ) : null}
+
+        {tipo === "visita" || tipo === "reuniao" || tipo === "outro" ? (
+          <Section icon={Building2} title="Local">
+            <Input className={selectClass} value={local} placeholder="Endereço ou sala" onChange={(e) => setLocal(e.target.value)} />
+          </Section>
+        ) : null}
+
+        {tipo === "visita" ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={tolerancia} onChange={(e) => setTolerancia(e.target.checked)} />
+            Reservar tolerância depois da visita
+          </label>
+        ) : null}
+
+        {tipo === "bloqueio" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Section icon={Repeat} title="Repetir bloqueio">
+              <select className={selectClass} value={repetir} onChange={(e) => setRepetir(e.target.value as AgendamentoRecurrenceFreq)}>
+                <option value="unica">Não repetir</option>
+                <option value="semanal">Toda semana</option>
+                <option value="mensal">Todo mês</option>
+              </select>
+            </Section>
+            {repetir !== "unica" ? (
+              <Section icon={CalendarDays} title="Até">
+                <Input className={selectClass} type="date" value={repetirAte} onChange={(e) => setRepetirAte(e.target.value)} />
+              </Section>
+            ) : null}
+          </div>
         ) : null}
 
         {comPessoa ? (
@@ -781,7 +901,16 @@ function CriarCompromisso({
             onClick={() =>
               onSave({
                 muralChaveId: comLugar ? chaveId : undefined,
-                horarioFim: tipo === "bloqueio" ? horarioFim : undefined,
+                horarioFim: horarioFim || undefined,
+                local,
+                toleranciaAtiva: tolerancia,
+                escopo,
+                alvoTipo,
+                alvoEquipeId,
+                atribuidoParaId: atribuidoId || undefined,
+                recurrenceFreq: repetir,
+                recurrenceDays: form.diasSemana,
+                recurrenceUntil: repetirAte,
               })
             }
           >

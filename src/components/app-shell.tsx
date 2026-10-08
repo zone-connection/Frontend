@@ -228,13 +228,13 @@ const OPERACOES: {
     items: [
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-      { to: "/funil", label: "Funil", icon: Funnel },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
+      { to: "/funil", label: "Funil", icon: Funnel },
       { to: "/clientes", label: "Clientes", icon: UserCircle2 },
       { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
+      { to: "/construtoras", label: "Construtoras", icon: Building2 },
       { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
       { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
-      { to: "/construtoras", label: "Construtoras", icon: Building2 },
     ],
   },
   {
@@ -401,8 +401,8 @@ const NAV_SECTIONS: {
     items: [
       { to: "/leads", label: "Leads", icon: Users },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-      { to: "/funil", label: "Funil", icon: Funnel },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
+      { to: "/funil", label: "Funil", icon: Funnel },
       { to: "/clientes", label: "Clientes", icon: UserCircle2 },
       { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
       { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
@@ -477,18 +477,18 @@ const NAV_SECTIONS: {
     items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    id: "agenda",
-    label: "Agenda",
-    icon: Calendar,
-    standalone: true,
-    items: [{ to: "/agenda", label: "Agenda", icon: Calendar }],
-  },
-  {
     id: "tarefas",
     label: "Tarefas",
     icon: ListTodo,
     standalone: true,
     items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    icon: Calendar,
+    standalone: true,
+    items: [{ to: "/agenda", label: "Agenda", icon: Calendar }],
   },
   {
     id: "catalogo",
@@ -509,18 +509,18 @@ const NAV_SECTIONS: {
     label: "Gestão",
     icon: Shield,
     items: [
-      { to: "/tenants", label: "Clientes", icon: Building2 },
-      { to: "/guia", label: "Guia", icon: BookOpen },
-      { to: "/corretores", label: "Ranking", icon: UsersRound },
       { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
-      { to: "/presenca", label: "Presença", icon: ClipboardCheck },
       { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
       { to: "/metas", label: "Metas", icon: Target },
+      { to: "/corretores", label: "Ranking", icon: UsersRound },
+      { to: "/presenca", label: "Presença", icon: ClipboardCheck },
       { to: "/resultado", label: "Análise", icon: SearchCheck },
       { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
       { to: "/equipes", label: "Equipes", icon: Network },
       { to: "/usuarios", label: "Usuários", icon: UsersRound },
       { to: "/permissoes", label: "Permissões", icon: KeyRound },
+      { to: "/tenants", label: "Clientes", icon: Building2 },
+      { to: "/guia", label: "Guia", icon: BookOpen },
       { to: "/configuracoes", label: "Configurações", icon: Settings },
     ],
   },
@@ -1278,88 +1278,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     onNavigate?: () => void,
   ) {
     if (!operacaoAtiva || user?.role === "super_admin") return null;
-    const ActiveIcon = operacaoAtiva.icon;
     return (
-      <div className="space-y-1 rounded-xl border border-white/12 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-        <button
-          type="button"
-          onClick={() => {
-            if (collapsedView) {
-              setCollapsed(false);
-              setOperacaoPickerOpen(true);
-              return;
-            }
-            setOperacaoPickerOpen((open) => !open);
-          }}
-          title="Trocar operação"
-          aria-expanded={operacaoPickerOpen}
-          className={cn(
-            "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sidebar-foreground transition-colors hover:bg-white/10",
-            collapsedView && "justify-center px-2",
-          )}
-        >
-          <ActiveIcon className="h-4 w-4 shrink-0" />
-          {!collapsedView && (
-            <>
-              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold tracking-wide">
-                {operacaoAtiva.label}
-              </span>
-              {navItemsHaveNovo(operacaoAtiva.items) ? (
-                <NovoBadge compact />
-              ) : null}
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50 transition-transform",
-                  operacaoPickerOpen && "rotate-180",
-                )}
-              />
-            </>
-          )}
-        </button>
-        {operacaoPickerOpen && !collapsedView && (
-          <div className="rounded-lg border border-sidebar-border bg-sidebar p-1.5">
-            <div
-              className={cn(
-                "grid gap-1.5",
-                operacoesDisponiveis.length >= 3 ? "grid-cols-3" : "grid-cols-2",
-              )}
-            >
-              {operacoesDisponiveis.map((op) => {
-                const Icon = op.icon;
-                const selected = op.id === operacaoAtiva.id;
-                return (
-                  <button
-                    key={op.id}
-                    type="button"
-                    onClick={() => {
-                      setOperacao(op.id);
-                      setOperacaoPickerOpen(false);
-                    }}
-                    className={cn(
-                      "flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md border px-1.5 py-2 text-center transition-colors",
-                      selected
-                        ? "border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/70",
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight">
-                      {op.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={() => setOperacaoPickerOpen(false)}
-              className="mt-1 flex w-full cursor-pointer items-center justify-end gap-1 px-1 py-1 text-[11px] text-sidebar-foreground/60 hover:text-sidebar-foreground"
-            >
-              <X className="h-3 w-3" />
-              Fechar
-            </button>
-          </div>
-        )}
+      <div className="space-y-1">
         {!collapsedView && (
           <div
             key={operacaoAtiva.id}
@@ -1491,44 +1411,101 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       user?.role === "super_admin"
         ? navSections.filter((section) => section.id !== "agenda")
         : navSections.filter((section) => !OPERACAO_SECTION_IDS.has(section.id));
-    const beforeOperacao = new Set(["dashboard"]);
-    const afterOperacaoTop = new Set(["agenda", "catalogo", "treinamento"]);
+    const beforeOperacao = ["dashboard", "tarefas", "agenda"];
+    const afterOperacaoTop = ["catalogo", "fechamento"];
+    const fimDoMenu = ["treinamento", "novidades", "guia-sistema", "conta"];
+    const naOrdem = (ids: string[]) =>
+      ids
+        .map((id) => sections.find((section) => section.id === id))
+        .filter((section): section is (typeof sections)[number] => Boolean(section));
     const menuSlots: Array<
       | { kind: "section"; section: (typeof sections)[number] }
       | { kind: "operacao" }
     > = [
-      ...sections
-        .filter((section) => beforeOperacao.has(section.id))
-        .map((section) => ({ kind: "section" as const, section })),
+      ...naOrdem(beforeOperacao).map((section) => ({ kind: "section" as const, section })),
       { kind: "operacao" },
-      ...sections
-        .filter((section) => afterOperacaoTop.has(section.id))
-        .map((section) => ({ kind: "section" as const, section })),
+      ...naOrdem(afterOperacaoTop).map((section) => ({ kind: "section" as const, section })),
       ...sections
         .filter(
           (section) =>
-            !beforeOperacao.has(section.id) &&
-            !afterOperacaoTop.has(section.id),
+            !beforeOperacao.includes(section.id) &&
+            !afterOperacaoTop.includes(section.id) &&
+            !fimDoMenu.includes(section.id),
         )
         .map((section) => ({ kind: "section" as const, section })),
+      ...naOrdem(fimDoMenu).map((section) => ({ kind: "section" as const, section })),
     ];
     const operacaoMenu = renderOperacaoMenu(collapsedView, onNavigate);
-    const visibleSlots = menuSlots.filter((slot) =>
-      slot.kind === "operacao" ? Boolean(operacaoMenu) : true,
-    );
-    const sectionDivider = (index: number) =>
-      index > 0 ? "mt-1.5 border-t border-white/12 pt-2" : undefined;
+    const visibleSlots = menuSlots.filter((slot) => slot.kind !== "operacao");
+    const grupoDoSlot = (slot: (typeof visibleSlots)[number]) => {
+      if (slot.kind === "operacao") return "comercial";
+      if (["dashboard", "tarefas", "agenda"].includes(slot.section.id)) return "rotina";
+      if (["catalogo", "fechamento"].includes(slot.section.id)) return "imoveis";
+      if (["treinamento", "novidades", "guia-sistema", "conta"].includes(slot.section.id)) return "apoio";
+      return "gestao";
+    };
+    const rotuloGrupo: Record<string, string> = {
+      rotina: "Dia",
+      comercial: "Comercial",
+      imoveis: "Imóveis e fechamento",
+      gestao: "Gestão",
+      apoio: "Apoio",
+    };
 
     return (
       <nav className="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-3">
+        {operacaoAtiva && user?.role !== "super_admin" && operacoesDisponiveis.length > 0 ? (
+          <div className="sticky top-0 z-10 -mx-2 mb-2 bg-sidebar px-2 pb-2">
+            <div
+              className={cn(
+                "grid gap-1.5 rounded-2xl border border-white/12 bg-white/[0.06] p-1.5",
+                collapsedView ? "grid-cols-1" : "grid-cols-3",
+              )}
+            >
+              {operacoesDisponiveis.map((op) => {
+                const Icon = op.icon;
+                const selected = op.id === operacaoAtiva.id;
+                return (
+                  <button
+                    key={op.id}
+                    type="button"
+                    title={op.label}
+                    onClick={() => setOperacao(op.id)}
+                    className={cn(
+                      "flex min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-center",
+                      selected
+                        ? "border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "border-white/10 text-sidebar-foreground/75 hover:bg-white/10",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!collapsedView ? (
+                      <span className="line-clamp-2 text-[10px] font-medium leading-tight">
+                        {op.label}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        {operacaoMenu ? <div className="mb-2">{operacaoMenu}</div> : null}
         {visibleSlots.map((slot, index) => {
-          if (slot.kind === "operacao") {
-            return (
-              <div key="operacao-menu" className={sectionDivider(index)}>
-                {operacaoMenu}
+          const grupo = grupoDoSlot(slot);
+          const grupoAnterior = index > 0 ? grupoDoSlot(visibleSlots[index - 1]) : "";
+          const novoGrupo = grupo !== grupoAnterior;
+          const tituloGrupo = novoGrupo ? (
+            collapsedView ? (
+              <div className="mx-2 my-2 border-t border-white/20" />
+            ) : (
+              <div className={cn(index > 0 || operacaoMenu ? "mt-3 border-t border-white/20 pt-3" : "pt-1")}>
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                  {rotuloGrupo[grupo]}
+                </p>
               </div>
-            );
-          }
+            )
+          ) : null;
           const section = slot.section;
           const SectionIcon = section.icon;
           const isOpen = !!openSections[section.id];
@@ -1549,7 +1526,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               pathname.startsWith(`${standaloneLeaf.to}/`);
             const isAgenda = standaloneLeaf.to === "/agenda";
             return (
-              <div key={section.id} className={sectionDivider(index)}>
+              <div key={section.id}>
+              {tituloGrupo}
               <Link
                 to={standaloneLeaf.to}
                 preload="intent"
@@ -1599,11 +1577,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={section.id}
-              className={cn(
-                "space-y-0.5 rounded-xl border border-white/12 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-                sectionDivider(index),
-              )}
+              className="space-y-0.5"
             >
+              {tituloGrupo}
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
