@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import type { AgendamentoTipo } from "@/lib/agenda-api";
 
 export type TarefaFiltro =
   | "todas"
@@ -32,6 +33,7 @@ export type Tarefa = {
   data: string;
   horario: string | null;
   prioridade: TarefaPrioridade;
+  tipo: AgendamentoTipo;
   status: "aberta" | "concluida";
   atrasada: boolean;
   responsavel: { id: string; name: string };
@@ -63,6 +65,7 @@ export type TarefaInput = {
   responsavelId: string;
   horario?: string;
   prioridade?: TarefaPrioridade;
+  tipo?: AgendamentoTipo;
   descricao?: string;
   lembrete?: TarefaLembrete;
   lembreteMinutos?: number;

@@ -19,6 +19,7 @@ function base(
     data: partial.data,
     horario: partial.horario,
     prioridade: partial.prioridade,
+    tipo: "tarefa",
     status: partial.status,
     atrasada: partial.atrasada ?? false,
     responsavel: { id: partial.responsavel, name: partial.responsavel },

@@ -19,6 +19,8 @@ import {
   startOfWeek,
   type TarefaVisao,
 } from "@/components/tarefas-calendario";
+import { AgendamentoTipoDot } from "@/components/agenda-tipo-option";
+import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
 import { PRIORIDADE_LABEL, type TarefaFiltro } from "@/lib/tarefas-api";
 import type { TarefaVisivel } from "@/lib/tarefas-mock";
 import { cn } from "@/lib/utils";
@@ -337,8 +339,12 @@ export function TarefasPainel({
                           onClick={() => onComplete(tarefa)}
                         />
                         <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                          <p className={cn("truncate font-medium", tarefa.status === "concluida" && "line-through opacity-60")}>
-                            {tarefa.titulo}
+                          <p className={cn("flex items-center gap-2 truncate font-medium", tarefa.status === "concluida" && "line-through opacity-60")}>
+                            <AgendamentoTipoDot tipo={tarefa.tipo ?? "tarefa"} />
+                            <span className="truncate">{tarefa.titulo}</span>
+                            <span className="hidden text-xs font-normal text-muted-foreground sm:inline">
+                              {AGENDAMENTO_TIPO_LABEL[tarefa.tipo ?? "tarefa"]}
+                            </span>
                           </p>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
                             {quando(tarefa, hoje)}

@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
+import { AGENDAMENTO_TIPOS, type AgendamentoTipo } from "@/lib/agenda-api";
 import { TarefasPainel } from "@/components/tarefas-painel";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasSemana } from "@/components/tarefas-semana";
@@ -51,6 +53,7 @@ function emptyForm(userId: string): TarefaInput {
     responsavelId: userId,
     horario: "",
     prioridade: "media",
+    tipo: "tarefa",
     descricao: "",
     lembrete: "nenhum",
     recorrencia: "nenhuma",
@@ -128,6 +131,7 @@ function TarefasPage() {
       responsavelId: tarefa.responsavel.id,
       horario: tarefa.horario ?? "",
       prioridade: tarefa.prioridade,
+      tipo: tarefa.tipo ?? "tarefa",
       descricao: tarefa.descricao,
       lembrete: tarefa.lembrete,
       lembreteMinutos: tarefa.lembreteMinutos ?? 10,
@@ -266,6 +270,13 @@ function TarefasPage() {
             <p className="text-sm text-muted-foreground">Um novo passo para o seu dia.</p>
           </DialogHeader>
           <div className="grid gap-3">
+            <Field label="Tipo de compromisso">
+              <AgendamentoTipoPicker
+                value={form.tipo ?? "tarefa"}
+                options={AGENDAMENTO_TIPOS}
+                onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
+              />
+            </Field>
             <Field label="Título">
               <Input
                 value={form.titulo}
