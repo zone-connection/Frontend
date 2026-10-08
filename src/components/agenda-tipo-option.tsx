@@ -66,17 +66,20 @@ export function AgendamentoTipoPicker({
   options,
   onChange,
   disabled,
+  className,
 }: {
   value: AgendamentoTipo;
   options: readonly AgendamentoTipo[];
   onChange: (tipo: AgendamentoTipo) => void;
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <div
       className={cn(
         "grid grid-cols-2 gap-2 sm:grid-cols-3",
         disabled && "opacity-80",
+        className,
       )}
     >
       {options.map((tipo) => {
@@ -89,7 +92,7 @@ export function AgendamentoTipoPicker({
             disabled={disabled}
             onClick={() => onChange(tipo)}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition",
+              "flex min-h-12 items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-left transition",
               selected
                 ? cn(AGENDA_LUX_CHIP[tipo], "border-transparent shadow-sm")
                 : cn(
@@ -109,7 +112,7 @@ export function AgendamentoTipoPicker({
             >
               <Icon className="h-4 w-4" />
             </span>
-            <span className="text-sm font-semibold leading-tight">
+            <span className="text-sm font-semibold leading-tight text-balance">
               {AGENDAMENTO_TIPO_LABEL[tipo]}
             </span>
           </button>

@@ -297,14 +297,15 @@ function TarefasPage() {
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b px-6 py-5">
             <DialogTitle>{editing ? "Editar tarefa" : "Nova tarefa"}</DialogTitle>
             <p className="text-sm text-muted-foreground">Um novo passo para o seu dia.</p>
           </DialogHeader>
-          <div className="grid gap-3">
+          <div className="grid gap-5 overflow-y-auto px-6 py-5">
             <Field label="Tipo de compromisso">
               <AgendamentoTipoPicker
+                className="sm:grid-cols-4"
                 value={form.tipo ?? "tarefa"}
                 options={AGENDAMENTO_TIPOS}
                 onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
@@ -332,9 +333,10 @@ function TarefasPage() {
                 />
               </Field>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Responsável">
               <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className={selectClass}
                 value={form.responsavelId}
                 onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}
               >
@@ -348,7 +350,7 @@ function TarefasPage() {
             </Field>
             <Field label="Prioridade">
               <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className={selectClass}
                 value={form.prioridade}
                 onChange={(e) =>
                   setForm({ ...form, prioridade: e.target.value as TarefaPrioridade })
@@ -359,6 +361,7 @@ function TarefasPage() {
                 <option value="baixa">Baixa</option>
               </select>
             </Field>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Lead">
                 <IdSearchSelect
@@ -408,9 +411,10 @@ function TarefasPage() {
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
               />
             </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Lembrete por e-mail">
               <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className={selectClass}
                 value={form.lembrete}
                 onChange={(e) =>
                   setForm({ ...form, lembrete: e.target.value as TarefaLembrete })
@@ -426,21 +430,9 @@ function TarefasPage() {
                 <option value="personalizado">Personalizado</option>
               </select>
             </Field>
-            {form.lembrete === "personalizado" ? (
-              <Field label="Minutos antes">
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.lembreteMinutos ?? 0}
-                  onChange={(e) =>
-                    setForm({ ...form, lembreteMinutos: Number(e.target.value) })
-                  }
-                />
-              </Field>
-            ) : null}
             <Field label="Recorrência">
               <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className={selectClass}
                 value={form.recorrencia}
                 onChange={(e) =>
                   setForm({ ...form, recorrencia: e.target.value as TarefaRecorrencia })
@@ -454,6 +446,19 @@ function TarefasPage() {
                 <option value="personalizado">Personalizado</option>
               </select>
             </Field>
+            </div>
+            {form.lembrete === "personalizado" ? (
+              <Field label="Minutos antes">
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.lembreteMinutos ?? 0}
+                  onChange={(e) =>
+                    setForm({ ...form, lembreteMinutos: Number(e.target.value) })
+                  }
+                />
+              </Field>
+            ) : null}
             {form.recorrencia === "dias_especificos" ? (
               <div className="flex flex-wrap gap-2">
                 {DIAS.map((dia, index) => {
@@ -521,7 +526,9 @@ function TarefasPage() {
                 </div>
               </div>
             ) : null}
-            <Button onClick={() => void salvar()}>Salvar</Button>
+          </div>
+          <div className="border-t px-6 py-4">
+            <Button className="w-full" onClick={() => void salvar()}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -529,10 +536,12 @@ function TarefasPage() {
   );
 }
 
+const selectClass = "h-10 w-full rounded-xl border bg-background px-3 text-sm";
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-1">
-      <Label>{label}</Label>
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
