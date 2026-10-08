@@ -1,5 +1,19 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  ArrowLeft,
+  Building2,
+  CalendarDays,
+  Clock3,
+  Flag,
+  Mail,
+  Repeat,
+  Save,
+  Type,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPOS, type AgendamentoTipo } from "@/lib/agenda-api";
@@ -10,14 +24,7 @@ import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
 import { getSession, type Role } from "@/lib/auth";
@@ -40,11 +47,11 @@ import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import { IdSearchSelect } from "@/components/id-search-select";
 
 export const Route = createFileRoute("/_app/tarefas")({
-  head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
+  head: () => ({ meta: [{ title: "Tarefas â€” Zone Connection" }] }),
   component: TarefasPage,
 });
 
-const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b"];
 
 function emptyForm(userId: string): TarefaInput {
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -193,7 +200,7 @@ function TarefasPage() {
       setOpen(false);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar.");
+      toast.error(err instanceof ApiError ? err.message : "NÃ£o foi possÃ­vel salvar.");
     }
   }
 
@@ -215,11 +222,37 @@ function TarefasPage() {
     : items.filter((item) => item.responsavel.id === session?.id);
   const painel = verEquipe ? reais : [...demos, ...reais];
 
+  if (open) {
+    return (
+      <CriarCompromisso
+        editing={Boolean(editing)}
+        form={form}
+        setForm={setForm}
+        atribuiveis={atribuiveis}
+        leads={leads}
+        clientes={clientes}
+        empreendimentos={empreendimentos}
+        nota={nota}
+        setNota={setNota}
+        comentarios={editing?.comentarios ?? []}
+        onBack={() => setOpen(false)}
+        onSave={() => void salvar()}
+        onNota={() => {
+          if (!editing || !nota.trim()) return;
+          void comentarTarefa(editing.id, nota.trim()).then(() => {
+            setNota("");
+            void load();
+          });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       {enabled === false ? (
         <p className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
-          Os exemplos abaixo são demonstração. Tarefas reais entram a partir do plano Prata.{" "}
+          Os exemplos abaixo sÃ£o demonstraÃ§Ã£o. Tarefas reais entram a partir do plano Prata.{" "}
           <Link to="/configuracoes" className="underline">
             Conhecer recurso
           </Link>
@@ -296,254 +329,261 @@ function TarefasPage() {
       )}
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-          <DialogHeader className="border-b px-6 py-5">
-            <DialogTitle>{editing ? "Editar tarefa" : "Nova tarefa"}</DialogTitle>
-            <p className="text-sm text-muted-foreground">Um novo passo para o seu dia.</p>
-          </DialogHeader>
-          <div className="grid gap-5 overflow-y-auto px-6 py-5">
-            <Field label="Tipo de compromisso">
-              <AgendamentoTipoPicker
-                className="sm:grid-cols-4"
-                value={form.tipo ?? "tarefa"}
-                options={AGENDAMENTO_TIPOS}
-                onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
-              />
-            </Field>
-            <Field label="Título">
-              <Input
-                value={form.titulo}
-                onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Data">
-                <Input
-                  type="date"
-                  value={form.data}
-                  onChange={(e) => setForm({ ...form, data: e.target.value })}
-                />
-              </Field>
-              <Field label="Horário">
-                <Input
-                  type="time"
-                  value={form.horario ?? ""}
-                  onChange={(e) => setForm({ ...form, horario: e.target.value })}
-                />
-              </Field>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Responsável">
-              <select
-                className={selectClass}
-                value={form.responsavelId}
-                onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}
-              >
-                {atribuiveis.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                    {u.role === "corretor" ? " · Corretor" : u.role === "treinee" ? " · Trainee" : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Prioridade">
-              <select
-                className={selectClass}
-                value={form.prioridade}
-                onChange={(e) =>
-                  setForm({ ...form, prioridade: e.target.value as TarefaPrioridade })
-                }
-              >
-                <option value="alta">Alta</option>
-                <option value="media">Média</option>
-                <option value="baixa">Baixa</option>
-              </select>
-            </Field>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Lead">
-                <IdSearchSelect
-                  value={leads.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
-                  options={leads.map((item) => ({
-                    id: item.id,
-                    label: item.nome,
-                    keywords: item.extra,
-                  }))}
-                  onChange={(id) => setForm({ ...form, leadId: id || undefined })}
-                  placeholder="Selecionar lead"
-                  searchPlaceholder="Pesquisar lead…"
-                  emptyLabel="Nenhum lead cadastrado"
-                />
-              </Field>
-              <Field label="Cliente">
-                <IdSearchSelect
-                  value={clientes.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
-                  options={clientes.map((item) => ({
-                    id: item.id,
-                    label: item.nome,
-                    keywords: item.extra,
-                  }))}
-                  onChange={(id) => setForm({ ...form, leadId: id || undefined })}
-                  placeholder="Selecionar cliente"
-                  searchPlaceholder="Pesquisar cliente…"
-                  emptyLabel="Nenhum cliente cadastrado"
-                />
-              </Field>
-            </div>
-            <Field label="Empreendimento">
-              <IdSearchSelect
-                value={form.empreendimentoId ?? ""}
-                options={empreendimentos.map((item) => ({
-                  id: item.id,
-                  label: item.nome,
-                }))}
-                onChange={(id) => setForm({ ...form, empreendimentoId: id || undefined })}
-                placeholder="Selecionar empreendimento"
-                searchPlaceholder="Pesquisar empreendimento…"
-                emptyLabel="Nenhum empreendimento cadastrado"
-              />
-            </Field>
-            <Field label="Descrição">
-              <Textarea
-                value={form.descricao ?? ""}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              />
-            </Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Lembrete por e-mail">
-              <select
-                className={selectClass}
-                value={form.lembrete}
-                onChange={(e) =>
-                  setForm({ ...form, lembrete: e.target.value as TarefaLembrete })
-                }
-              >
-                <option value="nenhum">Sem lembrete</option>
-                <option value="no_horario">No horário da tarefa</option>
-                <option value="min_5">5 minutos antes</option>
-                <option value="min_15">15 minutos antes</option>
-                <option value="min_30">30 minutos antes</option>
-                <option value="hora_1">1 hora antes</option>
-                <option value="dia_1">1 dia antes</option>
-                <option value="personalizado">Personalizado</option>
-              </select>
-            </Field>
-            <Field label="Recorrência">
-              <select
-                className={selectClass}
-                value={form.recorrencia}
-                onChange={(e) =>
-                  setForm({ ...form, recorrencia: e.target.value as TarefaRecorrencia })
-                }
-              >
-                <option value="nenhuma">Não repetir</option>
-                <option value="diaria">Diariamente</option>
-                <option value="semanal">Semanalmente</option>
-                <option value="mensal">Mensalmente</option>
-                <option value="dias_especificos">Dias específicos</option>
-                <option value="personalizado">Personalizado</option>
-              </select>
-            </Field>
-            </div>
-            {form.lembrete === "personalizado" ? (
-              <Field label="Minutos antes">
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.lembreteMinutos ?? 0}
-                  onChange={(e) =>
-                    setForm({ ...form, lembreteMinutos: Number(e.target.value) })
-                  }
-                />
-              </Field>
-            ) : null}
-            {form.recorrencia === "dias_especificos" ? (
-              <div className="flex flex-wrap gap-2">
-                {DIAS.map((dia, index) => {
-                  const on = form.diasSemana?.includes(index);
-                  return (
-                    <Button
-                      key={dia}
-                      type="button"
-                      size="sm"
-                      variant={on ? "default" : "outline"}
-                      onClick={() => {
-                        const cur = form.diasSemana ?? [];
-                        setForm({
-                          ...form,
-                          diasSemana: on
-                            ? cur.filter((d) => d !== index)
-                            : [...cur, index],
-                        });
-                      }}
-                    >
-                      {dia}
-                    </Button>
-                  );
-                })}
-              </div>
-            ) : null}
-            {form.recorrencia === "personalizado" ? (
-              <Field label="A cada quantos dias">
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.intervaloDias ?? 1}
-                  onChange={(e) =>
-                    setForm({ ...form, intervaloDias: Number(e.target.value) })
-                  }
-                />
-              </Field>
-            ) : null}
-            {editing ? (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Notas</p>
-                <ul className="space-y-1 text-sm">
-                  {editing.comentarios.map((c) => (
-                    <li key={c.id}>
-                      <span className="text-muted-foreground">{c.autor.name}: </span>
-                      {c.texto}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex gap-2">
-                  <Input value={nota} onChange={(e) => setNota(e.target.value)} />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (!nota.trim()) return;
-                      void comentarTarefa(editing.id, nota.trim()).then(() => {
-                        setNota("");
-                        void load();
-                      });
-                    }}
-                  >
-                    Registrar
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-          <div className="border-t px-6 py-4">
-            <Button className="w-full" onClick={() => void salvar()}>Salvar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-const selectClass = "h-10 w-full rounded-xl border bg-background px-3 text-sm";
+const selectClass =
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-none";
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function CriarCompromisso({
+  editing,
+  form,
+  setForm,
+  atribuiveis,
+  leads,
+  clientes,
+  empreendimentos,
+  nota,
+  setNota,
+  comentarios,
+  onBack,
+  onSave,
+  onNota,
+}: {
+  editing: boolean;
+  form: TarefaInput;
+  setForm: (form: TarefaInput) => void;
+  atribuiveis: { id: string; name: string; role: Role }[];
+  leads: { id: string; nome: string; extra: string }[];
+  clientes: { id: string; nome: string; extra: string }[];
+  empreendimentos: { id: string; nome: string }[];
+  nota: string;
+  setNota: (nota: string) => void;
+  comentarios: { id: string; texto: string; autor: { name: string } }[];
+  onBack: () => void;
+  onSave: () => void;
+  onNota: () => void;
+}) {
+  const descricao = form.descricao ?? "";
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      {children}
+    <div className="mx-auto max-w-3xl space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <CalendarDays className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {editing ? "Editar compromisso" : "Criar compromisso"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Agende um novo compromisso e mantenha seu time organizado.
+            </p>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+      </div>
+
+      <div className="space-y-6 rounded-3xl border bg-card p-6 shadow-sm">
+        <Section icon={CalendarDays} title="Tipo de compromisso" hint="Escolha qual é o tipo de compromisso.">
+          <AgendamentoTipoPicker
+            appearance="soft"
+            value={form.tipo ?? "tarefa"}
+            options={AGENDAMENTO_TIPOS}
+            onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
+          />
+        </Section>
+
+        <Section icon={Type} title="Título" hint="Descreva rapidamente o compromisso.">
+          <Input
+            className={selectClass}
+            placeholder="Ex: Visita ao imóvel, reunião com cliente..."
+            value={form.titulo}
+            onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+          />
+        </Section>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Section icon={CalendarDays} title="Data">
+            <Input className={selectClass} type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
+          </Section>
+          <Section icon={Clock3} title="Horário">
+            <Input className={selectClass} type="time" value={form.horario ?? ""} onChange={(e) => setForm({ ...form, horario: e.target.value })} />
+          </Section>
+        </div>
+
+        <Section icon={UserRound} title="Responsável">
+          <select className={selectClass} value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}>
+            {atribuiveis.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+                {u.role === "corretor" ? " · Corretor" : u.role === "treinee" ? " · Trainee" : ""}
+              </option>
+            ))}
+          </select>
+        </Section>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Section icon={Flag} title="Prioridade">
+            <select className={selectClass} value={form.prioridade} onChange={(e) => setForm({ ...form, prioridade: e.target.value as TarefaPrioridade })}>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </Section>
+          <Section icon={Users} title="Cliente">
+            <IdSearchSelect
+              value={clientes.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
+              options={clientes.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra }))}
+              onChange={(id) => setForm({ ...form, leadId: id || undefined })}
+              placeholder="Selecionar cliente"
+              searchPlaceholder="Pesquisar cliente…"
+              emptyLabel="Nenhum cliente cadastrado"
+            />
+          </Section>
+        </div>
+
+        <Section icon={Users} title="Lead">
+          <IdSearchSelect
+            value={leads.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
+            options={leads.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra }))}
+            onChange={(id) => setForm({ ...form, leadId: id || undefined })}
+            placeholder="Selecionar lead"
+            searchPlaceholder="Pesquisar lead…"
+            emptyLabel="Nenhum lead cadastrado"
+          />
+        </Section>
+
+        <Section icon={Building2} title="Empreendimento">
+          <IdSearchSelect
+            value={form.empreendimentoId ?? ""}
+            options={empreendimentos.map((item) => ({ id: item.id, label: item.nome }))}
+            onChange={(id) => setForm({ ...form, empreendimentoId: id || undefined })}
+            placeholder="Selecionar empreendimento"
+            searchPlaceholder="Pesquisar empreendimento…"
+            emptyLabel="Nenhum empreendimento cadastrado"
+          />
+        </Section>
+
+        <Section icon={Type} title="Descrição">
+          <div className="relative">
+            <Textarea
+              className="min-h-28 rounded-xl"
+              maxLength={500}
+              placeholder="Adicione mais detalhes sobre o compromisso..."
+              value={descricao}
+              onChange={(e) => setForm({ ...form, descricao: e.target.value.slice(0, 500) })}
+            />
+            <span className="absolute bottom-2 right-3 text-xs text-muted-foreground">{descricao.length}/500</span>
+          </div>
+        </Section>
+
+        <Section icon={Mail} title="Lembrete por e-mail">
+          <select className={selectClass} value={form.lembrete} onChange={(e) => setForm({ ...form, lembrete: e.target.value as TarefaLembrete })}>
+            <option value="nenhum">Sem lembrete</option>
+            <option value="no_horario">No horário da tarefa</option>
+            <option value="min_5">5 minutos antes</option>
+            <option value="min_15">15 minutos antes</option>
+            <option value="min_30">30 minutos antes</option>
+            <option value="hora_1">1 hora antes</option>
+            <option value="dia_1">1 dia antes</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </Section>
+        {form.lembrete === "personalizado" ? (
+          <Section icon={Clock3} title="Minutos antes">
+            <Input className={selectClass} type="number" min={0} value={form.lembreteMinutos ?? 0} onChange={(e) => setForm({ ...form, lembreteMinutos: Number(e.target.value) })} />
+          </Section>
+        ) : null}
+
+        <Section icon={Repeat} title="Recorrência">
+          <select className={selectClass} value={form.recorrencia} onChange={(e) => setForm({ ...form, recorrencia: e.target.value as TarefaRecorrencia })}>
+            <option value="nenhuma">Não repetir</option>
+            <option value="diaria">Diariamente</option>
+            <option value="semanal">Semanalmente</option>
+            <option value="mensal">Mensalmente</option>
+            <option value="dias_especificos">Dias específicos</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </Section>
+        {form.recorrencia === "dias_especificos" ? (
+          <div className="flex flex-wrap gap-2">
+            {DIAS.map((dia, index) => {
+              const on = form.diasSemana?.includes(index);
+              return (
+                <Button key={dia} type="button" size="sm" variant={on ? "default" : "outline"} onClick={() => {
+                  const cur = form.diasSemana ?? [];
+                  setForm({ ...form, diasSemana: on ? cur.filter((d) => d !== index) : [...cur, index] });
+                }}>
+                  {dia}
+                </Button>
+              );
+            })}
+          </div>
+        ) : null}
+        {form.recorrencia === "personalizado" ? (
+          <Section icon={Repeat} title="A cada quantos dias">
+            <Input className={selectClass} type="number" min={1} value={form.intervaloDias ?? 1} onChange={(e) => setForm({ ...form, intervaloDias: Number(e.target.value) })} />
+          </Section>
+        ) : null}
+
+        {editing ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Notas</p>
+            <ul className="space-y-1 text-sm">
+              {comentarios.map((c) => (
+                <li key={c.id}>
+                  <span className="text-muted-foreground">{c.autor.name}: </span>
+                  {c.texto}
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={nota} onChange={(e) => setNota(e.target.value)} />
+              <Button type="button" variant="outline" onClick={onNota}>Registrar</Button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3 border-t pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <X className="h-4 w-4" />
+            Cancelar
+          </Button>
+          <Button type="button" onClick={onSave}>
+            <Save className="h-4 w-4" />
+            Salvar
+          </Button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function Section({
+  icon: Icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: typeof CalendarDays;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Icon className="h-4 w-4 text-muted-foreground" />
+        {title}
+      </div>
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {children}
+    </section>
   );
 }
 

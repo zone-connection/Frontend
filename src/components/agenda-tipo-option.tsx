@@ -9,6 +9,7 @@ import {
   AGENDA_LUX_WELL,
 } from "@/lib/agenda-lux-colors";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 import {
   Ban,
   CalendarDays,
@@ -67,13 +68,16 @@ export function AgendamentoTipoPicker({
   onChange,
   disabled,
   className,
+  appearance = "solid",
 }: {
   value: AgendamentoTipo;
   options: readonly AgendamentoTipo[];
   onChange: (tipo: AgendamentoTipo) => void;
   disabled?: boolean;
   className?: string;
+  appearance?: "solid" | "soft";
 }) {
+  const soft = appearance === "soft";
   return (
     <div
       className={cn(
@@ -92,29 +96,33 @@ export function AgendamentoTipoPicker({
             disabled={disabled}
             onClick={() => onChange(tipo)}
             className={cn(
-              "flex min-h-12 items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-left transition",
-              selected
-                ? cn(AGENDA_LUX_CHIP[tipo], "border-transparent shadow-sm")
-                : cn(
-                    AGENDA_LUX_SOFT[tipo],
-                    "bg-background hover:brightness-[0.98]",
-                  ),
+              "flex min-h-14 items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition",
+              soft
+                ? selected
+                  ? "border-primary bg-background shadow-sm"
+                  : cn(AGENDA_LUX_SOFT[tipo], "border-transparent hover:brightness-[0.98]")
+                : selected
+                  ? cn(AGENDA_LUX_CHIP[tipo], "border-transparent shadow-sm")
+                  : cn(AGENDA_LUX_SOFT[tipo], "bg-background hover:brightness-[0.98]"),
               disabled && "cursor-not-allowed",
             )}
           >
             <span
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm",
-                selected
-                  ? "bg-white/20 text-white"
-                  : AGENDA_LUX_WELL[tipo],
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-sm",
+                soft || !selected ? AGENDA_LUX_WELL[tipo] : "bg-white/20 text-white",
               )}
             >
               <Icon className="h-4 w-4" />
             </span>
-            <span className="text-sm font-semibold leading-tight text-balance">
+            <span className="min-w-0 flex-1 text-sm font-semibold leading-tight">
               {AGENDAMENTO_TIPO_LABEL[tipo]}
             </span>
+            {soft && selected ? (
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Check className="h-3 w-3" />
+              </span>
+            ) : null}
           </button>
         );
       })}
