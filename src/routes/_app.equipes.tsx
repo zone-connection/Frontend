@@ -67,6 +67,8 @@ import {
 } from "@/lib/funis-api";
 import { resetUserPassword } from "@/lib/users-api";
 import {
+  ChevronLeft,
+  ChevronRight,
   Network,
   Plus,
   Loader2,
@@ -865,18 +867,36 @@ function EquipesPage() {
                 </div>
               </FormDialogBody>
 
-              <FormDialogActions hint="As alterações valem para novas operações.">
+              <FormDialogActions>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    const index = TEAM_FORM_SECTIONS.findIndex((item) => item.id === teamFormSection);
+                    if (index <= 0) setOpen(false);
+                    else setTeamFormSection(TEAM_FORM_SECTIONS[index - 1].id);
+                  }}
                 >
-                  Cancelar
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
                 </Button>
+                {teamFormSection === "funis" ? (
                 <Button type="submit" disabled={saving || optionsLoading}>
                   {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
                   {formMode === "create" ? "Criar equipe" : "Salvar"}
                 </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const index = TEAM_FORM_SECTIONS.findIndex((item) => item.id === teamFormSection);
+                      setTeamFormSection(TEAM_FORM_SECTIONS[index + 1].id);
+                    }}
+                  >
+                    Próximo
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
               </FormDialogActions>
             </form>
           </FormDialogShell>

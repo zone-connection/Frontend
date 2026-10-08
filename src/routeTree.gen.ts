@@ -50,6 +50,7 @@ import { Route as AppPermissoesRouteImport } from './routes/_app.permissoes'
 import { Route as AppPresencaRouteImport } from './routes/_app.presenca'
 import { Route as AppPropostasRouteImport } from './routes/_app.propostas'
 import { Route as AppResultadoRouteImport } from './routes/_app.resultado'
+import { Route as AppTarefasRouteImport } from './routes/_app.tarefas'
 import { Route as AppTaxaConversaoRouteImport } from './routes/_app.taxa-conversao'
 import { Route as AppTenantsRouteImport } from './routes/_app.tenants'
 import { Route as AppTreinamentoRouteImport } from './routes/_app.treinamento'
@@ -75,7 +76,6 @@ import { Route as ProdutosIaWhatsappRouteImport } from './routes/produtos.ia-wha
 import { Route as ProdutosSitesInstitucionaisRouteImport } from './routes/produtos.sites-institucionais'
 import { Route as AppCaptacaoCaptacoesRouteImport } from './routes/_app.captacao.captacoes'
 import { Route as AppCaptacaoFilaRouteImport } from './routes/_app.captacao.fila'
-import { Route as AppCaptacaoFilaIdRouteImport } from './routes/_app.captacao.fila_.$id'
 import { Route as AppCaptacaoFunilRouteImport } from './routes/_app.captacao.funil'
 import { Route as AppCaptacaoImoveisRouteImport } from './routes/_app.captacao.imoveis'
 import { Route as AppCaptacaoProprietariosRouteImport } from './routes/_app.captacao.proprietarios'
@@ -108,9 +108,9 @@ import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
 import { Route as PublicoEmpreendimentoIdRouteImport } from './routes/publico.empreendimento.$id'
 import { Route as PublicoPropostaTokenRouteImport } from './routes/publico.proposta.$token'
-import { Route as PublicoPropostaReciboCompradorTokenRouteImport } from './routes/publico.proposta.recibo.$compradorToken'
 import { Route as AppCaptacaoCaptacoesIndexRouteImport } from './routes/_app.captacao.captacoes.index'
 import { Route as AppCaptacaoCaptacoesIdRouteImport } from './routes/_app.captacao.captacoes.$id'
+import { Route as AppCaptacaoFilaIdRouteImport } from './routes/_app.captacao.fila_.$id'
 import { Route as AppCaptacaoImoveisIndexRouteImport } from './routes/_app.captacao.imoveis.index'
 import { Route as AppCaptacaoImoveisIdRouteImport } from './routes/_app.captacao.imoveis.$id'
 import { Route as AppCaptacaoProprietariosIndexRouteImport } from './routes/_app.captacao.proprietarios.index'
@@ -118,6 +118,7 @@ import { Route as AppCaptacaoProprietariosIdRouteImport } from './routes/_app.ca
 import { Route as AppImoveisUsadosVendasIndexRouteImport } from './routes/_app.imoveis-usados.vendas.index'
 import { Route as AppImoveisUsadosVendasIdRouteImport } from './routes/_app.imoveis-usados.vendas.$id'
 import { Route as PublicoEmpreendimentoTenantSlugRouteImport } from './routes/publico.empreendimento.$tenant.$slug'
+import { Route as PublicoPropostaReciboCompradorTokenRouteImport } from './routes/publico.proposta.recibo.$compradorToken'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -323,6 +324,11 @@ const AppResultadoRoute = AppResultadoRouteImport.update({
   path: '/resultado',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTarefasRoute = AppTarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTaxaConversaoRoute = AppTaxaConversaoRouteImport.update({
   id: '/taxa-conversao',
   path: '/taxa-conversao',
@@ -447,11 +453,6 @@ const AppCaptacaoCaptacoesRoute = AppCaptacaoCaptacoesRouteImport.update({
 const AppCaptacaoFilaRoute = AppCaptacaoFilaRouteImport.update({
   id: '/fila',
   path: '/fila',
-  getParentRoute: () => AppCaptacaoRoute,
-} as any)
-const AppCaptacaoFilaIdRoute = AppCaptacaoFilaIdRouteImport.update({
-  id: '/fila_/$id',
-  path: '/fila/$id',
   getParentRoute: () => AppCaptacaoRoute,
 } as any)
 const AppCaptacaoFunilRoute = AppCaptacaoFunilRouteImport.update({
@@ -625,12 +626,6 @@ const PublicoPropostaTokenRoute = PublicoPropostaTokenRouteImport.update({
   path: '/publico/proposta/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PublicoPropostaReciboCompradorTokenRoute =
-  PublicoPropostaReciboCompradorTokenRouteImport.update({
-    id: '/publico/proposta/recibo/$compradorToken',
-    path: '/publico/proposta/recibo/$compradorToken',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AppCaptacaoCaptacoesIndexRoute =
   AppCaptacaoCaptacoesIndexRouteImport.update({
     id: '/',
@@ -641,6 +636,11 @@ const AppCaptacaoCaptacoesIdRoute = AppCaptacaoCaptacoesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppCaptacaoCaptacoesRoute,
+} as any)
+const AppCaptacaoFilaIdRoute = AppCaptacaoFilaIdRouteImport.update({
+  id: '/fila_/$id',
+  path: '/fila/$id',
+  getParentRoute: () => AppCaptacaoRoute,
 } as any)
 const AppCaptacaoImoveisIndexRoute = AppCaptacaoImoveisIndexRouteImport.update({
   id: '/',
@@ -680,6 +680,12 @@ const PublicoEmpreendimentoTenantSlugRoute =
   PublicoEmpreendimentoTenantSlugRouteImport.update({
     id: '/publico/empreendimento/$tenant/$slug',
     path: '/publico/empreendimento/$tenant/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PublicoPropostaReciboCompradorTokenRoute =
+  PublicoPropostaReciboCompradorTokenRouteImport.update({
+    id: '/publico/proposta/recibo/$compradorToken',
+    path: '/publico/proposta/recibo/$compradorToken',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/presenca': typeof AppPresencaRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
+  '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
   '/tenants': typeof AppTenantsRoute
   '/treinamento': typeof AppTreinamentoRoute
@@ -749,7 +756,6 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/captacao/fila': typeof AppCaptacaoFilaRoute
-  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
@@ -781,13 +787,14 @@ export interface FileRoutesByFullPath {
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
-  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
+  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
   '/captacao/imoveis/': typeof AppCaptacaoImoveisIndexRoute
   '/captacao/proprietarios/': typeof AppCaptacaoProprietariosIndexRoute
@@ -832,6 +839,7 @@ export interface FileRoutesByTo {
   '/presenca': typeof AppPresencaRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
+  '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
   '/tenants': typeof AppTenantsRoute
   '/treinamento': typeof AppTreinamentoRoute
@@ -855,7 +863,6 @@ export interface FileRoutesByTo {
   '/parceiros': typeof ParceirosIndexRoute
   '/portal': typeof PortalIndexRoute
   '/captacao/fila': typeof AppCaptacaoFilaRoute
-  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/visao-geral': typeof AppCaptacaoVisaoGeralRoute
   '/financeiro/categorias': typeof AppFinanceiroCategoriasRoute
@@ -884,13 +891,14 @@ export interface FileRoutesByTo {
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
-  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
+  '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesIndexRoute
   '/captacao/imoveis': typeof AppCaptacaoImoveisIndexRoute
   '/captacao/proprietarios': typeof AppCaptacaoProprietariosIndexRoute
@@ -939,6 +947,7 @@ export interface FileRoutesById {
   '/_app/presenca': typeof AppPresencaRoute
   '/_app/propostas': typeof AppPropostasRoute
   '/_app/resultado': typeof AppResultadoRoute
+  '/_app/tarefas': typeof AppTarefasRoute
   '/_app/taxa-conversao': typeof AppTaxaConversaoRoute
   '/_app/tenants': typeof AppTenantsRoute
   '/_app/treinamento': typeof AppTreinamentoRoute
@@ -964,7 +973,6 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/_app/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/_app/captacao/fila': typeof AppCaptacaoFilaRoute
-  '/_app/captacao/fila_/$id': typeof AppCaptacaoFilaIdRoute
   '/_app/captacao/funil': typeof AppCaptacaoFunilRoute
   '/_app/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/_app/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
@@ -996,13 +1004,14 @@ export interface FileRoutesById {
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
-  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/_app/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
+  '/_app/captacao/fila_/$id': typeof AppCaptacaoFilaIdRoute
   '/_app/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/_app/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/_app/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
+  '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/_app/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
   '/_app/captacao/imoveis/': typeof AppCaptacaoImoveisIndexRoute
   '/_app/captacao/proprietarios/': typeof AppCaptacaoProprietariosIndexRoute
@@ -1051,6 +1060,7 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/propostas'
     | '/resultado'
+    | '/tarefas'
     | '/taxa-conversao'
     | '/tenants'
     | '/treinamento'
@@ -1076,7 +1086,6 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/captacao/captacoes'
     | '/captacao/fila'
-    | '/captacao/fila/$id'
     | '/captacao/funil'
     | '/captacao/imoveis'
     | '/captacao/proprietarios'
@@ -1108,13 +1117,14 @@ export interface FileRouteTypes {
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
-    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis/'
     | '/captacao/captacoes/$id'
+    | '/captacao/fila/$id'
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
     | '/publico/empreendimento/$tenant/$slug'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/captacao/captacoes/'
     | '/captacao/imoveis/'
     | '/captacao/proprietarios/'
@@ -1159,6 +1169,7 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/propostas'
     | '/resultado'
+    | '/tarefas'
     | '/taxa-conversao'
     | '/tenants'
     | '/treinamento'
@@ -1182,7 +1193,6 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/portal'
     | '/captacao/fila'
-    | '/captacao/fila/$id'
     | '/captacao/funil'
     | '/captacao/visao-geral'
     | '/financeiro/categorias'
@@ -1211,13 +1221,14 @@ export interface FileRouteTypes {
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
-    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis'
     | '/captacao/captacoes/$id'
+    | '/captacao/fila/$id'
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
     | '/publico/empreendimento/$tenant/$slug'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/captacao/captacoes'
     | '/captacao/imoveis'
     | '/captacao/proprietarios'
@@ -1265,6 +1276,7 @@ export interface FileRouteTypes {
     | '/_app/presenca'
     | '/_app/propostas'
     | '/_app/resultado'
+    | '/_app/tarefas'
     | '/_app/taxa-conversao'
     | '/_app/tenants'
     | '/_app/treinamento'
@@ -1290,7 +1302,6 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/_app/captacao/captacoes'
     | '/_app/captacao/fila'
-    | '/_app/captacao/fila_/$id'
     | '/_app/captacao/funil'
     | '/_app/captacao/imoveis'
     | '/_app/captacao/proprietarios'
@@ -1322,13 +1333,14 @@ export interface FileRouteTypes {
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
-    | '/publico/proposta/recibo/$compradorToken'
     | '/portal/imoveis/'
     | '/_app/captacao/captacoes/$id'
+    | '/_app/captacao/fila_/$id'
     | '/_app/captacao/imoveis/$id'
     | '/_app/captacao/proprietarios/$id'
     | '/_app/imoveis-usados/vendas/$id'
     | '/publico/empreendimento/$tenant/$slug'
+    | '/publico/proposta/recibo/$compradorToken'
     | '/_app/captacao/captacoes/'
     | '/_app/captacao/imoveis/'
     | '/_app/captacao/proprietarios/'
@@ -1348,8 +1360,8 @@ export interface RootRouteChildren {
   ProdutosIaWhatsappRoute: typeof ProdutosIaWhatsappRoute
   ProdutosSitesInstitucionaisRoute: typeof ProdutosSitesInstitucionaisRoute
   PublicoEmpreendimentoIdRoute: typeof PublicoEmpreendimentoIdRoute
-  PublicoEmpreendimentoTenantSlugRoute: typeof PublicoEmpreendimentoTenantSlugRoute
   PublicoPropostaTokenRoute: typeof PublicoPropostaTokenRoute
+  PublicoEmpreendimentoTenantSlugRoute: typeof PublicoEmpreendimentoTenantSlugRoute
   PublicoPropostaReciboCompradorTokenRoute: typeof PublicoPropostaReciboCompradorTokenRoute
 }
 
@@ -1642,6 +1654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppResultadoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tarefas': {
+      id: '/_app/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof AppTarefasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/taxa-conversao': {
       id: '/_app/taxa-conversao'
       path: '/taxa-conversao'
@@ -1815,13 +1834,6 @@ declare module '@tanstack/react-router' {
       path: '/fila'
       fullPath: '/captacao/fila'
       preLoaderRoute: typeof AppCaptacaoFilaRouteImport
-      parentRoute: typeof AppCaptacaoRoute
-    }
-    '/_app/captacao/fila_/$id': {
-      id: '/_app/captacao/fila_/$id'
-      path: '/fila/$id'
-      fullPath: '/captacao/fila/$id'
-      preLoaderRoute: typeof AppCaptacaoFilaIdRouteImport
       parentRoute: typeof AppCaptacaoRoute
     }
     '/_app/captacao/funil': {
@@ -2048,13 +2060,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicoPropostaTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/publico/proposta/recibo/$compradorToken': {
-      id: '/publico/proposta/recibo/$compradorToken'
-      path: '/publico/proposta/recibo/$compradorToken'
-      fullPath: '/publico/proposta/recibo/$compradorToken'
-      preLoaderRoute: typeof PublicoPropostaReciboCompradorTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/captacao/captacoes/': {
       id: '/_app/captacao/captacoes/'
       path: '/'
@@ -2068,6 +2073,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/captacao/captacoes/$id'
       preLoaderRoute: typeof AppCaptacaoCaptacoesIdRouteImport
       parentRoute: typeof AppCaptacaoCaptacoesRoute
+    }
+    '/_app/captacao/fila_/$id': {
+      id: '/_app/captacao/fila_/$id'
+      path: '/fila/$id'
+      fullPath: '/captacao/fila/$id'
+      preLoaderRoute: typeof AppCaptacaoFilaIdRouteImport
+      parentRoute: typeof AppCaptacaoRoute
     }
     '/_app/captacao/imoveis/': {
       id: '/_app/captacao/imoveis/'
@@ -2118,6 +2130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicoEmpreendimentoTenantSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/publico/proposta/recibo/$compradorToken': {
+      id: '/publico/proposta/recibo/$compradorToken'
+      path: '/publico/proposta/recibo/$compradorToken'
+      fullPath: '/publico/proposta/recibo/$compradorToken'
+      preLoaderRoute: typeof PublicoPropostaReciboCompradorTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -2166,21 +2185,21 @@ const AppCaptacaoProprietariosRouteWithChildren =
 interface AppCaptacaoRouteChildren {
   AppCaptacaoCaptacoesRoute: typeof AppCaptacaoCaptacoesRouteWithChildren
   AppCaptacaoFilaRoute: typeof AppCaptacaoFilaRoute
-  AppCaptacaoFilaIdRoute: typeof AppCaptacaoFilaIdRoute
   AppCaptacaoFunilRoute: typeof AppCaptacaoFunilRoute
   AppCaptacaoImoveisRoute: typeof AppCaptacaoImoveisRouteWithChildren
   AppCaptacaoProprietariosRoute: typeof AppCaptacaoProprietariosRouteWithChildren
   AppCaptacaoVisaoGeralRoute: typeof AppCaptacaoVisaoGeralRoute
+  AppCaptacaoFilaIdRoute: typeof AppCaptacaoFilaIdRoute
 }
 
 const AppCaptacaoRouteChildren: AppCaptacaoRouteChildren = {
   AppCaptacaoCaptacoesRoute: AppCaptacaoCaptacoesRouteWithChildren,
   AppCaptacaoFilaRoute: AppCaptacaoFilaRoute,
-  AppCaptacaoFilaIdRoute: AppCaptacaoFilaIdRoute,
   AppCaptacaoFunilRoute: AppCaptacaoFunilRoute,
   AppCaptacaoImoveisRoute: AppCaptacaoImoveisRouteWithChildren,
   AppCaptacaoProprietariosRoute: AppCaptacaoProprietariosRouteWithChildren,
   AppCaptacaoVisaoGeralRoute: AppCaptacaoVisaoGeralRoute,
+  AppCaptacaoFilaIdRoute: AppCaptacaoFilaIdRoute,
 }
 
 const AppCaptacaoRouteWithChildren = AppCaptacaoRoute._addFileChildren(
@@ -2313,6 +2332,7 @@ interface AppRouteChildren {
   AppPresencaRoute: typeof AppPresencaRoute
   AppPropostasRoute: typeof AppPropostasRoute
   AppResultadoRoute: typeof AppResultadoRoute
+  AppTarefasRoute: typeof AppTarefasRoute
   AppTaxaConversaoRoute: typeof AppTaxaConversaoRoute
   AppTenantsRoute: typeof AppTenantsRoute
   AppTreinamentoRoute: typeof AppTreinamentoRoute
@@ -2356,6 +2376,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPresencaRoute: AppPresencaRoute,
   AppPropostasRoute: AppPropostasRoute,
   AppResultadoRoute: AppResultadoRoute,
+  AppTarefasRoute: AppTarefasRoute,
   AppTaxaConversaoRoute: AppTaxaConversaoRoute,
   AppTenantsRoute: AppTenantsRoute,
   AppTreinamentoRoute: AppTreinamentoRoute,
@@ -2441,8 +2462,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosIaWhatsappRoute: ProdutosIaWhatsappRoute,
   ProdutosSitesInstitucionaisRoute: ProdutosSitesInstitucionaisRoute,
   PublicoEmpreendimentoIdRoute: PublicoEmpreendimentoIdRoute,
-  PublicoEmpreendimentoTenantSlugRoute: PublicoEmpreendimentoTenantSlugRoute,
   PublicoPropostaTokenRoute: PublicoPropostaTokenRoute,
+  PublicoEmpreendimentoTenantSlugRoute: PublicoEmpreendimentoTenantSlugRoute,
   PublicoPropostaReciboCompradorTokenRoute:
     PublicoPropostaReciboCompradorTokenRoute,
 }

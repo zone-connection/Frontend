@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { FlowTrack } from "@/components/flow-bar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Lightbulb,
+  Mail,
+  Phone,
   Plus,
   Search,
   Filter,
@@ -401,14 +408,93 @@ type PlatformLeadTab =
   | "fit"
   | "funil";
 
-type TenantLeadSection = "contato" | "documentos" | "qualificacao" | "local";
+type TenantLeadSection = "contato" | "documentos" | "qualificacao";
 
 const TENANT_LEAD_SECTIONS: { id: TenantLeadSection; label: string }[] = [
   { id: "contato", label: "Contato" },
   { id: "documentos", label: "Documentos" },
-  { id: "qualificacao", label: "Qualificação" },
-  { id: "local", label: "Local" },
+  { id: "qualificacao", label: "Interesse" },
 ];
+
+function LeadInput({
+  id,
+  label,
+  required,
+  optional,
+  filled,
+  icon,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  filled?: boolean;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-xs font-medium">
+        {label}
+        {required ? <span className="text-destructive"> *</span> : null}
+        {optional ? <span className="font-normal text-muted-foreground"> (opcional)</span> : null}
+      </Label>
+      <div className="relative">
+        {icon ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            {icon}
+          </span>
+        ) : null}
+        {children}
+        {filled ? (
+          <Check className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-in zoom-in text-emerald-500 duration-200" />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function LeadFormProgress({ form }: { form: FormState }) {
+  const texto = (valor: string) => valor.trim().length > 0;
+  const campos = [
+    form.nome.trim().length > 2,
+    form.telefone.replace(/\D/g, "").length >= 10,
+    form.email.includes("@"),
+    texto(form.origem),
+    texto(form.equipeId),
+    texto(form.corretorId),
+    texto(form.createdAt),
+    texto(form.cpf),
+    texto(form.rg),
+    texto(form.endereco),
+    texto(form.cep),
+    texto(form.renda),
+    texto(form.tipoRenda),
+    texto(form.estadoCivil),
+    texto(form.orcamentoMax),
+    texto(form.quartosMin),
+    texto(form.vagasMin),
+    texto(form.cidade),
+    texto(form.bairro),
+    form.pendingEmpreendimentoIds.length > 0,
+  ];
+  const total = campos.length;
+  const preenchidos = campos.filter(Boolean).length;
+  const pct = Math.round((preenchidos / total) * 100);
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{preenchidos} de {total} campos</span>
+        <span>{pct}% concluído</span>
+      </div>
+      <FlowTrack
+        percent={pct}
+        tone={pct >= 100 ? "emerald" : pct >= 70 ? "sky" : "navy"}
+      />
+    </div>
+  );
+}
 
 function leadToForm(lead: Lead): FormState {
   const temp =
@@ -1747,7 +1833,7 @@ function LeadsPage() {
               : "Atualize os dados por seção."
             : isPlatformAdmin
               ? "Preencha cada seção: empresa, localização, digital, operação e fit."
-              : "Preencha por seção, como no contrato de intermediação."
+              : "Preencha as informações do lead. Quanto mais completo, melhor para o seu atendimento!"
         }
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -2320,52 +2406,44 @@ function LeadsPage() {
               </>
             ) : (
               <>
+            <LeadFormProgress form={form} />
             <FormSectionNav
               items={TENANT_LEAD_SECTIONS}
               value={tenantLeadSection}
               onChange={setTenantLeadSection}
+              showProgress={false}
             />
             {tenantLeadSection === "contato" ? (
             <FormSection
-              icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-              title="Contato"
-              description="Nome, telefone e atribuição no funil."
+              icon={<UserPlus className="w-3.5 h-3.5 text-primary" />}
+              title="Dados de contato"
+              description="Informe os dados principais do lead."
             >
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="lead-nome"
-                  className="text-xs text-muted-foreground"
-                >
-                  {isPlatformAdmin ? "Empresa" : "Nome completo"}{" "}
-                  <span className="text-destructive" aria-hidden="true">
-                    *
-                  </span>
-                </Label>
-                <Input
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <LeadInput
                   id="lead-nome"
-                  value={form.nome}
-                  onChange={(e) => setField("nome", e.target.value)}
-                  placeholder={
-                    isPlatformAdmin
-                      ? "Ex.: Âncora Imobiliária"
-                      : "Ex.: João Pereira"
-                  }
-                  className="h-10 bg-background"
-                  autoFocus
+                  label="Nome completo"
                   required
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-telefone"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Telefone{" "}
-                    <span className="text-destructive" aria-hidden="true">
-                      *
-                    </span>
-                  </Label>
+                  filled={form.nome.trim().length > 2}
+                  icon={<UserPlus className="h-4 w-4" />}
+                >
+                  <Input
+                    id="lead-nome"
+                    value={form.nome}
+                    onChange={(e) => setField("nome", e.target.value)}
+                    placeholder="Ex: João Pereira"
+                    className="h-11 rounded-xl bg-background pl-10 pr-10"
+                    autoFocus
+                    required
+                  />
+                </LeadInput>
+                <LeadInput
+                  id="lead-telefone"
+                  label="Telefone"
+                  required
+                  filled={form.telefone.replace(/\D/g, "").length >= 10}
+                  icon={<Phone className="h-4 w-4" />}
+                >
                   <Input
                     id="lead-telefone"
                     type="tel"
@@ -2376,29 +2454,29 @@ function LeadsPage() {
                       setField("telefone", formatPhone(e.target.value))
                     }
                     placeholder={PHONE_PLACEHOLDER}
-                    className="h-10 bg-background"
+                    className="h-11 rounded-xl bg-background pl-10 pr-10"
                     maxLength={15}
                     required
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-email"
-                    className="text-xs text-muted-foreground"
-                  >
-                    E-mail <span className="font-normal">(opcional)</span>
-                  </Label>
+                </LeadInput>
+                <LeadInput
+                  id="lead-email"
+                  label="E-mail"
+                  optional
+                  filled={form.email.includes("@")}
+                  icon={<Mail className="h-4 w-4" />}
+                >
                   <Input
                     id="lead-email"
                     type="email"
                     value={form.email}
                     onChange={(e) => setField("email", e.target.value)}
                     placeholder="email@exemplo.com"
-                    className="h-10 bg-background"
+                    className="h-11 rounded-xl bg-background pl-10 pr-10"
                   />
-                </div>
+                </LeadInput>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">
                     Origem <span className="font-normal">(opcional)</span>
@@ -2503,23 +2581,22 @@ function LeadsPage() {
                   </div>
                 )}
               </div>
-              {(isAdmin || isGerente) && (
-                <p className="text-[11px] text-muted-foreground">
-                  {isGerente && !gerenteVerLeadsGerais
-                    ? "Sem a opção do admin, o gerente só opera a própria equipe — sem o pool geral."
-                    : "Sem equipe = pool do admin. Admin e gerentes podem distribuir depois para qualquer equipe ou corretor."}
-                </p>
-              )}
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
+                <Label className="text-xs font-medium">
                   Data de cadastro
                 </Label>
                 <Input
                   type="date"
                   value={form.createdAt}
                   onChange={(e) => setField("createdAt", e.target.value)}
-                  className="h-10 bg-background"
+                  className="h-11 rounded-xl bg-background"
                 />
+              </div>
+              <div className="flex items-start gap-2 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-primary/5 px-3 py-2.5 text-sm text-sky-950">
+                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                <p>
+                  Dica: você pode pular esta etapa e continuar depois. Mas quanto mais completo, melhor o atendimento!
+                </p>
               </div>
             </FormSection>
             ) : null}
@@ -2548,8 +2625,8 @@ function LeadsPage() {
             {tenantLeadSection === "qualificacao" ? (
             <FormSection
               icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
-              title="Qualificação"
-              description="Renda, interesse no imóvel e urgência do atendimento."
+              title="Interesse"
+              description="Renda, localização e o que o lead busca no imóvel."
             >
               {isPlatformAdmin ? null : (
               <>
@@ -2773,35 +2850,9 @@ function LeadsPage() {
                   ))}
                 </div>
               </div>
-              <EmpreendimentosInteressePanel
-                leadId={formMode === "edit" ? editingId : null}
-                interesses={
-                  formMode === "edit" && editingId
-                    ? leads.find((l) => l.id === editingId)?.interesses
-                    : undefined
-                }
-                pendingIds={form.pendingEmpreendimentoIds}
-                onPendingChange={(ids) =>
-                  setField("pendingEmpreendimentoIds", ids)
-                }
-                onLeadChange={applyLead}
-                compact
-              />
-            </FormSection>
-            ) : null}
-
-            {tenantLeadSection === "local" ? (
-            <FormSection
-              icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
-              title="Localização"
-              description="Cidade e bairro de interesse."
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-cidade"
-                    className="text-xs text-muted-foreground"
-                  >
+                  <Label htmlFor="lead-cidade" className="text-xs text-muted-foreground">
                     Cidade
                   </Label>
                   <Input
@@ -2813,10 +2864,7 @@ function LeadsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label
-                    htmlFor="lead-bairro"
-                    className="text-xs text-muted-foreground"
-                  >
+                  <Label htmlFor="lead-bairro" className="text-xs text-muted-foreground">
                     Bairro
                   </Label>
                   <Input
@@ -2830,50 +2878,65 @@ function LeadsPage() {
               </div>
             </FormSection>
             ) : null}
+            <EmpreendimentosInteressePanel
+              leadId={formMode === "edit" ? editingId : null}
+              interesses={
+                formMode === "edit" && editingId
+                  ? leads.find((l) => l.id === editingId)?.interesses
+                  : undefined
+              }
+              pendingIds={form.pendingEmpreendimentoIds}
+              onPendingChange={(ids) =>
+                setField("pendingEmpreendimentoIds", ids)
+              }
+              onLeadChange={applyLead}
+            />
               </>
             )}
           </FormDialogBody>
 
-          <FormDialogActions
-            hint={
-              formMode === "edit" ? (
-                "As alterações são salvas no banco."
-              ) : isPlatformAdmin ? (
-                <>A empresa entra na etapa{" "}
-                  <span className="font-medium text-foreground">
-                    {defaultStageName}
-                  </span>
-                  .
-                </>
-              ) : (
-                <>
-                  O lead entra na etapa{" "}
-                  <span className="font-medium text-foreground">
-                    {defaultStageName}
-                  </span>
-                  .
-                </>
-              )
-            }
-          >
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1 sm:flex-none"
-              onClick={() => setOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1 sm:flex-none">
-              {formMode === "edit" ? (
-                "Salvar alterações"
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  {isPlatformAdmin ? "Salvar empresa" : "Salvar lead"}
-                </>
-              )}
-            </Button>
+          <FormDialogActions>
+            {isPlatformAdmin ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {formMode === "edit" ? "Salvar alterações" : "Salvar empresa"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const index = TENANT_LEAD_SECTIONS.findIndex((item) => item.id === tenantLeadSection);
+                    if (index <= 0) setOpen(false);
+                    else setTenantLeadSection(TENANT_LEAD_SECTIONS[index - 1].id);
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
+                </Button>
+                {tenantLeadSection === "qualificacao" ? (
+                  <Button type="submit">
+                    {formMode === "edit" ? "Salvar alterações" : "Salvar lead"}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const index = TENANT_LEAD_SECTIONS.findIndex((item) => item.id === tenantLeadSection);
+                      setTenantLeadSection(TENANT_LEAD_SECTIONS[index + 1].id);
+                    }}
+                  >
+                    Próximo
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            )}
           </FormDialogActions>
         </form>
       </FormDialogShell>

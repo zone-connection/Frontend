@@ -31,6 +31,7 @@ const FILTROS: { id: TarefaFiltro; label: string }[] = [
   { id: "proximas", label: "Próximas" },
   { id: "atrasadas", label: "Atrasadas" },
   { id: "concluidas", label: "Concluídas" },
+  { id: "canceladas", label: "Canceladas" },
 ];
 
 function iniciais(nome: string) {
@@ -136,15 +137,19 @@ export function TarefasPainel({
   const proximas = abertas.filter((item) => item.data > hoje).length;
   const atrasadas = abertas.filter((item) => item.atrasada || item.data < hoje).length;
   const concluidas = items.filter((item) => item.status === "concluida").length;
+  const canceladas = items.filter((item) => item.status === "cancelada").length;
   const counts: Record<TarefaFiltro, number> = {
-    todas: items.length,
+    todas: items.filter((item) => item.status !== "cancelada").length,
     hoje: hojeCount,
     proximas,
     atrasadas,
     concluidas,
+    canceladas,
   };
 
   const visiveis = items.filter((item) => {
+    if (filtro === "canceladas") return item.status === "cancelada";
+    if (item.status === "cancelada") return false;
     if (filtro === "concluidas") return item.status === "concluida";
     if (filtro === "hoje") return item.status === "aberta" && item.data === hoje;
     if (filtro === "proximas") return item.status === "aberta" && item.data > hoje;
@@ -172,6 +177,10 @@ export function TarefasPainel({
     {
       titulo: "Concluídas",
       items: visiveis.filter((item) => item.status === "concluida"),
+    },
+    {
+      titulo: "Canceladas",
+      items: visiveis.filter((item) => item.status === "cancelada"),
     },
   ].filter((grupo) => grupo.items.length > 0);
 

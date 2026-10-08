@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
-import { AGENDAMENTO_TIPOS, type AgendamentoTipo } from "@/lib/agenda-api";
+import { AGENDAMENTO_TIPOS, AGENDAMENTO_TIPO_LABEL, type AgendamentoTipo } from "@/lib/agenda-api";
 import { TarefasPainel } from "@/components/tarefas-painel";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasSemana } from "@/components/tarefas-semana";
@@ -24,6 +24,12 @@ import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
@@ -33,6 +39,7 @@ import {
   createTarefa,
   fetchTarefas,
   fetchTarefasAcesso,
+  PRIORIDADE_LABEL,
   updateTarefa,
   type Tarefa,
   type TarefaFiltro,
@@ -45,6 +52,11 @@ import { fetchUsers } from "@/lib/users-api";
 import { fetchLeads } from "@/lib/leads-api";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import { IdSearchSelect } from "@/components/id-search-select";
+import { createAgendamento } from "@/lib/agenda-api";
+import { rotuloImovel } from "@/components/agenda-visita-ocupacao";
+import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
+import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
+import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
 
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas â€” Zone Connection" }] }),
@@ -91,13 +103,14 @@ function TarefasPage() {
   const [demos, setDemos] = useState<TarefaVisivel[]>(() => tarefasDemonstracao());
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [detalhe, setDetalhe] = useState<TarefaVisivel | null>(null);
   const [editing, setEditing] = useState<Tarefa | null>(null);
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
   );
   const [users, setUsers] = useState<{ id: string; name: string; role: Role }[]>([]);
-  const [leads, setLeads] = useState<{ id: string; nome: string; extra: string }[]>([]);
-  const [clientes, setClientes] = useState<{ id: string; nome: string; extra: string }[]>([]);
+  const [leads, setLeads] = useState<{ id: string; nome: string; extra: string; telefone: string }[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nome: string; extra: string; telefone: string }[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<{ id: string; nome: string }[]>([]);
   const [verEquipe, setVerEquipe] = useState(false);
   const [usuarioId, setUsuarioId] = useState("");
@@ -136,6 +149,7 @@ function TarefasPage() {
           id: item.id,
           nome: item.nome,
           extra: [item.telefone, item.cidade].filter(Boolean).join(" "),
+          telefone: item.telefone ?? "",
         })),
       );
     });
@@ -145,6 +159,7 @@ function TarefasPage() {
           id: item.id,
           nome: item.nome,
           extra: [item.telefone, item.cidade].filter(Boolean).join(" "),
+          telefone: item.telefone ?? "",
         })),
       );
     });
@@ -184,23 +199,59 @@ function TarefasPage() {
     setOpen(true);
   }
 
-  async function salvar() {
-    const payload: TarefaInput = {
-      ...form,
-      titulo: form.titulo.trim(),
-      horario: form.horario?.trim() || undefined,
-      leadId: form.leadId || undefined,
-      agendamentoId: form.agendamentoId || undefined,
-      imovelId: form.imovelId || undefined,
-      empreendimentoId: form.empreendimentoId || undefined,
-    };
+  async function salvar(extra?: { muralChaveId?: string; horarioFim?: string }) {
+    const tipo = form.tipo ?? "tarefa";
+    const titulo = form.titulo.trim();
+    if (titulo.length < 2) {
+      toast.error("Informe um título.");
+      return;
+    }
+    if ((tipo === "visita" || tipo === "retirada_chave") && !form.imovelId && !form.empreendimentoId) {
+      toast.error("Selecione o imóvel ou o empreendimento.");
+      return;
+    }
+    if (tipo === "retirada_chave" && !extra?.muralChaveId) {
+      toast.error("Esse imóvel não tem chave livre no mural.");
+      return;
+    }
+    if (tipo === "bloqueio" && !extra?.horarioFim) {
+      toast.error("Informe o horário de término do bloqueio.");
+      return;
+    }
     try {
-      if (editing) await updateTarefa(editing.id, payload);
-      else await createTarefa(payload);
+      if (!editing && tipo !== "tarefa") {
+        const inicio = form.horario?.trim() || "09:00";
+        const fim = extra?.horarioFim || horaSeguinte(inicio);
+        await createAgendamento({
+          titulo,
+          tipo,
+          escopo: "pessoal",
+          atribuidoParaId: form.responsavelId || null,
+          leadId: form.leadId || null,
+          startsAt: isoLocal(form.data, inicio),
+          endsAt: isoLocal(form.data, fim),
+          observacoes: form.descricao?.trim() || null,
+          empreendimentoId: form.empreendimentoId || null,
+          imovelId: form.imovelId || null,
+          muralChaveId: extra?.muralChaveId || null,
+        });
+      } else {
+        const payload: TarefaInput = {
+          ...form,
+          titulo,
+          horario: form.horario?.trim() || undefined,
+          leadId: form.leadId || undefined,
+          agendamentoId: form.agendamentoId || undefined,
+          imovelId: form.imovelId || undefined,
+          empreendimentoId: form.empreendimentoId || undefined,
+        };
+        if (editing) await updateTarefa(editing.id, payload);
+        else await createTarefa(payload);
+      }
       setOpen(false);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "NÃ£o foi possÃ­vel salvar.");
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar.");
     }
   }
 
@@ -236,7 +287,7 @@ function TarefasPage() {
         setNota={setNota}
         comentarios={editing?.comentarios ?? []}
         onBack={() => setOpen(false)}
-        onSave={() => void salvar()}
+        onSave={(extra) => void salvar(extra)}
         onNota={() => {
           if (!editing || !nota.trim()) return;
           void comentarTarefa(editing.id, nota.trim()).then(() => {
@@ -286,10 +337,7 @@ function TarefasPage() {
         onFiltro={setFiltro}
         onVisao={setVisao}
         onAnchor={setAnchor}
-        onOpen={(tarefa) => {
-          if (tarefa.demonstracao) return;
-          abrirEdicao(tarefa);
-        }}
+        onOpen={(tarefa) => setDetalhe(tarefa)}
         onComplete={(tarefa) => {
           if (tarefa.demonstracao) {
             setDemos((current) =>
@@ -329,12 +377,102 @@ function TarefasPage() {
       )}
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
+      <Dialog open={detalhe != null} onOpenChange={(aberto) => { if (!aberto) setDetalhe(null); }}>
+        <DialogContent className="max-w-lg">
+          {detalhe ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{detalhe.titulo}</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {AGENDAMENTO_TIPO_LABEL[detalhe.tipo ?? "tarefa"]} · {PRIORIDADE_LABEL[detalhe.prioridade]}
+                </p>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p>{detalhe.data}{detalhe.horario ? ` · ${detalhe.horario}` : ""}</p>
+                <p className="text-muted-foreground">Responsável: {detalhe.responsavel.name}</p>
+                {detalhe.contexto.lead ? <p>Lead: {detalhe.contexto.lead.nome}</p> : null}
+                {detalhe.contexto.imovel ? <p>Imóvel: {detalhe.contexto.imovel.rotulo}</p> : null}
+                {detalhe.descricao ? <p className="whitespace-pre-wrap">{detalhe.descricao}</p> : null}
+              </div>
+              <div className="flex justify-end gap-2">
+                {detalhe.status === "aberta" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const atual = detalhe;
+                      setDetalhe(null);
+                      if (atual.demonstracao) {
+                        setDemos((current) =>
+                          current.map((item) =>
+                            item.id === atual.id ? { ...item, status: "cancelada", atrasada: false } : item,
+                          ),
+                        );
+                        setFiltro("canceladas");
+                        return;
+                      }
+                      void updateTarefa(atual.id, { status: "cancelada" }).then(() => {
+                        setFiltro("canceladas");
+                        void load();
+                      });
+                    }}
+                  >
+                    Cancelar tarefa
+                  </Button>
+                ) : null}
+                {!detalhe.demonstracao ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const atual = detalhe;
+                      setDetalhe(null);
+                      abrirEdicao(atual);
+                    }}
+                  >
+                    Editar
+                  </Button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
 
 const selectClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-none";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm shadow-none";
+
+function horaSeguinte(horario: string) {
+  const [hora, minuto] = horario.split(":").map(Number);
+  const proxima = Number.isFinite(hora) ? (hora + 1) % 24 : 10;
+  return `${String(proxima).padStart(2, "0")}:${String(minuto || 0).padStart(2, "0")}`;
+}
+
+function isoLocal(data: string, horario: string) {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  const [hora, minuto] = horario.split(":").map(Number);
+  return new Date(ano, mes - 1, dia, hora || 0, minuto || 0, 0, 0).toISOString();
+}
+
+function chaveLivre(chaves: MuralChave[], imovelId?: string, empreendimentoId?: string) {
+  const livre = (chave: MuralChave) => chave.status !== "em_uso";
+  if (imovelId) {
+    return chaves.find((chave) => chave.imovel?.id === imovelId && livre(chave))?.id ?? "";
+  }
+  if (empreendimentoId) {
+    return (
+      chaves.find(
+        (chave) => chave.empreendimento?.id === empreendimentoId && livre(chave) && !chave.imovel,
+      )?.id ??
+      chaves.find((chave) => chave.empreendimento?.id === empreendimentoId && livre(chave))?.id ??
+      ""
+    );
+  }
+  return "";
+}
 
 function CriarCompromisso({
   editing,
@@ -355,19 +493,68 @@ function CriarCompromisso({
   form: TarefaInput;
   setForm: (form: TarefaInput) => void;
   atribuiveis: { id: string; name: string; role: Role }[];
-  leads: { id: string; nome: string; extra: string }[];
-  clientes: { id: string; nome: string; extra: string }[];
+  leads: { id: string; nome: string; extra: string; telefone: string }[];
+  clientes: { id: string; nome: string; extra: string; telefone: string }[];
   empreendimentos: { id: string; nome: string }[];
   nota: string;
   setNota: (nota: string) => void;
   comentarios: { id: string; texto: string; autor: { name: string } }[];
   onBack: () => void;
-  onSave: () => void;
+  onSave: (extra?: { muralChaveId?: string; horarioFim?: string }) => void;
   onNota: () => void;
 }) {
+  const tipo = form.tipo ?? "tarefa";
   const descricao = form.descricao ?? "";
+  const [imoveis, setImoveis] = useState<{ id: string; label: string; hint: string }[]>([]);
+  const [chaves, setChaves] = useState<MuralChave[]>([]);
+  const [horarioFim, setHorarioFim] = useState("");
+  const comPessoa = tipo === "tarefa" || tipo === "ligacao" || tipo === "reuniao" || tipo === "visita";
+  const comLugar = tipo === "visita" || tipo === "retirada_chave";
+  const chaveId = chaveLivre(chaves, form.imovelId, form.empreendimentoId);
+  const chave = chaves.find((item) => item.id === chaveId);
+
+  useEffect(() => {
+    if (!comLugar) return;
+    void Promise.all([
+      fetchEmpreendimentos({ ativo: true }).catch(() => []),
+      fetchCaptacaoImoveis().catch(() => []),
+      fetchImoveisCaptados().catch(() => []),
+      fetchVendasUsado().catch(() => []),
+    ]).then(([emps, captados, captacaoSemVenda, vendas]) => {
+      const lista = new Map<string, { id: string; label: string; hint: string }>();
+      for (const item of emps) {
+        lista.set(`emp:${item.id}`, { id: `emp:${item.id}`, label: item.nome, hint: "Lançamento" });
+      }
+      for (const item of captados) {
+        lista.set(`imovel:${item.id}`, {
+          id: `imovel:${item.id}`,
+          label: rotuloImovel(item),
+          hint: "Captação",
+        });
+      }
+      for (const item of captacaoSemVenda) {
+        lista.set(`imovel:${item.id}`, {
+          id: `imovel:${item.id}`,
+          label: rotuloImovel(item),
+          hint: "Captação",
+        });
+      }
+      for (const venda of vendas) {
+        if (!venda.imovel?.id) continue;
+        lista.set(`imovel:${venda.imovel.id}`, {
+          id: `imovel:${venda.imovel.id}`,
+          label: rotuloImovel(venda.imovel),
+          hint: "Venda de usado",
+        });
+      }
+      setImoveis([...lista.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR")));
+    });
+    void fetchMuralChaves()
+      .then(setChaves)
+      .catch(() => setChaves([]));
+  }, [comLugar]);
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="w-full space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -388,7 +575,7 @@ function CriarCompromisso({
         </Button>
       </div>
 
-      <div className="space-y-6 rounded-3xl border bg-card p-6 shadow-sm">
+      <div className="space-y-6 rounded-3xl border border-primary/10 bg-gradient-to-br from-card to-primary/[0.03] p-6 shadow-sm">
         <Section icon={CalendarDays} title="Tipo de compromisso" hint="Escolha qual é o tipo de compromisso.">
           <AgendamentoTipoPicker
             appearance="soft"
@@ -416,6 +603,7 @@ function CriarCompromisso({
           </Section>
         </div>
 
+        <div className={tipo === "tarefa" ? "grid gap-4 sm:grid-cols-2" : undefined}>
         <Section icon={UserRound} title="Responsável">
           <select className={selectClass} value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}>
             {atribuiveis.map((u) => (
@@ -426,8 +614,7 @@ function CriarCompromisso({
             ))}
           </select>
         </Section>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        {tipo === "tarefa" ? (
           <Section icon={Flag} title="Prioridade">
             <select className={selectClass} value={form.prioridade} onChange={(e) => setForm({ ...form, prioridade: e.target.value as TarefaPrioridade })}>
               <option value="alta">Alta</option>
@@ -435,40 +622,71 @@ function CriarCompromisso({
               <option value="baixa">Baixa</option>
             </select>
           </Section>
+        ) : null}
+        </div>
+
+        {tipo === "bloqueio" ? (
+          <Section icon={Clock3} title="Término">
+            <Input className={selectClass} type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
+          </Section>
+        ) : null}
+
+        {comPessoa ? (
+        <div className="grid gap-4 sm:grid-cols-2">
           <Section icon={Users} title="Cliente">
             <IdSearchSelect
               value={clientes.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
-              options={clientes.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra }))}
+              options={clientes.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra, hint: item.telefone }))}
               onChange={(id) => setForm({ ...form, leadId: id || undefined })}
               placeholder="Selecionar cliente"
               searchPlaceholder="Pesquisar cliente…"
               emptyLabel="Nenhum cliente cadastrado"
             />
           </Section>
+          <Section icon={Users} title="Lead">
+            <IdSearchSelect
+              value={leads.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
+              options={leads.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra, hint: item.telefone }))}
+              onChange={(id) => setForm({ ...form, leadId: id || undefined })}
+              placeholder="Selecionar lead"
+              searchPlaceholder="Pesquisar lead…"
+              emptyLabel="Nenhum lead cadastrado"
+            />
+          </Section>
         </div>
+        ) : null}
 
-        <Section icon={Users} title="Lead">
-          <IdSearchSelect
-            value={leads.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}
-            options={leads.map((item) => ({ id: item.id, label: item.nome, keywords: item.extra }))}
-            onChange={(id) => setForm({ ...form, leadId: id || undefined })}
-            placeholder="Selecionar lead"
-            searchPlaceholder="Pesquisar lead…"
-            emptyLabel="Nenhum lead cadastrado"
-          />
-        </Section>
+        {comLugar ? (
+          <Section icon={Building2} title="Imóvel ou lançamento">
+            <IdSearchSelect
+              value={form.imovelId ? `imovel:${form.imovelId}` : form.empreendimentoId ? `emp:${form.empreendimentoId}` : ""}
+              options={imoveis.map((item) => ({ id: item.id, label: item.label, hint: item.hint, keywords: item.hint }))}
+              onChange={(id) => {
+                if (!id) {
+                  setForm({ ...form, imovelId: undefined, empreendimentoId: undefined });
+                  return;
+                }
+                if (id.startsWith("emp:")) {
+                  setForm({ ...form, empreendimentoId: id.slice(4), imovelId: undefined });
+                  return;
+                }
+                setForm({ ...form, imovelId: id.slice(7), empreendimentoId: undefined });
+              }}
+              placeholder="Selecionar imóvel ou lançamento"
+              searchPlaceholder="Pesquisar captação, usado ou lançamento…"
+              emptyLabel="Nenhum imóvel cadastrado"
+            />
+            {form.imovelId || form.empreendimentoId ? (
+              <p className="text-xs text-muted-foreground">
+                {chave
+                  ? `A chave ${chave.identificador} será registrada como retirada no mural.`
+                  : "Nenhuma chave livre vinculada. O compromisso segue sem retirada."}
+              </p>
+            ) : null}
+          </Section>
+        ) : null}
 
-        <Section icon={Building2} title="Empreendimento">
-          <IdSearchSelect
-            value={form.empreendimentoId ?? ""}
-            options={empreendimentos.map((item) => ({ id: item.id, label: item.nome }))}
-            onChange={(id) => setForm({ ...form, empreendimentoId: id || undefined })}
-            placeholder="Selecionar empreendimento"
-            searchPlaceholder="Pesquisar empreendimento…"
-            emptyLabel="Nenhum empreendimento cadastrado"
-          />
-        </Section>
-
+        {tipo === "tarefa" || tipo === "outro" || tipo === "reuniao" ? (
         <Section icon={Type} title="Descrição">
           <div className="relative">
             <Textarea
@@ -481,7 +699,10 @@ function CriarCompromisso({
             <span className="absolute bottom-2 right-3 text-xs text-muted-foreground">{descricao.length}/500</span>
           </div>
         </Section>
+        ) : null}
 
+        {tipo === "tarefa" ? (
+        <>
         <Section icon={Mail} title="Lembrete por e-mail">
           <select className={selectClass} value={form.lembrete} onChange={(e) => setForm({ ...form, lembrete: e.target.value as TarefaLembrete })}>
             <option value="nenhum">Sem lembrete</option>
@@ -499,7 +720,6 @@ function CriarCompromisso({
             <Input className={selectClass} type="number" min={0} value={form.lembreteMinutos ?? 0} onChange={(e) => setForm({ ...form, lembreteMinutos: Number(e.target.value) })} />
           </Section>
         ) : null}
-
         <Section icon={Repeat} title="Recorrência">
           <select className={selectClass} value={form.recorrencia} onChange={(e) => setForm({ ...form, recorrencia: e.target.value as TarefaRecorrencia })}>
             <option value="nenhuma">Não repetir</option>
@@ -530,6 +750,8 @@ function CriarCompromisso({
             <Input className={selectClass} type="number" min={1} value={form.intervaloDias ?? 1} onChange={(e) => setForm({ ...form, intervaloDias: Number(e.target.value) })} />
           </Section>
         ) : null}
+        </>
+        ) : null}
 
         {editing ? (
           <div className="space-y-2">
@@ -554,7 +776,15 @@ function CriarCompromisso({
             <X className="h-4 w-4" />
             Cancelar
           </Button>
-          <Button type="button" onClick={onSave}>
+          <Button
+            type="button"
+            onClick={() =>
+              onSave({
+                muralChaveId: comLugar ? chaveId : undefined,
+                horarioFim: tipo === "bloqueio" ? horarioFim : undefined,
+              })
+            }
+          >
             <Save className="h-4 w-4" />
             Salvar
           </Button>

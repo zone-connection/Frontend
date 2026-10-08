@@ -94,7 +94,6 @@ import {
   type AgendamentoTipo,
   type CreateAgendamentoInput,
 } from "@/lib/agenda-api";
-import { AGENDA_LUX_SOFT } from "@/lib/agenda-lux-colors";
 import {
   AgendamentoTipoOption,
   AgendamentoTipoPicker,
@@ -2000,10 +1999,7 @@ function AgendaPage() {
             >
               {form.date && form.timeStart ? (
                 <div
-                  className={cn(
-                    "flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5 text-sm",
-                    AGENDA_LUX_SOFT[form.tipo],
-                  )}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/15 bg-white px-3 py-2.5 text-sm text-foreground"
                 >
                   <Clock className="h-4 w-4 shrink-0" />
                   <span className="font-semibold capitalize">

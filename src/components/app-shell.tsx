@@ -566,6 +566,12 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--app-sidebar",
+      collapsed ? "4rem" : "15rem",
+    );
+  }, [collapsed]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const { brandName, logoUrl, modules } = useTenantTheme();
@@ -1794,6 +1800,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         "flex w-full bg-background",
         lockPageScroll ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden" : "min-h-screen",
       )}
+      style={{ ["--app-sidebar" as string]: collapsed ? "4rem" : "15rem" }}
     >
       {/* Sidebar fixa — visível apenas em telas md e acima */}
       <aside

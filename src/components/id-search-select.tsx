@@ -21,6 +21,8 @@ export type IdSearchOption = {
   label: string;
   /** Texto extra para a busca (ex.: cidade). */
   keywords?: string;
+  /** Linha secundária visível na lista, como o telefone. */
+  hint?: string;
 };
 
 export function IdSearchSelect({
@@ -56,12 +58,12 @@ export function IdSearchSelect({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="h-10 w-full justify-between font-normal"
+          className="h-10 w-full justify-between pl-4 pr-4 font-normal"
         >
           <span className="truncate">
             {selected?.label || (value ? value : placeholder)}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-3 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -108,7 +110,12 @@ export function IdSearchSelect({
                       value === opt.id ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  <span className="truncate">{opt.label}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{opt.label}</span>
+                    {opt.hint ? (
+                      <span className="block truncate text-xs text-muted-foreground">{opt.hint}</span>
+                    ) : null}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>

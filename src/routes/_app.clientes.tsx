@@ -76,6 +76,7 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
+import { FlowTrack } from "@/components/flow-bar";
 import { brl, interessesAtivos, rotuloInteresseAlvo, splitPendingInteresseKeys, type Lead } from "@/lib/crm-types";
 import { ApiError } from "@/lib/api";
 import { importLeads, checkImportDuplicates } from "@/lib/leads-api";
@@ -107,6 +108,8 @@ import {
   Eye,
   Pencil,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
   UserPlus,
   MapPin,
   Sparkles,
@@ -142,13 +145,12 @@ export const Route = createFileRoute("/_app/clientes")({
   component: Clientes,
 });
 
-type ClienteFormSection = "contato" | "documentos" | "interesse" | "local";
+type ClienteFormSection = "contato" | "documentos" | "interesse";
 
 const CLIENTE_FORM_SECTIONS: { id: ClienteFormSection; label: string }[] = [
   { id: "contato", label: "Contato" },
   { id: "documentos", label: "Documentos" },
   { id: "interesse", label: "Interesse" },
-  { id: "local", label: "Local" },
 ];
 
 const CLIENTES_GRADIENT_BTN =
@@ -180,6 +182,40 @@ type FormState = {
 };
 
 type FormMode = "create" | "edit";
+
+function ClienteFormProgress({ form }: { form: FormState }) {
+  const texto = (valor: string) => valor.trim().length > 0;
+  const campos = [
+    form.nome.trim().length > 2,
+    form.telefone.replace(/\D/g, "").length >= 10,
+    form.email.includes("@"),
+    texto(form.origem),
+    texto(form.renda.replace(/\D/g, "")),
+    texto(form.orcamentoMax.replace(/\D/g, "")),
+    texto(form.quartosMin),
+    texto(form.vagasMin),
+    texto(form.cidade),
+    texto(form.bairro),
+    form.tags.length > 0,
+    form.pendingEmpreendimentoIds.length > 0,
+    texto(form.cpf),
+    texto(form.rg),
+    texto(form.endereco),
+    texto(form.cep),
+  ];
+  const total = campos.length;
+  const preenchidos = campos.filter(Boolean).length;
+  const pct = total ? Math.round((preenchidos / total) * 100) : 0;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{preenchidos} de {total} campos</span>
+        <span>{pct}% concluído</span>
+      </div>
+      <FlowTrack percent={pct} tone={pct >= 100 ? "emerald" : pct >= 70 ? "sky" : "navy"} />
+    </div>
+  );
+}
 
 function todayInput() {
   return new Date().toISOString().slice(0, 10);
@@ -1054,6 +1090,7 @@ function Clientes() {
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
+            <ClienteFormProgress form={form} />
             <FormSectionNav
               items={CLIENTE_FORM_SECTIONS}
               value={clienteFormSection}
@@ -1236,7 +1273,7 @@ function Clientes() {
             <FormSection
               icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
               title="Interesse"
-              description="Renda, orçamento e o que o cliente busca no imóvel."
+              description="Renda, orçamento, localização e o que o cliente busca no imóvel."
             >
               <div className="space-y-1.5">
                 <Label
@@ -1348,13 +1385,39 @@ function Clientes() {
                           "rounded-full border px-2.5 py-1 text-xs transition-colors",
                           active
                             ? "border-primary/40 bg-primary/10 text-primary"
-                            : "bg-background text-muted-foreground hover:bg-accent",
+                            : "bg-background text-muted-foreground hover:bg-primary/10 hover:text-primary",
                         )}
                       >
                         {tag}
                       </button>
                     );
                   })}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="cli-cidade" className="text-xs text-muted-foreground">
+                    Cidade
+                  </Label>
+                  <Input
+                    id="cli-cidade"
+                    value={form.cidade}
+                    onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))}
+                    placeholder="Recife"
+                    className="h-10 bg-background"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cli-bairro" className="text-xs text-muted-foreground">
+                    Bairro
+                  </Label>
+                  <Input
+                    id="cli-bairro"
+                    value={form.bairro}
+                    onChange={(e) => setForm((f) => ({ ...f, bairro: e.target.value }))}
+                    placeholder="Boa Viagem"
+                    className="h-10 bg-background"
+                  />
                 </div>
               </div>
               <EmpreendimentosInteressePanel
@@ -1373,75 +1436,39 @@ function Clientes() {
               />
             </FormSection>
             ) : null}
-
-            {clienteFormSection === "local" ? (
-            <FormSection
-              icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
-              title="Localização"
-              description="Cidade e bairro de interesse."
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="cli-cidade"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Cidade
-                  </Label>
-                  <Input
-                    id="cli-cidade"
-                    value={form.cidade}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, cidade: e.target.value }))
-                    }
-                    placeholder="Recife"
-                    className="h-10 bg-background"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="cli-bairro"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Bairro
-                  </Label>
-                  <Input
-                    id="cli-bairro"
-                    value={form.bairro}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, bairro: e.target.value }))
-                    }
-                    placeholder="Boa Viagem"
-                    className="h-10 bg-background"
-                  />
-                </div>
-              </div>
-            </FormSection>
-            ) : null}
           </FormDialogBody>
 
-          <FormDialogActions
-            hint={
-              formMode === "edit"
-                ? "As alterações ficam só nesta sessão (demo)."
-                : "O cliente entra na base e no funil."
-            }
-          >
+          <FormDialogActions>
             <Button
               type="button"
               variant="outline"
-              className={`flex-1 sm:flex-none ${SOFT_BTN}`}
-              onClick={() => setFormOpen(false)}
+              onClick={() => {
+                const index = CLIENTE_FORM_SECTIONS.findIndex((item) => item.id === clienteFormSection);
+                if (index <= 0) setFormOpen(false);
+                else setClienteFormSection(CLIENTE_FORM_SECTIONS[index - 1].id);
+              }}
             >
-              Cancelar
+              <ChevronLeft className="h-4 w-4" />
+              Voltar
             </Button>
-            <Button
-              type="submit"
-              className={`flex-1 sm:flex-none ${CLIENTES_GRADIENT_BTN}`}
-              style={CLIENTES_GRADIENT_STYLE}
-            >
-              {formMode === "edit" ? "Salvar alterações" : "Cadastrar cliente"}
-            </Button>
+            {clienteFormSection === "interesse" ? (
+              <Button type="submit" className={CLIENTES_GRADIENT_BTN} style={CLIENTES_GRADIENT_STYLE}>
+                {formMode === "edit" ? "Salvar alterações" : "Cadastrar cliente"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className={CLIENTES_GRADIENT_BTN}
+                style={CLIENTES_GRADIENT_STYLE}
+                onClick={() => {
+                  const index = CLIENTE_FORM_SECTIONS.findIndex((item) => item.id === clienteFormSection);
+                  setClienteFormSection(CLIENTE_FORM_SECTIONS[index + 1].id);
+                }}
+              >
+                Próximo
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </FormDialogActions>
         </form>
       </FormDialogShell>

@@ -69,6 +69,8 @@ import {
   Pencil,
   Trash2,
   Eye,
+  ChevronLeft,
+  ChevronRight,
   UserPlus,
   Search,
   CheckCircle2,
@@ -1819,15 +1821,21 @@ function Usuarios() {
             </FormSection>
             </div>
           </FormDialogBody>
-          <FormDialogActions hint="As alterações são salvas no banco.">
+          <FormDialogActions>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setFormOpen(false)}
+              onClick={() => {
+                const index = USER_FORM_SECTIONS.findIndex((item) => item.id === userFormSection);
+                if (index <= 0) setFormOpen(false);
+                else setUserFormSection(USER_FORM_SECTIONS[index - 1].id);
+              }}
               disabled={saving}
             >
-              Cancelar
+              <ChevronLeft className="h-4 w-4" />
+              Voltar
             </Button>
+            {userFormSection === "acesso" ? (
             <Button type="submit" disabled={saving}>
               {saving
                 ? "Salvando..."
@@ -1835,6 +1843,19 @@ function Usuarios() {
                   ? "Salvar alterações"
                   : "Criar usuário"}
             </Button>
+            ) : (
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  const index = USER_FORM_SECTIONS.findIndex((item) => item.id === userFormSection);
+                  setUserFormSection(USER_FORM_SECTIONS[index + 1].id);
+                }}
+              >
+                Próximo
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </FormDialogActions>
         </form>
       </FormDialogShell>

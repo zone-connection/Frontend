@@ -6,7 +6,8 @@ export type TarefaFiltro =
   | "hoje"
   | "proximas"
   | "atrasadas"
-  | "concluidas";
+  | "concluidas"
+  | "canceladas";
 
 export type TarefaPrioridade = "alta" | "media" | "baixa";
 export type TarefaRecorrencia =
@@ -34,7 +35,7 @@ export type Tarefa = {
   horario: string | null;
   prioridade: TarefaPrioridade;
   tipo: AgendamentoTipo;
-  status: "aberta" | "concluida";
+  status: "aberta" | "concluida" | "cancelada";
   atrasada: boolean;
   responsavel: { id: string; name: string };
   recorrencia: TarefaRecorrencia;
@@ -77,7 +78,7 @@ export type TarefaInput = {
   agendamentoId?: string;
   imovelId?: string;
   empreendimentoId?: string;
-  status?: "aberta" | "concluida";
+  status?: "aberta" | "concluida" | "cancelada";
 };
 
 export const PRIORIDADE_LABEL: Record<TarefaPrioridade, string> = {
