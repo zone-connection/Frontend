@@ -76,7 +76,7 @@ export type ComissaoRelacionamento = {
 
 export type Comissao = {
   id: string;
-  documentacaoId: string;
+  documentacaoId: string | null;
   cliente?: string | ComissaoRelacionamento | null;
   empreendimento?: string | ComissaoRelacionamento | null;
   corretor?: string | ComissaoRelacionamento | null;

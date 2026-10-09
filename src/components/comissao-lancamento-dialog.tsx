@@ -167,7 +167,7 @@ function calculatePremiacaoCascata(input: {
 function toForm(comissao: Comissao): ComissaoFormState {
   return {
     ...EMPTY_FORM,
-    documentacaoId: comissao.documentacaoId,
+    documentacaoId: comissao.documentacaoId ?? "",
     dataPrevistaRecebimento: (comissao.dataPrevistaRecebimento ?? "").slice(
       0,
       10,
@@ -505,7 +505,7 @@ export function ComissaoLancamentoDialog({
       toast.success(
         created
           ? isAvulsa
-            ? "Comissão lançada — a venda já aparece em Vendas e Documentação."
+            ? "Comissão lançada."
             : createSuccessMessage
           : "Comissão atualizada.",
       );
@@ -675,8 +675,7 @@ export function ComissaoLancamentoDialog({
               ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <p className="text-xs text-muted-foreground sm:col-span-2">
-                  Cria o cliente, a venda em Documentação/Vendas e a comissão
-                  juntos.
+                  Lança só a comissão. A venda não entra em Documentação.
                   {loadingCatalogs ? " Carregando cadastros…" : ""}
                 </p>
                 <div className="space-y-2 sm:col-span-2">
