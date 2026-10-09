@@ -1,14 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   BarChart3,
   Filter,
   Loader2,
   Pencil,
-  RotateCcw,
   Search,
   Wallet,
 } from "lucide-react";
@@ -69,13 +67,8 @@ import {
 } from "@/lib/money-input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import {
-  FILTER_BAR_SURFACE,
-  FILTER_CONTROL,
-  FILTER_SEARCH_ICON,
-} from "@/lib/filter-bar";
 import { CadastroVendasBronzePage } from "@/components/cadastro-vendas-bronze-page";
-import { FiltrosPainel } from "@/components/filtros-painel";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
 
 type VendasSearch = {
   comVgv?: boolean;
@@ -814,26 +807,24 @@ function VendasDocumentacaoPage() {
         }
       >
         <div className="space-y-3">
-          <div
-            className={cn(
-              "grid gap-3",
-              showTeamFilters &&
-                "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]",
-            )}
-          >
+          <div className="space-y-1.5">
+            <Label>Busca</Label>
             <div className="relative min-w-0">
-              <Search className={FILTER_SEARCH_ICON} />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3]" />
               <Input
                 value={draft.search}
                 onChange={(event) =>
                   setDraft((prev) => ({ ...prev, search: event.target.value }))
                 }
-                placeholder="Buscar cliente, empreendimento ou responsável..."
-                className={cn("rounded-sm pl-9", FILTER_CONTROL)}
+                placeholder="Cliente, empreendimento ou responsável"
+                className={cn(FILTRO_CAMPO, "!pl-9")}
               />
             </div>
-            {showTeamFilters ? (
-              <>
+          </div>
+          {showTeamFilters ? (
+            <>
+              <div className="space-y-1.5">
+                <Label>Equipe</Label>
                 <Select
                   value={draft.equipeId}
                   onValueChange={(value) =>
@@ -844,7 +835,7 @@ function VendasDocumentacaoPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className={cn("rounded-sm", FILTER_CONTROL)}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue placeholder="Todas as equipes" />
                   </SelectTrigger>
                   <SelectContent>
@@ -856,13 +847,16 @@ function VendasDocumentacaoPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gerente</Label>
                 <Select
                   value={draft.gerenteId}
                   onValueChange={(value) =>
                     setDraft((prev) => ({ ...prev, gerenteId: value }))
                   }
                 >
-                  <SelectTrigger className={cn("rounded-sm", FILTER_CONTROL)}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue placeholder="Todos os gerentes" />
                   </SelectTrigger>
                   <SelectContent>
@@ -874,45 +868,39 @@ function VendasDocumentacaoPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </>
-            ) : null}
-          </div>
-
-          <div
-            className={cn(
-              "grid gap-3",
-              showTeamFilters
-                ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
-                : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]",
-            )}
-          >
-            {showTeamFilters ? (
-              <Select
-                value={draft.corretorId}
-                onValueChange={(value) =>
-                  setDraft((prev) => ({ ...prev, corretorId: value }))
-                }
-              >
-                <SelectTrigger className={cn("rounded-sm", FILTER_CONTROL)}>
-                  <SelectValue placeholder="Todos os corretores" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos os corretores</SelectItem>
-                  {corretores.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Corretor</Label>
+                <Select
+                  value={draft.corretorId}
+                  onValueChange={(value) =>
+                    setDraft((prev) => ({ ...prev, corretorId: value }))
+                  }
+                >
+                  <SelectTrigger className={FILTRO_CAMPO}>
+                    <SelectValue placeholder="Todos os corretores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos os corretores</SelectItem>
+                    {corretores.map(([id, name]) => (
+                      <SelectItem key={id} value={id}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : null}
+          <div className="space-y-1.5">
+            <Label>Origem</Label>
             <Select
               value={draft.origem}
               onValueChange={(value) =>
                 setDraft((prev) => ({ ...prev, origem: value }))
               }
             >
-              <SelectTrigger className={cn("rounded-sm", FILTER_CONTROL)}>
+              <SelectTrigger className={FILTRO_CAMPO}>
                 <SelectValue placeholder="Todas as origens" />
               </SelectTrigger>
               <SelectContent>
@@ -924,61 +912,36 @@ function VendasDocumentacaoPage() {
                 ))}
               </SelectContent>
             </Select>
-
-            <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
-              <div className="relative min-w-0 flex-1">
-                <CalendarDays className={FILTER_SEARCH_ICON} />
-                <Input
-                  type="date"
-                  value={draft.dataDe}
-                  onChange={(event) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      dataDe: event.target.value,
-                    }))
-                  }
-                  className={cn("rounded-sm pl-9", FILTER_CONTROL)}
-                  aria-label="Data inicial"
-                  title="Data inicial"
-                />
-              </div>
-              <span className="shrink-0 text-sm text-muted-foreground">até</span>
-              <div className="relative min-w-0 flex-1">
-                <CalendarDays className={FILTER_SEARCH_ICON} />
-                <Input
-                  type="date"
-                  value={draft.dataAte}
-                  onChange={(event) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      dataAte: event.target.value,
-                    }))
-                  }
-                  className={cn("rounded-sm pl-9", FILTER_CONTROL)}
-                  aria-label="Data final"
-                  title="Data final"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-3 lg:justify-start">
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80 cursor-pointer"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Limpar filtros
-              </button>
-              <Button
-                type="button"
-                onClick={applyFilters}
-                className={APPLY_FILTERS_BTN}
-              >
-                <Filter className="mr-1.5 h-4 w-4" />
-                Aplicar filtros
-              </Button>
-            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="vendas-data-de">De</Label>
+            <Input
+              id="vendas-data-de"
+              type="date"
+              value={draft.dataDe}
+              onChange={(event) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  dataDe: event.target.value,
+                }))
+              }
+              className={FILTRO_CAMPO}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="vendas-data-ate">Até</Label>
+            <Input
+              id="vendas-data-ate"
+              type="date"
+              value={draft.dataAte}
+              onChange={(event) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  dataAte: event.target.value,
+                }))
+              }
+              className={FILTRO_CAMPO}
+            />
           </div>
         </div>
       </FiltrosPainel>
