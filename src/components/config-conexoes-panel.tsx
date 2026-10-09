@@ -194,9 +194,26 @@ function MetaConexoesCard({ selectingMeta }: { selectingMeta: boolean }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Receba automaticamente os leads do Meta Ads no CRM. Você só autoriza a
-          conta — não precisa configurar webhook, token ou ID de Página.
+          Receba no CRM quem preenche o formulário de cadastro (Lead Ads) da
+          Página. As campanhas continuam no Gerenciador de Anúncios da Meta.
+          Não é preciso token, webhook nem ID de Página.
         </p>
+        <ol className="list-decimal space-y-1.5 pl-4 text-sm text-muted-foreground">
+          <li>
+            Use o Facebook de quem <strong className="font-medium text-foreground">administra a Página</strong> dos anúncios.
+          </li>
+          <li>
+            Clique em Conectar Facebook e, na Meta, <strong className="font-medium text-foreground">marque todas as Páginas</strong> das campanhas.
+          </li>
+          <li>
+            No CRM, escolha essa Página. A conta de anúncios pode ficar em{" "}
+            <strong className="font-medium text-foreground">Nenhuma</strong> — o lead entra pela Página.
+          </li>
+          <li>
+            Conclua e confira em Leads → Chegaram. Só chega lead de{" "}
+            <strong className="font-medium text-foreground">formulário de cadastro</strong>, não de clique para WhatsApp.
+          </li>
+        </ol>
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -206,7 +223,8 @@ function MetaConexoesCard({ selectingMeta }: { selectingMeta: boolean }) {
         ) : selectingMeta ? (
           <div className="space-y-4">
             <p className="text-sm">
-              Escolha a Página e a conta de anúncios que vão enviar leads.
+              Escolha a Página dos anúncios. A conta de anúncios é opcional: se
+              a lista vier vazia, deixe Nenhuma e conclua mesmo assim.
             </p>
             {assets && assets.pages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -318,8 +336,8 @@ function MetaConexoesCard({ selectingMeta }: { selectingMeta: boolean }) {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Conecte sua conta para importar automaticamente os leads das suas
-              campanhas.
+              Abra o CRM em www.zoneconnection.com.br, use a conta admin da
+              Página e autorize o Facebook.
             </p>
             <Button
               type="button"

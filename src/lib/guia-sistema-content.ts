@@ -141,7 +141,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         ],
         tips: [
           "Origem, tags, CCA e motivos de perda se cadastram em Configurações — não digite solto se o catálogo já existe.",
-          "Facebook Ads entra pelo Page ID do tenant. Página errada = lead no tenant errado.",
+          "Facebook Ads entra pela Página conectada em Configurações → Conexões. Página errada = lead não chega (ou cai no tenant errado).",
         ],
       },
       {
@@ -943,10 +943,15 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         href: "/configuracoes",
         who: "Admin (e papéis com a rota). Define o que o resto do CRM usa.",
         summary:
-          "Identidade da imobiliária, conexões (Google Agenda), funis, origens, tags, motivos, CCAs, status de documentação, tipos de empreendimento e preferências de menu/financeiro.",
+          "Identidade da imobiliária, conexões (Facebook Lead Ads e Google Agenda), funis, origens, tags, motivos, CCAs, status de documentação, tipos de empreendimento e preferências de menu/financeiro.",
         actions: [
           {
-            title: "Conexões",
+            title: "Conexões — Facebook",
+            detail:
+              "Admin conecta a Página da imobiliária. Campanhas no Gerenciador de Anúncios da Meta enviam o formulário de cadastro (Lead Ads) para essa Página; o CRM importa o lead. A conta de anúncios no seletor pode ficar vazia — o lead não depende dela.",
+          },
+          {
+            title: "Conexões — Google Agenda",
             detail:
               "Cada usuário conecta o próprio Google Agenda. Compromissos do CRM são enviados ao Calendar; dá para trocar de conta ou desconectar.",
           },
@@ -975,6 +980,53 @@ export const GUIA_GROUPS: GuiaGroup[] = [
             detail:
               "Ocultar Imóveis no menu; parcelas à vista no financeiro, se a operação usar.",
           },
+        ],
+      },
+      {
+        id: "facebook-leads",
+        title: "Facebook e Instagram (Lead Ads)",
+        href: "/configuracoes",
+        who: "Admin da imobiliária. Precisa ser administrador da Página no Facebook.",
+        summary:
+          "Os anúncios continuam no Gerenciador de Anúncios da Meta. O CRM só recebe quem preencheu o formulário de cadastro da Página conectada. Não é preciso colar token, Page ID nem webhook.",
+        actions: [
+          {
+            title: "Abrir Conexões no site certo",
+            detail:
+              "Entre em https://www.zoneconnection.com.br (com www). Vá em Configurações → Conexões. Não use link de preview nem outro domínio, senão o Facebook bloqueia o retorno do login.",
+          },
+          {
+            title: "Quem deve clicar em Conectar Facebook",
+            detail:
+              "A pessoa que administra a Página da imobiliária (a mesma Página dos anúncios). Se a Página está no Gerenciador de Negócios, use um usuário com papel de administrador nela.",
+          },
+          {
+            title: "Autorizar e marcar as Páginas",
+            detail:
+              "Na tela da Meta, conceda as permissões. Se aparecer escolha de Páginas, marque todas as que têm campanha de Lead Ads. Página desmarcada não entra no CRM.",
+          },
+          {
+            title: "Escolher a Página e concluir",
+            detail:
+              "Volte ao CRM e selecione a Página dos anúncios. Conta de anúncios pode ficar em Nenhuma. Clique em Concluir conexão até aparecer Conectado com o nome da Página.",
+          },
+          {
+            title: "Conferir o lead da campanha",
+            detail:
+              "No Gerenciador, a campanha precisa usar formulário de cadastro (Lead Ads) daquela Página — não só clique para WhatsApp ou Instagram. O lead aparece em Leads → Chegaram, origem Facebook Ads.",
+          },
+        ],
+        how: [
+          "Abra o CRM em www.zoneconnection.com.br → Configurações → Conexões → Conectar Facebook.",
+          "Faça login na Meta com a conta admin da Página e marque as Páginas dos anúncios.",
+          "No CRM, escolha essa Página (conta de anúncios opcional) e conclua.",
+          "Preencha um formulário de teste da campanha e veja o lead em Chegaram.",
+        ],
+        tips: [
+          "Várias Páginas: conecte a que está no anúncio. Para trocar, use Reconectar e marque a Página certa na Meta.",
+          "Página some da lista: essa conta do Facebook não é admin dela, ou ela não foi marcada na autorização.",
+          "Conta de anúncios vazia é normal neste momento. O lead entra pela Página, não pela conta.",
+          "Campanha de mensagem (WhatsApp/Direct) não cria lead de formulário neste fluxo.",
         ],
       },
     ],
