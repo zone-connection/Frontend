@@ -1,13 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  CircleUser,
   Filter,
+  Globe,
   Loader2,
   Pencil,
   Search,
+  UserRound,
+  Users,
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
@@ -806,9 +811,12 @@ function VendasDocumentacaoPage() {
           ].filter(Boolean).length
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Busca</Label>
+            <Label className="flex items-center gap-1.5">
+              <Search className="size-3.5 text-[#079ED4]" />
+              Busca
+            </Label>
             <div className="relative min-w-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3]" />
               <Input
@@ -824,7 +832,10 @@ function VendasDocumentacaoPage() {
           {showTeamFilters ? (
             <>
               <div className="space-y-1.5">
-                <Label>Equipe</Label>
+                <Label className="flex items-center gap-1.5">
+                  <Users className="size-3.5 text-[#079ED4]" />
+                  Equipe
+                </Label>
                 <Select
                   value={draft.equipeId}
                   onValueChange={(value) =>
@@ -849,7 +860,10 @@ function VendasDocumentacaoPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Gerente</Label>
+                <Label className="flex items-center gap-1.5">
+                  <UserRound className="size-3.5 text-[#079ED4]" />
+                  Gerente
+                </Label>
                 <Select
                   value={draft.gerenteId}
                   onValueChange={(value) =>
@@ -870,7 +884,10 @@ function VendasDocumentacaoPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Corretor</Label>
+                <Label className="flex items-center gap-1.5">
+                  <CircleUser className="size-3.5 text-[#079ED4]" />
+                  Corretor
+                </Label>
                 <Select
                   value={draft.corretorId}
                   onValueChange={(value) =>
@@ -893,7 +910,10 @@ function VendasDocumentacaoPage() {
             </>
           ) : null}
           <div className="space-y-1.5">
-            <Label>Origem</Label>
+            <Label className="flex items-center gap-1.5">
+              <Globe className="size-3.5 text-[#079ED4]" />
+              Origem
+            </Label>
             <Select
               value={draft.origem}
               onValueChange={(value) =>
@@ -914,7 +934,10 @@ function VendasDocumentacaoPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="vendas-data-de">De</Label>
+            <Label htmlFor="vendas-data-de" className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5 text-[#079ED4]" />
+              De
+            </Label>
             <Input
               id="vendas-data-de"
               type="date"
@@ -929,7 +952,10 @@ function VendasDocumentacaoPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="vendas-data-ate">Até</Label>
+            <Label htmlFor="vendas-data-ate" className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5 text-[#079ED4]" />
+              Até
+            </Label>
             <Input
               id="vendas-data-ate"
               type="date"

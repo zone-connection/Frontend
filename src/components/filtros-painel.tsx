@@ -8,10 +8,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
+import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 
 export const FILTRO_CAMPO =
-  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !shadow-none focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
+  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !text-[13px] !text-[#0B3148] !shadow-none placeholder:!text-[#8B98A3] focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
 
 export function FiltrosPainel({
   activeCount,
@@ -36,10 +38,10 @@ export function FiltrosPainel({
       <Button
         type="button"
         variant="outline"
-        className="!h-9 !rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A] shadow-none hover:bg-[#F3FAFD]"
+        className={cn(SOFT_BTN, "px-3 text-[13px] font-medium")}
         onClick={() => setOpen(true)}
       >
-        <SlidersHorizontal className="mr-1.5 size-4 text-[#079ED4]" />
+        <SlidersHorizontal className="mr-1.5 size-4" />
         Filtros
         {activeCount > 0 ? (
           <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
@@ -52,15 +54,22 @@ export function FiltrosPainel({
           side="right"
           className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
         >
-          <SheetHeader className="relative border-b border-[#E6EDF2] bg-white px-5 py-4 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">
-              {kicker}
-            </p>
-            <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">
-              Filtros
-            </SheetTitle>
-            <p className="text-[13px] text-[#5C6B76]">{description}</p>
-            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F4F7F8]">
+          <SheetHeader className="relative border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/50 to-white px-5 py-4 text-left">
+            <div className="flex items-start gap-3 pr-10">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-[#079ED4] shadow-sm">
+                <SlidersHorizontal className="size-5" />
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">
+                  {kicker}
+                </p>
+                <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">
+                  Filtros
+                </SheetTitle>
+                <p className="text-[13px] text-[#5C6B76]">{description}</p>
+              </div>
+            </div>
+            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD]">
               <X className="size-4" />
               <span className="sr-only">Fechar</span>
             </SheetClose>
@@ -73,16 +82,15 @@ export function FiltrosPainel({
           <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
             <button
               type="button"
-              className="text-sm font-medium text-[#05749E]"
+              className="text-sm font-medium text-[#05749E] hover:text-[#079ED4]"
               onClick={onClear}
             >
               Limpar
             </button>
             <Button
               type="button"
-              className={cn(
-                "!h-9 !rounded-lg border-0 bg-[#079ED4] px-4 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8]",
-              )}
+              className={cn(BRAND_GRADIENT_BTN, "px-4")}
+              style={BRAND_GRADIENT_STYLE}
               onClick={() => {
                 onConfirm?.();
                 setOpen(false);
