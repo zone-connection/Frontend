@@ -7,8 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { PagePanel } from "@/components/page-panel";
-import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { dashCardTone, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +108,38 @@ export const Route = createFileRoute("/_app/triagem")({
 });
 
 const MAX_TEXTO = MAX_TRIAGEM_TEXTO;
+
+function TriagemKpi({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone = "teal",
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  icon: LucideIcon;
+  tone?: FinanceKpiTone;
+}) {
+  const paint = dashCardTone(tone);
+  return (
+    <div className={cn("flex min-w-0 flex-col rounded-xl border px-3.5 py-3", paint.card)}>
+      <span className="flex items-center gap-2">
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
+          <Icon className="size-4" />
+        </span>
+        <span className={cn("truncate text-[13px]", paint.label)}>{label}</span>
+      </span>
+      <span className={cn("mt-2 truncate text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
+        {value}
+      </span>
+      {detail ? (
+        <span className={cn("mt-1.5 truncate text-[11px]", paint.label)}>{detail}</span>
+      ) : null}
+    </div>
+  );
+}
 
 function leadToContact(l: Lead): TriagemContact {
   return {
@@ -651,60 +682,53 @@ function CorretorTriagem() {
           title="Triagem"
           description="Organize, analise e direcione cada oportunidade."
           actions={
-            <Button size="sm" onClick={openCreateManual}>
+            <Button
+              size="sm"
+              onClick={openCreateManual}
+              className="h-8 rounded-lg border-0 bg-[#079ED4] px-3 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100"
+            >
               <Plus className="mr-1 h-4 w-4" />
               Adicionar lead
             </Button>
           }
         />
-        <PagePanel inset="muted" className="mb-4">
-          <div className="grid grid-cols-2 gap-3 p-3 sm:p-4 xl:grid-cols-4">
-            <FinanceKpiCard
+        <div className="mb-4 grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
+            <TriagemKpi
               label="Meus leads"
-              value={leads.length}
+              value={String(leads.length)}
               icon={ClipboardList}
               tone="blue"
-              format="number"
-              variant="dash"
               detail="Aguardando atendimento"
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Clientes"
-              value={clientes.length}
+              value={String(clientes.length)}
               icon={UserRound}
-              tone="violet"
-              format="number"
-              variant="dash"
+              tone="teal"
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Em análise"
-              value={
+              value={String(
                 [...leads, ...clientes].filter((l) => {
                   const papel = funnelStages.find((s) => s.id === l.stage)?.papel;
                   return papel === "analise";
-                }).length
-              }
+                }).length,
+              )}
               icon={Target}
-              tone="orange"
-              format="number"
-              variant="dash"
+              tone="violet"
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Tempo médio"
-              value={0}
-              valueLabel={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
+              value={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
               icon={Clock3}
-              tone="teal"
-              format="number"
-              variant="dash"
+              tone="orange"
               detail={
                 kpis?.amostra
                   ? `${kpis.amostra} relato${kpis.amostra === 1 ? "" : "s"}`
                   : "Tempo entre relatos"
               }
             />
-          </div>
-        </PagePanel>
+        </div>
 
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="w-full sm:w-55">
@@ -1346,76 +1370,51 @@ function ManagerTriagem() {
           title="Triagem"
           description="Organize, analise e direcione cada oportunidade."
         />
-        <PagePanel inset="muted" className="mb-4">
-          <div className="grid grid-cols-2 gap-3 p-3 sm:p-4 xl:grid-cols-5">
-            <FinanceKpiCard
+        <div className="mb-4 grid grid-cols-2 items-start gap-3 xl:grid-cols-5">
+            <TriagemKpi
               label="Corretores ativos"
-              value={corretores.length}
+              value={String(corretores.length)}
               icon={UserRound}
-              tone="blue"
-              format="number"
-              variant="dash"
+              tone="blue-2"
               detail="Todas na equipe"
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Leads em triagem"
-              value={teamLeads.length}
+              value={String(teamLeads.length)}
               icon={ClipboardList}
-              tone="violet"
-              format="number"
-              variant="dash"
+              tone="blue"
               detail="Aguardando evolução"
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Tempo médio de triagem"
-              value={0}
-              valueLabel={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
+              value={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
               icon={Clock3}
               tone="orange"
-              format="number"
-              variant="dash"
               detail={
                 kpis?.amostra
                   ? `${kpis.amostra} relato${kpis.amostra === 1 ? "" : "s"} medido${kpis.amostra === 1 ? "" : "s"}`
                   : "Sem relatos suficientes"
               }
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Atualizados hoje"
-              value={kpis?.atualizadosHoje ?? 0}
+              value={String(kpis?.atualizadosHoje ?? 0)}
               icon={Target}
-              tone="emerald"
-              format="number"
-              variant="dash"
-              valorMesAnterior={kpis?.atualizadosOntem ?? 0}
-              evolucaoPct={
-                kpis?.atualizadosOntem
-                  ? Math.round(
-                      ((kpis.atualizadosHoje - kpis.atualizadosOntem) /
-                        kpis.atualizadosOntem) *
-                        1000,
-                    ) / 10
-                  : kpis?.atualizadosHoje
-                    ? 100
-                    : 0
-              }
+              tone="violet"
+              detail={`Ontem: ${kpis?.atualizadosOntem ?? 0}`}
             />
-            <FinanceKpiCard
+            <TriagemKpi
               label="Triagem mais rápida"
-              value={0}
-              valueLabel={kpis?.maisRapida?.nome || "—"}
+              value={kpis?.maisRapida?.nome || "—"}
               icon={Zap}
-              tone="teal"
-              format="number"
-              variant="dash"
+              tone="emerald"
               detail={
                 kpis?.maisRapida
                   ? `Média de ${formatDurationMs(kpis.maisRapida.tempoMedioMs)}`
                   : "Menor tempo médio na equipe"
               }
             />
-          </div>
-        </PagePanel>
+        </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 max-lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden">

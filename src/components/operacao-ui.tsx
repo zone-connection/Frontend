@@ -1,8 +1,37 @@
+import { type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { NovoBadge } from "@/components/novo-badge";
 import { isNavPathNovo } from "@/lib/novidades";
 import { cn } from "@/lib/utils";
+
+const NAV_SHELL =
+  "mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-xl border border-[#E2E8EC] bg-white p-1";
+
+export function SlidingNav({
+  className,
+  children,
+}: {
+  activeKey?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <nav className={NAV_SHELL}>
+      <div className={cn("relative flex min-w-max gap-0.5", className)}>
+        {children}
+      </div>
+    </nav>
+  );
+}
+
+export const navItemClass = (active: boolean) =>
+  cn(
+    "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-500 ease-out motion-reduce:transition-none",
+    active
+      ? "bg-[#079ED4] text-white"
+      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
+  );
 
 export function ModulePageTransition({
   pathname,
@@ -32,8 +61,7 @@ export function OperationSubnav({
   if (depth > 2) return null;
 
   return (
-    <nav className="mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-card to-card p-1 shadow-sm shadow-primary/5">
-      <div className="flex min-w-max gap-1">
+    <SlidingNav activeKey={pathname}>
         {items.map((tab) => {
           const active =
             pathname === tab.to || pathname.startsWith(`${tab.to}/`);
@@ -43,21 +71,25 @@ export function OperationSubnav({
               key={tab.to}
               to={tab.to}
               preload={false}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-300 ease-out",
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
-              )}
+              data-nav-active={active ? "true" : undefined}
+              className={navItemClass(active)}
             >
-              {Icon ? <Icon className="h-4 w-4" /> : null}
+              {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
               {tab.label}
-              {isNavPathNovo(tab.to) ? <NovoBadge compact /> : null}
+              {isNavPathNovo(tab.to) ? (
+                <NovoBadge
+                  compact
+                  className={
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-[#E7F4FA] text-[#0B3148]"
+                  }
+                />
+              ) : null}
             </Link>
           );
         })}
-      </div>
-    </nav>
+    </SlidingNav>
   );
 }
 
@@ -71,24 +103,28 @@ export function PillTabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <nav className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-card to-card p-1 shadow-sm shadow-primary/5">
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onChange(item.id)}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors",
-            value === item.id
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
-          )}
-        >
-          {item.label}
-          {item.novo ? <NovoBadge compact /> : null}
-        </button>
-      ))}
-    </nav>
+    <SlidingNav activeKey={value} className="flex-wrap">
+      {items.map((item) => {
+        const active = value === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            data-nav-active={active ? "true" : undefined}
+            onClick={() => onChange(item.id)}
+            className={navItemClass(active)}
+          >
+            {item.label}
+            {item.novo ? (
+              <NovoBadge
+                compact
+                className={active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]"}
+              />
+            ) : null}
+          </button>
+        );
+      })}
+    </SlidingNav>
   );
 }
 

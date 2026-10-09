@@ -146,18 +146,18 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
     "teal",
   ] as const;
   const wash: Record<(typeof tones)[number], string> = {
-    blue: "border-sky-100/80 bg-sky-50",
-    violet: "border-violet-100/80 bg-violet-50",
-    orange: "border-orange-100/80 bg-orange-50",
-    emerald: "border-emerald-100/80 bg-emerald-50",
-    teal: "border-teal-100/80 bg-teal-50",
+    blue: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
+    violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
+    orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+    emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
+    teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA]",
   };
   const iconBg: Record<(typeof tones)[number], string> = {
-    blue: "bg-sky-500",
-    violet: "bg-violet-500",
-    orange: "bg-orange-500",
-    emerald: "bg-emerald-500",
-    teal: "bg-teal-500",
+    blue: "bg-[#2E90FA] shadow-[0_6px_14px_rgba(46,144,250,0.35)]",
+    violet: "bg-[#875BF7] shadow-[0_6px_14px_rgba(135,91,247,0.35)]",
+    orange: "bg-[#F79009] shadow-[0_6px_14px_rgba(247,144,9,0.38)]",
+    emerald: "bg-[#12B76A] shadow-[0_6px_14px_rgba(18,183,106,0.35)]",
+    teal: "bg-[#12B5A0] shadow-[0_6px_14px_rgba(18,181,160,0.35)]",
   };
 
   return (
@@ -170,14 +170,14 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
           <div
             key={card.label}
             className={cn(
-              "rounded-2xl border px-2.5 py-2",
+              "rounded-xl border px-2.5 py-2",
               wash[tone],
             )}
           >
             <div className="flex items-center gap-3">
               <span
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-white ring-2 ring-white/70",
+                  "flex size-9 shrink-0 items-center justify-center rounded-full text-white",
                   iconBg[tone],
                 )}
               >

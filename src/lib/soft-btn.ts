@@ -1,6 +1,6 @@
-/** Botões outline claros — acompanham a cor principal e o tema claro/escuro. */
+/** Botões de apoio: branco, borda neutra, ícone azul. */
 export const SOFT_BTN =
-  "h-8 rounded-full border-2 border-primary/20 bg-primary/10 text-primary shadow-none hover:bg-primary/20 hover:text-primary dark:border-primary/35 dark:bg-primary/15 dark:hover:bg-primary/25";
+  "!h-9 !rounded-lg border border-[#E2E8EC] bg-white text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] hover:text-[#16324A] [&_svg]:text-[#079ED4]";
 
 export const SOFT_BTN_ACTIVE =
-  "border-2 border-primary/45 bg-primary/20 text-primary shadow-none hover:bg-primary/25 hover:text-primary dark:border-primary/55 dark:bg-primary/30 dark:hover:bg-primary/35";
+  "!h-9 !rounded-lg border border-[#079ED4] bg-[#E7F4FA] text-[#0B3148] shadow-none hover:bg-[#E7F4FA]";

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { navItemClass, SlidingNav } from "@/components/operacao-ui";
 
 export type TarefaSecao =
   | "geral"
@@ -39,8 +40,7 @@ export function TarefasModuloNav({
   onChange: (secao: TarefaSecao) => void;
 }) {
   return (
-    <nav className="overflow-x-auto rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-card to-card p-1 shadow-sm shadow-primary/5">
-      <div className="flex min-w-max items-center gap-1">
+    <SlidingNav activeKey={secao} className="items-center">
         {WORKSPACE.map((item) => (
           <Item
             key={item.id}
@@ -50,12 +50,11 @@ export function TarefasModuloNav({
             onChange={onChange}
           />
         ))}
-        <span className="mx-1 h-6 w-px bg-border" />
+        <span className="relative z-10 mx-1 h-6 w-px bg-[#E2E8EC]" />
         {RELACIONAMENTOS.map((item) => (
           <Item key={item.id} item={item} active={secao === item.id} onChange={onChange} />
         ))}
-      </div>
-    </nav>
+    </SlidingNav>
   );
 }
 
@@ -74,21 +73,17 @@ function Item({
   return (
     <button
       type="button"
+      data-nav-active={active ? "true" : undefined}
       onClick={() => onChange(item.id)}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors",
-        active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
-      )}
+      className={navItemClass(active)}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="size-3.5" />
       {item.label}
       {badge != null ? (
         <span
           className={cn(
             "rounded-full px-1.5 text-xs",
-            active ? "bg-primary-foreground/20" : "bg-muted",
+            active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]",
           )}
         >
           {badge}

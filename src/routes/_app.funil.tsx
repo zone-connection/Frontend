@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { FiltrosPainel, FILTRO_CAMPO } from "@/components/filtros-painel";
 import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1203,7 +1204,31 @@ export function ComercialFunilBoard({
         actionsClassName="lg:max-w-none"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
+              <FiltrosPainel
+                kicker={isClientesFunil ? "Clientes" : "Funil"}
+                description="Escolha equipe, corretor e prazo."
+                confirmLabel="Ver funil"
+                activeCount={
+                  [
+                    showTeamFilters && isAdmin && filterEquipeId !== "__all__",
+                    showTeamFilters && isManager && filterCorretorId !== "__all__",
+                    !isClientesFunil && isGerente && filterMeusLeads,
+                    filterMonitoramento !== "todos",
+                  ].filter(Boolean).length
+                }
+                onClear={() => {
+                  setFilterEquipeId("__all__");
+                  setFilterCorretorId("__all__");
+                  setFilterMeusLeads(false);
+                  setFilterMonitoramento("todos");
+                }}
+              >
               {showTeamFilters && isAdmin && (
+                <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Users className="size-3.5 text-[#079ED4]" />
+                  Equipe
+                </Label>
                 <Select
                   value={filterEquipeId}
                   onValueChange={(v) => {
@@ -1211,16 +1236,8 @@ export function ComercialFunilBoard({
                     setFilterCorretorId("__all__");
                   }}
                 >
-                  <SelectTrigger
-                    className={cn(
-                      FUNIL_FILTER,
-                      filterEquipeId !== "__all__" && FUNIL_FILTER_ON,
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Users className="size-3.5 shrink-0 text-primary" />
-                      <SelectValue placeholder="Equipe" />
-                    </span>
+                  <SelectTrigger className={FILTRO_CAMPO}>
+                    <SelectValue placeholder="Equipe" />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     <SelectItem value="__all__">Todas as equipes</SelectItem>
@@ -1232,8 +1249,14 @@ export function ComercialFunilBoard({
                     ))}
                   </SelectContent>
                 </Select>
+                </div>
               )}
               {showTeamFilters && isManager && (
+                <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <CircleUser className="size-3.5 text-[#079ED4]" />
+                  Corretor
+                </Label>
                 <Popover
                   open={corretorFilterOpen}
                   onOpenChange={setCorretorFilterOpen}
@@ -1244,16 +1267,9 @@ export function ComercialFunilBoard({
                       variant="outline"
                       role="combobox"
                       aria-expanded={corretorFilterOpen}
-                      className={cn(
-                        FUNIL_FILTER,
-                        "max-w-64 justify-between font-medium",
-                        filterCorretorId !== "__all__" && FUNIL_FILTER_ON,
-                      )}
+                      className={cn(FILTRO_CAMPO, "justify-between font-normal")}
                     >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <CircleUser className="size-3.5 shrink-0 text-primary" />
-                        <span className="truncate">{selectedCorretorLabel}</span>
-                      </span>
+                      <span className="truncate">{selectedCorretorLabel}</span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1329,40 +1345,39 @@ export function ComercialFunilBoard({
                     </Command>
                   </PopoverContent>
                 </Popover>
+                </div>
               )}
               {!isClientesFunil && isGerente && (
                 <Button
                   type="button"
                   variant="outline"
                   className={cn(
-                    FUNIL_FILTER,
-                    filterMeusLeads && FUNIL_FILTER_ON,
+                    FILTRO_CAMPO,
+                    "justify-start",
+                    filterMeusLeads && "border-[#079ED4] bg-[#E7F4FA] text-[#0B3148]",
                   )}
                   onClick={() => {
                     setFilterMeusLeads((v) => !v);
                     setFilterCorretorId("__all__");
                   }}
                 >
-                  <Briefcase className="size-3.5 shrink-0 text-primary" />
+                  <Briefcase className="size-3.5 shrink-0 text-[#079ED4]" />
                   Meus leads
                 </Button>
               )}
+              <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Clock className="size-3.5 text-[#079ED4]" />
+                Prazos
+              </Label>
               <Select
                 value={filterMonitoramento}
                 onValueChange={(v) =>
                   setFilterMonitoramento(v as MonitoramentoFiltro)
                 }
               >
-                <SelectTrigger
-                  className={cn(
-                    FUNIL_FILTER,
-                    filterMonitoramento !== "todos" && FUNIL_FILTER_ON,
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Clock className="size-3.5 shrink-0 text-primary" />
-                    <SelectValue placeholder="Prazos" />
-                  </span>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Prazos" />
                 </SelectTrigger>
                 <SelectContent>
                   {MONITORAMENTO_FILTRO_OPTIONS.map((opt) => (
@@ -1372,6 +1387,8 @@ export function ComercialFunilBoard({
                   ))}
                 </SelectContent>
               </Select>
+              </div>
+              </FiltrosPainel>
               {!isCorretor && (
                 <Button
                   size="sm"

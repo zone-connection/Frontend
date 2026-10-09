@@ -1,9 +1,9 @@
-/** Degradê de botões/CTAs — acompanha a aparência do usuário. */
+/** Ação principal: azul sólido da marca. */
 export const BRAND_GRADIENT_STYLE = {
-  backgroundImage:
-    "var(--background-image-brand-cta, linear-gradient(135deg, #079ed4 0%, #075a82 100%))",
-  color: "var(--btn-gradient-fg, #ffffff)",
+  backgroundColor: "#079ED4",
+  backgroundImage: "none",
+  color: "#ffffff",
 } as const;
 
 export const BRAND_GRADIENT_BTN =
-  "border-0 bg-transparent shadow-sm hover:bg-transparent hover:brightness-110 disabled:opacity-50";
+  "!h-9 !rounded-lg border-0 bg-[#079ED4] text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100 disabled:opacity-50";

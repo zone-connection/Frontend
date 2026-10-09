@@ -25,7 +25,8 @@ export function DashDonut({
     return (
       <div
         className={cn(
-          "mx-auto flex size-36 items-center justify-center rounded-full border-10 border-muted px-3 text-center text-[11px] leading-snug text-muted-foreground",
+          "mx-auto flex items-center justify-center rounded-full border-10 border-[#D0BEF5] bg-[#F8F5FF] px-3 text-center text-[11px] leading-snug text-[#6927DA]",
+          compact ? "size-24" : "size-36",
           className,
         )}
       >
@@ -39,6 +40,14 @@ export function DashDonut({
   return (
     <div className={cn("relative mx-auto", compact ? "size-24" : "size-36", className)}>
       <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          stroke="#DDD6FE"
+          strokeWidth="16"
+        />
         {visible.map((item) => {
           const len = (item.value / total) * circ;
           const node = (

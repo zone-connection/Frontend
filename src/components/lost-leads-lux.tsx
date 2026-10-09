@@ -58,21 +58,21 @@ export function lostMotivoChipClass(motivo: string) {
 }
 
 const KPI_ICON_BG: Record<string, string> = {
-  retorno: "bg-rose-500",
-  invalido: "bg-amber-500",
-  financeiro: "bg-amber-500",
-  perfil: "bg-amber-500",
-  comprou: "bg-sky-500",
-  desist: "bg-violet-500",
+  retorno: "bg-[#F04464] shadow-[0_6px_14px_rgba(240,68,100,0.35)]",
+  invalido: "bg-[#F79009] shadow-[0_6px_14px_rgba(247,144,9,0.38)]",
+  financeiro: "bg-[#F79009] shadow-[0_6px_14px_rgba(247,144,9,0.38)]",
+  perfil: "bg-[#F79009] shadow-[0_6px_14px_rgba(247,144,9,0.38)]",
+  comprou: "bg-[#2E90FA] shadow-[0_6px_14px_rgba(46,144,250,0.35)]",
+  desist: "bg-[#875BF7] shadow-[0_6px_14px_rgba(135,91,247,0.35)]",
 };
 
 const KPI_WASH: Record<string, string> = {
-  retorno: "border-rose-100 bg-rose-50",
-  invalido: "border-amber-100 bg-amber-50",
-  financeiro: "border-amber-100 bg-amber-50",
-  perfil: "border-amber-100 bg-amber-50",
-  comprou: "border-sky-100 bg-sky-50",
-  desist: "border-violet-100 bg-violet-50",
+  retorno: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
+  invalido: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+  financeiro: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+  perfil: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+  comprou: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
+  desist: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
 };
 
 function toneKey(motivo: string) {
@@ -124,7 +124,7 @@ export function LostLeadsMotivoKpis({
             type="button"
             onClick={() => onSelect(selected ? "all" : item.motivo)}
             className={cn(
-              "rounded-2xl border px-3 py-3 text-left shadow-sm transition",
+              "rounded-xl border px-3.5 py-3 text-left transition",
               wash,
               selected && "ring-2 ring-primary/30",
             )}
@@ -132,7 +132,7 @@ export function LostLeadsMotivoKpis({
             <div className="flex items-start justify-between gap-2">
               <span
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-xl text-white",
+                  "flex size-9 items-center justify-center rounded-full text-white",
                   lostMotivoKpiTone(item.motivo),
                 )}
               >

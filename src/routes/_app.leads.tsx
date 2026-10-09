@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { dashCardTone, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { FlowTrack } from "@/components/flow-bar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,6 +63,7 @@ import {
   Phone,
   Plus,
   Search,
+  SlidersHorizontal,
   Filter,
   Download,
   MoreHorizontal,
@@ -87,6 +89,8 @@ import {
   UserCheck,
   UserRoundCog,
   Users,
+  Layers,
+  UserRound,
   Flame,
   Building2,
   Globe,
@@ -132,7 +136,6 @@ import {
 import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
-import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates } from "@/lib/leads-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
@@ -175,17 +178,19 @@ import {
 } from "@/components/lead-atividade-dialog";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { ApiError } from "@/lib/api";
-import { SOFT_BTN } from "@/lib/soft-btn";
 import {
-  FILTER_BAR_SURFACE,
-  FILTER_CLEAR_BTN,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   FILTER_CONTROL,
-  FILTER_LABEL,
   FILTER_SEARCH_ICON,
   TABLE_LUX,
   TABLE_SHELL,
 } from "@/lib/filter-bar";
-import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -539,9 +544,56 @@ const TIPO_RENDA_OPTIONS = [
   "Outros",
 ] as const;
 
-const LEADS_GRADIENT_BTN =
-  "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110 disabled:opacity-50";
-const LEADS_GRADIENT_STYLE = BRAND_GRADIENT_STYLE;
+const LEADS_FILTRO_CAMPO =
+  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !shadow-none focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
+
+const LEADS_PRIMARY_BTN =
+  "!h-9 !rounded-lg border-0 bg-[#079ED4] px-3.5 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100";
+
+const LEADS_SECONDARY_BTN =
+  "!h-9 !rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] hover:text-[#16324A]";
+
+function LeadKpi({
+  label,
+  value,
+  icon: Icon,
+  tone = "teal",
+  active = false,
+  onClick,
+  guia,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  tone?: FinanceKpiTone;
+  active?: boolean;
+  onClick: () => void;
+  guia?: string;
+}) {
+  const paint = dashCardTone(tone);
+  return (
+    <button
+      type="button"
+      data-guia={guia}
+      onClick={onClick}
+      className={cn(
+        "flex min-w-0 cursor-pointer flex-col rounded-xl border px-3.5 py-3 text-left",
+        paint.card,
+        active && "ring-2 ring-[#079ED4]/45",
+      )}
+    >
+      <span className="flex items-center gap-2">
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
+          <Icon className="size-4" />
+        </span>
+        <span className={cn("text-[13px]", paint.label)}>{label}</span>
+      </span>
+      <span className={cn("mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
+        {value.toLocaleString("pt-BR")}
+      </span>
+    </button>
+  );
+}
 
 function LeadsPage() {
   const navigate = useNavigate();
@@ -675,6 +727,7 @@ function LeadsPage() {
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
+  const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   /** UUID do corretor ou "all". */
@@ -685,7 +738,6 @@ function LeadsPage() {
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("all");
   const [tipoRendaFilter, setTipoRendaFilter] = useState<string>("all");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
-  const [showExtraFilters, setShowExtraFilters] = useState(false);
   const routeSearch = Route.useSearch();
   /** Separação pool (chegaram) × já atribuídos a equipe/corretor. */
   const [distribuicaoFilter, setDistribuicaoFilter] =
@@ -808,11 +860,6 @@ function LeadsPage() {
     (isGerente ? true : !l.equipeId);
   const isLeadDistribuido = (l: Lead) =>
     isGerente ? Boolean(l.corretorId) : Boolean(l.corretorId || l.equipeId);
-
-  const extraFiltersActive =
-    prioridadeFilter !== "all" ||
-    tipoRendaFilter !== "all" ||
-    origemFilter !== "all";
 
   // Filtra no cliente sobre a lista já carregada no store — evita round-trip
   // ao Postgres remoto a cada mudança de filtro.
@@ -1694,13 +1741,13 @@ function LeadsPage() {
                 size="sm"
                 disabled={importParsing}
                 onClick={() => setImportHelpOpen(true)}
-                className={SOFT_BTN}
+                className={LEADS_SECONDARY_BTN}
                 data-guia="leads-importar"
               >
                 {importParsing ? (
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
-                  <Upload className="w-4 h-4 mr-1" />
+                  <Upload className="mr-1.5 size-3.5 text-[#079ED4]" />
                 )}
                 Importar
               </Button>
@@ -1709,10 +1756,10 @@ function LeadsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setDistribuirOpen(true)}
-                  className={SOFT_BTN}
+                  className={LEADS_SECONDARY_BTN}
                   data-guia="leads-distribuir"
                 >
-                  <Share2 className="w-4 h-4 mr-1" />
+                  <Share2 className="mr-1.5 size-3.5 text-[#079ED4]" />
                   {selectedCount > 0
                     ? `Distribuir (${selectedCount})`
                     : "Distribuir"}
@@ -1725,10 +1772,10 @@ function LeadsPage() {
                     variant="outline"
                     size="sm"
                     disabled={filteredLeads.length === 0}
-                    className={SOFT_BTN}
+                    className={LEADS_SECONDARY_BTN}
                     data-guia="leads-exportar"
                   >
-                    <Download className="w-4 h-4 mr-1" />
+                    <Download className="mr-1.5 size-3.5 text-[#079ED4]" />
                     Exportar
                   </Button>
                 </DropdownMenuTrigger>
@@ -1793,11 +1840,10 @@ function LeadsPage() {
             <Button
               size="sm"
               onClick={openCreate}
-              className={cn(LEADS_GRADIENT_BTN, "shrink-0")}
-              style={LEADS_GRADIENT_STYLE}
+              className={cn(LEADS_PRIMARY_BTN, "shrink-0")}
               data-guia="leads-novo"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="mr-1.5 size-3.5" />
               Novo lead
             </Button>
           </div>
@@ -3238,17 +3284,25 @@ function LeadsPage() {
 
       <div
         className={cn(
-          "mb-4 grid grid-cols-2 gap-3",
+          "mb-4 grid grid-cols-2 items-start gap-3",
           isPlatformAdmin
             ? "lg:grid-cols-2"
             : isGerente
-              ? "lg:grid-cols-6"
-              : "lg:grid-cols-5",
+              ? "xl:grid-cols-6"
+              : "xl:grid-cols-5",
         )}
       >
-        <button
-          type="button"
-          className="min-w-0 cursor-pointer text-left"
+        <LeadKpi
+          label="Total de leads"
+          value={kpiCounts.total}
+          icon={Users}
+          tone="blue"
+          active={
+            distribuicaoFilter === "all" &&
+            prioridadeFilter === "all" &&
+            stageFilter === "all" &&
+            !paradosFilter
+          }
           onClick={() => {
             setDistribuicaoFilter("all");
             setPrioridadeFilter("all");
@@ -3256,29 +3310,16 @@ function LeadsPage() {
             setParadosFilter(false);
             void navigate({ to: "/leads", search: {}, replace: true });
           }}
-        >
-          <FinanceKpiCard
-            label="Total de leads"
-            value={kpiCounts.total}
-            icon={Users}
-            tone="blue"
-            format="number"
-            variant="dash"
-            className={cn(
-              distribuicaoFilter === "all" &&
-                prioridadeFilter === "all" &&
-                stageFilter === "all" &&
-                !paradosFilter &&
-                "shadow-md",
-            )}
-          />
-        </button>
+        />
         {showTeamColumns ? (
           <>
-            <button
-              type="button"
-              className="min-w-0 cursor-pointer text-left"
-              data-guia="leads-chegaram"
+            <LeadKpi
+              label="Chegaram"
+              value={kpiCounts.chegaram}
+              icon={Inbox}
+              tone="teal"
+              guia="leads-chegaram"
+              active={distribuicaoFilter === "chegaram"}
               onClick={() => {
                 setDistribuicaoFilter("chegaram");
                 setPrioridadeFilter("all");
@@ -3289,20 +3330,13 @@ function LeadsPage() {
                   replace: true,
                 });
               }}
-            >
-              <FinanceKpiCard
-                label="Chegaram"
-                value={kpiCounts.chegaram}
-                icon={Inbox}
-                tone="teal"
-                format="number"
-                variant="dash"
-                className={cn(distribuicaoFilter === "chegaram" && "shadow-md")}
-              />
-            </button>
-            <button
-              type="button"
-              className="min-w-0 cursor-pointer text-left"
+            />
+            <LeadKpi
+              label="Retrabalho"
+              value={kpiCounts.retrabalho}
+              icon={Repeat}
+              tone="violet"
+              active={distribuicaoFilter === "retrabalho"}
               onClick={() => {
                 setDistribuicaoFilter("retrabalho");
                 setPrioridadeFilter("all");
@@ -3313,22 +3347,13 @@ function LeadsPage() {
                   replace: true,
                 });
               }}
-            >
-              <FinanceKpiCard
-                label="Retrabalho"
-                value={kpiCounts.retrabalho}
-                icon={Repeat}
-                tone="orange"
-                format="number"
-                variant="dash"
-                className={cn(
-                  distribuicaoFilter === "retrabalho" && "shadow-md",
-                )}
-              />
-            </button>
-            <button
-              type="button"
-              className="min-w-0 cursor-pointer text-left"
+            />
+            <LeadKpi
+              label="Distribuídos"
+              value={kpiCounts.distribuidos}
+              icon={UserCheck}
+              tone="emerald"
+              active={distribuicaoFilter === "distribuidos"}
               onClick={() => {
                 setDistribuicaoFilter("distribuidos");
                 setPrioridadeFilter("all");
@@ -3339,23 +3364,14 @@ function LeadsPage() {
                   replace: true,
                 });
               }}
-            >
-              <FinanceKpiCard
-                label="Distribuídos"
-                value={kpiCounts.distribuidos}
-                icon={UserCheck}
-                tone="violet"
-                format="number"
-                variant="dash"
-                className={cn(
-                  distribuicaoFilter === "distribuidos" && "shadow-md",
-                )}
-              />
-            </button>
-            {isGerente && (
-              <button
-                type="button"
-                className="min-w-0 cursor-pointer text-left"
+            />
+            {isGerente ? (
+              <LeadKpi
+                label="Meus leads"
+                value={kpiCounts.meus}
+                icon={Briefcase}
+                tone="blue-4"
+                active={distribuicaoFilter === "meus"}
                 onClick={() => {
                   setDistribuicaoFilter("meus");
                   setCorretorFilter("all");
@@ -3367,260 +3383,245 @@ function LeadsPage() {
                     replace: true,
                   });
                 }}
-              >
-                <FinanceKpiCard
-                  label="Meus leads"
-                  value={kpiCounts.meus}
-                  icon={Briefcase}
-                  tone="emerald"
-                  format="number"
-                  variant="dash"
-                  className={cn(distribuicaoFilter === "meus" && "shadow-md")}
-                />
-              </button>
-            )}
+              />
+            ) : null}
           </>
         ) : (
-          <button
-            type="button"
-            className="min-w-0 cursor-pointer text-left"
+          <LeadKpi
+            label="Novos na etapa"
+            value={kpiCounts.novos}
+            icon={Inbox}
+            tone="teal"
+            active={
+              stageFilter === "novo" ||
+              funnelStages.find((s) => s.id === stageFilter)?.papel === "inicial"
+            }
             onClick={() => {
               const novoStage =
                 funnelStages.find((s) => s.papel === "inicial")?.id ?? "novo";
               setStageFilter(stageFilter === novoStage ? "all" : novoStage);
               setPrioridadeFilter("all");
             }}
-          >
-            <FinanceKpiCard
-              label="Novos na etapa"
-              value={kpiCounts.novos}
-              icon={Inbox}
-              tone="teal"
-              format="number"
-              variant="dash"
-              className={cn(
-                (stageFilter === "novo" ||
-                  funnelStages.find((s) => s.id === stageFilter)?.papel ===
-                    "inicial") &&
-                  "shadow-md",
-              )}
-            />
-          </button>
+          />
         )}
-        <button
-          type="button"
-          className="min-w-0 cursor-pointer text-left"
+        <LeadKpi
+          label="Prioridade alta"
+          value={kpiCounts.alta}
+          icon={Flame}
+          tone="rose"
+          active={prioridadeFilter === "Alta"}
           onClick={() =>
             setPrioridadeFilter(prioridadeFilter === "Alta" ? "all" : "Alta")
           }
-        >
-          <FinanceKpiCard
-            label="Prioridade alta"
-            value={kpiCounts.alta}
-            icon={Flame}
-            tone="rose"
-            format="number"
-            variant="dash"
-            className={cn(prioridadeFilter === "Alta" && "shadow-md")}
-          />
-        </button>
-        {isCorretor && (
-          <button
-            type="button"
-            className="min-w-0 cursor-pointer text-left"
+        />
+        {isCorretor ? (
+          <LeadKpi
+            label="Em atendimento"
+            value={Math.max(0, kpiCounts.total - kpiCounts.novos)}
+            icon={UserCheck}
+            tone="orange"
             onClick={() => {
               setStageFilter("all");
               setPrioridadeFilter("all");
               setDistribuicaoFilter("all");
             }}
-          >
-            <FinanceKpiCard
-              label="Em atendimento"
-              value={Math.max(0, kpiCounts.total - kpiCounts.novos)}
-              icon={UserCheck}
-              tone="violet"
-              format="number"
-              variant="dash"
-            />
-          </button>
-        )}
+          />
+        ) : null}
       </div>
 
-      <div className={cn("mb-4", FILTER_BAR_SURFACE)}>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-55">
-            <Search className={FILTER_SEARCH_ICON} />
-            <Input
-              placeholder="Buscar por nome, email, telefone..."
-              className={cn("h-9 rounded-md pl-9", FILTER_CONTROL)}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <TableSortSelect
-            value={sort}
-            onChange={setSort}
-            className={FILTER_CONTROL}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className={FILTER_SEARCH_ICON} />
+          <Input
+            placeholder="Buscar por nome, email, telefone..."
+            className="h-9 rounded-lg border-[#E2E8EC] bg-white pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className={cn("w-44 h-9", FILTER_CONTROL)}>
-              <SelectValue placeholder="Etapa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas etapas</SelectItem>
-              {funnelStages.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {canFilterEquipe && (
-            <Select value={equipeFilter} onValueChange={setEquipeFilter}>
-              <SelectTrigger className={cn("w-44 h-9", FILTER_CONTROL)}>
-                <SelectValue placeholder="Equipe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas equipes</SelectItem>
-                <SelectItem value="none">Sem equipe</SelectItem>
-                {equipes.map((eq) => (
-                  <SelectItem key={eq.id} value={eq.id}>
-                    {eq.name}
-                    {eq.leadsCount != null ? ` (${eq.leadsCount})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {showTeamColumns && (
-            <Select value={corretorFilter} onValueChange={setCorretorFilter}>
-              <SelectTrigger className={cn("w-44 h-9", FILTER_CONTROL)}>
-                <SelectValue placeholder="Corretor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos corretores</SelectItem>
-                {leadsAtivosPorCorretor
-                  .filter(
-                    (r) => r.id === "__none__" || r.id === "__equipe_pool__",
-                  )
-                  .map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name} ({r.count})
-                    </SelectItem>
-                  ))}
-                {corretorFilterOptions.map((a) => {
-                  const count =
-                    leadsAtivosPorCorretor.find((r) => r.id === a.id)?.count ??
-                    0;
-                  return (
-                    <SelectItem key={a.id} value={a.id}>
-                      {isGerente && a.id === user?.id
-                        ? `${a.name} (eu)`
-                        : a.name}{" "}
-                      ({count})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(SOFT_BTN, extraFiltersActive && "border-primary/40")}
-            onClick={() => setShowExtraFilters((v) => !v)}
-          >
-            <Filter className="w-4 h-4 mr-1" />
-            Mais filtros
-            {extraFiltersActive && (
-              <Badge
-                className="ml-1 h-5 px-1.5 text-[10px]"
-                variant="secondary"
-              >
-                {
-                  [prioridadeFilter, tipoRendaFilter, origemFilter].filter(
-                    (v) => v !== "all",
-                  ).length
-                }
-              </Badge>
-            )}
-          </Button>
-          {(search ||
-            stageFilter !== "all" ||
-            corretorFilter !== "all" ||
-            (canFilterEquipe && equipeFilter !== "all") ||
-            distribuicaoFilter !== "all" ||
-            paradosFilter ||
-            extraFiltersActive) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={FILTER_CLEAR_BTN}
-              onClick={clearFilters}
-            >
-              <X className="w-4 h-4 mr-1" />
-              Limpar
-            </Button>
-          )}
-          {showExtraFilters && (
-            <div className="flex flex-wrap gap-2 w-full pt-2 border-t border-border/60 mt-1">
-              <div className="space-y-1">
-                <Label className={FILTER_LABEL}>Prioridade</Label>
-                <Select
-                  value={prioridadeFilter}
-                  onValueChange={setPrioridadeFilter}
-                >
-                  <SelectTrigger className={cn("h-9 w-40", FILTER_CONTROL)}>
+        </div>
+        <TableSortSelect value={sort} onChange={setSort} className={FILTER_CONTROL} />
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-lg border-[#E2E8EC] bg-white text-[#16324A] hover:bg-[#F3FAFD]"
+          onClick={() => setFiltrosOpen(true)}
+        >
+          <SlidersHorizontal className="mr-1.5 size-4 text-[#079ED4]" />
+          Filtros
+          {[
+            stageFilter !== "all",
+            canFilterEquipe && equipeFilter !== "all",
+            showTeamColumns && corretorFilter !== "all",
+            prioridadeFilter !== "all",
+            tipoRendaFilter !== "all",
+            origemFilter !== "all",
+          ].filter(Boolean).length > 0 ? (
+            <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+              {[
+                stageFilter !== "all",
+                canFilterEquipe && equipeFilter !== "all",
+                showTeamColumns && corretorFilter !== "all",
+                prioridadeFilter !== "all",
+                tipoRendaFilter !== "all",
+                origemFilter !== "all",
+              ].filter(Boolean).length}
+            </span>
+          ) : null}
+        </Button>
+      </div>
+      <Sheet open={filtrosOpen} onOpenChange={setFiltrosOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
+        >
+          <SheetHeader className="relative border-b border-[#E6EDF2] bg-white px-5 py-4 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">Leads</p>
+            <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">Filtros</SheetTitle>
+            <p className="text-[13px] text-[#5C6B76]">Escolha o recorte do funil.</p>
+            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F4F7F8]">
+              <X className="size-4" />
+              <span className="sr-only">Fechar</span>
+            </SheetClose>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <Layers className="size-3.5 text-[#079ED4]" />
+                  Etapa
+                </Label>
+                <Select value={stageFilter} onValueChange={setStageFilter}>
+                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                    <SelectValue placeholder="Etapa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as etapas</SelectItem>
+                    {funnelStages.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {canFilterEquipe ? (
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                    <Users className="size-3.5 text-[#079ED4]" />
+                    Equipe
+                  </Label>
+                  <Select value={equipeFilter} onValueChange={setEquipeFilter}>
+                    <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                      <SelectValue placeholder="Equipe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as equipes</SelectItem>
+                      <SelectItem value="none">Sem equipe</SelectItem>
+                      {equipes.map((eq) => (
+                        <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              {showTeamColumns ? (
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                    <UserRound className="size-3.5 text-[#079ED4]" />
+                    Corretor
+                  </Label>
+                  <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+                    <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                      <SelectValue placeholder="Corretor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os corretores</SelectItem>
+                      {leadsAtivosPorCorretor
+                        .filter((r) => r.id === "__none__" || r.id === "__equipe_pool__")
+                        .map((r) => (
+                          <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                        ))}
+                      {corretorFilterOptions.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {isGerente && a.id === user?.id ? `${a.name} (eu)` : a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <Flame className="size-3.5 text-[#079ED4]" />
+                  Prioridade
+                </Label>
+                <Select value={prioridadeFilter} onValueChange={setPrioridadeFilter}>
+                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">Todas as prioridades</SelectItem>
                     <SelectItem value="Alta">Alta</SelectItem>
                     <SelectItem value="Média">Média</SelectItem>
                     <SelectItem value="Baixa">Baixa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className={FILTER_LABEL}>Tipo de renda</Label>
-                <Select
-                  value={tipoRendaFilter}
-                  onValueChange={setTipoRendaFilter}
-                >
-                  <SelectTrigger className={cn("h-9 w-44", FILTER_CONTROL)}>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <Wallet className="size-3.5 text-[#079ED4]" />
+                  Tipo de renda
+                </Label>
+                <Select value={tipoRendaFilter} onValueChange={setTipoRendaFilter}>
+                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
                     {TIPO_RENDA_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className={FILTER_LABEL}>Origem</Label>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <Globe className="size-3.5 text-[#079ED4]" />
+                  Origem
+                </Label>
                 <Select value={origemFilter} onValueChange={setOrigemFilter}>
-                  <SelectTrigger className={cn("h-9 w-44", FILTER_CONTROL)}>
+                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">Todas as origens</SelectItem>
                     {origemOptions.map((o) => (
-                      <SelectItem key={o} value={o}>
-                        {o}
-                      </SelectItem>
+                      <SelectItem key={o} value={o}>{o}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
+            <button
+              type="button"
+              className="text-sm font-medium text-[#05749E]"
+              onClick={() => {
+                setStageFilter("all");
+                setCorretorFilter("all");
+                setEquipeFilter("all");
+                setPrioridadeFilter("all");
+                setTipoRendaFilter("all");
+                setOrigemFilter("all");
+              }}
+            >
+              Limpar
+            </button>
+            <Button type="button" className={cn(LEADS_PRIMARY_BTN, "px-4")} onClick={() => setFiltrosOpen(false)}>
+              Ver {filteredLeads.length} lead{filteredLeads.length === 1 ? "" : "s"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {showTeamColumns && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -3681,10 +3682,9 @@ function LeadsPage() {
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                     selected
-                      ? "border-0 bg-transparent text-white shadow-sm"
+                      ? "bg-[#079ED4] text-white"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
-                  style={selected ? LEADS_GRADIENT_STYLE : undefined}
                 >
                   {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
                   {opt.label}

@@ -207,7 +207,7 @@ function MotivosDonut({
   const total = items.reduce((sum, item) => sum + item.valor, 0);
   if (total === 0) {
     return (
-      <div className="mx-auto flex size-36 items-center justify-center rounded-full border-10 border-muted px-3 text-center text-[11px] leading-snug text-muted-foreground">
+      <div className="mx-auto flex size-36 items-center justify-center rounded-full border-10 border-[#F5B8C4] bg-[#FFF6F7] px-3 text-center text-[11px] leading-snug text-[#C01048]">
         Nenhum lead perdido neste mês
       </div>
     );
@@ -246,17 +246,13 @@ function MotivosDonut({
 }
 
 const WASH: Record<string, string> = {
-  teal: "border-teal-100/80 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-950/25",
-  sky: "border-sky-100/80 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-950/25",
-  emerald:
-    "border-emerald-100/80 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/25",
-  violet:
-    "border-violet-100/80 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/25",
-  rose: "border-rose-100/80 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/25",
-  orange:
-    "border-orange-100/80 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/25",
-  amber:
-    "border-amber-100/80 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/25",
+  teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA]",
+  sky: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
+  emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
+  violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
+  rose: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
+  orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+  amber: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
 };
 
 function WashTile({
@@ -288,7 +284,7 @@ function FunnelWashBars({
         return (
           <div
             key={row.etapa}
-            className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-sky-100/80 bg-sky-50/80 px-2.5 py-1.5 dark:border-sky-900/40 dark:bg-sky-950/20"
+            className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-[#9DCEF5] bg-gradient-to-r from-[#D3ECFE] to-[#F4F9FE] px-2.5 py-1.5"
           >
             <span className="truncate text-xs font-medium">{row.etapa}</span>
             <div className="h-1.5 overflow-hidden rounded-full bg-white/80 dark:bg-black/20">
@@ -331,7 +327,7 @@ function ConversionRing({
             r={r}
             fill="none"
             strokeWidth="10"
-            className="stroke-muted"
+            stroke="#B6EFE6"
           />
           <circle
             cx="64"
@@ -342,7 +338,7 @@ function ConversionRing({
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
-            className="stroke-teal-500"
+            stroke="#12B5A0"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -414,7 +410,7 @@ function PanelLink({
       asChild
       variant="outline"
       size="sm"
-      className={cn("h-8 text-xs", SOFT_BTN)}
+      className={SOFT_BTN}
     >
       <Link to={to}>{children}</Link>
     </Button>
@@ -996,7 +992,7 @@ function DashboardAdminView() {
           action={<PanelLink to="/funil">Ver funil</PanelLink>}
         >
           {funnelData.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
+            <p className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] py-10 text-center text-sm text-[#1570C8]">
               Nenhum lead ativo no funil.
             </p>
           ) : (
@@ -1045,7 +1041,7 @@ function DashboardAdminView() {
                 {isPlatformAdmin || !showDoc ? null : (
                   <>
                   <WashTile tone="sky" className="flex items-center gap-2.5 py-1.5">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white ring-2 ring-white/70">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#2E90FA] text-white shadow-[0_6px_14px_rgba(46,144,250,0.35)]">
                       <FileText className="size-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -1066,7 +1062,7 @@ function DashboardAdminView() {
                     </div>
                   </WashTile>
                   <WashTile tone="violet" className="flex items-center gap-2.5 py-1.5">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-violet-500 text-white ring-2 ring-white/70">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#875BF7] text-white shadow-[0_6px_14px_rgba(135,91,247,0.35)]">
                       <BadgeCheck className="size-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -1092,7 +1088,7 @@ function DashboardAdminView() {
                   </>
                 )}
                 <WashTile tone="emerald" className="flex items-center gap-2.5 py-1.5">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white/70">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#12B76A] text-white shadow-[0_6px_14px_rgba(18,183,106,0.35)]">
                     <CheckCircle2 className="size-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -1111,7 +1107,7 @@ function DashboardAdminView() {
                   </div>
                 </WashTile>
                 <WashTile tone="teal" className="flex items-center gap-2.5 py-1.5">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-500 text-white ring-2 ring-white/70">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#12B5A0] text-white shadow-[0_6px_14px_rgba(18,181,160,0.35)]">
                     <Wallet className="size-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">

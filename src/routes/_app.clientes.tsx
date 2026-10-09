@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { dashCardTone } from "@/components/finance-kpi-card";
 import { Card } from "@/components/ui/card";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
@@ -18,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -104,10 +112,13 @@ import {
 import { displayEmail, isPlaceholderEmail } from "@/lib/email";
 import {
   Plus,
+  Search,
+  SlidersHorizontal,
   MoreHorizontal,
   Eye,
   Pencil,
   Trash2,
+  X,
   ChevronLeft,
   ChevronRight,
   UserPlus,
@@ -119,14 +130,16 @@ import {
   Loader2,
   FileSpreadsheet,
   FileText,
+  Home,
+  Tag,
+  UserRound,
   Users,
 } from "lucide-react";
 import { cn, userFacingError } from "@/lib/utils";
-import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import {
-  FILTER_BAR_SHELL,
   FILTER_CONTROL,
+  FILTER_SEARCH_ICON,
   TABLE_LUX,
   TABLE_SHELL,
 } from "@/lib/filter-bar";
@@ -138,7 +151,6 @@ import {
 import { toast } from "sonner";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
 import { SOFT_BTN } from "@/lib/soft-btn";
-import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 
 export const Route = createFileRoute("/_app/clientes")({
   head: () => ({ meta: [{ title: "Clientes — Zone Connection" }] }),
@@ -153,9 +165,36 @@ const CLIENTE_FORM_SECTIONS: { id: ClienteFormSection; label: string }[] = [
   { id: "interesse", label: "Interesse" },
 ];
 
-const CLIENTES_GRADIENT_BTN =
-  "border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110 disabled:opacity-50";
-const CLIENTES_GRADIENT_STYLE = BRAND_GRADIENT_STYLE;
+const FILTRO_CAMPO =
+  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !shadow-none focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
+
+const CLIENTES_PRIMARY_BTN =
+  "!h-9 !rounded-lg border-0 bg-[#079ED4] px-3 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100 disabled:opacity-50";
+
+function ClienteKpi({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  icon: typeof Users;
+}) {
+  const paint = dashCardTone("blue");
+  return (
+    <div className={cn("flex min-w-0 flex-col rounded-xl border px-3.5 py-3", paint.card)}>
+      <span className="flex items-center gap-2">
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
+          <Icon className="size-4" />
+        </span>
+        <span className={cn("text-[13px]", paint.label)}>{label}</span>
+      </span>
+      <span className={cn("mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
+        {value.toLocaleString("pt-BR")}
+      </span>
+    </div>
+  );
+}
 
 type FormState = {
   nome: string;
@@ -338,30 +377,80 @@ function Clientes() {
     );
   }, [adminVeClientesCorretor, allLeads, user]);
 
+  const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
+  const [busca, setBusca] = useState("");
+  const [interesseFiltro, setInteresseFiltro] = useState("__all__");
+  const [cidadeFiltro, setCidadeFiltro] = useState("__all__");
+  const [corretorFiltro, setCorretorFiltro] = useState("__all__");
+  const [tagFiltro, setTagFiltro] = useState("__all__");
+
+  const interesseOptions = useMemo(
+    () =>
+      [...new Set(clientes.map((c) => c.interesse?.trim()).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [clientes],
+  );
+  const cidadeOptions = useMemo(
+    () =>
+      [...new Set(clientes.map((c) => c.cidade?.trim()).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [clientes],
+  );
+  const corretorFiltroOptions = useMemo(
+    () =>
+      [...new Set(clientes.map((c) => c.corretor?.trim()).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [clientes],
+  );
+  const tagFiltroOptions = useMemo(
+    () =>
+      [...new Set(clientes.flatMap((c) => c.tags ?? []))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [clientes],
+  );
+
+  const clientesFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return clientes.filter((c) => {
+      if (interesseFiltro !== "__all__" && c.interesse !== interesseFiltro) return false;
+      if (cidadeFiltro !== "__all__" && (c.cidade?.trim() || "") !== cidadeFiltro) return false;
+      if (corretorFiltro !== "__all__" && (c.corretor?.trim() || "") !== corretorFiltro) return false;
+      if (tagFiltro !== "__all__" && !(c.tags ?? []).includes(tagFiltro)) return false;
+      if (!q) return true;
+      return [c.nome, c.email, c.telefone, c.cidade, c.corretor]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(q));
+    });
+  }, [clientes, busca, interesseFiltro, cidadeFiltro, corretorFiltro, tagFiltro]);
+
+  const filtrosAtivos =
+    busca.trim() !== "" ||
+    interesseFiltro !== "__all__" ||
+    cidadeFiltro !== "__all__" ||
+    corretorFiltro !== "__all__" ||
+    tagFiltro !== "__all__";
+
   const sortedClientes = useMemo(
     () =>
       sortByTableOrder(
-        clientes,
+        clientesFiltrados,
         sort,
         (c) => c.nome,
         (c) => c.createdAt,
       ),
-    [clientes, sort],
+    [clientesFiltrados, sort],
   );
   const clientesPager = useTablePager(sortedClientes, sort);
 
-  const kpiClientes = useMemo(() => {
-    const cidades = new Set(
-      clientes.map((c) => c.cidade?.trim()).filter(Boolean),
-    );
-    const comRenda = clientes.filter((c) => c.renda != null).length;
-    return {
-      total: clientes.length,
-      cidades: cidades.size,
-      comRenda,
-    };
-  }, [clientes]);
+  const kpiClientes = useMemo(
+    () => ({ total: clientesFiltrados.length }),
+    [clientesFiltrados],
+  );
 
   const corretorOptions = useMemo(
     () =>
@@ -560,7 +649,7 @@ function Clientes() {
     }
   }
 
-  const allVisibleIds = useMemo(() => clientes.map((c) => c.id), [clientes]);
+  const allVisibleIds = useMemo(() => clientesFiltrados.map((c) => c.id), [clientesFiltrados]);
   const allSelected =
     allVisibleIds.length > 0 &&
     allVisibleIds.every((id) => selectedIds.has(id));
@@ -866,8 +955,7 @@ function Clientes() {
             <Button
               size="sm"
               onClick={openCreate}
-              className={CLIENTES_GRADIENT_BTN}
-              style={CLIENTES_GRADIENT_STYLE}
+              className={CLIENTES_PRIMARY_BTN}
             >
               <Plus className="w-4 h-4 mr-1" />
               Novo cliente
@@ -875,39 +963,153 @@ function Clientes() {
           </>
         }
       />
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <FinanceKpiCard
-          label="Total de clientes"
+      <div className="mb-4 max-w-xs">
+        <ClienteKpi
+          label={filtrosAtivos ? "Clientes no filtro" : "Total de clientes"}
           value={kpiClientes.total}
           icon={Users}
-          tone="blue"
-          format="number"
-          variant="dash"
-        />
-        <FinanceKpiCard
-          label="Cidades"
-          value={kpiClientes.cidades}
-          icon={MapPin}
-          tone="teal"
-          format="number"
-          variant="dash"
-        />
-        <FinanceKpiCard
-          label="Com renda"
-          value={kpiClientes.comRenda}
-          icon={Wallet}
-          tone="violet"
-          format="number"
-          variant="dash"
         />
       </div>
-      <div className={FILTER_BAR_SHELL}>
-        <TableSortSelect
-          value={sort}
-          onChange={setSort}
-          className={FILTER_CONTROL}
-        />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className={FILTER_SEARCH_ICON} />
+          <Input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Buscar nome, telefone ou e-mail"
+            className={cn("h-9 rounded-lg border-[#E2E8EC] bg-white pl-9")}
+          />
+        </div>
+        <TableSortSelect value={sort} onChange={setSort} className={FILTER_CONTROL} />
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-lg border-[#E2E8EC] bg-white text-[#16324A] hover:bg-[#F3FAFD]"
+          onClick={() => setFiltrosOpen(true)}
+        >
+          <SlidersHorizontal className="mr-1.5 size-4 text-[#079ED4]" />
+          Filtros
+          {filtrosAtivos ? (
+            <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+              {[
+                busca.trim() !== "",
+                interesseFiltro !== "__all__",
+                cidadeFiltro !== "__all__",
+                corretorFiltro !== "__all__",
+                tagFiltro !== "__all__",
+              ].filter(Boolean).length}
+            </span>
+          ) : null}
+        </Button>
       </div>
+      <Sheet open={filtrosOpen} onOpenChange={setFiltrosOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
+        >
+          <SheetHeader className="relative border-b border-[#E6EDF2] bg-white px-5 py-4 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">Clientes</p>
+            <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">Filtros</SheetTitle>
+            <p className="text-[13px] text-[#5C6B76]">Escolha o recorte da carteira.</p>
+            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F4F7F8]">
+              <X className="size-4" />
+              <span className="sr-only">Fechar</span>
+            </SheetClose>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                <Home className="size-3.5 text-[#079ED4]" />
+                Interesse
+              </Label>
+              <Select value={interesseFiltro} onValueChange={setInteresseFiltro}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Interesse" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os interesses</SelectItem>
+                  {interesseOptions.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                <MapPin className="size-3.5 text-[#079ED4]" />
+                Cidade
+              </Label>
+              <Select value={cidadeFiltro} onValueChange={setCidadeFiltro}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas as cidades</SelectItem>
+                  {cidadeOptions.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {!isCorretor ? (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <UserRound className="size-3.5 text-[#079ED4]" />
+                  Corretor
+                </Label>
+                <Select value={corretorFiltro} onValueChange={setCorretorFiltro}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
+                    <SelectValue placeholder="Corretor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos os corretores</SelectItem>
+                    {corretorFiltroOptions.map((item) => (
+                      <SelectItem key={item} value={item}>{item}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                <Tag className="size-3.5 text-[#079ED4]" />
+                Tag
+              </Label>
+              <Select value={tagFiltro} onValueChange={setTagFiltro}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas as tags</SelectItem>
+                  {tagFiltroOptions.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
+            <button
+              type="button"
+              className="text-sm font-medium text-[#05749E]"
+              onClick={() => {
+                setBusca("");
+                setInteresseFiltro("__all__");
+                setCidadeFiltro("__all__");
+                setCorretorFiltro("__all__");
+                setTagFiltro("__all__");
+              }}
+            >
+              Limpar
+            </button>
+            <Button type="button" className={cn(CLIENTES_PRIMARY_BTN, "px-4")} onClick={() => setFiltrosOpen(false)}>
+              Ver {clientesFiltrados.length} cliente{clientesFiltrados.length === 1 ? "" : "s"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
       <Card className={TABLE_SHELL}>
         <Table className={TABLE_LUX}>
           <TableHeader>
@@ -923,7 +1125,7 @@ function Clientes() {
                   }
                   onCheckedChange={(v) => toggleSelectAll(v === true)}
                   aria-label="Selecionar todos os clientes"
-                  disabled={clientes.length === 0 || bulkDeleting}
+                  disabled={clientesFiltrados.length === 0 || bulkDeleting}
                 />
               </TableHead>
               <TableHead>Cliente</TableHead>
@@ -1452,14 +1654,13 @@ function Clientes() {
               Voltar
             </Button>
             {clienteFormSection === "interesse" ? (
-              <Button type="submit" className={CLIENTES_GRADIENT_BTN} style={CLIENTES_GRADIENT_STYLE}>
+              <Button type="submit" className={CLIENTES_PRIMARY_BTN}>
                 {formMode === "edit" ? "Salvar alterações" : "Cadastrar cliente"}
               </Button>
             ) : (
               <Button
                 type="button"
-                className={CLIENTES_GRADIENT_BTN}
-                style={CLIENTES_GRADIENT_STYLE}
+                className={CLIENTES_PRIMARY_BTN}
                 onClick={() => {
                   const index = CLIENTE_FORM_SECTIONS.findIndex((item) => item.id === clienteFormSection);
                   setClienteFormSection(CLIENTE_FORM_SECTIONS[index + 1].id);
@@ -1827,8 +2028,7 @@ function Clientes() {
               type="button"
               disabled={importParsing}
               onClick={() => importInputRef.current?.click()}
-              className={CLIENTES_GRADIENT_BTN}
-              style={CLIENTES_GRADIENT_STYLE}
+              className={CLIENTES_PRIMARY_BTN}
             >
               {importParsing ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -2002,8 +2202,7 @@ function Clientes() {
                     type="button"
                     disabled={importSaving || validCount === 0}
                     onClick={() => void confirmImport()}
-                    className={CLIENTES_GRADIENT_BTN}
-                    style={CLIENTES_GRADIENT_STYLE}
+                    className={CLIENTES_PRIMARY_BTN}
                   >
                     {importSaving && (
                       <Loader2 className="mr-1 h-4 w-4 animate-spin" />

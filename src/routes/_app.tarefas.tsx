@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Clock3,
   Flag,
+  Home,
   Mail,
   Repeat,
   Save,
@@ -65,6 +66,7 @@ import {
   type AgendamentoRecurrenceFreq,
 } from "@/lib/agenda-api";
 import { rotuloImovel } from "@/components/agenda-visita-ocupacao";
+import { cn } from "@/lib/utils";
 import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
 import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
@@ -407,23 +409,40 @@ function TarefasPage() {
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={detalhe != null} onOpenChange={(aberto) => { if (!aberto) setDetalhe(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md gap-0 overflow-hidden p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
           {detalhe ? (
             <>
-              <DialogHeader>
-                <DialogTitle>{detalhe.titulo}</DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  {AGENDAMENTO_TIPO_LABEL[detalhe.tipo ?? "tarefa"]} · {PRIORIDADE_LABEL[detalhe.prioridade]}
-                </p>
-              </DialogHeader>
-              <div className="space-y-2 text-sm">
-                <p>{detalhe.data}{detalhe.horario ? ` · ${detalhe.horario}` : ""}</p>
-                <p className="text-muted-foreground">Responsável: {detalhe.responsavel.name}</p>
-                {detalhe.contexto.lead ? <p>Lead: {detalhe.contexto.lead.nome}</p> : null}
-                {detalhe.contexto.imovel ? <p>Imóvel: {detalhe.contexto.imovel.rotulo}</p> : null}
-                {detalhe.descricao ? <p className="whitespace-pre-wrap">{detalhe.descricao}</p> : null}
+              <div className="border-b border-[#E6EDF2] px-5 pb-4 pt-5 pr-12">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#E7F4FA] px-2 py-0.5 text-[11px] font-medium text-[#05749E]">
+                    {AGENDAMENTO_TIPO_LABEL[detalhe.tipo ?? "tarefa"]}
+                  </span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", PRIORIDADE_CHIP[detalhe.prioridade])}>
+                    {PRIORIDADE_LABEL[detalhe.prioridade]}
+                  </span>
+                </div>
+                <DialogHeader className="mt-2 space-y-0 text-left">
+                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148]">
+                    {detalhe.titulo}
+                  </DialogTitle>
+                </DialogHeader>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="space-y-2 px-5 py-4">
+                <DetalheLinha icon={CalendarDays} label="Quando" value={formatQuando(detalhe.data, detalhe.horario)} />
+                <DetalheLinha icon={UserRound} label="Responsável" value={detalhe.responsavel.name} />
+                {detalhe.contexto.lead ? (
+                  <DetalheLinha icon={Users} label="Lead" value={detalhe.contexto.lead.nome} />
+                ) : null}
+                {detalhe.contexto.imovel ? (
+                  <DetalheLinha icon={Home} label="Imóvel" value={detalhe.contexto.imovel.rotulo} />
+                ) : null}
+                {detalhe.descricao ? (
+                  <p className="rounded-xl border border-[#E6EDF2] bg-white px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-[#16324A]">
+                    {detalhe.descricao}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex justify-end gap-2 border-t border-[#E6EDF2] px-5 py-3">
                 {detalhe.status === "aberta" ? (
                   <Button
                     type="button"
@@ -467,6 +486,45 @@ function TarefasPage() {
         </DialogContent>
       </Dialog>
 
+    </div>
+  );
+}
+
+const PRIORIDADE_CHIP: Record<TarefaPrioridade, string> = {
+  alta: "bg-[#FFD6DE] text-[#C01048]",
+  media: "bg-[#FFE4C4] text-[#B54708]",
+  baixa: "bg-[#C9F4EC] text-[#0B6E62]",
+};
+
+function formatQuando(data: string, horario?: string) {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  if (!ano || !mes || !dia) return horario ? `${data} · ${horario}` : data;
+  const label = new Date(ano, mes - 1, dia).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  return horario ? `${label} · ${horario}` : label;
+}
+
+function DetalheLinha({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof UserRound;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#E6EDF2] bg-[#F8FBFC] px-3 py-2.5">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#E7F6FB] text-[#079ED4]">
+        <Icon className="size-3.5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] text-[#8B98A3]">{label}</p>
+        <p className="truncate text-[13px] font-medium text-[#16324A]">{value}</p>
+      </div>
     </div>
   );
 }

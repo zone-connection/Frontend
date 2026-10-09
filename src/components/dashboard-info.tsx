@@ -33,7 +33,10 @@ export function DashRankBars({
               <span className="mr-1.5 text-muted-foreground">{index + 1}.</span>
               {item.nome}
             </p>
-            <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-2.5 overflow-hidden rounded-full"
+              style={{ backgroundColor: `${BAR_COLORS[index % BAR_COLORS.length]}22` }}
+            >
               <div
                 className="h-full rounded-full"
                 style={{
@@ -75,7 +78,7 @@ export function DashShareDonut({
             cy="50"
             r={r}
             fill="none"
-            className="stroke-muted"
+            stroke="#DDD6FE"
             strokeWidth="12"
           />
           {total > 0
@@ -159,7 +162,7 @@ export function DashPipelineDonut({
             cy="50"
             r={r}
             fill="none"
-            className="stroke-muted"
+            className="stroke-[#E9D5FF]"
             strokeWidth="11"
           />
           {total > 0
@@ -205,7 +208,10 @@ export function DashPipelineDonut({
                   {row.value} · {pct}%
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-1.5 overflow-hidden rounded-full"
+                style={{ backgroundColor: `${row.color}22` }}
+              >
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -246,7 +252,7 @@ export function DashDocResumo({
             label: "Aprovações",
             value: aprovadas.toLocaleString("pt-BR"),
             icon: FileText,
-            tone: "bg-sky-500/12 text-sky-600",
+            tone: "bg-[#2E90FA] text-white shadow-[0_6px_14px_rgba(46,144,250,0.35)]",
           },
         ]
       : []),
@@ -254,13 +260,13 @@ export function DashDocResumo({
       label: "Viraram venda",
       value: vendas.toLocaleString("pt-BR"),
       icon: CheckCircle2,
-      tone: "bg-emerald-500/12 text-emerald-600",
+      tone: "bg-[#12B76A] text-white shadow-[0_6px_14px_rgba(18,183,106,0.35)]",
     },
     {
       label: "VGV do mês",
       value: money(vgv),
       icon: Wallet,
-      tone: "bg-teal-500/12 text-teal-600",
+      tone: "bg-[#12B5A0] text-white shadow-[0_6px_14px_rgba(18,181,160,0.35)]",
     },
   ];
   return (
@@ -271,7 +277,7 @@ export function DashDocResumo({
           <div key={row.label} className="flex items-center gap-3">
             <span
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                "flex size-9 shrink-0 items-center justify-center rounded-full",
                 row.tone,
               )}
             >

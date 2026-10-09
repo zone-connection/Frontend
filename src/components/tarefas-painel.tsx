@@ -73,24 +73,24 @@ function saudacao() {
 
 const TONS = {
   sky: {
-    card: "border-sky-200/80 bg-gradient-to-br from-sky-50 to-card dark:border-sky-900/50 dark:from-sky-950/40",
-    icon: "bg-sky-500 text-white",
-    valor: "text-sky-700 dark:text-sky-300",
+    card: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
+    icon: "bg-[#2E90FA] text-white shadow-[0_6px_14px_rgba(46,144,250,0.35)]",
+    valor: "text-[#175CD3]",
   },
   violet: {
-    card: "border-violet-200/80 bg-gradient-to-br from-violet-50 to-card dark:border-violet-900/50 dark:from-violet-950/40",
-    icon: "bg-violet-500 text-white",
-    valor: "text-violet-700 dark:text-violet-300",
+    card: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
+    icon: "bg-[#875BF7] text-white shadow-[0_6px_14px_rgba(135,91,247,0.35)]",
+    valor: "text-[#6927DA]",
   },
   rose: {
-    card: "border-rose-200/80 bg-gradient-to-br from-rose-50 to-card dark:border-rose-900/50 dark:from-rose-950/40",
-    icon: "bg-rose-500 text-white",
-    valor: "text-rose-700 dark:text-rose-300",
+    card: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
+    icon: "bg-[#F04464] text-white shadow-[0_6px_14px_rgba(240,68,100,0.35)]",
+    valor: "text-[#C01048]",
   },
   emerald: {
-    card: "border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-card dark:border-emerald-900/50 dark:from-emerald-950/40",
-    icon: "bg-emerald-500 text-white",
-    valor: "text-emerald-700 dark:text-emerald-300",
+    card: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
+    icon: "bg-[#12B76A] text-white shadow-[0_6px_14px_rgba(18,183,106,0.35)]",
+    valor: "text-[#067647]",
   },
 } as const;
 
@@ -541,15 +541,15 @@ function Resumo({
   return (
     <article
       className={cn(
-        "rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "rounded-xl border px-3.5 py-3",
         cores.card,
       )}
     >
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">{titulo}</span>
-        <span className={cn("relative grid h-8 w-8 place-items-center rounded-xl", cores.icon)}>
+        <span className={cn("relative grid size-9 place-items-center rounded-full", cores.icon)}>
           {pulse ? (
-            <span className="absolute inset-0 animate-ping rounded-xl bg-rose-400/50" />
+            <span className="absolute inset-0 animate-ping rounded-full bg-rose-400/40" />
           ) : null}
           <Icon className="relative h-4 w-4" />
         </span>

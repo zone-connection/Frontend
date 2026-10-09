@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
+import { dashCardTone, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
@@ -74,6 +75,7 @@ import {
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
 import { CadastroVendasBronzePage } from "@/components/cadastro-vendas-bronze-page";
+import { FiltrosPainel } from "@/components/filtros-painel";
 
 type VendasSearch = {
   comVgv?: boolean;
@@ -233,7 +235,7 @@ function VendaKpi({
   hint,
   trend,
   icon: Icon,
-  featured = false,
+  tone = "teal",
   active = false,
   onClick,
 }: {
@@ -242,62 +244,36 @@ function VendaKpi({
   hint?: string;
   trend?: string;
   icon: typeof Filter;
-  featured?: boolean;
+  tone?: FinanceKpiTone;
   active?: boolean;
   onClick?: () => void;
 }) {
+  const paint = dashCardTone(tone);
   const className = cn(
     "relative flex min-w-0 flex-col overflow-hidden rounded-xl border px-3.5 py-3 text-left",
-    featured
-      ? "border-transparent bg-gradient-to-br from-[#0a3a5c] to-[#1574b8] text-white"
-      : "border-[#E6EDF2] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
-    active && !featured && "border-[#079ED4] bg-[#F3FAFD]",
+    paint.card,
+    active && "ring-2 ring-[#079ED4]/45",
     onClick && "cursor-pointer",
   );
   const up = !trend || trend.startsWith("+") || trend === "0%";
   const body = (
     <>
       <div className="relative flex items-center gap-2">
-        <span
-          className={cn(
-            "grid size-7 place-items-center rounded-full",
-            featured ? "bg-[#12b5c9] text-white" : "bg-[#E7F6FB] text-[#079ED4]",
-          )}
-        >
-          <Icon className="size-3.5" />
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
+          <Icon className="size-4" />
         </span>
-        <span className={cn("text-[13px]", featured ? "text-white/85" : "text-[#6B7C88]")}>
-          {label}
-        </span>
+        <span className={cn("text-[13px]", paint.label)}>{label}</span>
       </div>
-      <span
-        className={cn(
-          "relative mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums",
-          featured ? "text-white" : "text-[#16324A]",
-        )}
-      >
+      <span className={cn("relative mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
         {value}
       </span>
       {trend ? (
-        <span
-          className={cn(
-            "relative mt-1.5 text-[11px] leading-snug",
-            featured
-              ? up
-                ? "text-[#7dF0c2]"
-                : "text-white/70"
-              : up
-                ? "text-[#1F9D62]"
-                : "text-[#8B98A3]",
-          )}
-        >
+        <span className={cn("relative mt-1.5 text-[11px] leading-snug", up ? "text-[#067647]" : "text-[#C01048]")}>
           {up ? "↑ " : "↓ "}
           {trend.replace(/^[+-]/, "")} em relação ao período anterior
         </span>
       ) : hint ? (
-        <span className={cn("relative mt-1.5 text-[11px]", featured ? "text-white/70" : "text-[#8B98A3]")}>
-          {hint}
-        </span>
+        <span className={cn("relative mt-1.5 text-[11px]", paint.label)}>{hint}</span>
       ) : (
         <span className="mt-1.5 block h-4" aria-hidden />
       )}
@@ -779,6 +755,7 @@ function VendasDocumentacaoPage() {
           value={String(filtered.length)}
           trend={vendasTrend}
           icon={Filter}
+          tone="teal"
         />
         {ownSalesOnly ? null : (
           <VendaKpi
@@ -786,7 +763,7 @@ function VendasDocumentacaoPage() {
             value={brl(totalVgv)}
             trend={vgvTrend}
             icon={Wallet}
-            featured
+            tone="blue"
           />
         )}
         <VendaKpi
@@ -794,13 +771,14 @@ function VendasDocumentacaoPage() {
           value={String(comVgvCount)}
           hint={`de ${filtered.length}`}
           icon={BarChart3}
+          tone="emerald"
           active={comVgv}
           onClick={() => {
             if (comVgv) verTodasAsVendas();
             else void navigate({ to: "/vendas", search: { comVgv: true } });
           }}
         />
-        <div className="rounded-xl border border-[#E6EDF2] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] px-3.5 py-3">
           <h2 className="text-[13px] font-semibold text-[#16324A]">Origem das vendas</h2>
           <p className="text-[11px] text-[#8B98A3]">De onde vieram as vendas do recorte.</p>
           <div className="mt-2 flex items-center gap-2">
@@ -816,7 +794,25 @@ function VendasDocumentacaoPage() {
         </div>
       </div>
 
-      <div className={cn("mt-5", FILTER_BAR_SURFACE, VENDA_PANEL)}>
+      <div className="mt-5">
+      <FiltrosPainel
+        kicker="Vendas"
+        description="Busca, equipe, origem e período."
+        confirmLabel="Aplicar filtros"
+        onConfirm={applyFilters}
+        onClear={clearFilters}
+        activeCount={
+          [
+            draft.search.trim() !== "",
+            draft.equipeId !== "__all__",
+            draft.gerenteId !== "__all__",
+            draft.corretorId !== "__all__",
+            draft.origem !== "__all__",
+            draft.dataDe !== "",
+            draft.dataAte !== "",
+          ].filter(Boolean).length
+        }
+      >
         <div className="space-y-3">
           <div
             className={cn(
@@ -985,6 +981,7 @@ function VendasDocumentacaoPage() {
             </div>
           </div>
         </div>
+      </FiltrosPainel>
       </div>
 
       <PagePanel className={cn("mt-4", VENDA_PANEL)} title="Lista de vendas" description="Vendas no recorte filtrado." action={<span className="text-xs text-[#8B98A3]">{filtered.length} resultados</span>}>
