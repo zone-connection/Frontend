@@ -11,11 +11,13 @@ export function DashDonut({
   emptyLabel,
   centerLabel,
   className,
+  compact = false,
 }: {
   items: DashDonutItem[];
   emptyLabel: string;
   centerLabel: string;
   className?: string;
+  compact?: boolean;
 }) {
   const visible = items.filter((item) => item.value > 0);
   const total = items.reduce((sum, item) => sum + item.value, 0);
@@ -35,8 +37,8 @@ export function DashDonut({
   const circ = 2 * Math.PI * r;
   let acc = 0;
   return (
-    <div className={cn("relative mx-auto size-36", className)}>
-      <svg viewBox="0 0 120 120" className="-rotate-90">
+    <div className={cn("relative mx-auto", compact ? "size-24" : "size-36", className)}>
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
         {visible.map((item) => {
           const len = (item.value / total) * circ;
           const node = (
@@ -57,8 +59,8 @@ export function DashDonut({
         })}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold tabular-nums">{total}</span>
-        <span className="text-[10px] text-muted-foreground">{centerLabel}</span>
+        <span className={cn("font-semibold tabular-nums leading-none", compact ? "text-sm" : "text-xl font-bold")}>{total}</span>
+        <span className={cn("text-muted-foreground", compact ? "text-[9px]" : "text-[10px]")}>{centerLabel}</span>
       </div>
     </div>
   );

@@ -59,6 +59,7 @@ import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
+import marcaZone from "@/assets/marca-zone.png";
 import {
   applyLogoChrome,
   LOGO_PALETTE_FALLBACK,
@@ -1223,7 +1224,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function renderAccountFooter(collapsedView: boolean) {
     return (
-      <div className="border-t border-sidebar-border">
+      <div className="relative z-10 border-t border-sidebar-border bg-sidebar/80">
         {canSettings ? (
           <Link
             to="/configuracoes"
@@ -1453,9 +1454,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
 
     return (
-      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-3">
+      <nav className="sidebar-nav-scroll relative z-10 flex-1 overflow-y-auto px-2 py-3">
         {operacaoAtiva && user?.role !== "super_admin" && operacoesDisponiveis.length > 0 ? (
-          <div className="sticky top-0 z-10 -mx-2 mb-2 bg-sidebar px-2 pb-2">
+          <div className="-mx-2 mb-2 px-2 pb-2">
             <div
               className={cn(
                 "grid gap-1.5 rounded-2xl border border-white/12 bg-white/[0.06] p-1.5",
@@ -1782,12 +1783,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           collapsed ? "w-16" : "w-60",
-          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
+          "relative sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 md:flex",
         )}
       >
         <div
           className={cn(
-            "flex border-b border-sidebar-border",
+            "relative z-10 flex border-b border-sidebar-border",
             collapsed
               ? "flex-col items-center gap-1 px-1 py-2"
               : "items-center gap-2 px-3 h-14",
@@ -1796,7 +1797,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <img
             src={logoUrl}
             alt={brandName}
-            className="w-8 h-8 rounded-none object-contain shrink-0"
+            className="relative z-10 h-8 w-8 shrink-0 rounded-none object-contain"
           />
           {!collapsed && (
             <div className="flex-1 min-w-0">
@@ -1830,6 +1831,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         {renderNavSections(collapsed)}
+        <img
+          src={marcaZone}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute bottom-[-12%] left-1/2 z-0 w-[168%] max-w-none -translate-x-1/2 mix-blend-screen opacity-25"
+        />
         {renderAccountFooter(collapsed)}
       </aside>
 
@@ -1848,18 +1855,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Drawer do menu mobile */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80vw] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out md:hidden",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full",
         )}
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navegação"
       >
-        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
+        <div className="relative z-10 flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
           <img
             src={logoUrl}
             alt={brandName}
-            className="w-8 h-8 rounded-none object-contain shrink-0"
+            className="h-8 w-8 shrink-0 rounded-none object-contain"
           />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold leading-tight truncate">
@@ -1886,6 +1893,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
         {renderNavSections(false, () => setMobileNavOpen(false))}
+        <img
+          src={marcaZone}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute bottom-[-12%] left-1/2 z-0 w-[168%] max-w-none -translate-x-1/2 mix-blend-screen opacity-25"
+        />
         {renderAccountFooter(false)}
       </aside>
 

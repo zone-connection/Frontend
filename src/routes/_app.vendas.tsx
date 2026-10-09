@@ -1,22 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
   Filter,
   Loader2,
   Pencil,
-  ReceiptText,
   RotateCcw,
   Search,
-  UsersRound,
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
-import { PagePanel, PanelLink } from "@/components/page-panel";
-import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -47,8 +45,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
-import { origemBadgeClass, catalogColorToChartHex } from "@/lib/catalog-colors";
-import { useCatalog } from "@/lib/catalog-store";
+import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
   displayFonte,
@@ -76,7 +73,6 @@ import {
   FILTER_CONTROL,
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
-import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { CadastroVendasBronzePage } from "@/components/cadastro-vendas-bronze-page";
 
 type VendasSearch = {
@@ -157,8 +153,163 @@ function toVendaEditForm(doc: Documentacao): VendaEditForm {
 }
 
 const APPLY_FILTERS_BTN =
-  "rounded-md border-0 bg-transparent text-white shadow-sm hover:bg-transparent hover:brightness-110";
-const APPLY_FILTERS_STYLE = BRAND_GRADIENT_STYLE;
+  "h-9 rounded-lg border-0 bg-[#079ED4] px-3.5 text-[13.5px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100";
+
+const VENDA_PANEL = "!rounded-lg border-[#E2E8EC] !shadow-none";
+
+const BRAND_RAMP = ["#079ED4", "#0C7C86", "#0B3148", "#4FB6DE", "#164866", "#8B98A3"];
+
+function isoDay(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function rangeForPeriod(period: "30" | "90" | "365" | "all") {
+  if (period === "all") return { dataDe: "", dataAte: "" };
+  const ate = new Date();
+  const de = new Date();
+  de.setDate(ate.getDate() - (Number(period) - 1));
+  return { dataDe: isoDay(de), dataAte: isoDay(ate) };
+}
+
+function previousRange(dataDe: string, dataAte: string) {
+  if (!dataDe || !dataAte) return null;
+  const start = new Date(`${dataDe}T12:00:00`);
+  const end = new Date(`${dataAte}T12:00:00`);
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  const prevEnd = new Date(start);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setDate(prevStart.getDate() - (days - 1));
+  return { dataDe: isoDay(prevStart), dataAte: isoDay(prevEnd) };
+}
+
+function trendLabel(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? "0%" : "+100%";
+  const pct = Math.round(((current - previous) / previous) * 100);
+  return `${pct > 0 ? "+" : ""}${pct}%`;
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
+  return (letters || "?").toUpperCase();
+}
+
+const AVATAR_TONES = [
+  "bg-[#079ED4]",
+  "bg-[#0C7C86]",
+  "bg-[#3B6FD8]",
+  "bg-[#164866]",
+];
+
+function PersonCell({ name, detail }: { name: string; detail?: string }) {
+  const tone = AVATAR_TONES[name.charCodeAt(0) % AVATAR_TONES.length];
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white",
+          tone,
+        )}
+      >
+        {initials(name)}
+      </span>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-[#1A242C]">{name}</div>
+        {detail ? (
+          <div className="truncate text-xs text-[#8B98A3]">{detail}</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function VendaKpi({
+  label,
+  value,
+  hint,
+  trend,
+  icon: Icon,
+  featured = false,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  trend?: string;
+  icon: typeof Filter;
+  featured?: boolean;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const className = cn(
+    "relative flex min-w-0 flex-col overflow-hidden rounded-xl border px-3.5 py-3 text-left",
+    featured
+      ? "border-transparent bg-gradient-to-br from-[#0a3a5c] to-[#1574b8] text-white"
+      : "border-[#E6EDF2] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+    active && !featured && "border-[#079ED4] bg-[#F3FAFD]",
+    onClick && "cursor-pointer",
+  );
+  const up = !trend || trend.startsWith("+") || trend === "0%";
+  const body = (
+    <>
+      <div className="relative flex items-center gap-2">
+        <span
+          className={cn(
+            "grid size-7 place-items-center rounded-full",
+            featured ? "bg-[#12b5c9] text-white" : "bg-[#E7F6FB] text-[#079ED4]",
+          )}
+        >
+          <Icon className="size-3.5" />
+        </span>
+        <span className={cn("text-[13px]", featured ? "text-white/85" : "text-[#6B7C88]")}>
+          {label}
+        </span>
+      </div>
+      <span
+        className={cn(
+          "relative mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums",
+          featured ? "text-white" : "text-[#16324A]",
+        )}
+      >
+        {value}
+      </span>
+      {trend ? (
+        <span
+          className={cn(
+            "relative mt-1.5 text-[11px] leading-snug",
+            featured
+              ? up
+                ? "text-[#7dF0c2]"
+                : "text-white/70"
+              : up
+                ? "text-[#1F9D62]"
+                : "text-[#8B98A3]",
+          )}
+        >
+          {up ? "↑ " : "↓ "}
+          {trend.replace(/^[+-]/, "")} em relação ao período anterior
+        </span>
+      ) : hint ? (
+        <span className={cn("relative mt-1.5 text-[11px]", featured ? "text-white/70" : "text-[#8B98A3]")}>
+          {hint}
+        </span>
+      ) : (
+        <span className="mt-1.5 block h-4" aria-hidden />
+      )}
+    </>
+  );
+  if (!onClick) return <div className={className}>{body}</div>;
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={className}>
+      {body}
+    </button>
+  );
+}
 
 function VendasPage() {
   const user = getSession();
@@ -177,7 +328,6 @@ function VendasDocumentacaoPage() {
   const showTeamFilters = !isSolo && !ownSalesOnly;
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";
-  const { colorByLabel } = useCatalog();
   const [docs, setDocs] = useState<Documentacao[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,7 +355,14 @@ function VendasDocumentacaoPage() {
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
   const [page, setPage] = useState(1);
+  const [periodo, setPeriodo] = useState<"30" | "90" | "365" | "all">("all");
   const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    const range = rangeForPeriod(periodo);
+    setDraft((prev) => ({ ...prev, ...range }));
+    setApplied((prev) => ({ ...prev, ...range }));
+  }, [periodo]);
 
   useEffect(() => {
     if (!canView) {
@@ -354,22 +511,40 @@ function VendasDocumentacaoPage() {
 
   const totalVgv = filtered.reduce((sum, doc) => sum + (doc.vgv ?? 0), 0);
   const comVgvCount = filtered.filter((doc) => doc.vgv != null).length;
+  const previousRows = useMemo(() => {
+    const window = previousRange(applied.dataDe, applied.dataAte);
+    if (!window) return [];
+    return docs.filter((doc) => {
+      const vendaDay = dateDay(doc.dataVenda) || dateDay(doc.createdAt);
+      if (!vendaDay || vendaDay < window.dataDe || vendaDay > window.dataAte) return false;
+      if (comVgv && doc.vgv == null) return false;
+      return true;
+    });
+  }, [docs, applied.dataDe, applied.dataAte, comVgv]);
+  const hasWindow = Boolean(applied.dataDe && applied.dataAte);
+  const vendasTrend = hasWindow
+    ? trendLabel(filtered.length, previousRows.length)
+    : undefined;
+  const vgvTrend = hasWindow
+    ? trendLabel(
+        totalVgv,
+        previousRows.reduce((sum, doc) => sum + (doc.vgv ?? 0), 0),
+      )
+    : undefined;
   const origemDonut = useMemo(() => {
     const counts = new Map<string, number>();
     for (const doc of filtered) {
       const label = doc.lead?.origem?.trim() || "Sem origem";
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const fallback = ["#0ea5e9", "#8b5cf6", "#14b8a6", "#f59e0b", "#f43f5e"];
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
       .map(([label, value], index) => ({
         label,
         value,
-        color: catalogColorToChartHex(colorByLabel("origem", label))
-          || fallback[index % fallback.length],
+        color: BRAND_RAMP[index % BRAND_RAMP.length],
       }));
-  }, [filtered, colorByLabel]);
+  }, [filtered]);
 
   const verTodasAsVendas = () => {
     void navigate({ to: "/vendas", search: {} });
@@ -552,18 +727,45 @@ function VendasDocumentacaoPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Vendas"
-        description={
-          comVgv
-            ? "Vendas com VGV informado."
-            : ownSalesOnly
-              ? "Suas vendas — use o período nos filtros se quiser restringir o intervalo."
-              : "Todas as vendas — use o período nos filtros se quiser restringir o intervalo."
-        }
-      />
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="mb-1 text-xs text-[#8B98A3]">
+            <Link to="/dashboard" className="hover:text-[#0B3148]">Início</Link>
+            <span className="px-1.5">/</span>
+            <span className="text-[#5C6B76]">Vendas</span>
+          </p>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#0B3148]">
+            <BarChart3 className="size-5 text-[#079ED4]" />
+            Vendas
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-[#5C6B76]">
+            Acompanhe o desempenho das suas vendas e filtre os resultados conforme o período e critérios desejados.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={periodo}
+            onValueChange={(value) =>
+              setPeriodo(value as "30" | "90" | "365" | "all")
+            }
+          >
+            <SelectTrigger className="h-9 w-[170px] rounded-lg border-[#E2E8EC] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+              <SelectItem value="365">Últimos 12 meses</SelectItem>
+              <SelectItem value="all">Todo o período</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button asChild className={APPLY_FILTERS_BTN}>
+            <Link to="/documentacao">Ver documentação</Link>
+          </Button>
+        </div>
+      </div>
       {comVgv ? (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm text-teal-950">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D3EBF5] bg-[#E7F4FA] px-4 py-2.5 text-sm text-[#0B3148]">
           <span>Mostrando só as vendas que já têm VGV.</span>
           <Button type="button" variant="outline" size="sm" onClick={verTodasAsVendas}>
             Ver todas
@@ -571,62 +773,50 @@ function VendasDocumentacaoPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-      <PagePanel
-        inset="muted"
-        title="Resumo de vendas"
-        description="Resultado no recorte filtrado."
-        action={<PanelLink to="/documentacao">Ver documentação</PanelLink>}
-      >
-      <section className="grid gap-3 grid-cols-2 xl:grid-cols-3">
-        <FinanceKpiCard
-          variant="dash"
+      <div className="mb-4 grid min-w-0 items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <VendaKpi
           label="Vendas filtradas"
-          value={filtered.length}
-          icon={ReceiptText}
-          tone="emerald"
-          format="number"
+          value={String(filtered.length)}
+          trend={vendasTrend}
+          icon={Filter}
         />
         {ownSalesOnly ? null : (
-        <FinanceKpiCard
-          variant="dash"
-          label="VGV vendido"
-          value={totalVgv}
-          icon={Wallet}
-          tone="blue"
-        />
+          <VendaKpi
+            label="VGV vendido"
+            value={brl(totalVgv)}
+            trend={vgvTrend}
+            icon={Wallet}
+            featured
+          />
         )}
-        <FinanceKpiCard
-          variant="dash"
+        <VendaKpi
           label="Vendas com VGV"
-          value={comVgvCount}
-          icon={UsersRound}
-          tone="teal"
-          format="number"
-          suffix={`de ${filtered.length}`}
+          value={String(comVgvCount)}
+          hint={`de ${filtered.length}`}
+          icon={BarChart3}
           active={comVgv}
           onClick={() => {
             if (comVgv) verTodasAsVendas();
             else void navigate({ to: "/vendas", search: { comVgv: true } });
           }}
         />
-      </section>
-      </PagePanel>
-      <PagePanel
-        inset="muted"
-        title="Origem das vendas"
-        description="De onde vieram as vendas do recorte."
-      >
-        <DashDonut
-          items={origemDonut}
-          emptyLabel="Nenhuma venda neste recorte"
-          centerLabel="vendas"
-        />
-        <DashDonutLegend items={origemDonut} />
-      </PagePanel>
+        <div className="rounded-xl border border-[#E6EDF2] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <h2 className="text-[13px] font-semibold text-[#16324A]">Origem das vendas</h2>
+          <p className="text-[11px] text-[#8B98A3]">De onde vieram as vendas do recorte.</p>
+          <div className="mt-2 flex items-center gap-2">
+            <DashDonut
+              items={origemDonut}
+              emptyLabel="Nenhuma venda neste recorte"
+              centerLabel="vendas"
+              compact
+              className="shrink-0"
+            />
+            <DashDonutLegend items={origemDonut} className="mt-0 min-w-0 flex-1" />
+          </div>
+        </div>
       </div>
 
-      <div className={cn("mt-5", FILTER_BAR_SURFACE)}>
+      <div className={cn("mt-5", FILTER_BAR_SURFACE, VENDA_PANEL)}>
         <div className="space-y-3">
           <div
             className={cn(
@@ -788,7 +978,6 @@ function VendasDocumentacaoPage() {
                 type="button"
                 onClick={applyFilters}
                 className={APPLY_FILTERS_BTN}
-                style={APPLY_FILTERS_STYLE}
               >
                 <Filter className="mr-1.5 h-4 w-4" />
                 Aplicar filtros
@@ -798,7 +987,7 @@ function VendasDocumentacaoPage() {
         </div>
       </div>
 
-      <PagePanel className="mt-4" title="Lista" description="Vendas no recorte filtrado.">
+      <PagePanel className={cn("mt-4", VENDA_PANEL)} title="Lista de vendas" description="Vendas no recorte filtrado." action={<span className="text-xs text-[#8B98A3]">{filtered.length} resultados</span>}>
       <Card className="overflow-hidden rounded-xl border-0 bg-transparent shadow-none">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
@@ -812,7 +1001,7 @@ function VendasDocumentacaoPage() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-hidden">
-              <Table className="[&_th]:px-4 [&_td]:px-4">
+              <Table className="[&_th]:bg-[#F7F9FA] [&_th]:px-4 [&_th]:font-medium [&_td]:h-10 [&_td]:px-4">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
@@ -840,10 +1029,10 @@ function VendasDocumentacaoPage() {
                     return (
                       <TableRow key={doc.id}>
                         <TableCell>
-                          <div className="table-person-name">{doc.nome}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {doc.construtora?.nome ?? "Sem construtora"}
-                          </div>
+                          <PersonCell
+                            name={doc.nome}
+                            detail={doc.construtora?.nome ?? "Sem construtora"}
+                          />
                         </TableCell>
                         <TableCell>{doc.empreendimento?.nome ?? "—"}</TableCell>
                         <TableCell>
@@ -860,15 +1049,15 @@ function VendasDocumentacaoPage() {
                         ) : null}
                         {!isSolo ? (
                           <TableCell>
-                            <span className="table-person-name text-sm">
-                              {doc.gerente?.name ?? equipe?.gerente.name ?? "—"}
-                            </span>
+                            <PersonCell
+                              name={doc.gerente?.name ?? equipe?.gerente.name ?? "—"}
+                            />
                           </TableCell>
                         ) : null}
                         <TableCell>
-                          <span className="table-person-name text-sm">
-                            {doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—"}
-                          </span>
+                          <PersonCell
+                            name={doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—"}
+                          />
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {dateBr(doc.dataVenda || doc.createdAt)}
@@ -913,9 +1102,9 @@ function VendasDocumentacaoPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Anterior
                 </button>
-                <span className="px-2 tabular-nums text-foreground">
-                  Página {currentPage}
-                  {totalPages > 1 ? ` de ${totalPages}` : ""}
+                <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#E7F4FA] px-2 font-semibold tabular-nums text-[#0B3148]">
+                  {currentPage}
+                  {totalPages > 1 ? ` / ${totalPages}` : ""}
                 </span>
                 <button
                   type="button"
