@@ -1,4 +1,5 @@
 import { apiFetch, expireReadableCsrfCookies, sessionCache, storeCsrfToken } from "@/lib/api";
+import { reiniciarNovidadeAnuncio } from "@/lib/novidades";
 
 export type Role =
   | "super_admin"
@@ -123,6 +124,7 @@ export async function signIn(
 
   sessionCache.setUser(data.user);
   storeCsrfToken(data.csrfToken);
+  reiniciarNovidadeAnuncio();
   lastValidatedAt = Date.now();
   writeValidatedAt(lastValidatedAt);
   validatedThisDocument = true;

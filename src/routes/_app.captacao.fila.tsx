@@ -103,12 +103,11 @@ function FilaCaptacaoPage() {
             });
           }}
           items={[
-            { id: "paradas", label: `Captações (${todos.length})`, novo: true },
-            { id: "portal", label: `Portal (${portalItens.length})`, novo: true },
+            { id: "paradas", label: `Captações (${todos.length})` },
+            { id: "portal", label: `Portal (${portalItens.length})` },
             {
               id: "exclusividade",
               label: `Exclusividade (${exclusividades.length})`,
-              novo: true,
             },
           ]}
         />

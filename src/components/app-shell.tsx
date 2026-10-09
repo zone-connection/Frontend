@@ -69,7 +69,13 @@ import { GuiaTourHost } from "@/components/guia-tour";
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
 import { NovoBadge } from "@/components/novo-badge";
-import { isNavPathNovo, isPageNovo } from "@/lib/novidades";
+import { NovidadeAnuncioDialog } from "@/components/novidade-anuncio-dialog";
+import {
+  isNavPathNovo,
+  isPageNovo,
+  marcarNovidadeAnuncioVista,
+  novidadeAnuncioPendente,
+} from "@/lib/novidades";
 import { ApiError } from "@/lib/api";
 import {
   fetchNotificacoes,
@@ -600,8 +606,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [agendaProximosCount, setAgendaProximosCount] = useState(0);
   const [agendaProximos, setAgendaProximos] = useState<AgendaProximo[]>([]);
   const [lembretesOpen, setLembretesOpen] = useState(false);
+  const [anuncioOpen, setAnuncioOpen] = useState(false);
+  const adiarLembretesRef = useRef(false);
+  const lembretesAposAnuncioRef = useRef(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [analiseAlert, setAnaliseAlert] = useState<Notificacao | null>(null);
+  adiarLembretesRef.current = Boolean(user) && novidadeAnuncioPendente();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isTriagem = pathname === "/triagem";
@@ -709,8 +719,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             typeof sessionStorage !== "undefined" &&
             sessionStorage.getItem(SESSION_LEMBRETE_KEY) === "1";
           if (!already) {
-            sessionStorage.setItem(SESSION_LEMBRETE_KEY, "1");
-            setLembretesOpen(true);
+            if (adiarLembretesRef.current) {
+              lembretesAposAnuncioRef.current = true;
+            } else {
+              sessionStorage.setItem(SESSION_LEMBRETE_KEY, "1");
+              setLembretesOpen(true);
+            }
           }
         }
 
@@ -723,6 +737,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     [loadNotificacoes],
   );
+
+  useEffect(() => {
+    if (!user) return;
+    if (novidadeAnuncioPendente()) setAnuncioOpen(true);
+  }, [user]);
+
+  const fecharAnuncio = useCallback(() => {
+    marcarNovidadeAnuncioVista();
+    setAnuncioOpen(false);
+    if (!lembretesAposAnuncioRef.current) return;
+    lembretesAposAnuncioRef.current = false;
+    try {
+      sessionStorage.setItem(SESSION_LEMBRETE_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setLembretesOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -2089,6 +2121,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         <GuiaTourHost />
       </div>
+
+      <NovidadeAnuncioDialog
+        open={anuncioOpen}
+        onOpenChange={(open) => {
+          if (!open) fecharAnuncio();
+        }}
+        podeAbrirTarefas={
+          user
+            ? canAccessRoute(
+                user.role,
+                "/tarefas",
+                modules,
+                plano,
+                user.permissions ?? null,
+              )
+            : false
+        }
+      />
 
       <AgendaLembretesDialog
         open={lembretesOpen}
