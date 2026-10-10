@@ -125,7 +125,6 @@ import {
   importUsers,
   normalizeCreciStatus,
   resetUserPassword,
-  resetUserTwoFactor,
   updateUser,
   updateUserStatus,
   type ApiUser,
@@ -508,7 +507,6 @@ function Usuarios() {
   );
   const [weekPresenceLoading, setWeekPresenceLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApiUser | null>(null);
-  const [totpResetTarget, setTotpResetTarget] = useState<ApiUser | null>(null);
   const deleteTargetRef = useRef<ApiUser | null>(null);
   const [credentials, setCredentials] = useState<{
     name: string;
@@ -896,23 +894,6 @@ function Usuarios() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível alterar o status.",
-      );
-    }
-  }
-
-  async function handleResetTwoFactor(u: ApiUser) {
-    try {
-      const updated = await resetUserTwoFactor(u.id);
-      setUsers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-      setTotpResetTarget(null);
-      toast.success(
-        `2FA de ${u.name} desbloqueado. No próximo login a pessoa cadastra o app de novo.`,
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível desbloquear o 2FA.",
       );
     }
   }
@@ -1376,17 +1357,6 @@ function Usuarios() {
                             Gerar senha temporária
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin || session?.role === "super_admin") &&
-                          (u.role === "admin" || u.role === "super_admin") &&
-                          Boolean(u.totpEnabledAt) &&
-                          session?.id !== u.id && (
-                            <DropdownMenuItem
-                              onClick={() => setTotpResetTarget(u)}
-                            >
-                              <Shield className="w-3.5 h-3.5 mr-2" />
-                              Desbloquear 2FA
-                            </DropdownMenuItem>
-                          )}
                         {canManageUsers && (
                           <DropdownMenuItem
                             disabled={
@@ -2254,34 +2224,6 @@ function Usuarios() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!totpResetTarget}
-        onOpenChange={(o) => !o && setTotpResetTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desbloquear 2FA?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {totpResetTarget
-                ? `O autenticador de ${totpResetTarget.name} deixa de valer. No próximo login a pessoa cadastra o app de novo. O segredo atual não é exibido.`
-                : null}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                totpResetTarget
-                  ? void handleResetTwoFactor(totpResetTarget)
-                  : undefined
-              }
-            >
-              Desbloquear
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

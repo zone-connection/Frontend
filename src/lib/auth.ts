@@ -66,42 +66,12 @@ export interface AuthUser {
   creciStatus?: string | null;
   avatar?: string | null;
   lastLoginAt?: string | null;
-  totpEnabled?: boolean;
   tenant?: TenantBranding | null;
 }
 
 interface LoginResponse {
   user: AuthUser;
   csrfToken?: string;
-  backupCodes?: string[];
-}
-
-export type TotpChallenge = {
-  twoFactor: "code" | "setup";
-  ticket: string;
-};
-
-export function isTotpChallenge(value: unknown): value is TotpChallenge {
-  if (!value || typeof value !== "object") return false;
-  const row = value as TotpChallenge;
-  return (
-    (row.twoFactor === "code" || row.twoFactor === "setup") &&
-    typeof row.ticket === "string" &&
-    row.ticket.length > 0
-  );
-}
-
-function applySession(data: LoginResponse): AuthUser {
-  if (!data?.user?.name) {
-    throw new Error("Resposta de login inválida.");
-  }
-  sessionCache.setUser(data.user);
-  storeCsrfToken(data.csrfToken);
-  reiniciarNovidadeAnuncio();
-  lastValidatedAt = Date.now();
-  writeValidatedAt(lastValidatedAt);
-  validatedThisDocument = true;
-  return data.user;
 }
 
 /** Intervalo entre revalidações em background de /auth/me. */
@@ -141,9 +111,9 @@ export async function signIn(
   password: string,
   tenantSlug?: string,
   captchaToken?: string,
-): Promise<AuthUser | TotpChallenge> {
+): Promise<AuthUser> {
   expireReadableCsrfCookies();
-  const data = await apiFetch<LoginResponse | TotpChallenge>("/auth/login", {
+  const data = await apiFetch<LoginResponse>("/auth/login", {
     method: "POST",
     skipAuth: true,
     body: {
@@ -154,58 +124,13 @@ export async function signIn(
     },
   });
 
-  if (isTotpChallenge(data)) {
-    return data;
-  }
-  return applySession(data as LoginResponse);
-}
-
-export async function completeTotpLogin(
-  ticket: string,
-  code: string,
-): Promise<AuthUser> {
-  const data = await apiFetch<LoginResponse>("/auth/login/2fa", {
-    method: "POST",
-    skipAuth: true,
-    body: { ticket, code },
-  });
-  return applySession(data);
-}
-
-export async function startTotpSetup(ticket: string): Promise<{
-  otpauthUrl: string;
-  qrDataUrl: string;
-}> {
-  return apiFetch("/auth/2fa/setup", {
-    method: "POST",
-    skipAuth: true,
-    body: { ticket },
-  });
-}
-
-export async function enableTotp(
-  ticket: string,
-  code: string,
-): Promise<{ user: AuthUser; backupCodes: string[] }> {
-  const data = await apiFetch<LoginResponse>("/auth/2fa/enable", {
-    method: "POST",
-    skipAuth: true,
-    body: { ticket, code },
-  });
-  return {
-    user: applySession(data),
-    backupCodes: data.backupCodes ?? [],
-  };
-}
-
-export async function regenerateTotpBackupCodes(
-  code: string,
-): Promise<string[]> {
-  const data = await apiFetch<{ backupCodes: string[] }>(
-    "/auth/2fa/backup-codes",
-    { method: "POST", body: { code } },
-  );
-  return data.backupCodes;
+  sessionCache.setUser(data.user);
+  storeCsrfToken(data.csrfToken);
+  reiniciarNovidadeAnuncio();
+  lastValidatedAt = Date.now();
+  writeValidatedAt(lastValidatedAt);
+  validatedThisDocument = true;
+  return data.user;
 }
 
 export async function signOut(): Promise<void> {

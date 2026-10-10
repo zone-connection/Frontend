@@ -6,12 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { Download, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   changePassword,
   getSession,
-  regenerateTotpBackupCodes,
   removeMyAvatar,
   updateMe,
   uploadMyAvatar,
@@ -24,7 +23,6 @@ import { ConfigCreciPanel } from "@/components/config-creci-panel";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { downloadTotpBackupCodes } from "@/lib/totp-backup";
 
 export const Route = createFileRoute("/_app/perfil")({
   head: () => ({ meta: [{ title: "Perfil — Zone Connection" }] }),
@@ -87,9 +85,6 @@ function Perfil() {
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [savingNotifyEmail, setSavingNotifyEmail] = useState(false);
-  const [totpCode, setTotpCode] = useState("");
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
-  const [savingTotp, setSavingTotp] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -197,28 +192,6 @@ function Perfil() {
       );
     } finally {
       setSavingNotifyEmail(false);
-    }
-  }
-
-  async function handleRegenerateBackupCodes() {
-    if (!totpCode.trim()) {
-      toast.error("Informe o código atual do autenticador.");
-      return;
-    }
-    setSavingTotp(true);
-    try {
-      const codes = await regenerateTotpBackupCodes(totpCode.trim());
-      setBackupCodes(codes);
-      setTotpCode("");
-      toast.success("Novos códigos de reserva gerados. Os anteriores deixam de valer.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível gerar os códigos",
-      );
-    } finally {
-      setSavingTotp(false);
     }
   }
 
@@ -382,68 +355,6 @@ function Perfil() {
             </div>
           </CardContent>
         </Card>
-        {user && (user.role === "admin" || user.role === "super_admin") ? (
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="text-base">
-                Verificação em duas etapas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {user.totpEnabled
-                  ? "O app autenticador está ativo. Não é possível desligar. Se perder o celular, use um código de reserva ou peça a outro administrador para desbloquear."
-                  : "No próximo login você cadastra o app autenticador. Sem isso a sessão de administrador não abre."}
-              </p>
-              {user.totpEnabled ? (
-                <>
-                  <div className="max-w-xs space-y-1.5">
-                    <Label htmlFor="totp-atual">Código atual do app</Label>
-                    <Input
-                      id="totp-atual"
-                      value={totpCode}
-                      onChange={(e) => setTotpCode(e.target.value)}
-                      placeholder="000000"
-                      autoComplete="one-time-code"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={savingTotp}
-                    onClick={() => void handleRegenerateBackupCodes()}
-                  >
-                    {savingTotp
-                      ? "Gerando..."
-                      : "Gerar novos códigos de reserva"}
-                  </Button>
-                  {backupCodes ? (
-                    <div className="max-w-md space-y-3">
-                    <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
-                      {backupCodes.map((code) => (
-                        <li
-                          key={code}
-                          className="rounded-md border px-2 py-1.5 text-center"
-                        >
-                          {code}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => downloadTotpBackupCodes(backupCodes)}
-                    >
-                      <Download className="mr-2 h-4 w-4" aria-hidden />
-                      Baixar códigos
-                    </Button>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
-        ) : null}
         {user && userCanInformarCreci(user) ? (
           <div className="lg:col-span-3">
             <ConfigCreciPanel onSaved={setUser} />

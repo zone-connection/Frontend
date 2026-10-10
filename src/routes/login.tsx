@@ -10,21 +10,11 @@ import {
   Users,
   Mail,
   Lock,
-  Shield,
-  Download,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError } from "@/lib/api";
-import {
-  completeTotpLogin,
-  enableTotp,
-  isTotpChallenge,
-  signIn,
-  startTotpSetup,
-  type AuthUser,
-  type TotpChallenge,
-} from "@/lib/auth";
+import { signIn } from "@/lib/auth";
 import { TurnstileWidget, turnstileSiteKey } from "@/components/turnstile-widget";
 import { signInPortal } from "@/lib/portal-auth";
 import { signInParceiro } from "@/lib/parceiros-auth";
@@ -32,7 +22,6 @@ import { getWhatsAppUrl } from "@/lib/env";
 import { defaultRouteForRole } from "@/lib/permissions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { downloadTotpBackupCodes } from "@/lib/totp-backup";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -218,85 +207,23 @@ function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const captchaRequired = turnstileSiteKey().length > 0;
-  const [challenge, setChallenge] = useState<TotpChallenge | null>(null);
-  const [totpCode, setTotpCode] = useState("");
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
-  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
-
-  function finishWelcome(user: AuthUser) {
-    const firstName = user.name?.trim().split(" ")[0] || "admin";
-    toast.success(`Bem-vindo(a), ${firstName}!`);
-    navigate({ to: defaultRouteForRole(user.role, user) });
-  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (backupCodes && pendingUser) {
-      finishWelcome(pendingUser);
-      return;
-    }
-    if (challenge) {
-      if (!totpCode.trim()) {
-        toast.error("Informe o código do autenticador.");
-        return;
-      }
-      setLoading(true);
-      try {
-        if (challenge.twoFactor === "setup") {
-          const enabled = await enableTotp(challenge.ticket, totpCode.trim());
-          setBackupCodes(enabled.backupCodes);
-          setPendingUser(enabled.user);
-          toast.success("Autenticador cadastrado. Guarde os códigos de reserva.");
-        } else {
-          const user = await completeTotpLogin(
-            challenge.ticket,
-            totpCode.trim(),
-          );
-          finishWelcome(user);
-        }
-      } catch (error) {
-        toast.error(
-          error instanceof ApiError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : "Código inválido",
-        );
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
     if (captchaRequired && !captchaToken) {
       toast.error("Confirme a verificação de segurança antes de entrar.");
       return;
     }
     setLoading(true);
     try {
-      const result = await signIn(
+      const user = await signIn(
         email,
         password,
         undefined,
         captchaToken ?? undefined,
       );
-      if (isTotpChallenge(result)) {
-        setChallenge(result);
-        if (result.twoFactor === "setup") {
-          try {
-            const setup = await startTotpSetup(result.ticket);
-            setQrDataUrl(setup.qrDataUrl);
-          } catch (setupError) {
-            toast.error(
-              setupError instanceof ApiError
-                ? setupError.message
-                : "Não foi possível gerar o QR do autenticador.",
-            );
-          }
-        }
-        return;
-      }
-      finishWelcome(result);
+      toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+      navigate({ to: defaultRouteForRole(user.role, user) });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -440,88 +367,14 @@ function LoginPage() {
                 Acesso
               </span>
               <h2 className="text-2xl font-semibold text-brand-dark sm:text-3xl">
-                {backupCodes
-                  ? "Códigos de reserva"
-                  : challenge?.twoFactor === "setup"
-                    ? "Cadastrar autenticador"
-                    : challenge
-                      ? "Verificação em duas etapas"
-                      : "Entrar na plataforma"}
+                Entrar na plataforma
               </h2>
               <p className="text-sm leading-relaxed text-text-muted sm:text-base">
-                {backupCodes
-                  ? "Anote os códigos agora. Eles não serão mostrados de novo."
-                  : challenge?.twoFactor === "setup"
-                    ? "Administradores precisam do app no celular para abrir a sessão."
-                    : challenge
-                      ? "Confirme o código do app autenticador para entrar."
-                      : "Use suas credenciais para continuar na Zone Connection."}
+                Use suas credenciais para continuar na Zone Connection.
               </p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
-              {backupCodes ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-text-muted">
-                    São senhas de emergência. Se o celular for perdido ou o app
-                    apagado, use um destes códigos no lugar dos 6 dígitos. Cada
-                    um vale uma vez.
-                  </p>
-                  <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
-                    {backupCodes.map((code) => (
-                      <li
-                        key={code}
-                        className="rounded-lg border border-border bg-surface-muted px-2 py-1.5 text-center"
-                      >
-                        {code}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => downloadTotpBackupCodes(backupCodes)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-brand-dark transition-colors hover:bg-surface-muted"
-                  >
-                    <Download className="h-4 w-4" aria-hidden />
-                    Baixar códigos
-                  </button>
-                </div>
-              ) : challenge ? (
-                <>
-                  {challenge.twoFactor === "setup" ? (
-                    <div className="space-y-3 text-center">
-                      <p className="text-sm text-text-muted">
-                        Escaneie o QR no Google Authenticator, Authy ou app
-                        equivalente e digite o código de 6 dígitos.
-                      </p>
-                      {qrDataUrl ? (
-                        <img
-                          src={qrDataUrl}
-                          alt="QR do autenticador"
-                          className="mx-auto h-44 w-44 rounded-xl border border-border bg-white p-2"
-                        />
-                      ) : (
-                        <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-accent" />
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-text-muted">
-                      Digite o código de 6 dígitos do app ou um código de
-                      reserva.
-                    </p>
-                  )}
-                  <LoginAuthField
-                    id="totp"
-                    label="Código"
-                    value={totpCode}
-                    onChange={setTotpCode}
-                    icon={Shield}
-                    placeholder="000000"
-                    required
-                  />
-                </>
-              ) : (
-                <>
               <LoginAuthField
                 id="email"
                 label="E-mail"
@@ -563,18 +416,10 @@ function LoginPage() {
                   Lembrar acesso neste dispositivo
                 </Label>
               </div>
-                </>
-              )}
 
               <button
                 type="submit"
-                disabled={
-                  loading ||
-                  (!challenge &&
-                    !backupCodes &&
-                    captchaRequired &&
-                    !captchaToken)
-                }
+                disabled={loading || (captchaRequired && !captchaToken)}
                 className={cn(
                   "w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white transition-all",
                   "hover:brightness-110 hover:-translate-y-0.5 hover:shadow-md",
@@ -584,12 +429,8 @@ function LoginPage() {
                 {loading ? (
                   <span className="inline-flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {challenge ? "Verificando..." : "Entrando..."}
+                    Entrando...
                   </span>
-                ) : backupCodes ? (
-                  "Já guardei os códigos"
-                ) : challenge ? (
-                  "Confirmar código"
                 ) : (
                   "Entrar"
                 )}
