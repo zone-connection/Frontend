@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { useState, type ComponentProps, type ReactNode } from "react";
+import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { FILTER_NATIVE } from "@/lib/filter-bar";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +15,16 @@ import { cn } from "@/lib/utils";
 
 export const FILTRO_CAMPO =
   "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !text-[13px] !text-[#0B3148] !shadow-none placeholder:!text-[#8B98A3] focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
+
+/** Select nativo no mesmo desenho dos filtros da marca. */
+export function FiltroSelectNativo({ className, ...props }: ComponentProps<"select">) {
+  return (
+    <div className="relative w-fit max-w-full">
+      <select className={cn(FILTER_NATIVE, "w-auto", className)} {...props} />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#079ED4]" />
+    </div>
+  );
+}
 
 export function FiltrosPainel({
   activeCount,

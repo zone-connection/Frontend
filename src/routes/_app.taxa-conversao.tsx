@@ -46,6 +46,7 @@ import {
   FILTER_BAR_SHELL,
   FILTER_CLEAR_BTN,
   FILTER_CONTROL,
+  FILTER_LABEL,
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
 import {
@@ -331,7 +332,7 @@ function Page() {
   const filtrosPeriodo = (
     <div className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">Período</Label>
+        <Label className={FILTER_LABEL}>Período</Label>
         <Select
           value={granularidade}
           onValueChange={(value) => {
@@ -340,7 +341,7 @@ function Page() {
             setMes(snapMes(mes, next));
           }}
         >
-          <SelectTrigger className="h-9 w-32 bg-background">
+          <SelectTrigger className={cn("w-32", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -354,14 +355,14 @@ function Page() {
       </div>
       {granularidade !== "anual" ? (
         <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground">
+          <Label className={FILTER_LABEL}>
             {granularidade === "mes" ? "Mês" : "Recorte"}
           </Label>
           <Select
             value={String(snapMes(mes, granularidade))}
             onValueChange={(value) => setMes(Number(value))}
           >
-            <SelectTrigger className="h-9 min-w-38 bg-background">
+            <SelectTrigger className={cn("min-w-38", FILTER_CONTROL)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -375,12 +376,12 @@ function Page() {
         </div>
       ) : null}
       <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">Ano</Label>
+        <Label className={FILTER_LABEL}>Ano</Label>
         <Select
           value={String(ano)}
           onValueChange={(value) => setAno(Number(value))}
         >
-          <SelectTrigger className="h-9 w-22 bg-background">
+          <SelectTrigger className={cn("w-22", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -5,6 +5,7 @@ import { CaptacaoProximosPassos } from "@/components/captacao-proximos-passos";
 import { CaptacaoRegistrarContatoDialog } from "@/components/captacao-registrar-contato-dialog";
 import { PillTabs, StatusChip } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
+import { FiltroSelectNativo } from "@/components/filtros-painel";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import {
   fetchCaptacoes,
@@ -112,8 +113,7 @@ function FilaCaptacaoPage() {
           ]}
         />
         {aba === "paradas" ? (
-          <select
-            className="h-9 rounded-full border border-black/10 bg-card px-3 text-sm text-muted-foreground"
+          <FiltroSelectNativo
             value={filtro}
             onChange={(e) => setFiltro(e.target.value as FiltroStatus)}
           >
@@ -121,7 +121,7 @@ function FilaCaptacaoPage() {
             <option value="paradas">Paradas (7+ dias)</option>
             <option value="critico">Crítico (14+ dias)</option>
             <option value="atencao">Atenção (7–13 dias)</option>
-          </select>
+          </FiltroSelectNativo>
         ) : null}
       </div>
       {aba === "paradas" ? (

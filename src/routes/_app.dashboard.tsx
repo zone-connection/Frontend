@@ -64,6 +64,7 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
+import { FILTER_CONTROL, FILTER_LABEL } from "@/lib/filter-bar";
 
 function buildFunnelChartData(
   funil: { etapa: string; total: number }[],
@@ -559,9 +560,9 @@ function DashboardAdminView() {
   const filtros = (
     <div className="flex w-full flex-wrap items-end gap-2">
       <div className="min-w-28 flex-1 space-y-1 sm:flex-none">
-        <Label className="text-[11px] text-muted-foreground">Mês</Label>
+        <Label className={FILTER_LABEL}>Mês</Label>
         <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-          <SelectTrigger className="h-9 w-full bg-background sm:w-36">
+          <SelectTrigger className={cn("w-full sm:w-36", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -574,9 +575,9 @@ function DashboardAdminView() {
         </Select>
       </div>
       <div className="min-w-20 flex-1 space-y-1 sm:flex-none">
-        <Label className="text-[11px] text-muted-foreground">Ano</Label>
+        <Label className={FILTER_LABEL}>Ano</Label>
         <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-          <SelectTrigger className="h-9 w-full bg-background sm:w-24">
+          <SelectTrigger className={cn("w-full sm:w-24", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -589,9 +590,9 @@ function DashboardAdminView() {
         </Select>
       </div>
       <div className="min-w-32 flex-1 space-y-1 sm:min-w-40 sm:flex-none">
-        <Label className="text-[11px] text-muted-foreground">Origem</Label>
+        <Label className={FILTER_LABEL}>Origem</Label>
         <Select value={origemFilter} onValueChange={setOrigemFilter}>
-          <SelectTrigger className="h-9 w-full bg-background sm:w-44">
+          <SelectTrigger className={cn("w-full sm:w-44", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

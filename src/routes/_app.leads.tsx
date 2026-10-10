@@ -63,7 +63,6 @@ import {
   Phone,
   Plus,
   Search,
-  SlidersHorizontal,
   Filter,
   Download,
   MoreHorizontal,
@@ -77,7 +76,6 @@ import {
   Eye,
   Pencil,
   Trash2,
-  X,
   Upload,
   FileSpreadsheet,
   FileText,
@@ -178,13 +176,7 @@ import {
 } from "@/components/lead-atividade-dialog";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { ApiError } from "@/lib/api";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
 import {
   FILTER_CONTROL,
   FILTER_SEARCH_ICON,
@@ -544,9 +536,6 @@ const TIPO_RENDA_OPTIONS = [
   "Outros",
 ] as const;
 
-const LEADS_FILTRO_CAMPO =
-  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !shadow-none focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
-
 const LEADS_PRIMARY_BTN =
   "!h-9 !rounded-lg border-0 bg-[#079ED4] px-3.5 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100";
 
@@ -727,7 +716,6 @@ function LeadsPage() {
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
-  const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   /** UUID do corretor ou "all". */
@@ -3434,64 +3422,42 @@ function LeadsPage() {
           <Search className={FILTER_SEARCH_ICON} />
           <Input
             placeholder="Buscar por nome, email, telefone..."
-            className="h-9 rounded-lg border-[#E2E8EC] bg-white pl-9"
+            className={cn("pl-9", FILTER_CONTROL)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <TableSortSelect value={sort} onChange={setSort} className={FILTER_CONTROL} />
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 rounded-lg border-[#E2E8EC] bg-white text-[#16324A] hover:bg-[#F3FAFD]"
-          onClick={() => setFiltrosOpen(true)}
+        <FiltrosPainel
+          kicker="Leads"
+          description="Escolha o recorte do funil."
+          confirmLabel={`Ver ${filteredLeads.length} lead${filteredLeads.length === 1 ? "" : "s"}`}
+          activeCount={
+            [
+              stageFilter !== "all",
+              canFilterEquipe && equipeFilter !== "all",
+              showTeamColumns && corretorFilter !== "all",
+              prioridadeFilter !== "all",
+              tipoRendaFilter !== "all",
+              origemFilter !== "all",
+            ].filter(Boolean).length
+          }
+          onClear={() => {
+            setStageFilter("all");
+            setCorretorFilter("all");
+            setEquipeFilter("all");
+            setPrioridadeFilter("all");
+            setTipoRendaFilter("all");
+            setOrigemFilter("all");
+          }}
         >
-          <SlidersHorizontal className="mr-1.5 size-4 text-[#079ED4]" />
-          Filtros
-          {[
-            stageFilter !== "all",
-            canFilterEquipe && equipeFilter !== "all",
-            showTeamColumns && corretorFilter !== "all",
-            prioridadeFilter !== "all",
-            tipoRendaFilter !== "all",
-            origemFilter !== "all",
-          ].filter(Boolean).length > 0 ? (
-            <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
-              {[
-                stageFilter !== "all",
-                canFilterEquipe && equipeFilter !== "all",
-                showTeamColumns && corretorFilter !== "all",
-                prioridadeFilter !== "all",
-                tipoRendaFilter !== "all",
-                origemFilter !== "all",
-              ].filter(Boolean).length}
-            </span>
-          ) : null}
-        </Button>
-      </div>
-      <Sheet open={filtrosOpen} onOpenChange={setFiltrosOpen}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
-        >
-          <SheetHeader className="relative border-b border-[#E6EDF2] bg-white px-5 py-4 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">Leads</p>
-            <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">Filtros</SheetTitle>
-            <p className="text-[13px] text-[#5C6B76]">Escolha o recorte do funil.</p>
-            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F4F7F8]">
-              <X className="size-4" />
-              <span className="sr-only">Fechar</span>
-            </SheetClose>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
                   <Layers className="size-3.5 text-[#079ED4]" />
                   Etapa
                 </Label>
                 <Select value={stageFilter} onValueChange={setStageFilter}>
-                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue placeholder="Etapa" />
                   </SelectTrigger>
                   <SelectContent>
@@ -3509,7 +3475,7 @@ function LeadsPage() {
                     Equipe
                   </Label>
                   <Select value={equipeFilter} onValueChange={setEquipeFilter}>
-                    <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                    <SelectTrigger className={FILTRO_CAMPO}>
                       <SelectValue placeholder="Equipe" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3529,7 +3495,7 @@ function LeadsPage() {
                     Corretor
                   </Label>
                   <Select value={corretorFilter} onValueChange={setCorretorFilter}>
-                    <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                    <SelectTrigger className={FILTRO_CAMPO}>
                       <SelectValue placeholder="Corretor" />
                     </SelectTrigger>
                     <SelectContent>
@@ -3554,7 +3520,7 @@ function LeadsPage() {
                   Prioridade
                 </Label>
                 <Select value={prioridadeFilter} onValueChange={setPrioridadeFilter}>
-                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3571,7 +3537,7 @@ function LeadsPage() {
                   Tipo de renda
                 </Label>
                 <Select value={tipoRendaFilter} onValueChange={setTipoRendaFilter}>
-                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3588,7 +3554,7 @@ function LeadsPage() {
                   Origem
                 </Label>
                 <Select value={origemFilter} onValueChange={setOrigemFilter}>
-                  <SelectTrigger className={LEADS_FILTRO_CAMPO}>
+                  <SelectTrigger className={FILTRO_CAMPO}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3599,33 +3565,12 @@ function LeadsPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-[#05749E]"
-              onClick={() => {
-                setStageFilter("all");
-                setCorretorFilter("all");
-                setEquipeFilter("all");
-                setPrioridadeFilter("all");
-                setTipoRendaFilter("all");
-                setOrigemFilter("all");
-              }}
-            >
-              Limpar
-            </button>
-            <Button type="button" className={cn(LEADS_PRIMARY_BTN, "px-4")} onClick={() => setFiltrosOpen(false)}>
-              Ver {filteredLeads.length} lead{filteredLeads.length === 1 ? "" : "s"}
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </FiltrosPainel>
+      </div>
 
       {showTeamColumns && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border/60 bg-card p-1">
+          <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5">
             {(
               [
                 {
@@ -3680,10 +3625,10 @@ function LeadsPage() {
                     if (opt.id === "meus") setCorretorFilter("all");
                   }}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
                     selected
                       ? "bg-[#079ED4] text-white"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      : "text-[#5C6B76] hover:bg-white hover:text-[#0B3148]",
                   )}
                 >
                   {Icon ? <Icon className="size-3.5 shrink-0" /> : null}

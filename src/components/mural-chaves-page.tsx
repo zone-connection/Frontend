@@ -24,7 +24,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  FILTER_BAR_SURFACE,
+  FILTER_CLEAR_BTN,
+  FILTER_CONTROL,
+  FILTER_SEARCH_ICON,
+} from "@/lib/filter-bar";
 import { FinanceKpiCard, type FinanceKpiTone } from "@/components/finance-kpi-card";
+import { FiltroSelectNativo } from "@/components/filtros-painel";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -901,18 +908,18 @@ export function MuralChavesPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={cn(FILTER_BAR_SURFACE, "flex flex-wrap items-center gap-2")}>
             <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className={FILTER_SEARCH_ICON} />
               <Input
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
                 placeholder="Buscar chave, imóvel, captação ou usado..."
-                className="pl-9"
+                className={cn("pl-9", FILTER_CONTROL)}
               />
             </div>
-            <select
-              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+            <FiltroSelectNativo
+              className="max-w-[180px]"
               value={tipoFiltro}
               onChange={(event) => setTipoFiltro(event.target.value)}
             >
@@ -922,9 +929,9 @@ export function MuralChavesPage() {
                   {item}
                 </option>
               ))}
-            </select>
-            <select
-              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+            </FiltroSelectNativo>
+            <FiltroSelectNativo
+              className="max-w-[180px]"
               value={origemFiltro}
               onChange={(event) =>
                 setOrigemFiltro(event.target.value as "" | "captacao" | "usado")
@@ -933,9 +940,9 @@ export function MuralChavesPage() {
               <option value="">Origem</option>
               <option value="captacao">Captação</option>
               <option value="usado">Usado</option>
-            </select>
-            <select
-              className={cn(fieldClass(), "w-auto max-w-[200px]")}
+            </FiltroSelectNativo>
+            <FiltroSelectNativo
+              className="max-w-[200px]"
               value={empreendimentoId}
               onChange={(event) => setEmpreendimentoId(event.target.value)}
             >
@@ -945,9 +952,8 @@ export function MuralChavesPage() {
                   {item.nome}
                 </option>
               ))}
-            </select>
-            <select
-              className={cn(fieldClass(), "w-auto")}
+            </FiltroSelectNativo>
+            <FiltroSelectNativo
               value={faixa}
               onChange={(event) => setFaixa(event.target.value as FaixaChave | "")}
             >
@@ -956,9 +962,9 @@ export function MuralChavesPage() {
               <option value="em_uso">Em uso</option>
               <option value="proprietario">Com proprietário</option>
               <option value="outro">Outro local</option>
-            </select>
-            <select
-              className={cn(fieldClass(), "w-auto max-w-[180px]")}
+            </FiltroSelectNativo>
+            <FiltroSelectNativo
+              className="max-w-[180px]"
               value={responsavel}
               onChange={(event) => setResponsavel(event.target.value)}
             >
@@ -968,8 +974,8 @@ export function MuralChavesPage() {
                   {nome}
                 </option>
               ))}
-            </select>
-            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={limparFiltros}>
+            </FiltroSelectNativo>
+            <Button type="button" variant="ghost" className={FILTER_CLEAR_BTN} onClick={limparFiltros}>
               Limpar filtros
             </Button>
           </div>

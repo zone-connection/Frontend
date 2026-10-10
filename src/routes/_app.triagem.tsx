@@ -45,6 +45,7 @@ import {
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import {
+  FILTER_CLEAR_BTN,
   FILTER_CONTROL,
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
@@ -733,7 +734,7 @@ function CorretorTriagem() {
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="w-full sm:w-55">
             <Select value={stageFilter} onValueChange={setStageFilter}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
                 <SelectValue placeholder="Etapa do funil" />
               </SelectTrigger>
               <SelectContent>
@@ -779,6 +780,7 @@ function CorretorTriagem() {
               type="button"
               variant="ghost"
               size="sm"
+              className={FILTER_CLEAR_BTN}
               onClick={() => setStageFilter("__all__")}
             >
               Limpar filtro

@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FiltroSelectNativo } from "@/components/filtros-painel";
 import {
   TarefasCalendario,
   addDays,
@@ -231,9 +232,9 @@ export function TarefasPainel({
           <label className="text-sm font-medium" htmlFor="filtro-usuario-tarefa">
             Usuário
           </label>
-          <select
+          <FiltroSelectNativo
             id="filtro-usuario-tarefa"
-            className="h-10 min-w-56 rounded-md border bg-background px-3 text-sm"
+            className="min-w-56"
             value={usuarioId}
             onChange={(event) => onUsuario?.(event.target.value)}
           >
@@ -243,7 +244,7 @@ export function TarefasPainel({
                 {usuario.name}
               </option>
             ))}
-          </select>
+          </FiltroSelectNativo>
         </div>
       ) : null}
 

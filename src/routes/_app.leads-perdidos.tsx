@@ -95,7 +95,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { displayEmail } from "@/lib/email";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FILTER_BAR_SHELL, FILTER_CONTROL } from "@/lib/filter-bar";
+import { FILTER_BAR_SHELL, FILTER_CONTROL, FILTER_SEARCH_ICON } from "@/lib/filter-bar";
 
 export const Route = createFileRoute("/_app/leads-perdidos")({
   head: () => ({ meta: [{ title: "Leads Perdidos — Zone Connection" }] }),
@@ -437,14 +437,14 @@ function LeadsPerdidos() {
 
       <div className={FILTER_BAR_SHELL}>
         <div className="relative min-w-50 max-w-md flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className={FILTER_SEARCH_ICON} />
           <Input
             placeholder={
               isPlatformAdmin
                 ? "Buscar por nome, motivo..."
                 : "Buscar por nome, motivo, corretor..."
             }
-            className={cn("h-9 rounded-full bg-background pl-9", FILTER_CONTROL)}
+            className={cn("pl-9", FILTER_CONTROL)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

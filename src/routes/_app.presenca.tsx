@@ -80,6 +80,7 @@ import {
 import { downloadPresencaPdf } from "@/lib/presenca-pdf";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { cn } from "@/lib/utils";
+import { FILTER_CLEAR_BTN } from "@/lib/filter-bar";
 
 export const Route = createFileRoute("/_app/presenca")({
   head: () => ({ meta: [{ title: "Presença — Zone Connection" }] }),
@@ -344,8 +345,8 @@ function Page() {
               variant="outline"
               role="combobox"
               className={cn(
-                "min-w-[180px] justify-between rounded-xl font-medium",
-                userIds.length > 0 && "border-primary/40 bg-primary/5",
+                "min-w-[180px] justify-between",
+                userIds.length > 0 && "border-[#079ED4] bg-[#E7F4FA]",
               )}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -412,7 +413,7 @@ function Page() {
             type="button"
             size="sm"
             variant={naturezaFiltro === opt.id ? "default" : "outline"}
-            className="h-8 rounded-full px-3 text-xs"
+            className="px-3"
             onClick={() => setNaturezaFiltro(opt.id)}
           >
             {opt.label}
@@ -423,7 +424,7 @@ function Page() {
             type="button"
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-xs text-muted-foreground"
+            className={FILTER_CLEAR_BTN}
             onClick={() => {
               setUserIds([]);
               setNaturezaFiltro("todos");

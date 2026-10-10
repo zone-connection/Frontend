@@ -64,6 +64,7 @@ import { SemConexao } from "@/components/sem-conexao";
 import { VendasResumoDialog } from "@/components/vendas-resumo-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FILTER_CONTROL, FILTER_LABEL } from "@/lib/filter-bar";
 import { fetchConstrutoraVendas, type ConstrutoraVenda } from "@/lib/construtoras-api";
 
 export const Route = createFileRoute("/_app/corretores")({
@@ -372,7 +373,7 @@ function Page() {
   const filtros = (
     <div className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">Período</Label>
+        <Label className={FILTER_LABEL}>Período</Label>
         <Select
           value={faixa}
           onValueChange={(value) => {
@@ -386,7 +387,7 @@ function Page() {
             if (next === "ano") setGranularidade("anual");
           }}
         >
-          <SelectTrigger className="h-9 min-w-40 bg-background">
+          <SelectTrigger className={cn("min-w-40", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -401,19 +402,19 @@ function Page() {
       {faixa === "personalizado" ? (
         <>
           <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">De</Label>
+            <Label className={FILTER_LABEL}>De</Label>
             <Input
               type="date"
-              className="h-9 w-36 bg-background"
+              className={cn("w-36", FILTER_CONTROL)}
               value={de}
               onChange={(e) => setDe(e.target.value)}
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Até</Label>
+            <Label className={FILTER_LABEL}>Até</Label>
             <Input
               type="date"
-              className="h-9 w-36 bg-background"
+              className={cn("w-36", FILTER_CONTROL)}
               value={ate}
               onChange={(e) => setAte(e.target.value)}
             />
@@ -422,14 +423,14 @@ function Page() {
       ) : null}
       {faixa === "mes" || faixa === "trimestre" ? (
         <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground">Recorte</Label>
+          <Label className={FILTER_LABEL}>Recorte</Label>
           <Select
             value={String(
               snapMes(mes, faixa === "trimestre" ? "trimestre" : granularidade),
             )}
             onValueChange={(value) => setMes(Number(value))}
           >
-            <SelectTrigger className="h-9 min-w-38 bg-background">
+            <SelectTrigger className={cn("min-w-38", FILTER_CONTROL)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -444,9 +445,9 @@ function Page() {
       ) : null}
       {faixa === "mes" || faixa === "trimestre" || faixa === "ano" ? (
       <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">Ano</Label>
+        <Label className={FILTER_LABEL}>Ano</Label>
         <Select value={String(ano)} onValueChange={(value) => setAno(Number(value))}>
-          <SelectTrigger className="h-9 w-22 bg-background">
+          <SelectTrigger className={cn("w-22", FILTER_CONTROL)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

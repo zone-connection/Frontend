@@ -19,13 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
+import { DocStatusFunilTags } from "@/components/doc-status1-funil-tag";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,12 +108,10 @@ import { displayEmail, isPlaceholderEmail } from "@/lib/email";
 import {
   Plus,
   Search,
-  SlidersHorizontal,
   MoreHorizontal,
   Eye,
   Pencil,
   Trash2,
-  X,
   ChevronLeft,
   ChevronRight,
   UserPlus,
@@ -164,9 +157,6 @@ const CLIENTE_FORM_SECTIONS: { id: ClienteFormSection; label: string }[] = [
   { id: "documentos", label: "Documentos" },
   { id: "interesse", label: "Interesse" },
 ];
-
-const FILTRO_CAMPO =
-  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !shadow-none focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
 
 const CLIENTES_PRIMARY_BTN =
   "!h-9 !rounded-lg border-0 bg-[#079ED4] px-3 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100 disabled:opacity-50";
@@ -377,7 +367,6 @@ function Clientes() {
     );
   }, [adminVeClientesCorretor, allLeads, user]);
 
-  const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
   const [busca, setBusca] = useState("");
   const [interesseFiltro, setInteresseFiltro] = useState("__all__");
@@ -977,47 +966,31 @@ function Clientes() {
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
             placeholder="Buscar nome, telefone ou e-mail"
-            className={cn("h-9 rounded-lg border-[#E2E8EC] bg-white pl-9")}
+            className={cn("pl-9", FILTER_CONTROL)}
           />
         </div>
         <TableSortSelect value={sort} onChange={setSort} className={FILTER_CONTROL} />
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 rounded-lg border-[#E2E8EC] bg-white text-[#16324A] hover:bg-[#F3FAFD]"
-          onClick={() => setFiltrosOpen(true)}
+        <FiltrosPainel
+          kicker="Clientes"
+          description="Escolha o recorte da carteira."
+          confirmLabel={`Ver ${clientesFiltrados.length} cliente${clientesFiltrados.length === 1 ? "" : "s"}`}
+          activeCount={
+            [
+              busca.trim() !== "",
+              interesseFiltro !== "__all__",
+              cidadeFiltro !== "__all__",
+              corretorFiltro !== "__all__",
+              tagFiltro !== "__all__",
+            ].filter(Boolean).length
+          }
+          onClear={() => {
+            setBusca("");
+            setInteresseFiltro("__all__");
+            setCidadeFiltro("__all__");
+            setCorretorFiltro("__all__");
+            setTagFiltro("__all__");
+          }}
         >
-          <SlidersHorizontal className="mr-1.5 size-4 text-[#079ED4]" />
-          Filtros
-          {filtrosAtivos ? (
-            <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
-              {[
-                busca.trim() !== "",
-                interesseFiltro !== "__all__",
-                cidadeFiltro !== "__all__",
-                corretorFiltro !== "__all__",
-                tagFiltro !== "__all__",
-              ].filter(Boolean).length}
-            </span>
-          ) : null}
-        </Button>
-      </div>
-      <Sheet open={filtrosOpen} onOpenChange={setFiltrosOpen}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
-        >
-          <SheetHeader className="relative border-b border-[#E6EDF2] bg-white px-5 py-4 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">Clientes</p>
-            <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">Filtros</SheetTitle>
-            <p className="text-[13px] text-[#5C6B76]">Escolha o recorte da carteira.</p>
-            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F4F7F8]">
-              <X className="size-4" />
-              <span className="sr-only">Fechar</span>
-            </SheetClose>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4">
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
                 <Home className="size-3.5 text-[#079ED4]" />
@@ -1088,28 +1061,8 @@ function Clientes() {
                 </SelectContent>
               </Select>
             </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-[#05749E]"
-              onClick={() => {
-                setBusca("");
-                setInteresseFiltro("__all__");
-                setCidadeFiltro("__all__");
-                setCorretorFiltro("__all__");
-                setTagFiltro("__all__");
-              }}
-            >
-              Limpar
-            </button>
-            <Button type="button" className={cn(CLIENTES_PRIMARY_BTN, "px-4")} onClick={() => setFiltrosOpen(false)}>
-              Ver {clientesFiltrados.length} cliente{clientesFiltrados.length === 1 ? "" : "s"}
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </FiltrosPainel>
+      </div>
       <Card className={TABLE_SHELL}>
         <Table className={TABLE_LUX}>
           <TableHeader>
@@ -1199,7 +1152,20 @@ function Clientes() {
                 )}
                 <TableCell>
                   <div className="flex gap-1 flex-wrap">
-                    {l.tags.map((t) => (
+                    <DocStatusFunilTags
+                      status1={l.documentacaoStatus1}
+                      status2={l.documentacaoStatus2}
+                      className="justify-start"
+                    />
+                    {l.tags
+                      .filter((t) => {
+                        const key = t.trim().toLowerCase();
+                        return (
+                          key !== l.documentacaoStatus1?.trim().toLowerCase() &&
+                          key !== l.documentacaoStatus2?.trim().toLowerCase()
+                        );
+                      })
+                      .map((t) => (
                       <Badge
                         key={t}
                         className={cn(
@@ -1739,11 +1705,28 @@ function Clientes() {
                     label="Renda mensal"
                     value={detail.renda != null ? brl(detail.renda) : "—"}
                   />
-                  {detail.tags.length > 0 && (
+                  {(detail.documentacaoStatus1 ||
+                    detail.documentacaoStatus2 ||
+                    detail.tags.length > 0) && (
                     <div className="sm:col-span-2 space-y-1.5">
                       <div className="text-xs text-muted-foreground">Tags</div>
                       <div className="flex flex-wrap gap-1.5">
-                        {detail.tags.map((t) => (
+                        <DocStatusFunilTags
+                          status1={detail.documentacaoStatus1}
+                          status2={detail.documentacaoStatus2}
+                          className="justify-start"
+                        />
+                        {detail.tags
+                          .filter((t) => {
+                            const key = t.trim().toLowerCase();
+                            return (
+                              key !==
+                                detail.documentacaoStatus1?.trim().toLowerCase() &&
+                              key !==
+                                detail.documentacaoStatus2?.trim().toLowerCase()
+                            );
+                          })
+                          .map((t) => (
                           <Badge
                             key={t}
                             className={cn(STATUS_CHIP_CLASS, colorByLabel("tag", t))}

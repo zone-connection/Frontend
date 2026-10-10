@@ -45,6 +45,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { canViewTeamData } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { FILTER_CONTROL } from "@/lib/filter-bar";
 import { FileText, Loader2, Plus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
@@ -250,7 +251,7 @@ function CaptacaoFunilPage() {
                   setFilterMonitoramento(value as MonitoramentoFiltro)
                 }
               >
-                <SelectTrigger className="h-8 w-52 rounded-full bg-background py-0">
+                <SelectTrigger className={cn("w-52", FILTER_CONTROL)}>
                   <SelectValue placeholder="Monitoramento" />
                 </SelectTrigger>
                 <SelectContent>
