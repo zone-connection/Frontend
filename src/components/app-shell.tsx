@@ -1487,7 +1487,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     return (
       <nav className="sidebar-nav-scroll relative z-10 flex-1 overflow-y-auto px-2 py-3">
-        {operacaoAtiva && user?.role !== "super_admin" && operacoesDisponiveis.length > 0 ? (
+        {operacaoAtiva && user?.role !== "super_admin" && operacoesDisponiveis.length > 1 ? (
           <div className="-mx-2 mb-2 px-2 pb-2">
             <div
               className={cn(
