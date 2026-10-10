@@ -246,16 +246,21 @@ export function empreendimentoLocalidadeNome(item: Empreendimento) {
 }
 
 export type EmpreendimentoPublico = {
+  kind?: "empreendimento";
+  id?: string;
   nome: string;
   cidade: string | null;
   endereco: string | null;
   tipo: string | null;
   status: string | null;
+  badge?: string;
   previsaoEntrega: string | null;
   quartos: number | null;
   banheiros: number | null;
+  suites?: number | null;
   vagas: number | null;
   valorReferencia: number | null;
+  valor?: number | null;
   areaM2: number | null;
   imagens: string[];
   localidade: string | null;
@@ -271,6 +276,7 @@ export type EmpreendimentoPublico = {
   creci: string | null;
   cor: string | null;
   vitrine: EmpreendimentoVitrine | null;
+  imoveis?: unknown[];
 };
 
 export function slugifyPublico(value: string) {
