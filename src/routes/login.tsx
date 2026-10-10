@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError } from "@/lib/api";
 import { signIn } from "@/lib/auth";
+import { TurnstileWidget, turnstileSiteKey } from "@/components/turnstile-widget";
 import { signInPortal } from "@/lib/portal-auth";
 import { signInParceiro } from "@/lib/parceiros-auth";
 import { getWhatsAppUrl } from "@/lib/env";
@@ -203,12 +204,24 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const captchaRequired = turnstileSiteKey().length > 0;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (captchaRequired && !captchaToken) {
+      toast.error("Confirme a verificação de segurança antes de entrar.");
+      return;
+    }
     setLoading(true);
     try {
-      const user = await signIn(email, password);
+      const user = await signIn(
+        email,
+        password,
+        undefined,
+        captchaToken ?? undefined,
+      );
       toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
       navigate({ to: defaultRouteForRole(user.role, user) });
     } catch (error) {
@@ -247,6 +260,8 @@ function LoginPage() {
             : "Não foi possível entrar",
       );
     } finally {
+      setCaptchaToken(null);
+      setCaptchaReset((value) => value + 1);
       setLoading(false);
     }
   }
@@ -390,6 +405,8 @@ function LoginPage() {
                 }
               />
 
+              <TurnstileWidget resetKey={captchaReset} onToken={setCaptchaToken} />
+
               <div className="flex items-center gap-2">
                 <Checkbox id="remember" defaultChecked />
                 <Label
@@ -402,7 +419,7 @@ function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (captchaRequired && !captchaToken)}
                 className={cn(
                   "w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white transition-all",
                   "hover:brightness-110 hover:-translate-y-0.5 hover:shadow-md",

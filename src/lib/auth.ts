@@ -110,6 +110,7 @@ export async function signIn(
   email: string,
   password: string,
   tenantSlug?: string,
+  captchaToken?: string,
 ): Promise<AuthUser> {
   expireReadableCsrfCookies();
   const data = await apiFetch<LoginResponse>("/auth/login", {
@@ -119,6 +120,7 @@ export async function signIn(
       email,
       password,
       ...(tenantSlug ? { tenantSlug } : {}),
+      ...(captchaToken ? { captchaToken } : {}),
     },
   });
 
