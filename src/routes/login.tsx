@@ -11,6 +11,7 @@ import {
   Mail,
   Lock,
   Shield,
+  Download,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,6 +32,7 @@ import { getWhatsAppUrl } from "@/lib/env";
 import { defaultRouteForRole } from "@/lib/permissions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { downloadTotpBackupCodes } from "@/lib/totp-backup";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -461,8 +463,9 @@ function LoginPage() {
               {backupCodes ? (
                 <div className="space-y-3">
                   <p className="text-sm text-text-muted">
-                    Guarde estes códigos de reserva em um lugar seguro. Cada um
-                    vale uma vez se você perder o celular.
+                    São senhas de emergência. Se o celular for perdido ou o app
+                    apagado, use um destes códigos no lugar dos 6 dígitos. Cada
+                    um vale uma vez.
                   </p>
                   <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
                     {backupCodes.map((code) => (
@@ -474,6 +477,14 @@ function LoginPage() {
                       </li>
                     ))}
                   </ul>
+                  <button
+                    type="button"
+                    onClick={() => downloadTotpBackupCodes(backupCodes)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-brand-dark transition-colors hover:bg-surface-muted"
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                    Baixar códigos
+                  </button>
                 </div>
               ) : challenge ? (
                 <>

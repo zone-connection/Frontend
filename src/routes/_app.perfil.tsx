@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { Eye, EyeOff } from "lucide-react";
+import { Download, Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   changePassword,
@@ -24,6 +24,7 @@ import { ConfigCreciPanel } from "@/components/config-creci-panel";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { downloadTotpBackupCodes } from "@/lib/totp-backup";
 
 export const Route = createFileRoute("/_app/perfil")({
   head: () => ({ meta: [{ title: "Perfil — Zone Connection" }] }),
@@ -417,7 +418,8 @@ function Perfil() {
                       : "Gerar novos códigos de reserva"}
                   </Button>
                   {backupCodes ? (
-                    <ul className="grid max-w-md grid-cols-2 gap-2 font-mono text-sm">
+                    <div className="max-w-md space-y-3">
+                    <ul className="grid grid-cols-2 gap-2 font-mono text-sm">
                       {backupCodes.map((code) => (
                         <li
                           key={code}
@@ -427,6 +429,15 @@ function Perfil() {
                         </li>
                       ))}
                     </ul>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => downloadTotpBackupCodes(backupCodes)}
+                    >
+                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      Baixar códigos
+                    </Button>
+                    </div>
                   ) : null}
                 </>
               ) : null}
