@@ -1546,16 +1546,18 @@ export function ComercialFunilBoard({
                       leadMonitoramentoCardClass(l),
                     )}
                   >
-                    <div className="mb-1.5 flex items-start justify-between gap-2">
-                      <div className="table-person-name flex min-w-0 items-center gap-1.5 text-sm">
-                        <CircleUser
-                          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                          aria-hidden
-                        />
-                        <span className="truncate">{l.nome}</span>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <div className="flex items-center gap-1.5">
+                    <div className="mb-1.5 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="table-person-name flex min-w-0 flex-1 items-start gap-1.5 text-sm">
+                          <CircleUser
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
+                          <span className="min-w-0 break-words leading-snug">
+                            {l.nome}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
                           {isGerente &&
                             !isClientesFunil &&
                             isLeadCarteiraPropria(l, user?.id) && (
@@ -1581,11 +1583,12 @@ export function ComercialFunilBoard({
                             }`}
                           />
                         </div>
-                        <DocStatusFunilTags
-                          status1={l.documentacaoStatus1}
-                          status2={l.documentacaoStatus2}
-                        />
                       </div>
+                      <DocStatusFunilTags
+                        status1={l.documentacaoStatus1}
+                        status2={l.documentacaoStatus2}
+                        className="justify-start"
+                      />
                     </div>
                     {isOrphanColumn && (
                       <Badge

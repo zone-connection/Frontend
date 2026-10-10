@@ -2865,6 +2865,23 @@ function DocumentacaoPage() {
                     emptyLabel="Nenhum empreendimento cadastrado"
                     disabled={readOnly}
                   />
+                  {(() => {
+                    const selected = filteredEmpreendimentos.find(
+                      (item) => item.id === form.empreendimentoId,
+                    );
+                    if (!selected?.nome) return null;
+                    return (
+                      <div className="pt-1">
+                        <Badge
+                          variant="secondary"
+                          className="border-transparent"
+                          style={construtoraBadgeStyle(selected.cor)}
+                        >
+                          {selected.nome}
+                        </Badge>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-2">
