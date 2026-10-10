@@ -194,6 +194,25 @@ export function docStatus1FunilTagClasses(status1: string): {
       dot: "bg-violet-500",
     };
   }
+  const comercial = status2Group(status1);
+  if (comercial === "vendido") {
+    return {
+      wrap: "border-emerald-500/45 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      dot: "bg-emerald-500",
+    };
+  }
+  if (comercial === "bacen") {
+    return {
+      wrap: "border-sky-500/45 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+      dot: "bg-sky-500",
+    };
+  }
+  if (comercial === "andamento") {
+    return {
+      wrap: "border-orange-500/45 bg-orange-500/10 text-orange-800 dark:text-orange-200",
+      dot: "bg-orange-500",
+    };
+  }
   return {
     wrap: "border-border bg-muted/60 text-muted-foreground",
     dot: "bg-muted-foreground",

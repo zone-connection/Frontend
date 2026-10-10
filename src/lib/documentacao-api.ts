@@ -85,6 +85,7 @@ export interface Documentacao {
 }
 
 export type CreateDocumentacaoInput = {
+  leadId?: string | null;
   nome: string;
   construtoraId?: string | null;
   empreendimentoId?: string | null;
@@ -106,9 +107,7 @@ export type CreateDocumentacaoInput = {
   createdAt?: string | null;
 };
 
-export type UpdateDocumentacaoInput = Partial<
-  Omit<CreateDocumentacaoInput, "leadId">
->;
+export type UpdateDocumentacaoInput = Partial<CreateDocumentacaoInput>;
 
 export async function fetchDocumentacoes(
   corretorId?: string,

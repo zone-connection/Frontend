@@ -88,6 +88,7 @@ import {
   shouldShowAnaliseStatus,
 } from "@/lib/analise-status";
 import { leadPodeRedistribuir } from "@/lib/documentacao-status";
+import { DocStatusFunilTags } from "@/components/doc-status1-funil-tag";
 import { ApiError } from "@/lib/api";
 import {
   FormDialogActions,
@@ -1580,6 +1581,10 @@ export function ComercialFunilBoard({
                             }`}
                           />
                         </div>
+                        <DocStatusFunilTags
+                          status1={l.documentacaoStatus1}
+                          status2={l.documentacaoStatus2}
+                        />
                       </div>
                     </div>
                     {isOrphanColumn && (
@@ -2261,6 +2266,7 @@ function AnalistaFunilBoard() {
         return;
       }
       const created = await createDocumentacao({
+        leadId: item.leadId,
         nome: item.nome,
         construtoraId: item.lead.construtoraId,
         empreendimentoId: item.lead.empreendimentoId,
@@ -2352,6 +2358,7 @@ function AnalistaFunilBoard() {
     setDocSaving(true);
     try {
       const created = await createDocumentacao({
+        leadId: docTarget.leadId,
         nome: docTarget.nome,
         construtoraId: docTarget.lead.construtoraId,
         empreendimentoId: docTarget.lead.empreendimentoId,

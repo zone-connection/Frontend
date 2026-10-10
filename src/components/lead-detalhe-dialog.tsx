@@ -33,6 +33,7 @@ import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { DocStatusFunilTags } from "@/components/doc-status1-funil-tag";
 import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -900,9 +901,24 @@ export function LeadDetalheDialog({
                           />
                         </DataField>
                       </div>
-                      {lead.tags.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {lead.tags.map((tag) => (
+                      {lead.documentacaoStatus1 ||
+                      lead.documentacaoStatus2 ||
+                      lead.tags.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                          <DocStatusFunilTags
+                            status1={lead.documentacaoStatus1}
+                            status2={lead.documentacaoStatus2}
+                            className="justify-start"
+                          />
+                          {lead.tags
+                            .filter((tag) => {
+                              const key = tag.trim().toLowerCase();
+                              return (
+                                key !== lead.documentacaoStatus1?.trim().toLowerCase() &&
+                                key !== lead.documentacaoStatus2?.trim().toLowerCase()
+                              );
+                            })
+                            .map((tag) => (
                             <Badge
                               key={tag}
                               className={cn(

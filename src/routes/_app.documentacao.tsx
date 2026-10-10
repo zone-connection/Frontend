@@ -159,6 +159,8 @@ import {
   Wallet,
   Lock,
   LockOpen,
+  UserRound,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -266,6 +268,7 @@ function creditUserLabel(user: { name: string; role?: string | null }) {
 }
 
 type FormState = {
+  leadId: string;
   nome: string;
   construtoraId: string;
   empreendimentoId: string;
@@ -288,6 +291,7 @@ type FormState = {
 };
 
 const emptyForm = (): FormState => ({
+  leadId: "",
   nome: "",
   construtoraId: "",
   empreendimentoId: "",
@@ -582,7 +586,7 @@ function DocumentacaoPage() {
     user?.role === "treinee";
   const canMutateDocs = user?.role === "admin" || user?.role === "analista";
   const canEditDocs = canMutateDocs || user?.role === "gerente";
-  const { assignees } = useLeads();
+  const { assignees, leads, requestLeads } = useLeads();
   const {
     documentacaoFontes,
     documentacaoStatus1,
@@ -1238,6 +1242,7 @@ function DocumentacaoPage() {
     if (!canCreateDoc) return;
     resetCreateForm();
     setCreateLocked(false);
+    requestLeads();
     setOpen(true);
   }
 
@@ -1257,6 +1262,7 @@ function DocumentacaoPage() {
 
   function fillFromDoc(doc: Documentacao) {
     setForm({
+      leadId: doc.leadId ?? "",
       nome: doc.nome,
       construtoraId: doc.construtoraId ?? "",
       empreendimentoId: doc.empreendimentoId ?? "",
@@ -1283,6 +1289,7 @@ function DocumentacaoPage() {
     setFormMode("view");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    requestLeads();
     setOpen(true);
   }
 
@@ -1290,7 +1297,33 @@ function DocumentacaoPage() {
     setFormMode("edit");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    requestLeads();
     setOpen(true);
+  }
+
+  const contatosLead = useMemo(
+    () => leads.filter((item) => item.tipo === "lead"),
+    [leads],
+  );
+  const contatosCliente = useMemo(
+    () => leads.filter((item) => item.tipo === "cliente"),
+    [leads],
+  );
+
+  function applyContato(id: string) {
+    const contact = leads.find((item) => item.id === id);
+    if (!contact) {
+      setField("leadId", id);
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      leadId: contact.id,
+      nome: contact.nome || prev.nome,
+      corretorId: prev.corretorId || contact.corretorId || "",
+      construtoraId: prev.construtoraId || contact.construtoraId || "",
+      empreendimentoId: prev.empreendimentoId || contact.empreendimentoId || "",
+    }));
   }
 
   function buildPayload(): CreateDocumentacaoInput | null {
@@ -1313,6 +1346,7 @@ function DocumentacaoPage() {
       (vgv != null && vgv > 0 ? todayDateInput() : null);
 
     return {
+      ...(form.leadId ? { leadId: form.leadId } : { leadId: null }),
       nome: form.nome.trim(),
       construtoraId: form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
@@ -2686,6 +2720,65 @@ function DocumentacaoPage() {
           <FormDialogBody>
             <FormSection title="Dados da planilha">
               <div className="grid gap-4 sm:grid-cols-2">
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  Vincular um lead ou cliente ativo é opcional. Sem vínculo, a ficha é só o registro.
+                </p>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <UserRound className="size-3.5 text-[#079ED4]" />
+                    Cliente existente
+                    <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </Label>
+                  <IdSearchSelect
+                    value={
+                      contatosCliente.some((item) => item.id === form.leadId)
+                        ? form.leadId
+                        : ""
+                    }
+                    options={contatosCliente.map((item) => ({
+                      id: item.id,
+                      label: item.nome,
+                      keywords: `${item.nome} ${item.telefone} cliente`,
+                    }))}
+                    onChange={(id) => {
+                      if (!id) setField("leadId", "");
+                      else applyContato(id);
+                    }}
+                    placeholder="Sem vínculo"
+                    noneLabel="Sem vínculo"
+                    searchPlaceholder="Pesquisar cliente…"
+                    emptyLabel="Nenhum cliente cadastrado"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Users className="size-3.5 text-[#079ED4]" />
+                    Lead existente
+                    <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </Label>
+                  <IdSearchSelect
+                    value={
+                      contatosLead.some((item) => item.id === form.leadId)
+                        ? form.leadId
+                        : ""
+                    }
+                    options={contatosLead.map((item) => ({
+                      id: item.id,
+                      label: item.nome,
+                      keywords: `${item.nome} ${item.telefone} lead`,
+                    }))}
+                    onChange={(id) => {
+                      if (!id) setField("leadId", "");
+                      else applyContato(id);
+                    }}
+                    placeholder="Sem vínculo"
+                    noneLabel="Sem vínculo"
+                    searchPlaceholder="Pesquisar lead…"
+                    emptyLabel="Nenhum lead cadastrado"
+                    disabled={readOnly}
+                  />
+                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="nome">Nome *</Label>
                   <Input
