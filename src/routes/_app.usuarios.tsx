@@ -442,10 +442,15 @@ function Usuarios() {
   const navigate = useNavigate();
   const session = getSession();
   const isAdmin = session?.role === "admin";
+  const isPlatformAdmin = session?.role === "super_admin";
   const isGerente = session?.role === "gerente";
   const isManager = session ? canViewTeamData(session.role) : false;
   const canCreateBroker =
-    isAdmin || isGerente || session?.role === "analista";
+    isAdmin ||
+    isPlatformAdmin ||
+    isGerente ||
+    session?.role === "analista";
+  const canManageUsers = isAdmin || isPlatformAdmin;
   const canUseAnalista = isAnalistaAllowed(
     session?.tenant?.plano,
     session?.tenant?.modules ?? null,
@@ -522,7 +527,9 @@ function Usuarios() {
         const [page, q, presence] = await Promise.all([
           fetchUsers({ page: 1, limit: 100 }),
           isAdmin ? fetchUsersQuota().catch(() => null) : Promise.resolve(null),
-          fetchUsersPresenceToday().catch(() => [] as UserPresenceToday[]),
+          isPlatformAdmin
+            ? Promise.resolve([] as UserPresenceToday[])
+            : fetchUsersPresenceToday().catch(() => [] as UserPresenceToday[]),
         ]);
         setUsers(() => page.data);
         if (q) setQuota(q);
@@ -541,7 +548,7 @@ function Usuarios() {
         setLoading(false);
       }
     },
-    [setUsers, isAdmin],
+    [setUsers, isAdmin, isPlatformAdmin],
   );
 
   useEffect(() => {
@@ -656,7 +663,11 @@ function Usuarios() {
     setEditingId(null);
     setForm({
       ...emptyForm(),
-      role: isSolo ? "assistente" : "corretor",
+      role: isPlatformAdmin
+        ? "super_admin"
+        : isSolo
+          ? "assistente"
+          : "corretor",
     });
     setUserFormSection("identidade");
     setFormOpen(true);
@@ -697,11 +708,15 @@ function Usuarios() {
       toast.error("Você não tem permissão para cadastrar usuários.");
       return;
     }
-    if (formMode === "edit" && !isAdmin) {
+    if (formMode === "edit" && !canManageUsers) {
       toast.error("Apenas administradores podem editar usuários.");
       return;
     }
-    if (!isAdmin && !isSolo && form.role !== "corretor") {
+    if (isPlatformAdmin && form.role !== "super_admin") {
+      toast.error("Na plataforma só é possível cadastrar super admins.");
+      return;
+    }
+    if (!isPlatformAdmin && !isAdmin && !isSolo && form.role !== "corretor") {
       toast.error("Gerentes e analistas podem cadastrar somente corretores.");
       return;
     }
@@ -926,6 +941,7 @@ function Usuarios() {
   }
 
   const importAllowedRoles = useMemo<Role[]>(() => {
+    if (isPlatformAdmin) return ["super_admin"];
     if (isSolo) return ["assistente"];
     if (!isAdmin) return ["corretor"];
     const roles: Role[] = ["corretor", "treinee"];
@@ -935,6 +951,7 @@ function Usuarios() {
     if (canUseFinanceiro) roles.push("financeiro");
     return roles;
   }, [
+    isPlatformAdmin,
     isAdmin,
     canCreateAdmin,
     canUseGerente,
@@ -1026,7 +1043,9 @@ function Usuarios() {
         description={
           loading
             ? "Carregando usuários..."
-            : isAdmin
+            : isPlatformAdmin
+              ? `Operadores da plataforma — ${filtered.length} super admin(s).`
+              : isAdmin
               ? quota
                 ? `${filtered.length} de ${users.length} · ${quota.usados}/${quota.limite} no plano ${PLANO_LABELS[quota.plano].split(" — ")[0]}`
                 : `${filtered.length} de ${users.length} usuários`
@@ -1045,6 +1064,7 @@ function Usuarios() {
                   if (file) void handleImportFile(file);
                 }}
               />
+              {!isPlatformAdmin ? (
               <Button
                 type="button"
                 size="sm"
@@ -1060,10 +1080,11 @@ function Usuarios() {
                 <Upload className="w-4 h-4 mr-1" />
                 Importar
               </Button>
+              ) : null}
               <Button
                 size="sm"
                 onClick={openCreate}
-                disabled={Boolean(quota && quota.restantes <= 0)}
+                disabled={Boolean(!isPlatformAdmin && quota && quota.restantes <= 0)}
                 title={
                   quota && quota.restantes <= 0
                     ? "Limite do plano atingido"
@@ -1340,13 +1361,14 @@ function Usuarios() {
                             Ver agenda
                           </DropdownMenuItem>
                         )}
-                        {isAdmin && (
+                        {canManageUsers && (
                           <DropdownMenuItem onClick={() => openEdit(u)}>
                             <Pencil className="w-3.5 h-3.5 mr-2" />
                             Editar
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin || (isManager && isCorretorLike(u.role))) && (
+                        {(canManageUsers ||
+                          (isManager && isCorretorLike(u.role))) && (
                           <DropdownMenuItem
                             onClick={() => void handleResetPassword(u)}
                           >
@@ -1365,7 +1387,7 @@ function Usuarios() {
                               Desbloquear 2FA
                             </DropdownMenuItem>
                           )}
-                        {isAdmin && (
+                        {canManageUsers && (
                           <DropdownMenuItem
                             disabled={
                               session?.id === u.id && u.status === "ativo"
@@ -1385,7 +1407,7 @@ function Usuarios() {
                             )}
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin ||
+                        {(canManageUsers ||
                           (isGerente && isCorretorLike(u.role))) && (
                           <>
                             <DropdownMenuSeparator />

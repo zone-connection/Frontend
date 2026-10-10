@@ -345,6 +345,7 @@ const PLATFORM_FECHAMENTO_MODULES: NavLeaf[] = [
 /** Gestão da plataforma (super_admin) — clientes da plataforma e guia. */
 const PLATFORM_GESTAO_MODULES: NavLeaf[] = [
   { to: "/tenants", label: "Clientes", icon: Building2 },
+  { to: "/usuarios", label: "Usuários", icon: UsersRound },
   { to: "/guia", label: "Guia", icon: BookOpen },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
