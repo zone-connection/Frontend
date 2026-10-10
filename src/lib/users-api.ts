@@ -116,6 +116,7 @@ export type ApiUser = {
   permissions?: UserPermissions | null;
   avatar: string | null;
   lastLoginAt: string | null;
+  totpEnabledAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -283,6 +284,10 @@ export async function updateUserStatus(
     method: "PATCH",
     body: { status },
   });
+}
+
+export async function resetUserTwoFactor(id: string): Promise<ApiUser> {
+  return apiFetch<ApiUser>(`/users/${id}/reset-2fa`, { method: "PATCH" });
 }
 
 export async function resetUserPassword(

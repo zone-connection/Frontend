@@ -66,12 +66,29 @@ export interface AuthUser {
   creciStatus?: string | null;
   avatar?: string | null;
   lastLoginAt?: string | null;
+  totpEnabled?: boolean;
   tenant?: TenantBranding | null;
 }
 
 interface LoginResponse {
   user: AuthUser;
   csrfToken?: string;
+  backupCodes?: string[];
+}
+
+export type TotpChallenge = {
+  twoFactor: "code" | "setup";
+  ticket: string;
+};
+
+function applySession(data: LoginResponse): AuthUser {
+  sessionCache.setUser(data.user);
+  storeCsrfToken(data.csrfToken);
+  reiniciarNovidadeAnuncio();
+  lastValidatedAt = Date.now();
+  writeValidatedAt(lastValidatedAt);
+  validatedThisDocument = true;
+  return data.user;
 }
 
 /** Intervalo entre revalidações em background de /auth/me. */
@@ -111,9 +128,9 @@ export async function signIn(
   password: string,
   tenantSlug?: string,
   captchaToken?: string,
-): Promise<AuthUser> {
+): Promise<AuthUser | TotpChallenge> {
   expireReadableCsrfCookies();
-  const data = await apiFetch<LoginResponse>("/auth/login", {
+  const data = await apiFetch<LoginResponse | TotpChallenge>("/auth/login", {
     method: "POST",
     skipAuth: true,
     body: {
@@ -124,13 +141,58 @@ export async function signIn(
     },
   });
 
-  sessionCache.setUser(data.user);
-  storeCsrfToken(data.csrfToken);
-  reiniciarNovidadeAnuncio();
-  lastValidatedAt = Date.now();
-  writeValidatedAt(lastValidatedAt);
-  validatedThisDocument = true;
-  return data.user;
+  if ("twoFactor" in data && data.twoFactor) {
+    return data;
+  }
+  return applySession(data);
+}
+
+export async function completeTotpLogin(
+  ticket: string,
+  code: string,
+): Promise<AuthUser> {
+  const data = await apiFetch<LoginResponse>("/auth/login/2fa", {
+    method: "POST",
+    skipAuth: true,
+    body: { ticket, code },
+  });
+  return applySession(data);
+}
+
+export async function startTotpSetup(ticket: string): Promise<{
+  otpauthUrl: string;
+  qrDataUrl: string;
+}> {
+  return apiFetch("/auth/2fa/setup", {
+    method: "POST",
+    skipAuth: true,
+    body: { ticket },
+  });
+}
+
+export async function enableTotp(
+  ticket: string,
+  code: string,
+): Promise<{ user: AuthUser; backupCodes: string[] }> {
+  const data = await apiFetch<LoginResponse>("/auth/2fa/enable", {
+    method: "POST",
+    skipAuth: true,
+    body: { ticket, code },
+  });
+  return {
+    user: applySession(data),
+    backupCodes: data.backupCodes ?? [],
+  };
+}
+
+export async function regenerateTotpBackupCodes(
+  code: string,
+): Promise<string[]> {
+  const data = await apiFetch<{ backupCodes: string[] }>(
+    "/auth/2fa/backup-codes",
+    { method: "POST", body: { code } },
+  );
+  return data.backupCodes;
 }
 
 export async function signOut(): Promise<void> {
