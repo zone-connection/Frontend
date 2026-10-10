@@ -1587,7 +1587,7 @@ export function ComercialFunilBoard({
                       <DocStatusFunilTags
                         status1={l.documentacaoStatus1}
                         status2={l.documentacaoStatus2}
-                        className="justify-start"
+                        layout="split"
                       />
                     </div>
                     {isOrphanColumn && (

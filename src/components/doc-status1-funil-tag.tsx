@@ -34,19 +34,39 @@ export function DocStatusFunilTags({
   status1,
   status2,
   className,
+  layout = "wrap",
 }: {
   status1?: string | null;
   status2?: string | null;
   className?: string;
+  /** No card do funil, duas colunas iguais evitam quebra irregular. */
+  layout?: "wrap" | "split";
 }) {
   const first = status1?.trim();
   const second = status2?.trim();
   if (!first && !second) return null;
+  const split = layout === "split";
+  const chipClass = split ? "min-w-0 w-full justify-center" : undefined;
   return (
-    <div className={cn("flex max-w-full flex-wrap justify-end gap-1", className)}>
-      <DocStatus1FunilTag status1={first} titlePrefix="Documentação · Status 1" />
+    <div
+      className={cn(
+        split
+          ? "grid w-full grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-1"
+          : "flex max-w-full flex-wrap justify-end gap-1",
+        className,
+      )}
+    >
+      <DocStatus1FunilTag
+        status1={first}
+        titlePrefix="Documentação · Status 1"
+        className={chipClass}
+      />
       {second && second.toLowerCase() !== first?.toLowerCase() ? (
-        <DocStatus1FunilTag status1={second} titlePrefix="Documentação · Status 2" />
+        <DocStatus1FunilTag
+          status1={second}
+          titlePrefix="Documentação · Status 2"
+          className={chipClass}
+        />
       ) : null}
     </div>
   );
