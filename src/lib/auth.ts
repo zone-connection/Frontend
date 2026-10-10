@@ -81,7 +81,20 @@ export type TotpChallenge = {
   ticket: string;
 };
 
+export function isTotpChallenge(value: unknown): value is TotpChallenge {
+  if (!value || typeof value !== "object") return false;
+  const row = value as TotpChallenge;
+  return (
+    (row.twoFactor === "code" || row.twoFactor === "setup") &&
+    typeof row.ticket === "string" &&
+    row.ticket.length > 0
+  );
+}
+
 function applySession(data: LoginResponse): AuthUser {
+  if (!data?.user?.name) {
+    throw new Error("Resposta de login inválida.");
+  }
   sessionCache.setUser(data.user);
   storeCsrfToken(data.csrfToken);
   reiniciarNovidadeAnuncio();
@@ -141,10 +154,10 @@ export async function signIn(
     },
   });
 
-  if ("twoFactor" in data && data.twoFactor) {
+  if (isTotpChallenge(data)) {
     return data;
   }
-  return applySession(data);
+  return applySession(data as LoginResponse);
 }
 
 export async function completeTotpLogin(

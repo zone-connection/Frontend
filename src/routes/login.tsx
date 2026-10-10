@@ -18,6 +18,7 @@ import { ApiError } from "@/lib/api";
 import {
   completeTotpLogin,
   enableTotp,
+  isTotpChallenge,
   signIn,
   startTotpSetup,
   type AuthUser,
@@ -222,7 +223,8 @@ function LoginPage() {
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
 
   function finishWelcome(user: AuthUser) {
-    toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+    const firstName = user.name?.trim().split(" ")[0] || "admin";
+    toast.success(`Bem-vindo(a), ${firstName}!`);
     navigate({ to: defaultRouteForRole(user.role, user) });
   }
 
@@ -276,7 +278,7 @@ function LoginPage() {
         undefined,
         captchaToken ?? undefined,
       );
-      if ("twoFactor" in result) {
+      if (isTotpChallenge(result)) {
         setChallenge(result);
         if (result.twoFactor === "setup") {
           try {
