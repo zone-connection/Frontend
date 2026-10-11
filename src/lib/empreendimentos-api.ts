@@ -40,6 +40,7 @@ export type Empreendimento = {
   imagens: string[];
   externalKey: string;
   ativo: boolean;
+  visivelNoSite: boolean;
   oruloBuildingId?: number | null;
   oruloStatus?: string | null;
   oruloSyncedAt?: string | null;
@@ -140,6 +141,7 @@ export type UpdateEmpreendimentoInput = {
   areaM2?: number | null;
   externalUrl?: string | null;
   ativo?: boolean;
+  visivelNoSite?: boolean;
   vitrine?: EmpreendimentoVitrine | null;
 };
 

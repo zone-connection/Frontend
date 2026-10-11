@@ -47,6 +47,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ApiError } from "@/lib/api";
@@ -838,6 +839,31 @@ export function ImoveisPage({
   function openUnidadeCreate() {
     setKindPickOpen(false);
     setUnidadeCreateTick((n) => n + 1);
+  }
+
+  async function toggleVisivelNoSite(item: Empreendimento, next: boolean) {
+    if (!isAdmin) return;
+    try {
+      const updated = await updateEmpreendimento(item.id, {
+        visivelNoSite: next,
+      });
+      setItems((rows) =>
+        rows.map((row) =>
+          row.id === item.id
+            ? { ...row, visivelNoSite: updated.visivelNoSite }
+            : row,
+        ),
+      );
+      toast.success(
+        next ? "Empreendimento visível no site." : "Empreendimento oculto do site.",
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar a visibilidade no site.",
+      );
+    }
   }
 
   async function openEdit(item: Empreendimento) {
@@ -2033,6 +2059,11 @@ export function ImoveisPage({
                     Renda a partir de
                   </ImoveisTableHead>
                 ) : null}
+                {isAdmin ? (
+                  <ImoveisTableHead className="w-28 text-center">
+                    Site
+                  </ImoveisTableHead>
+                ) : null}
                 <ImoveisTableHead className="w-28 text-right">
                   Ações
                 </ImoveisTableHead>
@@ -2182,6 +2213,17 @@ export function ImoveisPage({
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                    ) : null}
+                    {isAdmin ? (
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={item.visivelNoSite !== false}
+                          onCheckedChange={(checked) =>
+                            void toggleVisivelNoSite(item, checked)
+                          }
+                          aria-label="Exibir no site"
+                        />
                       </TableCell>
                     ) : null}
                     <TableCell className="text-right">
@@ -2474,6 +2516,17 @@ export function ImoveisPage({
                   <p className="text-xs text-muted-foreground">
                     {item.construtora.nome}
                   </p>
+                ) : null}
+                {isAdmin ? (
+                  <label className="mt-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Switch
+                      checked={item.visivelNoSite !== false}
+                      onCheckedChange={(checked) =>
+                        void toggleVisivelNoSite(item, checked)
+                      }
+                    />
+                    Exibir no site
+                  </label>
                 ) : null}
               </CardHeader>
               <CardContent className="space-y-3">

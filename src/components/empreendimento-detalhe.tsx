@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { brl } from "@/lib/crm-types";
 import {
   empreendimentoImagens,
@@ -10,6 +11,7 @@ import {
   empreendimentoShareUrl,
   empreendimentoStatusLabel,
   empreendimentoTipoLabel,
+  updateEmpreendimento,
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { tipologiasVisiveis } from "@/lib/empreendimento-tipologias";
@@ -118,12 +120,18 @@ function show(modo: ModoFicha, hasValue: boolean) {
 }
 
 export function EmpreendimentoDetalhe({
-  item,
+  item: initial,
   comercial,
 }: {
   item: Empreendimento;
   comercial: OruloComercial | null;
 }) {
+  const [item, setItem] = useState(initial);
+  const [savingSite, setSavingSite] = useState(false);
+  const isAdmin = getSession()?.role === "admin";
+  useEffect(() => {
+    setItem(initial);
+  }, [initial]);
   const covers = empreendimentoImagens(item);
   const [photo, setPhoto] = useState(0);
   const [modo, setModo] = useState<ModoFicha>("completa");
@@ -363,6 +371,35 @@ export function EmpreendimentoDetalhe({
               />
             ))}
           </div>
+          {isAdmin ? (
+            <label className="flex items-center gap-2 rounded-full border border-border/80 bg-card px-3 py-1.5 text-xs font-medium">
+              <Switch
+                checked={item.visivelNoSite !== false}
+                disabled={savingSite}
+                onCheckedChange={(checked) => {
+                  setSavingSite(true);
+                  void updateEmpreendimento(item.id, { visivelNoSite: checked })
+                    .then((next) => {
+                      setItem(next);
+                      toast.success(
+                        checked
+                          ? "Empreendimento visível no site."
+                          : "Empreendimento oculto do site.",
+                      );
+                    })
+                    .catch((err) => {
+                      toast.error(
+                        err instanceof ApiError
+                          ? err.message
+                          : "Não foi possível atualizar a visibilidade no site.",
+                      );
+                    })
+                    .finally(() => setSavingSite(false));
+                }}
+              />
+              <span>Exibir no site</span>
+            </label>
+          ) : null}
           <Button type="button" size="sm" className="rounded-full" onClick={() => void compartilhar()}>
             <Share2 className="mr-1.5 h-4 w-4" />
             Compartilhar
