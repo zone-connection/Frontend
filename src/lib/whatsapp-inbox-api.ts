@@ -44,14 +44,34 @@ function chatPath(chatId: string) {
   return encodeURIComponent(chatId);
 }
 
-const MSG_CACHE_PREFIX = "crm-whatsapp-inbox-msgs:";
+const MSG_CACHE_PREFIX = "crm-whatsapp-inbox-msgs-v2:";
+
+export function unwrapWhatsappMediaUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url, "https://www.zoneconnection.com.br");
+    if (!parsed.pathname.includes("/whatsapp/media")) return url;
+    const inner = parsed.searchParams.get("url");
+    if (inner && /^https?:\/\//i.test(inner)) return inner;
+  } catch {
+    /* ignore */
+  }
+  return url;
+}
+
+function withUnwrappedMedia(messages: WhatsappInboxMessage[]) {
+  return messages.map((message) => ({
+    ...message,
+    mediaUrl: unwrapWhatsappMediaUrl(message.mediaUrl),
+  }));
+}
 
 export function readWhatsappMessagesCache(chatId: string) {
   try {
     const raw = sessionStorage.getItem(`${MSG_CACHE_PREFIX}${chatId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as WhatsappInboxMessage[];
-    return Array.isArray(parsed) ? parsed : null;
+    return Array.isArray(parsed) ? withUnwrappedMedia(parsed) : null;
   } catch {
     return null;
   }
@@ -72,11 +92,15 @@ export function writeWhatsappMessagesCache(
 }
 
 export async function fetchWhatsappInboxMessages(chatId: string) {
-  return apiFetch<{
+  const result = await apiFetch<{
     available: boolean;
     chatId: string;
     messages: WhatsappInboxMessage[];
   }>(`/whatsapp/chats/${chatPath(chatId)}/messages`);
+  return {
+    ...result,
+    messages: withUnwrappedMedia(result.messages ?? []),
+  };
 }
 
 export async function sendWhatsappInboxMessage(chatId: string, content: string) {

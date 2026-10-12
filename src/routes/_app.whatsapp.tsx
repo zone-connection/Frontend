@@ -24,6 +24,7 @@ import {
   readWhatsappMessagesCache,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
+  unwrapWhatsappMediaUrl,
   writeWhatsappMessagesCache,
   type WhatsappBubbleKind,
   type WhatsappInboxChat,
@@ -64,8 +65,11 @@ function formatWhen(at: string | null) {
 }
 
 function mediaSrc(url: string, type: "audio" | "image") {
-  if (!url.includes("/api/whatsapp/media")) return url;
-  return url.includes("?") ? `${url}&type=${type}` : `${url}?type=${type}`;
+  const unwrapped = unwrapWhatsappMediaUrl(url) ?? url;
+  if (!unwrapped.includes("/whatsapp/media")) return unwrapped;
+  return unwrapped.includes("?")
+    ? `${unwrapped}&type=${type}`
+    : `${unwrapped}?type=${type}`;
 }
 
 function bubbleMeta(kind: WhatsappBubbleKind) {
@@ -467,7 +471,12 @@ function WhatsappInboxPage() {
                               controls
                               preload="metadata"
                               src={mediaSrc(msg.mediaUrl, "audio")}
-                            />
+                            >
+                              <source
+                                src={mediaSrc(msg.mediaUrl, "audio")}
+                                type="audio/ogg"
+                              />
+                            </audio>
                           ) : null}
                           {msg.mediaUrl &&
                           msg.mediaType &&
