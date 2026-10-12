@@ -48,13 +48,17 @@ const MSG_CACHE_PREFIX = "crm-whatsapp-inbox-msgs-v2:";
 
 export function unwrapWhatsappMediaUrl(url: string | null): string | null {
   if (!url) return null;
-  try {
-    const parsed = new URL(url, "https://www.zoneconnection.com.br");
-    if (!parsed.pathname.includes("/whatsapp/media")) return url;
-    const inner = parsed.searchParams.get("url");
-    if (inner && /^https?:\/\//i.test(inner)) return inner;
-  } catch {
-    /* ignore */
+  const match = /[?&]url=([^&]+)/.exec(url);
+  if (match?.[1]) {
+    try {
+      let inner = match[1];
+      for (let i = 0; i < 2; i += 1) {
+        if (/%[0-9A-Fa-f]{2}/.test(inner)) inner = decodeURIComponent(inner);
+      }
+      if (/^https?:\/\//i.test(inner)) return inner;
+    } catch {
+      /* ignore */
+    }
   }
   return url;
 }
@@ -89,6 +93,13 @@ export function writeWhatsappMessagesCache(
   } catch {
     /* ignore */
   }
+}
+
+export async function transcribeWhatsappAudio(url: string) {
+  return apiFetch<{ text: string }>("/whatsapp/media/transcribe", {
+    method: "POST",
+    body: { url: unwrapWhatsappMediaUrl(url) ?? url },
+  });
 }
 
 export async function fetchWhatsappInboxMessages(chatId: string) {

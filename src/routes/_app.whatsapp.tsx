@@ -24,6 +24,7 @@ import {
   readWhatsappMessagesCache,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
+  transcribeWhatsappAudio,
   unwrapWhatsappMediaUrl,
   writeWhatsappMessagesCache,
   type WhatsappBubbleKind,
@@ -64,12 +65,51 @@ function formatWhen(at: string | null) {
   });
 }
 
-function mediaSrc(url: string, type: "audio" | "image") {
-  const unwrapped = unwrapWhatsappMediaUrl(url) ?? url;
-  if (!unwrapped.includes("/whatsapp/media")) return unwrapped;
-  return unwrapped.includes("?")
-    ? `${unwrapped}&type=${type}`
-    : `${unwrapped}?type=${type}`;
+function mediaSrc(url: string) {
+  return unwrapWhatsappMediaUrl(url) ?? url;
+}
+
+function AudioBubble({ url }: { url: string }) {
+  const src = mediaSrc(url);
+  const [text, setText] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+
+  async function transcribe() {
+    if (working) return;
+    setWorking(true);
+    try {
+      const result = await transcribeWhatsappAudio(src);
+      setText(result.text?.trim() || "Não foi possível entender o áudio.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível transcrever o áudio."));
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <div className="mt-1 space-y-1.5">
+      <audio className="w-full max-w-xs" controls preload="metadata" src={src}>
+        <source src={src} type="audio/ogg" />
+      </audio>
+      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <a href={src} target="_blank" rel="noreferrer" className="underline">
+          Abrir áudio
+        </a>
+        <button
+          type="button"
+          className="underline"
+          onClick={() => void transcribe()}
+          disabled={working}
+        >
+          {working ? "Transcrevendo…" : "Transcrever"}
+        </button>
+      </div>
+      {text ? (
+        <p className="whitespace-pre-wrap break-words text-xs opacity-90">{text}</p>
+      ) : null}
+    </div>
+  );
 }
 
 function bubbleMeta(kind: WhatsappBubbleKind) {
@@ -453,30 +493,20 @@ function WhatsappInboxPage() {
                           </p>
                           {msg.mediaUrl && msg.mediaType === "image" ? (
                             <a
-                              href={msg.mediaUrl}
+                              href={mediaSrc(msg.mediaUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className="mt-1 block"
                             >
                               <img
-                                src={msg.mediaUrl}
+                                src={mediaSrc(msg.mediaUrl)}
                                 alt=""
                                 className="max-h-56 rounded-lg"
                               />
                             </a>
                           ) : null}
                           {msg.mediaType === "audio" && msg.mediaUrl ? (
-                            <audio
-                              className="mt-1 w-full max-w-xs"
-                              controls
-                              preload="metadata"
-                              src={mediaSrc(msg.mediaUrl, "audio")}
-                            >
-                              <source
-                                src={mediaSrc(msg.mediaUrl, "audio")}
-                                type="audio/ogg"
-                              />
-                            </audio>
+                            <AudioBubble url={msg.mediaUrl} />
                           ) : null}
                           {msg.mediaUrl &&
                           msg.mediaType &&
