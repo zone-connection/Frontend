@@ -33,6 +33,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/guia",
     "/dashboard",
     "/leads",
+    "/whatsapp",
     "/caca-lead",
     "/funil",
     "/agenda",
@@ -55,6 +56,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/whatsapp",
     "/caca-lead",
     "/funil",
     "/funil-clientes",
@@ -88,6 +90,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/whatsapp",
     "/caca-lead",
     "/funil",
     "/funil-clientes",
@@ -117,6 +120,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   corretor: [
     "/dashboard",
     "/leads",
+    "/whatsapp",
     "/caca-lead",
     "/funil",
     "/funil-clientes",
@@ -172,6 +176,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   treinee: [
     "/dashboard",
     "/leads",
+    "/whatsapp",
     "/caca-lead",
     "/funil",
     "/funil-clientes",
@@ -202,6 +207,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
 const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/dashboard",
   "/leads",
+  "/whatsapp",
   "/caca-lead",
   "/funil",
   "/agenda",
@@ -238,6 +244,9 @@ export function canAccessRoute(
   }
   if (path === "/novidades") return true;
   if (path === "/caca-lead") return true;
+  if (path === "/whatsapp") {
+    return canAccessRoute(role, "/leads", modules, plano, userPermissions);
+  }
   if (path === "/orulo-oauth-callback") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;

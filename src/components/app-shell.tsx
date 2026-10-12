@@ -52,6 +52,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao } from "@/lib/permissions";
@@ -223,6 +224,7 @@ const OPERACOES: {
     icon: Briefcase,
     prefixes: [
       "/leads",
+      "/whatsapp",
       "/caca-lead",
       "/funil",
       "/funil-clientes",
@@ -234,6 +236,7 @@ const OPERACOES: {
     ],
     items: [
       { to: "/leads", label: "Leads", icon: Users },
+      { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
       { to: "/funil", label: "Funil", icon: Funnel },
@@ -331,6 +334,7 @@ const FINANCEIRO_MODULES: NavLeaf[] = [
 /** Operação da plataforma (super_admin). */
 const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
   { to: "/leads", label: "Leads", icon: Users },
+  { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
   { to: "/funil", label: "Funil", icon: Funnel },
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/metas", label: "Metas", icon: Target },
@@ -408,6 +412,7 @@ const NAV_SECTIONS: {
     icon: Briefcase,
     items: [
       { to: "/leads", label: "Leads", icon: Users },
+      { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
       { to: "/funil", label: "Funil", icon: Funnel },

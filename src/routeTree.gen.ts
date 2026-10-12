@@ -57,6 +57,7 @@ import { Route as AppTreinamentoRouteImport } from './routes/_app.treinamento'
 import { Route as AppTriagemRouteImport } from './routes/_app.triagem'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
+import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as ParceirosIndexRouteImport } from './routes/parceiros.index'
 import { Route as ParceirosImoveisRouteImport } from './routes/parceiros.imoveis'
 import { Route as ParceirosLoginRouteImport } from './routes/parceiros.login'
@@ -357,6 +358,11 @@ const AppUsuariosRoute = AppUsuariosRouteImport.update({
 const AppVendasRoute = AppVendasRouteImport.update({
   id: '/vendas',
   path: '/vendas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWhatsappRoute = AppWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
   getParentRoute: () => AppRoute,
 } as any)
 const ParceirosIndexRoute = ParceirosIndexRouteImport.update({
@@ -737,6 +743,7 @@ export interface FileRoutesByFullPath {
   '/triagem': typeof AppTriagemRoute
   '/usuarios': typeof AppUsuariosRoute
   '/vendas': typeof AppVendasRoute
+  '/whatsapp': typeof AppWhatsappRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -846,6 +853,7 @@ export interface FileRoutesByTo {
   '/triagem': typeof AppTriagemRoute
   '/usuarios': typeof AppUsuariosRoute
   '/vendas': typeof AppVendasRoute
+  '/whatsapp': typeof AppWhatsappRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -954,6 +962,7 @@ export interface FileRoutesById {
   '/_app/triagem': typeof AppTriagemRoute
   '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/vendas': typeof AppVendasRoute
+  '/_app/whatsapp': typeof AppWhatsappRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -1067,6 +1076,7 @@ export interface FileRouteTypes {
     | '/triagem'
     | '/usuarios'
     | '/vendas'
+    | '/whatsapp'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1176,6 +1186,7 @@ export interface FileRouteTypes {
     | '/triagem'
     | '/usuarios'
     | '/vendas'
+    | '/whatsapp'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1283,6 +1294,7 @@ export interface FileRouteTypes {
     | '/_app/triagem'
     | '/_app/usuarios'
     | '/_app/vendas'
+    | '/_app/whatsapp'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1701,6 +1713,13 @@ declare module '@tanstack/react-router' {
       path: '/vendas'
       fullPath: '/vendas'
       preLoaderRoute: typeof AppVendasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/whatsapp': {
+      id: '/_app/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AppWhatsappRouteImport
       parentRoute: typeof AppRoute
     }
     '/parceiros/': {
@@ -2339,6 +2358,7 @@ interface AppRouteChildren {
   AppTriagemRoute: typeof AppTriagemRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
   AppVendasRoute: typeof AppVendasRoute
+  AppWhatsappRoute: typeof AppWhatsappRoute
   AppImoveisIdRoute: typeof AppImoveisIdRoute
 }
 
@@ -2383,6 +2403,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTriagemRoute: AppTriagemRoute,
   AppUsuariosRoute: AppUsuariosRoute,
   AppVendasRoute: AppVendasRoute,
+  AppWhatsappRoute: AppWhatsappRoute,
   AppImoveisIdRoute: AppImoveisIdRoute,
 }
 
