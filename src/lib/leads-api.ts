@@ -647,7 +647,8 @@ export type LeadWhatsappMessage = {
 
 export type LeadWhatsappChat = {
   available: boolean;
-  reason?: "not_linked" | "not_configured";
+  reason?: "not_linked" | "not_configured" | "ozap_error";
+  error?: string;
   chatId: string | null;
   messages: LeadWhatsappMessage[];
 };

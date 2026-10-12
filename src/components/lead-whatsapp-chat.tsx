@@ -48,9 +48,10 @@ export function LeadWhatsappChat({
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
   const [available, setAvailable] = useState(true);
-  const [reason, setReason] = useState<"not_linked" | "not_configured" | null>(
-    null,
-  );
+  const [reason, setReason] = useState<
+    "not_linked" | "not_configured" | "ozap_error" | null
+  >(null);
+  const [ozapError, setOzapError] = useState<string | null>(null);
   const [messages, setMessages] = useState<LeadWhatsappMessage[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -60,6 +61,7 @@ export function LeadWhatsappChat({
       const chat = await fetchLeadWhatsappChat(leadId);
       setAvailable(chat.available);
       setReason(chat.reason ?? null);
+      setOzapError(chat.error ?? null);
       setMessages(chat.messages);
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível carregar o WhatsApp."));
@@ -77,6 +79,7 @@ export function LeadWhatsappChat({
         if (cancelled) return;
         setAvailable(chat.available);
         setReason(chat.reason ?? null);
+        setOzapError(chat.error ?? null);
         setMessages(chat.messages);
       })
       .catch((err) => {
@@ -127,7 +130,10 @@ export function LeadWhatsappChat({
       <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
         {reason === "not_configured"
           ? "A integração com o OZap ainda não está configurada no servidor."
-          : "Este lead ainda não tem conversa da IA no WhatsApp. Quando o bot atender, o histórico aparece aqui."}
+          : reason === "ozap_error"
+            ? ozapError ??
+              "O OZap recusou a leitura do chat. Confira a API Key e a instância."
+            : "Este lead ainda não tem conversa da IA no WhatsApp. Quando o bot atender, o histórico aparece aqui."}
       </div>
     );
   }
