@@ -28,12 +28,16 @@ export type WhatsappInboxChat = {
   leadNome: string | null;
 };
 
-export async function fetchWhatsappInboxChats() {
+export async function fetchWhatsappInboxChats(page = 1, limit = 50) {
   return apiFetch<{
     available: boolean;
     instanceId: number;
+    page: number;
+    limit: number;
+    total: number | null;
+    hasMore: boolean;
     chats: WhatsappInboxChat[];
-  }>("/whatsapp/chats");
+  }>(`/whatsapp/chats?page=${page}&limit=${limit}`);
 }
 
 function chatPath(chatId: string) {

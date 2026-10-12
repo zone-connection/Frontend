@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Loader2, Pause, Play, RefreshCw, Search, Send } from "lucide-react";
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pause,
+  Play,
+  RefreshCw,
+  Search,
+  Send,
+} from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -67,11 +77,15 @@ function WhatsappInboxPage() {
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
   const [chats, setChats] = useState<WhatsappInboxChat[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<WhatsappInboxMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const loadGen = useRef(0);
+  const pageSize = 50;
   const cacheKey = "crm-whatsapp-inbox-chats";
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
@@ -84,14 +98,25 @@ function WhatsappInboxPage() {
     });
   }
 
-  async function loadChats() {
+  async function loadChats(nextPage = page) {
     if (chats.length === 0) setLoading(true);
     try {
-      const result = await fetchWhatsappInboxChats();
+      const result = await fetchWhatsappInboxChats(nextPage, pageSize);
       const next = sortChats(result.chats);
       setChats(next);
+      setPage(result.page);
+      setHasMore(result.hasMore);
+      setTotal(result.total);
       try {
-        sessionStorage.setItem(cacheKey, JSON.stringify(next));
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            chats: next,
+            page: result.page,
+            hasMore: result.hasMore,
+            total: result.total,
+          }),
+        );
       } catch {
         /* ignore */
       }
@@ -130,16 +155,29 @@ function WhatsappInboxPage() {
     try {
       const raw = sessionStorage.getItem(cacheKey);
       if (raw) {
-        const cached = JSON.parse(raw) as WhatsappInboxChat[];
-        if (Array.isArray(cached) && cached.length > 0) {
-          setChats(sortChats(cached));
+        const cached = JSON.parse(raw) as
+          | WhatsappInboxChat[]
+          | {
+              chats: WhatsappInboxChat[];
+              page: number;
+              hasMore: boolean;
+              total: number | null;
+            };
+        const list = Array.isArray(cached) ? cached : cached.chats;
+        if (Array.isArray(list) && list.length > 0) {
+          setChats(sortChats(list));
+          if (!Array.isArray(cached)) {
+            setPage(cached.page || 1);
+            setHasMore(Boolean(cached.hasMore));
+            setTotal(cached.total ?? null);
+          }
           setLoading(false);
         }
       }
     } catch {
       /* ignore */
     }
-    void loadChats();
+    void loadChats(1);
   }, []);
 
   useEffect(() => {
@@ -237,7 +275,7 @@ function WhatsappInboxPage() {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => void loadChats()}
+              onClick={() => void loadChats(page)}
               disabled={loading}
             >
               {loading ? (
@@ -292,6 +330,35 @@ function WhatsappInboxPage() {
                 </button>
               ))
             )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between gap-1 border-t px-2 py-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={loading || page <= 1}
+              onClick={() => void loadChats(page - 1)}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <p className="min-w-0 truncate text-center text-[11px] text-muted-foreground">
+              {total
+                ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total}`
+                : `Página ${page}`}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={loading || !hasMore}
+              onClick={() => void loadChats(page + 1)}
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </aside>
 
