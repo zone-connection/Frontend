@@ -32,7 +32,16 @@ import {
   type WhatsappInboxMessage,
 } from "@/lib/whatsapp-inbox-api";
 import { cn } from "@/lib/utils";
-import chatBg from "@/assets/whatsapp-chat-bg.jpg";
+import chatBgDark from "@/assets/whatsapp-chat-bg.jpg";
+import chatBgLight from "@/assets/whatsapp-chat-bg-light.jpg";
+
+const chatPaneClass =
+  "bg-[#f4f9fd] bg-repeat bg-[image:var(--chat-bg)] dark:bg-[#061428] dark:bg-[image:var(--chat-bg-dark)]";
+const chatPaneVars = {
+  ["--chat-bg" as string]: `url(${chatBgLight})`,
+  ["--chat-bg-dark" as string]: `url(${chatBgDark})`,
+  backgroundSize: "420px auto",
+};
 
 export const Route = createFileRoute("/_app/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Zone Connection" }] }),
@@ -319,9 +328,9 @@ function WhatsappInboxPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-card grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col overflow-hidden border-b lg:border-b-0 lg:border-r">
-          <div className="flex shrink-0 items-center gap-2 border-b p-3">
+      <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04] grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col overflow-hidden border-b bg-primary/[0.03] lg:border-b-0 lg:border-r">
+          <div className="flex shrink-0 items-center gap-2 border-b bg-primary/[0.04] p-3">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -392,7 +401,7 @@ function WhatsappInboxPage() {
               ))
             )}
           </div>
-          <div className="flex shrink-0 items-center justify-between gap-1 border-t px-2 py-1.5">
+          <div className="flex shrink-0 items-center justify-between gap-1 border-t bg-primary/[0.04] px-2 py-1.5">
             <Button
               type="button"
               variant="ghost"
@@ -426,7 +435,7 @@ function WhatsappInboxPage() {
         <section className="flex min-h-0 flex-col overflow-hidden">
           {active ? (
             <>
-              <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-primary/[0.04] px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {active.leadNome || active.name}
@@ -466,11 +475,11 @@ function WhatsappInboxPage() {
               </header>
               <div
                 ref={scroller}
-                className="min-h-0 flex-1 overflow-y-auto bg-[#061428] bg-repeat p-4 [scrollbar-width:thin]"
-                style={{
-                  backgroundImage: `url(${chatBg})`,
-                  backgroundSize: "420px auto",
-                }}
+                className={cn(
+                  "min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-width:thin]",
+                  chatPaneClass,
+                )}
+                style={chatPaneVars}
               >
                 {loadingMsgs && messages.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
@@ -554,7 +563,7 @@ function WhatsappInboxPage() {
                 )}
               </div>
               <form
-                className="flex shrink-0 items-end gap-2 border-t bg-card p-3"
+                className="flex shrink-0 items-end gap-2 border-t bg-primary/[0.04] p-3"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void send();
@@ -589,11 +598,11 @@ function WhatsappInboxPage() {
             </>
           ) : (
             <div
-              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-[#061428] bg-repeat p-8 text-center text-sm text-white/80"
-              style={{
-                backgroundImage: `url(${chatBg})`,
-                backgroundSize: "420px auto",
-              }}
+              className={cn(
+                "flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-sm text-muted-foreground dark:text-white/80",
+                chatPaneClass,
+              )}
+              style={chatPaneVars}
             >
               <FaWhatsapp className="h-10 w-10 text-primary" />
               <p>Selecione uma conversa à esquerda.</p>
