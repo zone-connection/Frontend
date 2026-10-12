@@ -30,8 +30,14 @@ function formatWhen(at: string | null) {
 }
 
 function bubbleLabel(msg: LeadWhatsappMessage) {
-  if (msg.direction === "in") return "Cliente";
-  if (msg.source === "ai" || msg.source === "bot" || msg.source === "agent") {
+  if (msg.direction === "in" || msg.source === "lead_message") return "Cliente";
+  if (
+    msg.source === "ai" ||
+    msg.source === "bot" ||
+    msg.source === "agent" ||
+    msg.source === "ai_message" ||
+    msg.source === "follow_up"
+  ) {
     return "IA";
   }
   return "CRM";
