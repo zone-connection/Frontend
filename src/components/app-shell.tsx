@@ -621,7 +621,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isTriagem = pathname === "/triagem";
-  const lockPageScroll = isTriagem || pathname === "/mural-chaves";
+  const lockWhatsapp = pathname === "/whatsapp";
+  const lockPageScroll =
+    isTriagem || pathname === "/mural-chaves" || lockWhatsapp;
 
   useEffect(() => {
     const sync = () => setUser(getSession());
@@ -1813,7 +1815,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         "flex w-full bg-background",
-        lockPageScroll ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden" : "min-h-screen",
+        lockWhatsapp
+          ? "h-dvh overflow-hidden"
+          : lockPageScroll
+            ? "max-lg:min-h-screen lg:h-dvh lg:overflow-hidden"
+            : "min-h-screen",
       )}
       style={{ ["--app-sidebar" as string]: collapsed ? "4rem" : "15rem" }}
     >
@@ -1943,7 +1949,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col",
-          lockPageScroll && "lg:min-h-0",
+          lockWhatsapp && "min-h-0 overflow-hidden",
+          lockPageScroll && !lockWhatsapp && "lg:min-h-0",
         )}
       >
         <header className="h-14 border-b bg-card/90 backdrop-blur sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 min-w-0 shrink-0">
@@ -2093,7 +2100,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             "max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6",
+            lockWhatsapp &&
+              "flex min-h-0 flex-1 flex-col overflow-hidden",
             lockPageScroll &&
+              !lockWhatsapp &&
               "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
           )}
         >

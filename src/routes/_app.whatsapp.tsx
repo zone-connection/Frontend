@@ -206,14 +206,16 @@ function WhatsappInboxPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <PageHeader
-        title="WhatsApp"
-        description="Conversas do número da imobiliária. Ao responder, a IA pausa nesta conversa."
-      />
-      <div className="grid min-h-[32rem] flex-1 overflow-hidden rounded-2xl border bg-card lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col border-b lg:border-b-0 lg:border-r">
-          <div className="flex items-center gap-2 border-b p-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <div className="shrink-0 [&_[data-guia=page-header]]:mb-0">
+        <PageHeader
+          title="WhatsApp"
+          description="Conversas do número da imobiliária. Ao responder, a IA pausa nesta conversa."
+        />
+      </div>
+      <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-card grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col overflow-hidden border-b lg:border-b-0 lg:border-r">
+          <div className="flex shrink-0 items-center gap-2 border-b p-3">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -286,10 +288,10 @@ function WhatsappInboxPage() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-1 flex-col">
+        <section className="flex min-h-0 flex-col overflow-hidden">
           {active ? (
             <>
-              <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {active.leadNome || active.name}
@@ -328,7 +330,7 @@ function WhatsappInboxPage() {
               </header>
               <div
                 ref={scroller}
-                className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/20 p-4 [scrollbar-width:thin]"
+                className="min-h-0 flex-1 overflow-y-auto bg-[#efeae2] p-4 [scrollbar-width:thin] dark:bg-muted/40"
               >
                 {loadingMsgs ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
@@ -339,7 +341,8 @@ function WhatsappInboxPage() {
                     Nenhuma mensagem neste chat.
                   </p>
                 ) : (
-                  messages.map((msg) => {
+                  <div className="mt-auto flex min-h-full flex-col justify-end gap-2">
+                  {messages.map((msg) => {
                     const meta = bubbleMeta(msg.kind);
                     return (
                       <div
@@ -407,11 +410,12 @@ function WhatsappInboxPage() {
                         </div>
                       </div>
                     );
-                  })
+                  })}
+                  </div>
                 )}
               </div>
               <form
-                className="flex items-end gap-2 border-t p-3"
+                className="flex shrink-0 items-end gap-2 border-t bg-card p-3"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void send();
@@ -445,7 +449,7 @@ function WhatsappInboxPage() {
               </form>
             </>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-sm text-muted-foreground">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-[#efeae2] p-8 text-center text-sm text-muted-foreground dark:bg-muted/40">
               <FaWhatsapp className="h-10 w-10 text-emerald-600" />
               <p>Selecione uma conversa à esquerda.</p>
             </div>
