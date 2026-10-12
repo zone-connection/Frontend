@@ -40,6 +40,33 @@ function chatPath(chatId: string) {
   return encodeURIComponent(chatId);
 }
 
+const MSG_CACHE_PREFIX = "crm-whatsapp-inbox-msgs:";
+
+export function readWhatsappMessagesCache(chatId: string) {
+  try {
+    const raw = sessionStorage.getItem(`${MSG_CACHE_PREFIX}${chatId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WhatsappInboxMessage[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeWhatsappMessagesCache(
+  chatId: string,
+  messages: WhatsappInboxMessage[],
+) {
+  try {
+    sessionStorage.setItem(
+      `${MSG_CACHE_PREFIX}${chatId}`,
+      JSON.stringify(messages),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function fetchWhatsappInboxMessages(chatId: string) {
   return apiFetch<{
     available: boolean;

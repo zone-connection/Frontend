@@ -11,8 +11,10 @@ import {
   assumeWhatsappInboxChat,
   fetchWhatsappInboxChats,
   fetchWhatsappInboxMessages,
+  readWhatsappMessagesCache,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
+  writeWhatsappMessagesCache,
   type WhatsappBubbleKind,
   type WhatsappInboxChat,
   type WhatsappInboxMessage,
@@ -69,6 +71,7 @@ function WhatsappInboxPage() {
   const [messages, setMessages] = useState<WhatsappInboxMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const loadGen = useRef(0);
   const cacheKey = "crm-whatsapp-inbox-chats";
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
@@ -100,15 +103,26 @@ function WhatsappInboxPage() {
   }
 
   async function loadMessages(chatId: string) {
-    setLoadingMsgs(true);
+    const gen = ++loadGen.current;
+    const cached = readWhatsappMessagesCache(chatId);
+    if (cached && cached.length > 0) {
+      setMessages(cached);
+      setLoadingMsgs(false);
+    } else {
+      setMessages([]);
+      setLoadingMsgs(true);
+    }
     try {
       const result = await fetchWhatsappInboxMessages(chatId);
+      if (gen !== loadGen.current) return;
       setMessages(result.messages);
+      writeWhatsappMessagesCache(chatId, result.messages);
     } catch (err) {
+      if (gen !== loadGen.current) return;
       toast.error(errorMessage(err, "Não foi possível abrir a conversa."));
-      setMessages([]);
+      if (!cached?.length) setMessages([]);
     } finally {
-      setLoadingMsgs(false);
+      if (gen === loadGen.current) setLoadingMsgs(false);
     }
   }
 
@@ -293,6 +307,7 @@ function WhatsappInboxPage() {
                     {active.phone || active.chatId}
                     {active.isGroup ? " · Grupo" : ""}
                     {active.aiPaused ? " · IA pausada" : " · IA ativa"}
+                    {loadingMsgs && messages.length > 0 ? " · atualizando" : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -325,7 +340,7 @@ function WhatsappInboxPage() {
                 ref={scroller}
                 className="min-h-0 flex-1 overflow-y-auto bg-[#efeae2] p-4 [scrollbar-width:thin] dark:bg-muted/40"
               >
-                {loadingMsgs ? (
+                {loadingMsgs && messages.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
                     Carregando mensagens…
                   </p>
