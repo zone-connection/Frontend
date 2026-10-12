@@ -32,6 +32,7 @@ import {
   type WhatsappInboxMessage,
 } from "@/lib/whatsapp-inbox-api";
 import { cn } from "@/lib/utils";
+import chatBg from "@/assets/whatsapp-chat-bg.jpg";
 
 export const Route = createFileRoute("/_app/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Zone Connection" }] }),
@@ -69,7 +70,13 @@ function mediaSrc(url: string) {
   return unwrapWhatsappMediaUrl(url) ?? url;
 }
 
-function AudioBubble({ url }: { url: string }) {
+function AudioBubble({
+  url,
+  outgoing,
+}: {
+  url: string;
+  outgoing?: boolean;
+}) {
   const src = mediaSrc(url);
   const [text, setText] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
@@ -92,7 +99,12 @@ function AudioBubble({ url }: { url: string }) {
       <audio className="w-full max-w-xs" controls preload="metadata" src={src}>
         <source src={src} type="audio/ogg" />
       </audio>
-      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 text-[11px]",
+          outgoing && "text-primary-foreground/90",
+        )}
+      >
         <a href={src} target="_blank" rel="noreferrer" className="underline">
           Abrir áudio
         </a>
@@ -350,11 +362,11 @@ function WhatsappInboxPage() {
                   type="button"
                   className={cn(
                     "flex w-full items-start gap-3 border-b px-3 py-3 text-left hover:bg-muted/50",
-                    activeId === chat.chatId && "bg-emerald-500/10",
+                    activeId === chat.chatId && "bg-primary/10",
                   )}
                   onClick={() => setActiveId(chat.chatId)}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                     <FaWhatsapp className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -372,7 +384,7 @@ function WhatsappInboxPage() {
                     </span>
                   </span>
                   {chat.unread > 0 ? (
-                    <span className="mt-1 rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white">
+                    <span className="mt-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
                       {chat.unread}
                     </span>
                   ) : null}
@@ -454,7 +466,11 @@ function WhatsappInboxPage() {
               </header>
               <div
                 ref={scroller}
-                className="min-h-0 flex-1 overflow-y-auto bg-[#efeae2] p-4 [scrollbar-width:thin] dark:bg-muted/40"
+                className="min-h-0 flex-1 overflow-y-auto bg-[#061428] bg-repeat p-4 [scrollbar-width:thin]"
+                style={{
+                  backgroundImage: `url(${chatBg})`,
+                  backgroundSize: "420px auto",
+                }}
               >
                 {loadingMsgs && messages.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
@@ -480,8 +496,8 @@ function WhatsappInboxPage() {
                           className={cn(
                             "max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                             meta.outgoing
-                              ? "rounded-br-md bg-emerald-600 text-white"
-                              : "rounded-bl-md bg-background",
+                              ? "rounded-br-md bg-primary text-primary-foreground"
+                              : "rounded-bl-md border bg-card",
                           )}
                         >
                           <p className="flex items-center gap-1 text-[10px] font-medium opacity-80">
@@ -506,7 +522,7 @@ function WhatsappInboxPage() {
                             </a>
                           ) : null}
                           {msg.mediaType === "audio" && msg.mediaUrl ? (
-                            <AudioBubble url={msg.mediaUrl} />
+                            <AudioBubble url={msg.mediaUrl} outgoing={meta.outgoing} />
                           ) : null}
                           {msg.mediaUrl &&
                           msg.mediaType &&
@@ -560,7 +576,7 @@ function WhatsappInboxPage() {
                 <Button
                   type="submit"
                   size="icon"
-                  className="h-10 w-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
+                  className="h-10 w-10 shrink-0"
                   disabled={sending || !draft.trim()}
                 >
                   {sending ? (
@@ -572,8 +588,14 @@ function WhatsappInboxPage() {
               </form>
             </>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-[#efeae2] p-8 text-center text-sm text-muted-foreground dark:bg-muted/40">
-              <FaWhatsapp className="h-10 w-10 text-emerald-600" />
+            <div
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-[#061428] bg-repeat p-8 text-center text-sm text-white/80"
+              style={{
+                backgroundImage: `url(${chatBg})`,
+                backgroundSize: "420px auto",
+              }}
+            >
+              <FaWhatsapp className="h-10 w-10 text-primary" />
               <p>Selecione uma conversa à esquerda.</p>
             </div>
           )}
