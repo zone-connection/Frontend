@@ -2101,13 +2101,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className={cn(
             "max-w-full min-w-0 flex-1 overflow-x-clip p-3 sm:p-4 md:p-6",
             lockWhatsapp &&
-              "flex min-h-0 flex-1 flex-col overflow-hidden",
+              "flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2 md:p-2",
             lockPageScroll &&
               !lockWhatsapp &&
               "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
           )}
         >
           {operacaoAtiva?.id === "lancamentos" &&
+          !lockWhatsapp &&
           operacaoAtiva.prefixes.some((prefix) =>
             pathMatchesPrefix(pathname, prefix),
           ) ? (

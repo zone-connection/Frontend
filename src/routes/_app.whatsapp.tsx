@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Loader2, Pause, Play, RefreshCw, Search, Send } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -206,13 +205,7 @@ function WhatsappInboxPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 overflow-hidden">
-      <div className="shrink-0 [&_[data-guia=page-header]]:mb-0">
-        <PageHeader
-          title="WhatsApp"
-          description="Conversas do número da imobiliária. Ao responder, a IA pausa nesta conversa."
-        />
-      </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-card grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden border-b lg:border-b-0 lg:border-r">
           <div className="flex shrink-0 items-center gap-2 border-b p-3">
