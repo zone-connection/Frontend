@@ -456,11 +456,16 @@ function WhatsappInboxPage() {
                               />
                             </a>
                           ) : null}
-                          {msg.mediaUrl && msg.mediaType === "audio" ? (
+                          {msg.mediaType === "audio" && msg.mediaUrl ? (
                             <audio
                               className="mt-1 w-full max-w-xs"
                               controls
-                              src={msg.mediaUrl}
+                              preload="metadata"
+                              src={
+                                msg.mediaUrl.includes("?")
+                                  ? `${msg.mediaUrl}&type=audio`
+                                  : `${msg.mediaUrl}?type=audio`
+                              }
                             />
                           ) : null}
                           {msg.mediaUrl &&
@@ -477,7 +482,10 @@ function WhatsappInboxPage() {
                               Abrir {msg.mediaType}
                             </a>
                           ) : null}
-                          {msg.text ? (
+                          {msg.text &&
+                          !/^\s*\[?(audio|image|vídeo|video|documento)\]?\s*$/i.test(
+                            msg.text,
+                          ) ? (
                             <p className="mt-0.5 whitespace-pre-wrap break-words">
                               {msg.text}
                             </p>
