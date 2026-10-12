@@ -70,24 +70,28 @@ function WhatsappInboxPage() {
   const [messages, setMessages] = useState<WhatsappInboxMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const cacheKey = "crm-whatsapp-inbox-chats";
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
 
-  async function loadChats(selectId?: string | null) {
-    setLoading(true);
+  function sortChats(list: WhatsappInboxChat[]) {
+    return list.slice().sort((a, b) => {
+      const left = a.lastMessageAt ?? "";
+      const right = b.lastMessageAt ?? "";
+      return right.localeCompare(left);
+    });
+  }
+
+  async function loadChats() {
+    if (chats.length === 0) setLoading(true);
     try {
       const result = await fetchWhatsappInboxChats();
-      const next = result.chats.slice().sort((a, b) => {
-        const left = a.lastMessageAt ?? "";
-        const right = b.lastMessageAt ?? "";
-        return right.localeCompare(left);
-      });
+      const next = sortChats(result.chats);
       setChats(next);
-      const keep = selectId ?? activeId;
-      if (keep && next.some((chat) => chat.chatId === keep)) {
-        setActiveId(keep);
-      } else if (!keep && next[0]) {
-        setActiveId(next[0].chatId);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(next));
+      } catch {
+        /* ignore */
       }
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível listar as conversas."));
@@ -110,6 +114,18 @@ function WhatsappInboxPage() {
   }
 
   useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw) as WhatsappInboxChat[];
+        if (Array.isArray(cached) && cached.length > 0) {
+          setChats(sortChats(cached));
+          setLoading(false);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
     void loadChats();
   }, []);
 
@@ -212,7 +228,7 @@ function WhatsappInboxPage() {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => void loadChats(activeId)}
+              onClick={() => void loadChats()}
               disabled={loading}
             >
               {loading ? (
