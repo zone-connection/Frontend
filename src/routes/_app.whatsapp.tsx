@@ -63,6 +63,11 @@ function formatWhen(at: string | null) {
   });
 }
 
+function mediaSrc(url: string, type: "audio" | "image") {
+  if (!url.includes("/api/whatsapp/media")) return url;
+  return url.includes("?") ? `${url}&type=${type}` : `${url}?type=${type}`;
+}
+
 function bubbleMeta(kind: WhatsappBubbleKind) {
   if (kind === "client") return { label: "Cliente", outgoing: false };
   if (kind === "ai") return { label: "IA", outgoing: true };
@@ -461,11 +466,7 @@ function WhatsappInboxPage() {
                               className="mt-1 w-full max-w-xs"
                               controls
                               preload="metadata"
-                              src={
-                                msg.mediaUrl.includes("?")
-                                  ? `${msg.mediaUrl}&type=audio`
-                                  : `${msg.mediaUrl}?type=audio`
-                              }
+                              src={mediaSrc(msg.mediaUrl, "audio")}
                             />
                           ) : null}
                           {msg.mediaUrl &&
