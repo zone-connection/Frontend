@@ -143,6 +143,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   analista: [
+    "/whatsapp",
     "/caca-lead",
     "/resultado",
     "/presenca",
@@ -159,6 +160,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   financeiro: [
+    "/whatsapp",
     "/caca-lead",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
@@ -245,7 +247,14 @@ export function canAccessRoute(
   if (path === "/novidades") return true;
   if (path === "/caca-lead") return true;
   if (path === "/whatsapp") {
-    return canAccessRoute(role, "/leads", modules, plano, userPermissions);
+    const routes = getAllowedRoutes(role);
+    if (routes.includes("/whatsapp")) {
+      /* segue as regras de módulo/plano abaixo */
+    } else if (
+      !canAccessRoute(role, "/leads", modules, plano, userPermissions)
+    ) {
+      return false;
+    }
   }
   if (path === "/orulo-oauth-callback") return true;
 
@@ -488,6 +497,10 @@ export function canWriteTriagem(role: string | null | undefined): boolean {
  * - corretor/treinee: somente os próprios, nunca retrabalho
  * - retrabalho: só admin e gerente (permanece no funil)
  */
+export function canSendWhatsappInbox(role: string | null | undefined): boolean {
+  return role === "admin" || role === "super_admin" || role === "gerente";
+}
+
 export function canSeeRetrabalhoLead(role: string | null | undefined): boolean {
   return role === "admin" || role === "gerente" || role === "super_admin";
 }

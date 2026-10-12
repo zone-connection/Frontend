@@ -36,6 +36,7 @@ export async function fetchWhatsappInboxChats(page = 1, limit = 50) {
     limit: number;
     total: number | null;
     hasMore: boolean;
+    canSend?: boolean;
     chats: WhatsappInboxChat[];
   }>(`/whatsapp/chats?page=${page}&limit=${limit}`);
 }

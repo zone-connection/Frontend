@@ -24,24 +24,21 @@ import {
   readWhatsappMessagesCache,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
-  transcribeWhatsappAudio,
-  unwrapWhatsappMediaUrl,
   writeWhatsappMessagesCache,
   type WhatsappBubbleKind,
   type WhatsappInboxChat,
   type WhatsappInboxMessage,
 } from "@/lib/whatsapp-inbox-api";
+import { getSession } from "@/lib/auth";
+import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import chatBgDark from "@/assets/whatsapp-chat-bg.jpg";
-import chatBgLight from "@/assets/whatsapp-chat-bg-light.jpg";
-
-const chatPaneClass =
-  "bg-[#f4f9fd] bg-repeat bg-[image:var(--chat-bg)] dark:bg-[#061428] dark:bg-[image:var(--chat-bg-dark)]";
-const chatPaneVars = {
-  ["--chat-bg" as string]: `url(${chatBgLight})`,
-  ["--chat-bg-dark" as string]: `url(${chatBgDark})`,
-  backgroundSize: "420px auto",
-};
+import {
+  chatPaneClass,
+  chatPaneVars,
+  isMediaPlaceholder,
+  mediaSrc,
+  WhatsappAudioBubble,
+} from "@/components/whatsapp-chat-look";
 
 export const Route = createFileRoute("/_app/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Zone Connection" }] }),
@@ -75,64 +72,6 @@ function formatWhen(at: string | null) {
   });
 }
 
-function mediaSrc(url: string) {
-  return unwrapWhatsappMediaUrl(url) ?? url;
-}
-
-function AudioBubble({
-  url,
-  outgoing,
-}: {
-  url: string;
-  outgoing?: boolean;
-}) {
-  const src = mediaSrc(url);
-  const [text, setText] = useState<string | null>(null);
-  const [working, setWorking] = useState(false);
-
-  async function transcribe() {
-    if (working) return;
-    setWorking(true);
-    try {
-      const result = await transcribeWhatsappAudio(src);
-      setText(result.text?.trim() || "Não foi possível entender o áudio.");
-    } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível transcrever o áudio."));
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  return (
-    <div className="mt-1 space-y-1.5">
-      <audio className="w-full max-w-xs" controls preload="metadata" src={src}>
-        <source src={src} type="audio/ogg" />
-      </audio>
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-2 text-[11px]",
-          outgoing && "text-primary-foreground/90",
-        )}
-      >
-        <a href={src} target="_blank" rel="noreferrer" className="underline">
-          Abrir áudio
-        </a>
-        <button
-          type="button"
-          className="underline"
-          onClick={() => void transcribe()}
-          disabled={working}
-        >
-          {working ? "Transcrevendo…" : "Transcrever"}
-        </button>
-      </div>
-      {text ? (
-        <p className="whitespace-pre-wrap break-words text-xs opacity-90">{text}</p>
-      ) : null}
-    </div>
-  );
-}
-
 function bubbleMeta(kind: WhatsappBubbleKind) {
   if (kind === "client") return { label: "Cliente", outgoing: false };
   if (kind === "ai") return { label: "IA", outgoing: true };
@@ -156,7 +95,9 @@ function WhatsappInboxPage() {
   const scroller = useRef<HTMLDivElement>(null);
   const loadGen = useRef(0);
   const pageSize = 50;
-  const cacheKey = "crm-whatsapp-inbox-chats";
+  const user = getSession();
+  const canSend = canSendWhatsappInbox(user?.role);
+  const cacheKey = `crm-whatsapp-inbox-chats:${user?.id ?? "anon"}`;
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
 
@@ -272,7 +213,7 @@ function WhatsappInboxPage() {
   }, [chats, query]);
 
   async function send() {
-    if (!activeId || !draft.trim() || sending) return;
+    if (!canSend || !activeId || !draft.trim() || sending) return;
     const text = draft.trim();
     setSending(true);
     try {
@@ -299,7 +240,7 @@ function WhatsappInboxPage() {
   }
 
   async function toggleAi() {
-    if (!activeId || assuming) return;
+    if (!canSend || !activeId || assuming) return;
     setAssuming(true);
     try {
       if (active?.aiPaused) {
@@ -455,22 +396,24 @@ function WhatsappInboxPage() {
                       </Link>
                     </Button>
                   ) : null}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={active.aiPaused ? "outline" : "default"}
-                    onClick={() => void toggleAi()}
-                    disabled={assuming}
-                  >
-                    {assuming ? (
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    ) : active.aiPaused ? (
-                      <Play className="mr-1.5 h-3.5 w-3.5" />
-                    ) : (
-                      <Pause className="mr-1.5 h-3.5 w-3.5" />
-                    )}
-                    {active.aiPaused ? "Religar IA" : "Assumir"}
-                  </Button>
+                  {canSend ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={active.aiPaused ? "outline" : "default"}
+                      onClick={() => void toggleAi()}
+                      disabled={assuming}
+                    >
+                      {assuming ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      ) : active.aiPaused ? (
+                        <Play className="mr-1.5 h-3.5 w-3.5" />
+                      ) : (
+                        <Pause className="mr-1.5 h-3.5 w-3.5" />
+                      )}
+                      {active.aiPaused ? "Religar IA" : "Assumir"}
+                    </Button>
+                  ) : null}
                 </div>
               </header>
               <div
@@ -531,7 +474,7 @@ function WhatsappInboxPage() {
                             </a>
                           ) : null}
                           {msg.mediaType === "audio" && msg.mediaUrl ? (
-                            <AudioBubble url={msg.mediaUrl} outgoing={meta.outgoing} />
+                            <WhatsappAudioBubble url={msg.mediaUrl} outgoing={meta.outgoing} />
                           ) : null}
                           {msg.mediaUrl &&
                           msg.mediaType &&
@@ -548,9 +491,7 @@ function WhatsappInboxPage() {
                             </a>
                           ) : null}
                           {msg.text &&
-                          !/^\s*\[?(audio|image|vídeo|video|documento)\]?\s*$/i.test(
-                            msg.text,
-                          ) ? (
+                          !isMediaPlaceholder(msg.text) ? (
                             <p className="mt-0.5 whitespace-pre-wrap break-words">
                               {msg.text}
                             </p>
@@ -562,39 +503,45 @@ function WhatsappInboxPage() {
                   </div>
                 )}
               </div>
-              <form
-                className="flex shrink-0 items-end gap-2 border-t bg-primary/[0.04] p-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void send();
-                }}
-              >
-                <Textarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Escreva uma mensagem…"
-                  className="min-h-[44px] max-h-28 resize-none rounded-xl"
-                  rows={1}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      void send();
-                    }
+              {canSend ? (
+                <form
+                  className="flex shrink-0 items-end gap-2 border-t bg-primary/[0.04] p-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void send();
                   }}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-10 w-10 shrink-0"
-                  disabled={sending || !draft.trim()}
                 >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </form>
+                  <Textarea
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Escreva uma mensagem…"
+                    className="min-h-[44px] max-h-28 resize-none rounded-xl"
+                    rows={1}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        void send();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    disabled={sending || !draft.trim()}
+                  >
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </form>
+              ) : (
+                <p className="shrink-0 border-t bg-primary/[0.04] px-4 py-3 text-xs text-muted-foreground">
+                  Seu perfil só visualiza as conversas dos seus leads.
+                </p>
+              )}
             </>
           ) : (
             <div

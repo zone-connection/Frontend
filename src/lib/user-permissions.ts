@@ -308,6 +308,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   analista: [
+    "/whatsapp",
     "/caca-lead",
     "/resultado",
     "/presenca",
@@ -323,6 +324,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/perfil",
   ],
   financeiro: [
+    "/whatsapp",
     "/caca-lead",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",

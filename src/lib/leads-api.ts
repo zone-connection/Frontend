@@ -640,9 +640,12 @@ export async function fetchPrazoAdiamentos(
 export type LeadWhatsappMessage = {
   id: string;
   direction: "in" | "out";
+  kind?: "client" | "ai" | "agent" | "follow_up";
   text: string;
   at: string | null;
   source: string | null;
+  mediaType?: string | null;
+  mediaUrl?: string | null;
 };
 
 export type LeadWhatsappChat = {

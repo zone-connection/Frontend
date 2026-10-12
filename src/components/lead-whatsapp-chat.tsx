@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, RefreshCw, Send } from "lucide-react";
+import { Bot, Loader2, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import {
@@ -9,7 +9,16 @@ import {
 } from "@/lib/leads-api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { getSession } from "@/lib/auth";
+import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import {
+  chatPaneClass,
+  chatPaneVars,
+  isMediaPlaceholder,
+  mediaSrc,
+  WhatsappAudioBubble,
+} from "@/components/whatsapp-chat-look";
 
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError) return err.message;
@@ -29,18 +38,17 @@ function formatWhen(at: string | null) {
   });
 }
 
-function bubbleLabel(msg: LeadWhatsappMessage) {
-  if (msg.direction === "in" || msg.source === "lead_message") return "Cliente";
-  if (
-    msg.source === "ai" ||
-    msg.source === "bot" ||
-    msg.source === "agent" ||
-    msg.source === "ai_message" ||
-    msg.source === "follow_up"
-  ) {
-    return "IA";
+function bubbleMeta(msg: LeadWhatsappMessage) {
+  if (msg.kind === "client" || msg.direction === "in" || msg.source === "lead_message") {
+    return { label: "Cliente", outgoing: false };
   }
-  return "CRM";
+  if (msg.kind === "ai" || msg.source === "ai" || msg.source === "ai_message" || msg.source === "bot") {
+    return { label: "IA", outgoing: true };
+  }
+  if (msg.kind === "follow_up" || msg.source === "follow_up") {
+    return { label: "Follow-up", outgoing: true };
+  }
+  return { label: "Corretor", outgoing: true };
 }
 
 export function LeadWhatsappChat({
@@ -60,6 +68,7 @@ export function LeadWhatsappChat({
   const [ozapError, setOzapError] = useState<string | null>(null);
   const [messages, setMessages] = useState<LeadWhatsappMessage[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
+  const canSend = canSendWhatsappInbox(getSession()?.role);
 
   async function load() {
     setLoading(true);
@@ -108,7 +117,7 @@ export function LeadWhatsappChat({
 
   async function send() {
     const text = draft.trim();
-    if (!text || sending) return;
+    if (!canSend || !text || sending) return;
     setSending(true);
     try {
       await sendLeadWhatsappChat(leadId, text);
@@ -118,6 +127,7 @@ export function LeadWhatsappChat({
         {
           id: `local-${Date.now()}`,
           direction: "out",
+          kind: "agent",
           text,
           at: new Date().toISOString(),
           source: "crm",
@@ -145,8 +155,8 @@ export function LeadWhatsappChat({
   }
 
   return (
-    <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-xl border bg-muted/20">
-      <div className="flex items-center justify-between border-b px-3 py-2">
+    <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-xl border bg-primary/[0.04]">
+      <div className="flex items-center justify-between border-b bg-primary/[0.04] px-3 py-2">
         <p className="text-xs font-medium text-muted-foreground">
           Conversa no WhatsApp
         </p>
@@ -167,7 +177,11 @@ export function LeadWhatsappChat({
       </div>
       <div
         ref={scroller}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 [scrollbar-width:thin]"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:thin]",
+          chatPaneClass,
+        )}
+        style={chatPaneVars}
       >
         {loading && messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -178,67 +192,117 @@ export function LeadWhatsappChat({
             Nenhuma mensagem encontrada neste chat.
           </p>
         ) : (
-          messages.map((msg) => {
-            const outgoing = msg.direction === "out";
-            return (
-              <div
-                key={msg.id}
-                className={cn("flex", outgoing ? "justify-end" : "justify-start")}
-              >
+          <div className="flex flex-col justify-end gap-2">
+            {messages.map((msg) => {
+              const meta = bubbleMeta(msg);
+              return (
                 <div
+                  key={msg.id}
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                    outgoing
-                      ? "rounded-br-md bg-emerald-600 text-white"
-                      : "rounded-bl-md bg-background",
+                    "flex",
+                    meta.outgoing ? "justify-end" : "justify-start",
                   )}
                 >
-                  <p className="text-[10px] font-medium opacity-80">
-                    {bubbleLabel(msg)}
-                    {msg.at ? ` · ${formatWhen(msg.at)}` : ""}
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-wrap break-words">
-                    {msg.text}
-                  </p>
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                      meta.outgoing
+                        ? "rounded-br-md bg-primary text-primary-foreground"
+                        : "rounded-bl-md border bg-card",
+                    )}
+                  >
+                    <p className="flex items-center gap-1 text-[10px] font-medium opacity-80">
+                      {meta.label === "IA" || meta.label === "Follow-up" ? (
+                        <Bot className="h-3 w-3" />
+                      ) : null}
+                      {meta.label}
+                      {msg.at ? ` · ${formatWhen(msg.at)}` : ""}
+                    </p>
+                    {msg.mediaUrl && msg.mediaType === "image" ? (
+                      <a
+                        href={mediaSrc(msg.mediaUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block"
+                      >
+                        <img
+                          src={mediaSrc(msg.mediaUrl)}
+                          alt=""
+                          className="max-h-56 rounded-lg"
+                        />
+                      </a>
+                    ) : null}
+                    {msg.mediaType === "audio" && msg.mediaUrl ? (
+                      <WhatsappAudioBubble
+                        url={msg.mediaUrl}
+                        outgoing={meta.outgoing}
+                      />
+                    ) : null}
+                    {msg.mediaUrl &&
+                    msg.mediaType &&
+                    msg.mediaType !== "image" &&
+                    msg.mediaType !== "audio" &&
+                    msg.mediaType !== "text" ? (
+                      <a
+                        href={mediaSrc(msg.mediaUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block underline"
+                      >
+                        Abrir {msg.mediaType}
+                      </a>
+                    ) : null}
+                    {msg.text && !isMediaPlaceholder(msg.text) ? (
+                      <p className="mt-0.5 whitespace-pre-wrap break-words">
+                        {msg.text}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
-      <form
-        className="flex items-end gap-2 border-t bg-background p-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send();
-        }}
-      >
-        <Textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Escreva uma mensagem…"
-          className="min-h-[44px] max-h-28 resize-none rounded-xl"
-          rows={1}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void send();
-            }
+      {canSend ? (
+        <form
+          className="flex items-end gap-2 border-t bg-primary/[0.04] p-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void send();
           }}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          className="h-10 w-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
-          disabled={sending || !draft.trim()}
         >
-          {sending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </form>
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Escreva uma mensagem…"
+            className="min-h-[44px] max-h-28 resize-none rounded-xl"
+            rows={1}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void send();
+              }
+            }}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            disabled={sending || !draft.trim()}
+          >
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </form>
+      ) : (
+        <p className="border-t bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
+          Seu perfil só visualiza as conversas dos seus leads.
+        </p>
+      )}
     </div>
   );
 }
