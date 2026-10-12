@@ -188,15 +188,17 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import { cn, digitsOnly, formatCep, formatCpfCnpj, formatRg } from "@/lib/utils";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
 import {
   FILTER_BAR_SHELL,
-  FILTER_CLEAR_BTN,
   FILTER_CONTROL,
   FILTER_SEARCH_ICON,
 } from "@/lib/filter-bar";
 import {
   Building,
   Building2,
+  CalendarDays,
+  Users,
   Check,
   CheckCircle2,
   ChevronsUpDown,
@@ -215,7 +217,7 @@ import {
   Send,
   Share2,
   Trash2,
-  X,
+  UserRound,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1269,14 +1271,6 @@ function Page() {
     };
   }, [rows]);
 
-  const hasActive = Boolean(
-    search ||
-    periodo !== "tudo" ||
-    status !== "todos" ||
-    corretorId !== "todos" ||
-    (!isGerente && equipeId !== "todos"),
-  );
-
   const formTotal = useMemo(() => formComposicaoTotal(form), [form]);
   const formValorLiquido = useMemo(
     () => Math.max(0, moneyOrZero(form.valor) - moneyOrZero(form.desconto)),
@@ -1729,84 +1723,110 @@ function Page() {
           onChange={setSort}
           className={FILTER_CONTROL}
         />
-        <Select
-          value={periodo}
-          onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}
+        <FiltrosPainel
+          kicker="Propostas"
+          description="Período, status, corretor e equipe."
+          confirmLabel="Ver propostas"
+          activeCount={
+            [
+              periodo !== "tudo",
+              status !== "todos",
+              isManager && !propostaSoMinha && corretorId !== "todos",
+              isManager && !isGerente && equipeId !== "todos",
+            ].filter(Boolean).length
+          }
+          onClear={() => {
+            setPeriodo("tudo");
+            setStatus("todos");
+            setCorretorId("todos");
+            setEquipeId("todos");
+          }}
         >
-          <SelectTrigger className={cn("w-full sm:w-42.5", FILTER_CONTROL)}>
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIODO_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={status}
-          onValueChange={(v) => setStatus(v as PropostaStatus | "todos")}
-        >
-          <SelectTrigger className={cn("w-full sm:w-42.5", FILTER_CONTROL)}>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {isManager && !propostaSoMinha && (
-          <Select value={corretorId} onValueChange={setCorretorId}>
-            <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
-              <SelectValue placeholder="Corretor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os corretores</SelectItem>
-              {corretorOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {isManager && !isGerente && (
-          <Select value={equipeId} onValueChange={setEquipeId}>
-            <SelectTrigger className={cn("w-full sm:w-42.5", FILTER_CONTROL)}>
-              <SelectValue placeholder="Equipe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas as equipes</SelectItem>
-              {equipes.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {hasActive && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={FILTER_CLEAR_BTN}
-            onClick={() => {
-              setSearch("");
-              setPeriodo("tudo");
-              setStatus("todos");
-              setCorretorId("todos");
-              setEquipeId("todos");
-            }}
-          >
-            <X className="h-4 w-4 mr-1" />
-            Limpar
-          </Button>
-        )}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5 text-[#079ED4]" />
+              Período
+            </Label>
+            <Select
+              value={periodo}
+              onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}
+            >
+              <SelectTrigger className={FILTRO_CAMPO}>
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIODO_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5 text-[#079ED4]" />
+              Status
+            </Label>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as PropostaStatus | "todos")}
+            >
+              <SelectTrigger className={FILTRO_CAMPO}>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {isManager && !propostaSoMinha ? (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <UserRound className="size-3.5 text-[#079ED4]" />
+                Corretor
+              </Label>
+              <Select value={corretorId} onValueChange={setCorretorId}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Corretor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os corretores</SelectItem>
+                  {corretorOptions.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          {isManager && !isGerente ? (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Users className="size-3.5 text-[#079ED4]" />
+                Equipe
+              </Label>
+              <Select value={equipeId} onValueChange={setEquipeId}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue placeholder="Equipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas as equipes</SelectItem>
+                  {equipes.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+        </FiltrosPainel>
       </div>
 
       <Card className="overflow-hidden rounded-2xl">

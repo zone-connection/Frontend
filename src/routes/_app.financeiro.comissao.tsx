@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Banknote, CalendarDays, CheckCircle2, Clock3, Eye, LayoutList, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, Clock3, Eye, FileText, LayoutList, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
@@ -97,6 +97,7 @@ const STATUS_OPTIONS: { value: ComissaoStatus; label: string }[] = [
   { value: "paga", label: "Paga" },
 ];
 
+type ListaComissao = "lancadas" | "rascunhos";
 type RecebimentoFiltro = "todos" | "nao_recebidas" | "recebidas";
 
 const RECEBIMENTO_OPTIONS: { value: RecebimentoFiltro; label: string }[] = [
@@ -147,6 +148,7 @@ function Page() {
   const [search, setSearch] = useState("");
   // Padrão "tudo": vendas de meses anteriores (jun/jul) não somem no filtro.
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("tudo");
+  const [lista, setLista] = useState<ListaComissao>("lancadas");
   const [recebimento, setRecebimento] = useState<RecebimentoFiltro>("todos");
   const [equipe, setEquipe] = useState("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -205,9 +207,18 @@ function Page() {
     ];
   }, [items]);
 
+  const rascunhosCount = useMemo(
+    () => items.filter((item) => item.status === "rascunho").length,
+    [items],
+  );
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return items.filter((item) => {
+      if (lista === "rascunhos") {
+        if (item.status !== "rascunho") return false;
+      } else if (item.status === "rascunho") {
+        return false;
+      }
       if (!matchesRecebimento(item.status, recebimento)) return false;
       if (equipe !== "todos" && relationName(item.equipe) !== equipe)
         return false;
@@ -231,7 +242,7 @@ function Page() {
         .map((value) => relationName(value, "").toLowerCase())
         .some((value) => value.includes(query));
     });
-  }, [items, search, periodo, recebimento, equipe]);
+  }, [items, search, periodo, recebimento, equipe, lista]);
   const calendarRows = useMemo(
     () =>
       filterComissoesCalendario(items, {
@@ -243,7 +254,7 @@ function Page() {
   );
   const pager = useTablePager(
     rows,
-    `${search}|${periodo}|${recebimento}|${equipe}`,
+    `${search}|${periodo}|${recebimento}|${equipe}|${lista}`,
   );
 
   const kpis = useMemo(() => {
@@ -351,6 +362,48 @@ function Page() {
         <div
           className="inline-flex rounded-full border bg-muted/40 p-1"
           role="group"
+          aria-label="Comissões lançadas ou rascunhos"
+        >
+          <button
+            type="button"
+            onClick={() => setLista("lancadas")}
+            aria-pressed={lista === "lancadas"}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              lista === "lancadas"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Lançadas
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setLista("rascunhos");
+              setVista("tabela");
+            }}
+            aria-pressed={lista === "rascunhos"}
+            className={cn(
+              "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              lista === "rascunhos"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <FileText className="mr-1.5 size-3.5" />
+            Rascunhos
+            {rascunhosCount > 0 ? (
+              <span className="ml-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+                {rascunhosCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
+        {lista === "lancadas" ? (
+        <div
+          className="inline-flex rounded-full border bg-muted/40 p-1"
+          role="group"
           aria-label="Separar comissões recebidas e não recebidas"
         >
         {RECEBIMENTO_OPTIONS.map((option) => (
@@ -370,6 +423,7 @@ function Page() {
           </button>
         ))}
         </div>
+        ) : null}
         <div className={FILTER_VISTA_WRAP} role="group" aria-label="Tipo de visualização">
           <Button
             type="button"
@@ -400,6 +454,7 @@ function Page() {
         </div>
       </div>
 
+      {lista === "lancadas" ? (
       <PagePanel
         inset="muted"
         className="mb-4"
@@ -447,6 +502,7 @@ function Page() {
         />
       </section>
       </PagePanel>
+      ) : null}
 
       <FinanceiroFiltrosBar
         search={search}
@@ -477,7 +533,7 @@ function Page() {
         }}
       />
 
-      {vista === "calendario" ? (
+      {vista === "calendario" && lista === "lancadas" ? (
         loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -545,7 +601,9 @@ function Page() {
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Nenhuma comissão lançada ainda.
+                        {lista === "rascunhos"
+                          ? "Nenhum rascunho salvo."
+                          : "Nenhuma comissão lançada ainda."}
                       </p>
                     )}
                   </TableCell>
@@ -582,7 +640,7 @@ function Page() {
                         : brl(numberValue(commissionValue(item)))}
                     </TableCell>
                     <TableCell className="py-2">
-                      {canEditFin ? (
+                      {canEditFin && item.status !== "rascunho" ? (
                         <Select
                           value={item.status}
                           onValueChange={(value) =>
@@ -684,6 +742,7 @@ function Page() {
         editing={editingItem}
         onSaved={(item, { created }) => {
           upsert(item);
+          setLista(item.status === "rascunho" ? "rascunhos" : "lancadas");
           if (created) {
             setPeriodo("tudo");
             setRecebimento("todos");

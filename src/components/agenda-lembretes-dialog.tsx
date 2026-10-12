@@ -74,7 +74,7 @@ export function AgendaLembretesDialog({
   informativo = false,
   onGoAgenda,
 }: Props) {
-  if (proximos.length === 0) return null;
+  if (!proximos?.length) return null;
 
   const titulo = informativo
     ? "Agenda da equipe"

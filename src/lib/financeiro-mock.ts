@@ -138,7 +138,7 @@ export interface ComissaoItem {
   vgv: number;
   percentual: number;
   valor: number;
-  status: "pendente" | "liberada" | "paga";
+  status: "rascunho" | "pendente" | "liberada" | "paga";
 }
 
 export type FluxoGranularidade = "dia" | "semana" | "mes" | "trimestre";
@@ -304,6 +304,8 @@ export function statusBadgeClass(
       return `${size} border-transparent bg-destructive/15 text-destructive`;
     case "liberada":
       return `${size} border-transparent bg-amber-500/15 text-amber-800 dark:text-amber-300`;
+    case "rascunho":
+      return `${size} border-transparent bg-slate-500/15 text-slate-700 dark:text-slate-300`;
     case "cancelado":
       return `${size} border-transparent bg-muted text-muted-foreground`;
     default:
@@ -317,6 +319,7 @@ export function statusLabel(status: StatusTitulo | ComissaoItem["status"]) {
     pago: "Pago",
     atrasado: "Atrasado",
     cancelado: "Cancelado",
+    rascunho: "Rascunho",
     pendente: "Pendente",
     liberada: "Liberada",
     paga: "Paga",

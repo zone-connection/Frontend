@@ -305,6 +305,7 @@ export function filterComissoesCalendario(
 ) {
   const query = opts.search.trim().toLowerCase();
   return items.filter((item) => {
+    if (item.status === "rascunho") return false;
     if (opts.recebimento === "recebidas" && item.status !== "paga") return false;
     if (opts.recebimento === "nao_recebidas" && item.status === "paga")
       return false;

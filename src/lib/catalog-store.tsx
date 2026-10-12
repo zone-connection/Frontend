@@ -302,7 +302,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const applyFunnelEtapas = useCallback((etapas: FunilEtapa[]) => {
     setCatalog((prev) => ({
       ...prev,
-      funil_etapa: [...etapas]
+      funil_etapa: [...(etapas ?? [])]
         .filter((e) => e.active)
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((e) => ({

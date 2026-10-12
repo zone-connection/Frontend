@@ -537,28 +537,28 @@ function Page() {
           <section className="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-4">
             <FinanceKpiCard
               label={`Entradas do ${periodoNoun}`}
-              value={data.totais.entradas ?? 0}
+              value={data.totais?.entradas ?? 0}
               icon={UsersRound}
               tone="emerald"
               format="number"
             />
             <FinanceKpiCard
               label={`Vendas do ${periodoNoun}`}
-              value={data.totais.vendas ?? 0}
+              value={data.totais?.vendas ?? 0}
               icon={TrendingUp}
               tone="blue"
               format="number"
             />
             <FinanceKpiCard
               label={`VGV do ${periodoNoun}`}
-              value={data.totais.vgv ?? 0}
+              value={data.totais?.vgv ?? 0}
               icon={Wallet}
               tone="violet"
               format="money"
             />
             <FinanceKpiCard
               label="Taxa de conversão"
-              value={data.totais.taxaConversao ?? 0}
+              value={data.totais?.taxaConversao ?? 0}
               icon={Goal}
               tone="teal"
               format="percent"
@@ -566,30 +566,30 @@ function Page() {
           </section>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            {data.totais.corretores} corretor
-            {data.totais.corretores === 1 ? "" : "es"}
+            {data.totais?.corretores ?? 0} corretor
+            {(data.totais?.corretores ?? 0) === 1 ? "" : "es"}
             {showRankingGerentes && (
               <>
                 {" "}
-                · {data.totais.gerentes} gerente
-                {data.totais.gerentes === 1 ? "" : "s"}
+                · {data.totais?.gerentes ?? 0} gerente
+                {(data.totais?.gerentes ?? 0) === 1 ? "" : "s"}
               </>
             )}{" "}
-            · {data.totais.visitas} visita
-            {data.totais.visitas === 1 ? "" : "s"} · {data.totais.perdidos}{" "}
+            · {data.totais?.visitas ?? 0} visita
+            {(data.totais?.visitas ?? 0) === 1 ? "" : "s"} · {data.totais?.perdidos ?? 0}{" "}
             perdido
-            {data.totais.perdidos === 1 ? "" : "s"} no mês
+            {(data.totais?.perdidos ?? 0) === 1 ? "" : "s"} no mês
           </p>
 
           <section className={isGerente ? "mt-5 mb-6" : "mt-5"}>
             <div className="grid gap-4 xl:grid-cols-2">
               <PodioVendas
                 title="Pódio de vendas · corretores"
-                items={data.corretores.map((row) => ({
+                items={(data.corretores ?? []).map((row) => ({
                   id: row.corretorId,
                   nome: row.nome,
-                  vendas: row.vendas.valor,
-                  vgv: row.vgv.valor,
+                  vendas: row.vendas?.valor ?? 0,
+                  vgv: row.vgv?.valor ?? 0,
                 }))}
                 onSelect={(item) =>
                   setVendasAlvo({
@@ -601,7 +601,7 @@ function Page() {
               />
               <PodioVendas
                 title="Pódio de vendas · construtoras"
-                items={data.construtoras.map((item) => ({
+                items={(data.construtoras ?? []).map((item) => ({
                   id: item.construtoraId,
                   nome: item.nome,
                   vendas: item.vendas,
@@ -618,7 +618,7 @@ function Page() {
             </div>
             <div className="mt-4 grid gap-4 xl:grid-cols-2">
               <RankingList
-                corretores={data.corretores}
+                corretores={data.corretores ?? []}
                 onSelect={(row) =>
                   setVendasAlvo({
                     kind: "corretor",
@@ -628,7 +628,7 @@ function Page() {
                 }
               />
               <ConstrutorasRanking
-                items={data.construtoras}
+                items={data.construtoras ?? []}
                 selectedId={
                   vendasAlvo?.kind === "construtora" ? vendasAlvo.id : undefined
                 }
@@ -648,14 +648,14 @@ function Page() {
               <div className="grid gap-4 xl:grid-cols-2">
                 <PodioVendas
                   title="Pódio de vendas · gerentes"
-                  items={data.gerentes.map((row) => ({
+                  items={(data.gerentes ?? []).map((row) => ({
                     id: `${row.gerenteId}:${row.equipeId}`,
                     nome: row.nome,
-                    vendas: row.vendas.valor,
-                    vgv: row.vgv.valor,
+                    vendas: row.vendas?.valor ?? 0,
+                    vgv: row.vgv?.valor ?? 0,
                   }))}
                 />
-                <GerentesRanking gerentes={data.gerentes} />
+                <GerentesRanking gerentes={data.gerentes ?? []} />
               </div>
               <Card className="overflow-hidden rounded-2xl">
                 <CardHeader className="border-b border-border/40 bg-gradient-to-r from-primary/[0.09] via-primary/[0.03] to-transparent">
@@ -669,7 +669,7 @@ function Page() {
                   </p>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {data.gerentes.length === 0 ? (
+                  {((data.gerentes ?? []).length === 0) ? (
                     <p className="text-sm text-muted-foreground px-6 py-4">
                       Nenhum gerente cadastrado.
                     </p>
