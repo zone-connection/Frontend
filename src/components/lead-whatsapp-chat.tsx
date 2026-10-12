@@ -232,7 +232,10 @@ export function LeadWhatsappChat({
                         />
                       </a>
                     ) : null}
-                    {msg.mediaType === "audio" && msg.mediaUrl ? (
+                    {(msg.mediaType?.toLowerCase() === "audio" ||
+                      (isMediaPlaceholder(msg.text) &&
+                        /audio/i.test(msg.text))) &&
+                    msg.mediaUrl ? (
                       <WhatsappAudioBubble
                         url={msg.mediaUrl}
                         outgoing={meta.outgoing}

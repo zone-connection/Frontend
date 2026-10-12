@@ -22,6 +22,12 @@ export function mediaSrc(url: string) {
   return unwrapWhatsappMediaUrl(url) ?? url;
 }
 
+function audioProxySrc(url: string) {
+  const direct = mediaSrc(url);
+  if (direct.includes("/whatsapp/media")) return direct;
+  return `/api/whatsapp/media?url=${encodeURIComponent(direct)}&type=audio`;
+}
+
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError) return err.message;
   if (err instanceof Error && err.message) return err.message;
@@ -35,7 +41,11 @@ export function WhatsappAudioBubble({
   url: string;
   outgoing?: boolean;
 }) {
-  const src = mediaSrc(url);
+  const direct = mediaSrc(url);
+  const proxy = audioProxySrc(direct);
+  const [src, setSrc] = useState(
+    /amazonaws\.com|\.s3\./i.test(direct) ? direct : proxy,
+  );
   const [text, setText] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
 
@@ -43,7 +53,7 @@ export function WhatsappAudioBubble({
     if (working) return;
     setWorking(true);
     try {
-      const result = await transcribeWhatsappAudio(src);
+      const result = await transcribeWhatsappAudio(direct);
       setText(result.text?.trim() || "Não foi possível entender o áudio.");
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível transcrever o áudio."));
@@ -54,8 +64,16 @@ export function WhatsappAudioBubble({
 
   return (
     <div className="mt-1 space-y-1.5">
-      <audio className="w-full max-w-xs" controls preload="metadata" src={src}>
-        <source src={src} type="audio/ogg" />
+      <audio
+        className="w-full max-w-xs"
+        controls
+        preload="metadata"
+        src={src}
+        onError={() => {
+          if (src !== proxy) setSrc(proxy);
+        }}
+      >
+        <source src={src} type="audio/ogg; codecs=opus" />
       </audio>
       <div
         className={cn(
