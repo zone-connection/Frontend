@@ -636,3 +636,34 @@ export async function fetchPrazoAdiamentos(
 ): Promise<LeadPrazoAdiamento[]> {
   return apiFetch<LeadPrazoAdiamento[]>(`/leads/${id}/prazo/adiamentos`);
 }
+
+export type LeadWhatsappMessage = {
+  id: string;
+  direction: "in" | "out";
+  text: string;
+  at: string | null;
+  source: string | null;
+};
+
+export type LeadWhatsappChat = {
+  available: boolean;
+  reason?: "not_linked" | "not_configured";
+  chatId: string | null;
+  messages: LeadWhatsappMessage[];
+};
+
+export async function fetchLeadWhatsappChat(
+  id: string,
+): Promise<LeadWhatsappChat> {
+  return apiFetch<LeadWhatsappChat>(`/leads/${id}/whatsapp-chat`);
+}
+
+export async function sendLeadWhatsappChat(
+  id: string,
+  content: string,
+): Promise<{ ok: true }> {
+  return apiFetch(`/leads/${id}/whatsapp-chat`, {
+    method: "POST",
+    body: { content },
+  });
+}

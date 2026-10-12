@@ -77,6 +77,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { mapApiLead, updateLeadApi, type UpdateLeadInput } from "@/lib/leads-api";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
+import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -720,7 +721,7 @@ export function LeadDetalheDialog({
             <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem]">
               <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-width:thin]">
                 <Tabs value={tab} onValueChange={setTab}>
-                  <TabsList className="mb-4 h-10 w-full justify-start gap-1 rounded-full bg-muted/60 p-1 sm:w-auto">
+                  <TabsList className="mb-4 h-auto min-h-10 w-full flex-wrap justify-start gap-1 rounded-full bg-muted/60 p-1 sm:w-auto">
                     <TabsTrigger value="info" className="rounded-full px-3">
                       <UserRound className="mr-1.5 h-3.5 w-3.5" />
                       Informações
@@ -732,6 +733,10 @@ export function LeadDetalheDialog({
                     <TabsTrigger value="obs" className="rounded-full px-3">
                       <FileText className="mr-1.5 h-3.5 w-3.5" />
                       Observações
+                    </TabsTrigger>
+                    <TabsTrigger value="whatsapp" className="rounded-full px-3">
+                      <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
+                      WhatsApp
                     </TabsTrigger>
                   </TabsList>
 
@@ -1030,6 +1035,13 @@ export function LeadDetalheDialog({
                       </ul>
                     )}
                   </TabsContent>
+
+                  <TabsContent value="whatsapp" className="mt-0">
+                    <LeadWhatsappChat
+                      leadId={lead.id}
+                      active={tab === "whatsapp"}
+                    />
+                  </TabsContent>
                 </Tabs>
               </div>
 
@@ -1102,7 +1114,7 @@ export function LeadDetalheDialog({
                     type="button"
                     className="h-10 bg-[#22c55e] text-white hover:bg-[#16a34a]"
                     disabled={!temTelefone}
-                    onClick={abrirWhatsApp}
+                    onClick={() => setTab("whatsapp")}
                   >
                     <FaWhatsapp className="mr-1.5 h-4 w-4" />
                     WhatsApp
