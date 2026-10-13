@@ -15,8 +15,17 @@ import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api";
+import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
+import { isCorretorLike } from "@/lib/permissions";
 import {
   assumeWhatsappInboxChat,
   fetchWhatsappInboxChats,
@@ -84,6 +93,9 @@ function WhatsappInboxPage() {
   const [sending, setSending] = useState(false);
   const [assuming, setAssuming] = useState(false);
   const [query, setQuery] = useState("");
+  const [equipeId, setEquipeId] = useState("__all__");
+  const [corretorId, setCorretorId] = useState("__all__");
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [draft, setDraft] = useState("");
   const [chats, setChats] = useState<WhatsappInboxChat[]>([]);
   const [page, setPage] = useState(1);
@@ -97,6 +109,10 @@ function WhatsappInboxPage() {
   const pageSize = 50;
   const user = getSession();
   const canSend = canSendWhatsappInbox(user?.role);
+  const canFilterTeam =
+    user?.role === "admin" ||
+    user?.role === "super_admin" ||
+    user?.role === "gerente";
   const cacheKey = `crm-whatsapp-inbox-chats:${user?.id ?? "anon"}`;
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
@@ -112,7 +128,10 @@ function WhatsappInboxPage() {
   async function loadChats(nextPage = page) {
     if (chats.length === 0) setLoading(true);
     try {
-      const result = await fetchWhatsappInboxChats(nextPage, pageSize);
+      const result = await fetchWhatsappInboxChats(nextPage, pageSize, {
+        ...(equipeId !== "__all__" ? { equipeId } : {}),
+        ...(corretorId !== "__all__" ? { corretorId } : {}),
+      });
       const next = sortChats(result.chats);
       setChats(next);
       setPage(result.page);
@@ -188,8 +207,26 @@ function WhatsappInboxPage() {
     } catch {
       /* ignore */
     }
+  }, [cacheKey]);
+
+  useEffect(() => {
     void loadChats(1);
-  }, []);
+  }, [equipeId, corretorId]);
+
+  useEffect(() => {
+    if (!canFilterTeam) return;
+    let cancelled = false;
+    void fetchEquipes()
+      .then((list) => {
+        if (!cancelled) setEquipes(list);
+      })
+      .catch(() => {
+        if (!cancelled) setEquipes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canFilterTeam]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -201,6 +238,20 @@ function WhatsappInboxPage() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, loadingMsgs]);
+
+  const corretores = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string }>();
+    for (const equipe of equipes) {
+      if (equipeId !== "__all__" && equipe.id !== equipeId) continue;
+      for (const member of equipe.membros) {
+        if (!isCorretorLike(member.role) && member.role !== "gerente") continue;
+        seen.set(member.id, { id: member.id, name: member.name });
+      }
+    }
+    return [...seen.values()].sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-BR"),
+    );
+  }, [equipes, equipeId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -271,30 +322,70 @@ function WhatsappInboxPage() {
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04] grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden border-b bg-primary/[0.03] lg:border-b-0 lg:border-r">
-          <div className="flex shrink-0 items-center gap-2 border-b bg-primary/[0.04] p-3">
-            <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar conversa"
-                className="h-9 pl-8"
-              />
+          <div className="shrink-0 space-y-2 border-b bg-primary/[0.04] p-3">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar conversa"
+                  className="h-9 pl-8"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => void loadChats(page)}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => void loadChats(page)}
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
+            {canFilterTeam ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  value={equipeId}
+                  onValueChange={(value) => {
+                    setEquipeId(value);
+                    setCorretorId("__all__");
+                  }}
+                >
+                  <SelectTrigger className="h-8 border-white/15 bg-transparent px-2 text-xs text-foreground shadow-none">
+                    <SelectValue placeholder="Equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas as equipes</SelectItem>
+                    <SelectItem value="__none__">Sem equipe</SelectItem>
+                    {equipes.map((equipe) => (
+                      <SelectItem key={equipe.id} value={equipe.id}>
+                        {equipe.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={corretorId} onValueChange={setCorretorId}>
+                  <SelectTrigger className="h-8 border-white/15 bg-transparent px-2 text-xs text-foreground shadow-none">
+                    <SelectValue placeholder="Corretor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos os corretores</SelectItem>
+                    <SelectItem value="__none__">Sem corretor</SelectItem>
+                    {corretores.map((corretor) => (
+                      <SelectItem key={corretor.id} value={corretor.id}>
+                        {corretor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
             {loading && chats.length === 0 ? (

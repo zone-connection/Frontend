@@ -28,7 +28,17 @@ export type WhatsappInboxChat = {
   leadNome: string | null;
 };
 
-export async function fetchWhatsappInboxChats(page = 1, limit = 50) {
+export async function fetchWhatsappInboxChats(
+  page = 1,
+  limit = 50,
+  filters?: { corretorId?: string; equipeId?: string },
+) {
+  const qs = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (filters?.corretorId) qs.set("corretorId", filters.corretorId);
+  if (filters?.equipeId) qs.set("equipeId", filters.equipeId);
   return apiFetch<{
     available: boolean;
     instanceId: number;
@@ -38,7 +48,7 @@ export async function fetchWhatsappInboxChats(page = 1, limit = 50) {
     hasMore: boolean;
     canSend?: boolean;
     chats: WhatsappInboxChat[];
-  }>(`/whatsapp/chats?page=${page}&limit=${limit}`);
+  }>(`/whatsapp/chats?${qs.toString()}`);
 }
 
 function chatPath(chatId: string) {
