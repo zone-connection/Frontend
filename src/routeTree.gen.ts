@@ -48,6 +48,7 @@ import { Route as AppParceriasRouteImport } from './routes/_app.parcerias'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppPermissoesRouteImport } from './routes/_app.permissoes'
 import { Route as AppPresencaRouteImport } from './routes/_app.presenca'
+import { Route as AppProcessosRouteImport } from './routes/_app.processos'
 import { Route as AppPropostasRouteImport } from './routes/_app.propostas'
 import { Route as AppResultadoRouteImport } from './routes/_app.resultado'
 import { Route as AppTarefasRouteImport } from './routes/_app.tarefas'
@@ -313,6 +314,11 @@ const AppPermissoesRoute = AppPermissoesRouteImport.update({
 const AppPresencaRoute = AppPresencaRouteImport.update({
   id: '/presenca',
   path: '/presenca',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProcessosRoute = AppProcessosRouteImport.update({
+  id: '/processos',
+  path: '/processos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPropostasRoute = AppPropostasRouteImport.update({
@@ -734,6 +740,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
   '/presenca': typeof AppPresencaRoute
+  '/processos': typeof AppProcessosRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
   '/tarefas': typeof AppTarefasRoute
@@ -844,6 +851,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AppPerfilRoute
   '/permissoes': typeof AppPermissoesRoute
   '/presenca': typeof AppPresencaRoute
+  '/processos': typeof AppProcessosRoute
   '/propostas': typeof AppPropostasRoute
   '/resultado': typeof AppResultadoRoute
   '/tarefas': typeof AppTarefasRoute
@@ -953,6 +961,7 @@ export interface FileRoutesById {
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/permissoes': typeof AppPermissoesRoute
   '/_app/presenca': typeof AppPresencaRoute
+  '/_app/processos': typeof AppProcessosRoute
   '/_app/propostas': typeof AppPropostasRoute
   '/_app/resultado': typeof AppResultadoRoute
   '/_app/tarefas': typeof AppTarefasRoute
@@ -1067,6 +1076,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/permissoes'
     | '/presenca'
+    | '/processos'
     | '/propostas'
     | '/resultado'
     | '/tarefas'
@@ -1177,6 +1187,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/permissoes'
     | '/presenca'
+    | '/processos'
     | '/propostas'
     | '/resultado'
     | '/tarefas'
@@ -1285,6 +1296,7 @@ export interface FileRouteTypes {
     | '/_app/perfil'
     | '/_app/permissoes'
     | '/_app/presenca'
+    | '/_app/processos'
     | '/_app/propostas'
     | '/_app/resultado'
     | '/_app/tarefas'
@@ -1650,6 +1662,13 @@ declare module '@tanstack/react-router' {
       path: '/presenca'
       fullPath: '/presenca'
       preLoaderRoute: typeof AppPresencaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/processos': {
+      id: '/_app/processos'
+      path: '/processos'
+      fullPath: '/processos'
+      preLoaderRoute: typeof AppProcessosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/propostas': {
@@ -2349,6 +2368,7 @@ interface AppRouteChildren {
   AppPerfilRoute: typeof AppPerfilRoute
   AppPermissoesRoute: typeof AppPermissoesRoute
   AppPresencaRoute: typeof AppPresencaRoute
+  AppProcessosRoute: typeof AppProcessosRoute
   AppPropostasRoute: typeof AppPropostasRoute
   AppResultadoRoute: typeof AppResultadoRoute
   AppTarefasRoute: typeof AppTarefasRoute
@@ -2394,6 +2414,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilRoute: AppPerfilRoute,
   AppPermissoesRoute: AppPermissoesRoute,
   AppPresencaRoute: AppPresencaRoute,
+  AppProcessosRoute: AppProcessosRoute,
   AppPropostasRoute: AppPropostasRoute,
   AppResultadoRoute: AppResultadoRoute,
   AppTarefasRoute: AppTarefasRoute,

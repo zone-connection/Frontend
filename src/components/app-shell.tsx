@@ -477,6 +477,7 @@ const NAV_SECTIONS: {
     icon: Handshake,
     items: [
       { to: "/documentacao", label: "Documentação", icon: FolderOpen },
+      { to: "/processos", label: "Processos", icon: FileText },
       { to: "/propostas", label: "Propostas", icon: ClipboardList },
       { to: "/contratos", label: "Contratos", icon: FileSignature },
       { to: "/vendas", label: "Vendas", icon: DollarSign },

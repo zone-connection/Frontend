@@ -1263,17 +1263,23 @@ export function LeadDetalheDialog({
                   </TabsContent>
 
                   <TabsContent value="documentacoes" className="mt-0 space-y-4 px-4 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      Os documentos são cadastrados no módulo de Processos. Aqui
+                      aparece apenas o que já foi enviado.
+                    </p>
                     <DocumentosPanel
                       entityType="lead"
                       entityId={lead.id}
                       categoria="ficha"
                       title="Ficha"
+                      allowUpload={false}
                     />
                     <DocumentosPanel
                       entityType="lead"
                       entityId={lead.id}
                       categoria="proposta"
                       title="Propostas"
+                      allowUpload={false}
                     />
                   </TabsContent>
 

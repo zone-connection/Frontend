@@ -8,7 +8,8 @@ export type ArquivoVinculoTipo =
   | "venda_usado"
   | "documentacao"
   | "tarefa"
-  | "proposta";
+  | "proposta"
+  | "processo";
 
 export type ArquivoCategoria = "ficha" | "proposta" | "outro";
 
