@@ -6,20 +6,7 @@ import {
   Info,
   MoreVertical,
   Pencil,
-  Square,
-  SquareCheck,
-  Trash2,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -198,88 +185,6 @@ export function isRemoteWhatsappMessage(id: string) {
   return Boolean(id) && !id.startsWith("local-") && !id.startsWith("msg-");
 }
 
-export function WhatsappDeleteMessagesDialog({
-  open,
-  count,
-  previews,
-  busy,
-  onOpenChange,
-  onConfirm,
-}: {
-  open: boolean;
-  count: number;
-  previews: string[];
-  busy: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-}) {
-  const extra = Math.max(0, count - previews.length);
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!busy) onOpenChange(next);
-      }}
-    >
-      <AlertDialogContent className="max-w-[22rem] gap-0 overflow-hidden rounded-2xl border-destructive/25 p-0 sm:rounded-2xl">
-        <div className="bg-destructive/10 px-6 pb-4 pt-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-            <Trash2 className="h-5 w-5" />
-          </div>
-          <AlertDialogHeader className="mt-4 space-y-1.5 text-left">
-            <AlertDialogTitle>
-              {count > 1 ? `Excluir ${count} mensagens?` : "Excluir esta mensagem?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {count > 1
-                ? "As mensagens selecionadas saem desta conversa no WhatsApp. Essa ação não pode ser desfeita."
-                : "A mensagem sai desta conversa no WhatsApp. Essa ação não pode ser desfeita."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-        </div>
-        <div className="space-y-4 px-6 py-5">
-          {previews.length > 0 ? (
-            <ul className="space-y-1.5 rounded-xl border bg-muted/30 px-3 py-2.5">
-              {previews.map((text, index) => (
-                <li
-                  key={`${index}-${text.slice(0, 12)}`}
-                  className="truncate text-xs text-foreground/90"
-                >
-                  {text || "Mídia"}
-                </li>
-              ))}
-              {extra > 0 ? (
-                <li className="text-[11px] text-muted-foreground">
-                  e mais {extra} {extra === 1 ? "mensagem" : "mensagens"}
-                </li>
-              ) : null}
-            </ul>
-          ) : null}
-          <AlertDialogFooter className="sm:justify-stretch">
-            <AlertDialogCancel disabled={busy} className="mt-0 flex-1">
-              Manter
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={busy}
-              className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={(event) => {
-                event.preventDefault();
-                onConfirm();
-              }}
-            >
-              {busy
-                ? "Excluindo…"
-                : count > 1
-                  ? `Excluir ${count}`
-                  : "Excluir"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
 export function WhatsappMessageEditDialog({
   open,
   value,
@@ -320,59 +225,31 @@ export function WhatsappMessageBubble({
   label,
   outgoing,
   canMutate,
-  selecting,
-  selected,
-  onToggleSelect,
   onDetails,
   onEdit,
-  onDelete,
-  onStartSelect,
 }: {
   message: WhatsappBubbleMessage;
   label: string;
   outgoing: boolean;
   canMutate: boolean;
-  selecting?: boolean;
-  selected?: boolean;
-  onToggleSelect?: () => void;
   onDetails: () => void;
   onEdit?: () => void;
-  onDelete?: () => void;
-  onStartSelect?: () => void;
 }) {
   const remote = isRemoteWhatsappMessage(msg.id);
-  const canSelect = canMutate && remote;
   return (
     <div
       className={cn(
         "flex items-end gap-2",
         outgoing ? "justify-end" : "justify-start",
-        selected && "rounded-xl bg-primary/15 px-1 py-0.5",
       )}
     >
-      {selecting && canSelect ? (
-        <button
-          type="button"
-          className="mb-2 shrink-0 text-primary"
-          onClick={onToggleSelect}
-          aria-label={selected ? "Desmarcar mensagem" : "Selecionar mensagem"}
-        >
-          {selected ? (
-            <SquareCheck className="h-5 w-5" />
-          ) : (
-            <Square className="h-5 w-5 opacity-70" />
-          )}
-        </button>
-      ) : null}
       <div
         className={cn(
           "group relative max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
           outgoing
             ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md border bg-card",
-          selecting && canSelect && "cursor-pointer",
         )}
-        onClick={selecting && canSelect ? onToggleSelect : undefined}
       >
         <div className="flex items-start justify-between gap-2">
           <p className="flex min-w-0 items-center gap-1 text-[10px] font-medium opacity-80">
@@ -390,7 +267,6 @@ export function WhatsappMessageBubble({
                   outgoing ? "text-primary-foreground" : "text-muted-foreground",
                 )}
                 aria-label="Ações da mensagem"
-                onClick={(event) => event.stopPropagation()}
               >
                 <MoreVertical className="h-3.5 w-3.5" />
               </button>
@@ -404,21 +280,6 @@ export function WhatsappMessageBubble({
                 <DropdownMenuItem onClick={onEdit}>
                   <Pencil className="h-4 w-4" />
                   Editar
-                </DropdownMenuItem>
-              ) : null}
-              {canMutate && remote && onStartSelect ? (
-                <DropdownMenuItem onClick={onStartSelect}>
-                  <SquareCheck className="h-4 w-4" />
-                  Selecionar
-                </DropdownMenuItem>
-              ) : null}
-              {canMutate && remote && onDelete ? (
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

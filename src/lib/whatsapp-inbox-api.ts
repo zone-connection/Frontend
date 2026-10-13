@@ -182,16 +182,6 @@ export async function editWhatsappInboxMessage(
   );
 }
 
-export async function deleteWhatsappInboxMessage(
-  chatId: string,
-  messageId: string,
-) {
-  return apiFetch<{ ok: true }>(
-    `/whatsapp/chats/${chatPath(chatId)}/messages/${encodeURIComponent(messageId)}`,
-    { method: "DELETE" },
-  );
-}
-
 export async function assumeWhatsappInboxChat(chatId: string) {
   return apiFetch<{ ok: true; aiPaused: true }>(
     `/whatsapp/chats/${chatPath(chatId)}/assume`,
