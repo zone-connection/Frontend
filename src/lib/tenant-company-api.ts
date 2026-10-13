@@ -82,6 +82,7 @@ export type TenantModulesResponse = {
   hideClientesNav: boolean;
   adminVerClientesCorretor: boolean;
   gerenteVerLeadsGerais: boolean;
+  whatsappStaffCanSend: boolean;
   corretoresCriamPropostas: boolean;
   muralChaves: boolean;
 };
@@ -98,6 +99,7 @@ export async function updateTenantOperationModules(input: {
   hideClientesNav?: boolean;
   adminVerClientesCorretor?: boolean;
   gerenteVerLeadsGerais?: boolean;
+  whatsappStaffCanSend?: boolean;
   corretoresCriamPropostas?: boolean;
   muralChavesOptIn?: boolean;
 }): Promise<TenantModulesResponse> {

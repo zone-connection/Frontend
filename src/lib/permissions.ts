@@ -517,8 +517,14 @@ export function canWriteTriagem(role: string | null | undefined): boolean {
  * - corretor/treinee: somente os próprios, nunca retrabalho
  * - retrabalho: só admin e gerente (permanece no funil)
  */
-export function canSendWhatsappInbox(role: string | null | undefined): boolean {
-  return role === "admin" || role === "super_admin" || role === "gerente";
+export function canSendWhatsappInbox(
+  role: string | null | undefined,
+  modules?: Record<string, boolean> | null,
+): boolean {
+  if (role === "admin" || role === "super_admin" || role === "gerente") {
+    return true;
+  }
+  return modules?.whatsappStaffCanSend === true;
 }
 
 export function canSeeRetrabalhoLead(role: string | null | undefined): boolean {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, Eye, Home, Key, KeyRound, Landmark, Users } from "lucide-react";
+import { Building2, Eye, Home, Key, KeyRound, Landmark, MessageCircle, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,7 @@ export function ConfigModulosOperacaoPanel() {
   const [muralChaves, setMuralChaves] = useState(false);
   const [adminVerClientes, setAdminVerClientes] = useState(false);
   const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
+  const [whatsappStaffCanSend, setWhatsappStaffCanSend] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -85,6 +86,7 @@ export function ConfigModulosOperacaoPanel() {
       setMuralChaves(data.muralChaves === true);
       setAdminVerClientes(data.adminVerClientesCorretor === true);
       setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
+      setWhatsappStaffCanSend(data.whatsappStaffCanSend === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -157,6 +159,36 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar o Mural de Chaves.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleWhatsappStaffCanSend(checked: boolean) {
+    if (!isAdmin) return;
+    setWhatsappStaffCanSend(checked);
+    setSavingKey("whatsappStaffCanSend");
+    try {
+      const data = await updateTenantOperationModules({
+        whatsappStaffCanSend: checked,
+      });
+      setOps(data.operations);
+      setWhatsappStaffCanSend(data.whatsappStaffCanSend === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      await router.invalidate();
+      toast.success(
+        checked
+          ? "Corretores e demais perfis abaixo de gerente podem enviar no WhatsApp."
+          : "Somente admin e gerente enviam no WhatsApp.",
+      );
+    } catch (err) {
+      setWhatsappStaffCanSend(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar o envio no WhatsApp.",
       );
     } finally {
       setSavingKey(null);
@@ -364,6 +396,41 @@ export function ConfigModulosOperacaoPanel() {
                   void toggleAdminVerClientes(checked)
                 }
                 aria-label="Ver clientes dos corretores"
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin ? (
+          <Card>
+            <CardHeader className="flex-row items-start gap-3 space-y-0">
+              <div className="rounded-lg border bg-muted/40 p-2">
+                <MessageCircle className="h-5 w-5 text-brand-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base">
+                  Envio no WhatsApp
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Libera corretor, trainee e demais perfis abaixo de gerente
+                  para escrever no inbox e na ficha do lead. Admin e gerente
+                  já enviam.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Equipe pode enviar</p>
+                <p className="text-xs text-muted-foreground">
+                  Só vale se a imobiliária tiver OZap conectado.
+                </p>
+              </div>
+              <Switch
+                checked={whatsappStaffCanSend}
+                disabled={savingKey === "whatsappStaffCanSend"}
+                onCheckedChange={(checked) =>
+                  void toggleWhatsappStaffCanSend(checked)
+                }
+                aria-label="Liberar envio no WhatsApp para a equipe"
               />
             </CardContent>
           </Card>

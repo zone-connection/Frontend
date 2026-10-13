@@ -68,7 +68,11 @@ export function LeadWhatsappChat({
   const [ozapError, setOzapError] = useState<string | null>(null);
   const [messages, setMessages] = useState<LeadWhatsappMessage[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
-  const canSend = canSendWhatsappInbox(getSession()?.role);
+  const session = getSession();
+  const canSend = canSendWhatsappInbox(
+    session?.role,
+    session?.tenant?.modules ?? null,
+  );
 
   async function load() {
     setLoading(true);

@@ -26,12 +26,21 @@ export type WhatsappInboxChat = {
   leadStatus: string | null;
   leadId: string | null;
   leadNome: string | null;
+  tags?: WhatsappUserTag[];
+};
+
+export type WhatsappUserTag = {
+  id: string;
+  name: string;
+  color: string;
+  source?: string;
+  funilSlug?: string | null;
 };
 
 export async function fetchWhatsappInboxChats(
   page = 1,
   limit = 50,
-  filters?: { corretorId?: string; equipeId?: string },
+  filters?: { corretorId?: string; equipeId?: string; tagId?: string },
 ) {
   const qs = new URLSearchParams({
     page: String(page),
@@ -39,6 +48,7 @@ export async function fetchWhatsappInboxChats(
   });
   if (filters?.corretorId) qs.set("corretorId", filters.corretorId);
   if (filters?.equipeId) qs.set("equipeId", filters.equipeId);
+  if (filters?.tagId) qs.set("tagId", filters.tagId);
   return apiFetch<{
     available: boolean;
     instanceId: number;
@@ -143,5 +153,40 @@ export async function resumeWhatsappInboxChat(chatId: string) {
   return apiFetch<{ ok: true; aiPaused: false }>(
     `/whatsapp/chats/${chatPath(chatId)}/resume`,
     { method: "POST" },
+  );
+}
+
+export async function fetchWhatsappTags() {
+  return apiFetch<WhatsappUserTag[]>("/whatsapp/tags");
+}
+
+export async function createWhatsappTag(name: string, color?: string) {
+  return apiFetch<WhatsappUserTag>("/whatsapp/tags", {
+    method: "POST",
+    body: { name, color },
+  });
+}
+
+export async function importWhatsappTagsFromFunil() {
+  return apiFetch<WhatsappUserTag[]>("/whatsapp/tags/from-funil", {
+    method: "POST",
+  });
+}
+
+export async function deleteWhatsappTag(tagId: string) {
+  return apiFetch<{ ok: true }>(`/whatsapp/tags/${tagId}`, { method: "DELETE" });
+}
+
+export async function attachWhatsappChatTag(chatId: string, tagId: string) {
+  return apiFetch<{ ok: true }>(`/whatsapp/chats/${chatPath(chatId)}/tags`, {
+    method: "POST",
+    body: { tagId },
+  });
+}
+
+export async function detachWhatsappChatTag(chatId: string, tagId: string) {
+  return apiFetch<{ ok: true }>(
+    `/whatsapp/chats/${chatPath(chatId)}/tags/${tagId}`,
+    { method: "DELETE" },
   );
 }

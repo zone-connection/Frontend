@@ -10,10 +10,21 @@ import {
   RefreshCw,
   Search,
   Send,
+  Tag,
+  X,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { catalogColorBadgeClass } from "@/lib/catalog-colors";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,8 +39,14 @@ import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import { isCorretorLike } from "@/lib/permissions";
 import {
   assumeWhatsappInboxChat,
+  attachWhatsappChatTag,
+  createWhatsappTag,
+  deleteWhatsappTag,
+  detachWhatsappChatTag,
   fetchWhatsappInboxChats,
   fetchWhatsappInboxMessages,
+  fetchWhatsappTags,
+  importWhatsappTagsFromFunil,
   readWhatsappMessagesCache,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
@@ -37,6 +54,7 @@ import {
   type WhatsappBubbleKind,
   type WhatsappInboxChat,
   type WhatsappInboxMessage,
+  type WhatsappUserTag,
 } from "@/lib/whatsapp-inbox-api";
 import { getSession } from "@/lib/auth";
 import { canSendWhatsappInbox } from "@/lib/permissions";
@@ -95,6 +113,11 @@ function WhatsappInboxPage() {
   const [query, setQuery] = useState("");
   const [equipeId, setEquipeId] = useState("__all__");
   const [corretorId, setCorretorId] = useState("__all__");
+  const [tagId, setTagId] = useState<string | null>(null);
+  const [tags, setTags] = useState<WhatsappUserTag[]>([]);
+  const [tagDialog, setTagDialog] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [savingTag, setSavingTag] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [draft, setDraft] = useState("");
   const [chats, setChats] = useState<WhatsappInboxChat[]>([]);
@@ -108,7 +131,9 @@ function WhatsappInboxPage() {
   const loadGen = useRef(0);
   const pageSize = 50;
   const user = getSession();
-  const canSend = canSendWhatsappInbox(user?.role);
+  const [canSend, setCanSend] = useState(
+    canSendWhatsappInbox(user?.role, user?.tenant?.modules ?? null),
+  );
   const canFilterTeam =
     user?.role === "admin" ||
     user?.role === "super_admin" ||
@@ -131,7 +156,9 @@ function WhatsappInboxPage() {
       const result = await fetchWhatsappInboxChats(nextPage, pageSize, {
         ...(equipeId !== "__all__" ? { equipeId } : {}),
         ...(corretorId !== "__all__" ? { corretorId } : {}),
+        ...(tagId ? { tagId } : {}),
       });
+      if (typeof result.canSend === "boolean") setCanSend(result.canSend);
       const next = sortChats(result.chats);
       setChats(next);
       setPage(result.page);
@@ -211,7 +238,21 @@ function WhatsappInboxPage() {
 
   useEffect(() => {
     void loadChats(1);
-  }, [equipeId, corretorId]);
+  }, [equipeId, corretorId, tagId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchWhatsappTags()
+      .then((list) => {
+        if (!cancelled) setTags(list);
+      })
+      .catch(() => {
+        if (!cancelled) setTags([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!canFilterTeam) return;
@@ -318,6 +359,82 @@ function WhatsappInboxPage() {
     }
   }
 
+  async function reloadTags() {
+    try {
+      setTags(await fetchWhatsappTags());
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function handleCreateTag() {
+    const name = newTagName.trim();
+    if (!name || savingTag) return;
+    setSavingTag(true);
+    try {
+      await createWhatsappTag(name);
+      setNewTagName("");
+      await reloadTags();
+      toast.success("Tag criada. Só você vê.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível criar a tag."));
+    } finally {
+      setSavingTag(false);
+    }
+  }
+
+  async function handleImportFunil() {
+    if (savingTag) return;
+    setSavingTag(true);
+    try {
+      setTags(await importWhatsappTagsFromFunil());
+      toast.success("Etapas do funil copiadas para as suas tags.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível puxar as etapas."));
+    } finally {
+      setSavingTag(false);
+    }
+  }
+
+  async function handleDeleteTag(id: string) {
+    try {
+      await deleteWhatsappTag(id);
+      if (tagId === id) setTagId(null);
+      setTags((prev) => prev.filter((tag) => tag.id !== id));
+      setChats((prev) =>
+        prev.map((chat) => ({
+          ...chat,
+          tags: (chat.tags ?? []).filter((tag) => tag.id !== id),
+        })),
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível apagar a tag."));
+    }
+  }
+
+  async function toggleChatTag(next: WhatsappUserTag) {
+    if (!activeId) return;
+    const on = (active?.tags ?? []).some((tag) => tag.id === next.id);
+    try {
+      if (on) await detachWhatsappChatTag(activeId, next.id);
+      else await attachWhatsappChatTag(activeId, next.id);
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.chatId !== activeId) return chat;
+          const current = chat.tags ?? [];
+          return {
+            ...chat,
+            tags: on
+              ? current.filter((tag) => tag.id !== next.id)
+              : [...current, next],
+          };
+        }),
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível atualizar a tag."));
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04] grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
@@ -386,6 +503,36 @@ function WhatsappInboxPage() {
                 </Select>
               </div>
             ) : null}
+            <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+              {tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={cn(
+                    catalogColorBadgeClass(
+                      tag.color,
+                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    ),
+                    tagId === tag.id
+                      ? "ring-2 ring-white/80"
+                      : "opacity-80 hover:opacity-100",
+                  )}
+                  onClick={() => setTagId((cur) => (cur === tag.id ? null : tag.id))}
+                >
+                  {tag.name}
+                </button>
+              ))}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-[11px]"
+                onClick={() => setTagDialog(true)}
+              >
+                <Tag className="mr-1 h-3 w-3" />
+                Tags
+              </Button>
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
             {loading && chats.length === 0 ? (
@@ -423,6 +570,21 @@ function WhatsappInboxPage() {
                       {chat.aiPaused ? "IA pausada · " : ""}
                       {chat.lastMessage || "Sem mensagens"}
                     </span>
+                    {(chat.tags ?? []).length > 0 ? (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {(chat.tags ?? []).map((tag) => (
+                          <span
+                            key={tag.id}
+                            className={catalogColorBadgeClass(
+                              tag.color,
+                              "rounded-full px-1.5 py-px text-[9px] font-semibold",
+                            )}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
                   {chat.unread > 0 ? (
                     <span className="mt-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
@@ -478,6 +640,29 @@ function WhatsappInboxPage() {
                     {active.aiPaused ? " · IA pausada" : " · IA ativa"}
                     {loadingMsgs && messages.length > 0 ? " · atualizando" : ""}
                   </p>
+                  {tags.length > 0 ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {tags.map((tag) => {
+                        const on = (active.tags ?? []).some((item) => item.id === tag.id);
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            className={cn(
+                              catalogColorBadgeClass(
+                                tag.color,
+                                "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              ),
+                              on ? "ring-1 ring-white/70" : "opacity-50 hover:opacity-100",
+                            )}
+                            onClick={() => void toggleChatTag(tag)}
+                          >
+                            {tag.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {active.leadId ? (
@@ -648,6 +833,80 @@ function WhatsappInboxPage() {
           )}
         </section>
       </div>
+      <Dialog open={tagDialog} onOpenChange={setTagDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suas tags do WhatsApp</DialogTitle>
+            <DialogDescription>
+              Só você vê. Crie as suas ou copie as etapas do funil da
+              imobiliária.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                value={newTagName}
+                onChange={(event) => setNewTagName(event.target.value)}
+                placeholder="Nova tag"
+                maxLength={40}
+              />
+              <Button
+                type="button"
+                disabled={savingTag || !newTagName.trim()}
+                onClick={() => void handleCreateTag()}
+              >
+                Criar
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={savingTag}
+              onClick={() => void handleImportFunil()}
+            >
+              Puxar etapas do funil
+            </Button>
+            {tags.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma tag ainda.
+              </p>
+            ) : (
+              <ul className="max-h-56 space-y-1 overflow-y-auto">
+                {tags.map((tag) => (
+                  <li
+                    key={tag.id}
+                    className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
+                  >
+                    <span
+                      className={catalogColorBadgeClass(
+                        tag.color,
+                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      )}
+                    >
+                      {tag.name}
+                      {tag.source === "funil" ? " · funil" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => void handleDeleteTag(tag.id)}
+                      aria-label={`Apagar ${tag.name}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setTagDialog(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
