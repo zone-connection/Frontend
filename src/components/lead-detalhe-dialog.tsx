@@ -35,6 +35,7 @@ import { DocStatusFunilTags } from "@/components/doc-status1-funil-tag";
 import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   HistoryTimeline,
+  MAX_TRIAGEM_TEXTO,
   formatTriagemWhen,
   useTriagemHistory,
 } from "@/components/triagem-history-timeline";
@@ -83,6 +85,9 @@ import {
 } from "@/lib/money-input";
 import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { getSession } from "@/lib/auth";
+import { canWriteTriagem } from "@/lib/permissions";
+import { createTriagemEvent } from "@/lib/triagem-api";
+import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { cn } from "@/lib/utils";
 
 const PRIORIDADE_AVATAR: Record<Lead["prioridade"], string> = {
@@ -478,9 +483,11 @@ function FunilTrack({
             className={cn(
               "relative shrink-0 py-1.5 pr-4 text-[11px] font-medium whitespace-nowrap",
               i > 0 && "-ml-1.5",
-              reached
-                ? "bg-[#1f9d55] text-white"
-                : "bg-[#e6ebf0] text-[#5c6b76] dark:bg-[#1c2430] dark:text-[#94a3b8]",
+              current
+                ? "bg-[#079ED4] text-white"
+                : reached
+                  ? "bg-[#05749E] text-white"
+                  : "bg-[#F4F7F8] text-[#5C6B76] dark:bg-[#1c2430] dark:text-[#94a3b8]",
             )}
             style={{
               zIndex: track.length - i,
@@ -574,10 +581,14 @@ export function LeadDetalheDialog({
   const { funnelStages, origens, colorByLabel } = useCatalog();
   const hasOzapChat = getSession()?.tenant?.hasOzapConnection === true;
   const [tab, setTab] = useState("atividade");
+  const [triagemTexto, setTriagemTexto] = useState("");
+  const [triagemSaving, setTriagemSaving] = useState(false);
   const hist = useTriagemHistory(open && lead ? lead.id : null);
+  const podeTriagem = canWriteTriagem(getSession()?.role);
 
   useEffect(() => {
     setTab("atividade");
+    setTriagemTexto("");
   }, [lead?.id]);
   const stage = funnelStages.find((item) => item.id === lead?.stage);
   const telefoneDigits = lead ? phoneDigits(lead.telefone) : "";
@@ -658,6 +669,38 @@ export function LeadDetalheDialog({
   function ligar() {
     if (!temTelefone) return;
     window.location.href = `tel:+55${telefoneDigits}`;
+  }
+
+  async function registrarTriagem() {
+    if (!lead || !podeTriagem) return;
+    const texto = triagemTexto.trim();
+    if (!texto) {
+      toast.error("Informe o relato da triagem.");
+      return;
+    }
+    if (texto.length > MAX_TRIAGEM_TEXTO) {
+      toast.error(`O relato deve ter no máximo ${MAX_TRIAGEM_TEXTO} caracteres.`);
+      return;
+    }
+    setTriagemSaving(true);
+    try {
+      const created = await createTriagemEvent({
+        leadId: lead.id,
+        texto,
+        origem: "manual",
+      });
+      prependTriagemHistoryCached(lead.id, created);
+      hist.setEvents((cur) => {
+        const ids = new Set(created.map((item) => item.id));
+        return [...created, ...cur.filter((item) => !ids.has(item.id))];
+      });
+      setTriagemTexto("");
+      toast.success("Relato registrado na triagem.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível registrar a triagem."));
+    } finally {
+      setTriagemSaving(false);
+    }
   }
 
   return (
@@ -1140,7 +1183,32 @@ export function LeadDetalheDialog({
                   </TabsContent>
 
                   <TabsContent value="triagem" className="mt-0 space-y-3 px-4 py-4">
-                    <div className="rounded-lg border border-[#f3e2a2] bg-[#fff8dc] p-3 text-sm text-[#3d3420] dark:border-[#f5c48a]/30 dark:bg-[#3a2a14] dark:text-[#f8fafc]">
+                    {podeTriagem ? (
+                      <div className="space-y-2 rounded-lg border bg-card p-3">
+                        <Textarea
+                          value={triagemTexto}
+                          maxLength={MAX_TRIAGEM_TEXTO}
+                          rows={4}
+                          disabled={triagemSaving}
+                          placeholder="Registre o relato da triagem..."
+                          onChange={(event) => setTriagemTexto(event.target.value)}
+                        />
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] text-muted-foreground">
+                            {triagemTexto.length}/{MAX_TRIAGEM_TEXTO}
+                          </span>
+                          <Button
+                            type="button"
+                            className="h-9 bg-[#079ED4] px-3 text-white hover:bg-[#0689b8]"
+                            disabled={triagemSaving || !triagemTexto.trim()}
+                            onClick={() => void registrarTriagem()}
+                          >
+                            Adicionar triagem
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="rounded-lg border border-[#D3EBF5] bg-[#F3FAFD] p-3 text-sm text-[#0B3148] dark:border-[#079ED4]/30 dark:bg-[#102838] dark:text-[#f8fafc]">
                       {lead.analise?.parecer && shouldShowAnaliseStatus(lead.analise.status) ? (
                         <p className="mb-3 whitespace-pre-wrap">{lead.analise.parecer}</p>
                       ) : null}
@@ -1162,7 +1230,7 @@ export function LeadDetalheDialog({
                         <Button
                           type="button"
                           variant="outline"
-                          className="mt-3 h-8 bg-white/80 dark:bg-[#1c2430]"
+                          className="mt-3 h-8"
                           onClick={verTriagem.onClick}
                         >
                           Abrir triagem
@@ -1181,6 +1249,7 @@ export function LeadDetalheDialog({
                   ) : null}
                 </Tabs>
 
+                {tab !== "whatsapp" ? (
                 <section className="border-t px-4 py-4">
                   <h3 className="mb-3 flex items-center gap-1 text-sm font-semibold">
                     Histórico
@@ -1204,6 +1273,7 @@ export function LeadDetalheDialog({
                     }
                   />
                 </section>
+                ) : null}
               </div>
             </div>
           </>
