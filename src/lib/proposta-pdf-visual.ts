@@ -12,6 +12,7 @@ import {
   type PropostaSimplesKey,
 } from "@/lib/propostas-api";
 import type { TenantBranding } from "@/lib/auth";
+import { parseHexRgb, sampleLogoPalette } from "@/lib/brand-hue";
 
 type PropostaPdfBrand = {
   logoUrl?: string | null;
@@ -30,13 +31,127 @@ type PropostaPdfBrand = {
 
 type Rgb = [number, number, number];
 
-const INK: Rgb = [22, 18, 42];
-const HEADER: Rgb = [18, 16, 42];
-const HEADER_HI: Rgb = [62, 42, 118];
-const LAVENDER: Rgb = [236, 231, 247];
-const MUTED: Rgb = [120, 112, 148];
-const PAGE: Rgb = [247, 246, 252];
-const LINE: Rgb = [226, 222, 236];
+const BRAND_SEED: Rgb = [7, 158, 212];
+
+export type PropostaVisualPalette = {
+  ink: string;
+  header: string;
+  accent: string;
+  accentDeep: string;
+  mist: string;
+  muted: string;
+  wash: string;
+  page: string;
+  line: string;
+  divider: string;
+};
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  return [h * 60, s, l];
+}
+
+function hslToRgb(h: number, s: number, l: number): Rgb {
+  const hue = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hue < 60) [r, g, b] = [c, x, 0];
+  else if (hue < 120) [r, g, b] = [x, c, 0];
+  else if (hue < 180) [r, g, b] = [0, c, x];
+  else if (hue < 240) [r, g, b] = [0, x, c];
+  else if (hue < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255),
+  ];
+}
+
+function rgbHex(rgb: Rgb) {
+  return `#${rgb.map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+function paletteFromSeeds(seeds: Rgb[]): PropostaVisualPalette {
+  const scored = (seeds.length ? seeds : [BRAND_SEED]).map((rgb) => {
+    const [h, s, l] = rgbToHsl(...rgb);
+    return { rgb, h, s, l };
+  });
+  const brand =
+    [...scored].sort((a, b) => b.s - a.s || a.l - b.l)[0] ?? scored[0]!;
+  const accent =
+    [...scored]
+      .filter((item) => {
+        if (item === brand || item.s < 0.16) return false;
+        const gap = Math.min(
+          Math.abs(item.h - brand.h),
+          360 - Math.abs(item.h - brand.h),
+        );
+        return gap > 14;
+      })
+      .sort((a, b) => b.s - a.s)[0] ?? null;
+  const hue = brand.h;
+  const sat = clamp(Math.max(brand.s, accent?.s ?? 0.35), 0.22, 0.72);
+  const header = hslToRgb(hue, sat, 0.14);
+  const hi = accent?.rgb ?? hslToRgb(hue, clamp(sat + 0.08, 0, 0.8), 0.4);
+  return {
+    ink: rgbHex(hslToRgb(hue, clamp(sat, 0, 0.45), 0.12)),
+    header: rgbHex(header),
+    accent: rgbHex(hi),
+    accentDeep: rgbHex(mixRgb(header, hi, 0.42)),
+    mist: rgbHex(hslToRgb(hue, clamp(sat * 0.45, 0, 0.35), 0.82)),
+    muted: rgbHex(hslToRgb(hue, clamp(sat * 0.35, 0, 0.28), 0.42)),
+    wash: rgbHex(hslToRgb(hue, clamp(sat * 0.35, 0, 0.3), 0.94)),
+    page: rgbHex(hslToRgb(hue, clamp(sat * 0.28, 0, 0.22), 0.975)),
+    line: rgbHex(hslToRgb(hue, clamp(sat * 0.22, 0, 0.2), 0.88)),
+    divider: rgbHex(mixRgb(header, hi, 0.55)),
+  };
+}
+
+export async function resolvePropostaVisualPalette(
+  logoUrl?: string | null,
+  primaryColor?: string | null,
+): Promise<PropostaVisualPalette> {
+  const fromLogo = logoUrl?.trim() ? await sampleLogoPalette(logoUrl) : [];
+  const logoSeeds = fromLogo
+    .map((hex) => parseHexRgb(hex))
+    .filter((rgb): rgb is Rgb => rgb != null);
+  const fallback = parseHexRgb(primaryColor ?? "");
+  const seeds = logoSeeds.length ? logoSeeds : fallback ? [fallback] : [];
+  return paletteFromSeeds(seeds);
+}
+
+function asRgb(hex: string, fallback: Rgb): Rgb {
+  return parseHexRgb(hex) ?? fallback;
+}
 
 const ORDER = [
   "SINAL",
@@ -121,6 +236,20 @@ export async function buildPropostaPdfVisual(
     ? propertyBits.join("  ·  ").toUpperCase()
     : (brand?.company?.endereco || brand?.company?.cidade || "PROPOSTA COMERCIAL").toUpperCase();
 
+  const palette = await resolvePropostaVisualPalette(
+    brand?.logoUrl,
+    brand?.primaryColor,
+  );
+  const INK = asRgb(palette.ink, BRAND_SEED);
+  const HEADER = asRgb(palette.header, BRAND_SEED);
+  const HEADER_HI = asRgb(palette.accent, BRAND_SEED);
+  const HEADER_DEEP = asRgb(palette.accentDeep, BRAND_SEED);
+  const LAVENDER = asRgb(palette.wash, BRAND_SEED);
+  const MUTED = asRgb(palette.muted, BRAND_SEED);
+  const PAGE = asRgb(palette.page, BRAND_SEED);
+  const LINE = asRgb(palette.line, BRAND_SEED);
+  const MIST = asRgb(palette.mist, [210, 220, 230]);
+  const DIVIDER = asRgb(palette.divider, BRAND_SEED);
   const rows = paymentRows(p);
   const tableRows = rows.length
     ? rows
@@ -141,12 +270,12 @@ export async function buildPropostaPdfVisual(
       doc.rect(0, 0, pageW, headerH, "F");
       doc.setFillColor(...HEADER_HI);
       doc.triangle(pageW - 210, 0, pageW, 0, pageW, headerH + 8, "F");
-      doc.setFillColor(36, 28, 78);
+      doc.setFillColor(...HEADER_DEEP);
       doc.triangle(pageW - 120, 0, pageW, 0, pageW, 92, "F");
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.setTextColor(196, 188, 220);
+      doc.setTextColor(...MIST);
       doc.setCharSpace(3.2);
       doc.text(kicker, margin, 48);
       doc.setCharSpace(0);
@@ -159,17 +288,17 @@ export async function buildPropostaPdfVisual(
 
       doc.setFont("times", "italic");
       doc.setFontSize(11);
-      doc.setTextColor(210, 204, 230);
+      doc.setTextColor(...MIST);
       doc.text("Mais que imóveis,", margin, 128);
       doc.text("realizamos conexões.", margin, 144);
 
       const mottoX = pageW - margin - 4;
-      doc.setDrawColor(180, 170, 210);
+      doc.setDrawColor(...MIST);
       doc.setLineWidth(0.7);
       doc.line(pageW * 0.62, 52, pageW * 0.62, 118);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
-      doc.setTextColor(210, 204, 230);
+      doc.setTextColor(...MIST);
       doc.setCharSpace(1.4);
       doc.text("TRANSPARÊNCIA", mottoX, 78, { align: "right" });
       doc.text("EM CADA ETAPA.", mottoX, 94, { align: "right" });
@@ -223,7 +352,7 @@ export async function buildPropostaPdfVisual(
     doc.text("PROPOSTA COMERCIAL", margin, afterName + 22);
     doc.setCharSpace(0);
     doc.setFontSize(9);
-    doc.setTextColor(90, 86, 110);
+    doc.setTextColor(...MUTED);
     doc.text(
       `${formatPropostaDate(p.createdAt)}  ·  ${pdfText(p.codigo, "----")}`,
       margin,
@@ -243,7 +372,7 @@ export async function buildPropostaPdfVisual(
     doc.text(companyName.toUpperCase(), rightX, top + 18);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(90, 86, 110);
+    doc.setTextColor(...MUTED);
     const sub = doc.splitTextToSize(imobiliariaSub, colW);
     doc.text(sub.slice(0, 2), rightX, top + 34);
 
@@ -334,17 +463,17 @@ export async function buildPropostaPdfVisual(
     doc.setFillColor(...HEADER);
     doc.roundedRect(margin, y, contentW, barH, 10, 10, "F");
     const split = margin + contentW * 0.52;
-    doc.setDrawColor(90, 80, 130);
+    doc.setDrawColor(...DIVIDER);
     doc.setLineWidth(0.7);
     doc.line(split, y + 18, split, y + barH - 18);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(196, 188, 220);
+    doc.setTextColor(...MIST);
     doc.setCharSpace(1.2);
     doc.text("TOTAL DA COMPOSIÇÃO", margin + 22, y + 28);
     doc.setCharSpace(0);
-    doc.setDrawColor(196, 188, 220);
+    doc.setDrawColor(...MIST);
     doc.setLineWidth(1);
     doc.line(margin + 22, y + 34, margin + 58, y + 34);
     doc.setFont("times", "normal");
@@ -355,7 +484,7 @@ export async function buildPropostaPdfVisual(
     const desconto = p.desconto ?? 0;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(196, 188, 220);
+    doc.setTextColor(...MIST);
     doc.setCharSpace(0.8);
     doc.text("DESCONTO DO IMÓVEL", split + 22, y + 32);
     doc.text("VALOR NEGOCIADO", split + 22, y + 58);
