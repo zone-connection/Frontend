@@ -180,6 +180,10 @@ function TenantsPage() {
   const [metaPageId, setMetaPageId] = useState("");
   const [metaToken, setMetaToken] = useState("");
   const [ozapInstanceId, setOzapInstanceId] = useState("");
+  const [ozapOpenaiKey, setOzapOpenaiKey] = useState("");
+  const [ozapKeyDrafts, setOzapKeyDrafts] = useState<Record<string, string>>(
+    {},
+  );
   const [oruloClientId, setOruloClientId] = useState("");
   const [oruloClientSecret, setOruloClientSecret] = useState("");
   const [savingConnection, setSavingConnection] = useState(false);
@@ -394,6 +398,8 @@ function TenantsPage() {
     setMetaPageId("");
     setMetaToken("");
     setOzapInstanceId("");
+    setOzapOpenaiKey("");
+    setOzapKeyDrafts({});
     setDetailLoading(true);
     try {
       setDetail(await fetchTenant(item.id));
@@ -704,8 +710,14 @@ function TenantsPage() {
 
     setSavingConnection(true);
     try {
-      await createOzapConnection(detail.id, { instanceId });
+      await createOzapConnection(detail.id, {
+        instanceId,
+        ...(ozapOpenaiKey.trim()
+          ? { openaiApiKey: ozapOpenaiKey.trim() }
+          : {}),
+      });
       setOzapInstanceId("");
+      setOzapOpenaiKey("");
       toast.success("Conexão OZap adicionada.");
       await reloadDetail(detail.id);
     } catch (err) {
@@ -732,6 +744,32 @@ function TenantsPage() {
           ? err.message
           : "Falha ao atualizar conexão Meta.",
       );
+    }
+  }
+
+  async function saveOzapOpenaiKey(connection: TenantOzapConnection) {
+    if (!detail) return;
+    const key = (ozapKeyDrafts[connection.id] ?? "").trim();
+    if (!key) {
+      toast.error("Cole a chave OpenAI do agente desta instância.");
+      return;
+    }
+    setSavingConnection(true);
+    try {
+      await updateOzapConnection(detail.id, connection.id, {
+        openaiApiKey: key,
+      });
+      setOzapKeyDrafts((prev) => ({ ...prev, [connection.id]: "" }));
+      toast.success("Chave OpenAI salva para transcrição nesta imobiliária.");
+      await reloadDetail(detail.id);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Falha ao salvar a chave OpenAI.",
+      );
+    } finally {
+      setSavingConnection(false);
     }
   }
 
@@ -1740,8 +1778,12 @@ function TenantsPage() {
               </FormSection>
 
               <FormSection title="OZap / WhatsApp">
+                <p className="text-sm text-muted-foreground">
+                  A chave OpenAI é a do agente desta instância. O CRM usa só
+                  para transcrever áudios do inbox, sem chave geral no Render.
+                </p>
                 <form
-                  className="grid gap-3 sm:grid-cols-[1fr_auto]"
+                  className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
                   onSubmit={(e) => void handleAddOzap(e)}
                 >
                   <div className="space-y-1.5">
@@ -1752,6 +1794,17 @@ function TenantsPage() {
                       onChange={(e) => setOzapInstanceId(e.target.value)}
                       placeholder="1143"
                       inputMode="numeric"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ozap-openai">Chave OpenAI do agente</Label>
+                    <Input
+                      id="ozap-openai"
+                      type="password"
+                      autoComplete="off"
+                      value={ozapOpenaiKey}
+                      onChange={(e) => setOzapOpenaiKey(e.target.value)}
+                      placeholder="sk-..."
                     />
                   </div>
                   <div className="flex items-end">
@@ -1771,36 +1824,72 @@ function TenantsPage() {
                     {detail.ozapConnections.map((connection) => (
                       <li
                         key={connection.id}
-                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                        className="space-y-2 rounded-md border px-3 py-2"
                       >
-                        <div className="flex items-center gap-2">
-                          <MessageCircle className="h-4 w-4 text-emerald-600" />
-                          <span className="font-medium">
-                            Instância {connection.instanceId}
-                          </span>
-                          <Badge
-                            variant={connection.ativo ? "default" : "secondary"}
-                            className={STATUS_CHIP_CLASS}
-                          >
-                            {connection.ativo ? "Ativa" : "Inativa"}
-                          </Badge>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <MessageCircle className="h-4 w-4 text-emerald-600" />
+                            <span className="font-medium">
+                              Instância {connection.instanceId}
+                            </span>
+                            <Badge
+                              variant={
+                                connection.ativo ? "default" : "secondary"
+                              }
+                              className={STATUS_CHIP_CLASS}
+                            >
+                              {connection.ativo ? "Ativa" : "Inativa"}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {connection.hasOpenaiApiKey
+                                ? "OpenAI cadastrada"
+                                : "Sem chave OpenAI"}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void toggleOzap(connection)}
+                            >
+                              {connection.ativo ? "Desativar" : "Ativar"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteOzap(connection)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 gap-1">
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Input
+                            type="password"
+                            autoComplete="off"
+                            placeholder={
+                              connection.hasOpenaiApiKey
+                                ? "Nova chave (opcional)"
+                                : "sk-... do agente"
+                            }
+                            value={ozapKeyDrafts[connection.id] ?? ""}
+                            onChange={(e) =>
+                              setOzapKeyDrafts((prev) => ({
+                                ...prev,
+                                [connection.id]: e.target.value,
+                              }))
+                            }
+                          />
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => void toggleOzap(connection)}
+                            disabled={savingConnection}
+                            onClick={() => void saveOzapOpenaiKey(connection)}
                           >
-                            {connection.ativo ? "Desativar" : "Ativar"}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteOzap(connection)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            Salvar chave
                           </Button>
                         </div>
                       </li>

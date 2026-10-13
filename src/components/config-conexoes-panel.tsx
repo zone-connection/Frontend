@@ -365,6 +365,8 @@ function IaConexoesCard() {
   const [loading, setLoading] = useState(canManage);
   const [busy, setBusy] = useState(false);
   const [instanceId, setInstanceId] = useState("");
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!canManage) return;
@@ -402,8 +404,12 @@ function IaConexoesCard() {
     }
     setBusy(true);
     try {
-      await createOzapConnection(PLATFORM_TENANT_ID, { instanceId: id });
+      await createOzapConnection(PLATFORM_TENANT_ID, {
+        instanceId: id,
+        ...(openaiKey.trim() ? { openaiApiKey: openaiKey.trim() } : {}),
+      });
       setInstanceId("");
+      setOpenaiKey("");
       await load();
       toast.success("IA conectada. Os leads do WhatsApp entram no CRM da plataforma.");
     } catch (err) {
@@ -411,6 +417,31 @@ function IaConexoesCard() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível conectar a IA.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveOpenaiKey(connection: TenantOzapConnection) {
+    const key = (keyDrafts[connection.id] ?? "").trim();
+    if (!key) {
+      toast.error("Cole a chave OpenAI do agente desta instância.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await updateOzapConnection(PLATFORM_TENANT_ID, connection.id, {
+        openaiApiKey: key,
+      });
+      setKeyDrafts((prev) => ({ ...prev, [connection.id]: "" }));
+      await load();
+      toast.success("Chave OpenAI salva para transcrição.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível salvar a chave OpenAI.",
       );
     } finally {
       setBusy(false);
@@ -459,8 +490,8 @@ function IaConexoesCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Vincule a instância do bot de IA da plataforma. Os leads do WhatsApp
-          entram no CRM do super admin, como nas imobiliárias.
+          Vincule a instância do bot de IA da plataforma. A chave OpenAI do
+          agente fica nesta conexão e o CRM usa só para transcrever áudios.
         </p>
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -470,7 +501,7 @@ function IaConexoesCard() {
         ) : (
           <>
             <form
-              className="grid gap-3 sm:grid-cols-[1fr_auto]"
+              className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
               onSubmit={(e) => void handleAdd(e)}
             >
               <div className="space-y-1.5">
@@ -481,6 +512,18 @@ function IaConexoesCard() {
                   onChange={(e) => setInstanceId(e.target.value)}
                   placeholder="1143"
                   inputMode="numeric"
+                  disabled={busy}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="platform-ozap-openai">Chave OpenAI</Label>
+                <Input
+                  id="platform-ozap-openai"
+                  type="password"
+                  autoComplete="off"
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-..."
                   disabled={busy}
                 />
               </div>
@@ -500,37 +543,70 @@ function IaConexoesCard() {
                 {connections.map((connection) => (
                   <li
                     key={connection.id}
-                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                    className="space-y-2 rounded-md border px-3 py-2"
                   >
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4 text-emerald-600" />
-                      <span className="font-medium">
-                        Instância {connection.instanceId}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {connection.ativo ? "Ativa" : "Inativa"}
-                      </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-emerald-600" />
+                        <span className="font-medium">
+                          Instância {connection.instanceId}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {connection.ativo ? "Ativa" : "Inativa"}
+                          {connection.hasOpenaiApiKey
+                            ? " · OpenAI cadastrada"
+                            : " · Sem chave OpenAI"}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => void toggle(connection)}
+                        >
+                          {connection.ativo ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={busy}
+                          onClick={() => void remove(connection)}
+                        >
+                          <Unplug className="mr-1.5 h-4 w-4" />
+                          Remover
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        type="password"
+                        autoComplete="off"
+                        placeholder={
+                          connection.hasOpenaiApiKey
+                            ? "Nova chave (opcional)"
+                            : "sk-... do agente"
+                        }
+                        value={keyDrafts[connection.id] ?? ""}
+                        onChange={(e) =>
+                          setKeyDrafts((prev) => ({
+                            ...prev,
+                            [connection.id]: e.target.value,
+                          }))
+                        }
+                        disabled={busy}
+                      />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         disabled={busy}
-                        onClick={() => void toggle(connection)}
+                        onClick={() => void saveOpenaiKey(connection)}
                       >
-                        {connection.ativo ? "Desativar" : "Ativar"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        disabled={busy}
-                        onClick={() => void remove(connection)}
-                      >
-                        <Unplug className="mr-1.5 h-4 w-4" />
-                        Remover
+                        Salvar chave
                       </Button>
                     </div>
                   </li>
