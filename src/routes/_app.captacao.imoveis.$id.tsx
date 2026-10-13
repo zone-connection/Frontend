@@ -28,6 +28,7 @@ import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
 import { PropostaLinkPublicoButton } from "@/components/proposta-link-publico-button";
 import { Building2, Loader2, Pencil, Trash2 } from "lucide-react";
 import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/imoveis/$id")({
@@ -165,6 +166,7 @@ function ImovelDetalhePage() {
         </CardContent>
       </Card>
       <PropostasDoAlvo imovelId={item.id} titulo="Propostas deste imóvel" />
+      <DocumentosPanel entityType="imovel" entityId={item.id} title="Documentos" />
       {item.descricao ? (
         <Card>
           <CardHeader>

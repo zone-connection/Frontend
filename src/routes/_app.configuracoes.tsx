@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCatalog } from "@/lib/catalog-store";
+import { DocumentoTagsCatalogPanel } from "@/components/documento-tags-catalog-panel";
 import type { CatalogItem, CatalogType } from "@/lib/catalog-api";
 import {
   CATALOG_COLORS,
@@ -1001,6 +1002,10 @@ function Config() {
               </p>
             </section>
           </div>
+        ) : null}
+
+        {selection.item === "tags-documentos" ? (
+          <DocumentoTagsCatalogPanel />
         ) : null}
 
         {selection.item === "listas" ? (

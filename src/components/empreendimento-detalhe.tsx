@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
+import { DocumentosPanel } from "@/components/documentos-panel";
 
 const TEMAS = [
   { id: "sistema", cor: "#079ed4" },
@@ -743,6 +744,11 @@ export function EmpreendimentoDetalhe({
           <PropostasDoAlvo
             empreendimentoId={item.id}
             titulo="Propostas deste empreendimento"
+          />
+          <DocumentosPanel
+            entityType="empreendimento"
+            entityId={item.id}
+            title="Documentos"
           />
 
           {show(modo, Boolean(item.observacao?.trim())) ? (

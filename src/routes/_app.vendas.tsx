@@ -26,6 +26,7 @@ import {
   FormSection,
 } from "@/components/form-dialog";
 import { SemConexao } from "@/components/sem-conexao";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -1309,6 +1310,15 @@ function VendasDocumentacaoPage() {
                 </div>
               </div>
             </FormSection>
+            {editing?.id ? (
+              <div className="px-6 pb-4">
+                <DocumentosPanel
+                  entityType="documentacao"
+                  entityId={editing.id}
+                  title="Arquivos PDF"
+                />
+              </div>
+            ) : null}
           </FormDialogBody>
         </form>
       </FormDialogShell>

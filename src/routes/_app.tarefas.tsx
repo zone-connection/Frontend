@@ -70,6 +70,7 @@ import { cn } from "@/lib/utils";
 import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
 import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
+import { DocumentosPanel } from "@/components/documentos-panel";
 
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas â€” Zone Connection" }] }),
@@ -312,6 +313,7 @@ function TarefasPage() {
     return (
       <CriarCompromisso
         editing={Boolean(editing)}
+        tarefaId={editing?.id}
         form={form}
         setForm={setForm}
         atribuiveis={atribuiveis}
@@ -563,6 +565,7 @@ function chaveLivre(chaves: MuralChave[], imovelId?: string, empreendimentoId?: 
 
 function CriarCompromisso({
   editing,
+  tarefaId,
   form,
   setForm,
   atribuiveis,
@@ -577,6 +580,7 @@ function CriarCompromisso({
   onNota,
 }: {
   editing: boolean;
+  tarefaId?: string;
   form: TarefaInput;
   setForm: (form: TarefaInput) => void;
   atribuiveis: { id: string; name: string; role: Role }[];
@@ -929,6 +933,28 @@ function CriarCompromisso({
           </Section>
         ) : null}
         </>
+        ) : null}
+
+        {editing && tarefaId ? (
+          <DocumentosPanel
+            entityType="tarefa"
+            entityId={tarefaId}
+            extraVinculo={
+              form.leadId
+                ? { entityType: "lead", entityId: form.leadId }
+                : undefined
+            }
+            related={
+              form.leadId
+                ? {
+                    entityType: "lead",
+                    entityId: form.leadId,
+                    label: "lead/cliente",
+                  }
+                : undefined
+            }
+            title="Documentos desta tarefa"
+          />
         ) : null}
 
         {editing ? (

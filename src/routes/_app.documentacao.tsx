@@ -82,6 +82,7 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import type { CatalogType } from "@/lib/catalog-api";
 import { ApiError } from "@/lib/api";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import {
   formatPhone,
   isValidPhone,
@@ -3200,6 +3201,15 @@ function DocumentacaoPage() {
                 </div>
               </div>
             </FormSection>
+            {formMode === "edit" && editingId ? (
+              <div className="px-1 pb-2">
+                <DocumentosPanel
+                  entityType="documentacao"
+                  entityId={editingId}
+                  title="Arquivos PDF"
+                />
+              </div>
+            ) : null}
           </FormDialogBody>
           <FormDialogActions
             hint={

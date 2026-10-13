@@ -15,6 +15,7 @@ export const CONFIG_ITEMS = [
   "metas",
   "financeiro",
   "listas",
+  "tags-documentos",
   "documentacao",
   "imoveis",
 ] as const;
@@ -175,6 +176,7 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
   const catalogoItems: ConfigNavItem[] = [];
   if (flags.showCatalog) {
     catalogoItems.push({ id: "listas", label: "Leads" });
+    catalogoItems.push({ id: "tags-documentos", label: "Tags de documentos" });
   }
   if (flags.showDocumentacao) {
     catalogoItems.push({ id: "documentacao", label: "Documentação" });

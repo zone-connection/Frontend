@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Clock,
+  FileText,
   Flag,
   Globe,
   Hourglass,
@@ -89,6 +90,7 @@ import { canWriteTriagem } from "@/lib/permissions";
 import { createTriagemEvent } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { cn } from "@/lib/utils";
+import { DocumentosPanel } from "@/components/documentos-panel";
 
 const PRIORIDADE_AVATAR: Record<Lead["prioridade"], string> = {
   Alta: "from-rose-400 to-rose-600 text-white",
@@ -1170,6 +1172,10 @@ export function LeadDetalheDialog({
                           WhatsApp
                         </TabsTrigger>
                       ) : null}
+                      <TabsTrigger value="documentacoes" className={FICHA_TAB}>
+                        <FileText className="mr-1.5 h-3.5 w-3.5" />
+                        Documentações
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -1191,6 +1197,12 @@ export function LeadDetalheDialog({
                     >
                       {monitoramentoSlot}
                     </MonitoramentoCard>
+                    <DocumentosPanel
+                      entityType="lead"
+                      entityId={lead.id}
+                      categoria="proposta"
+                      title="Propostas (PDF)"
+                    />
                   </TabsContent>
 
                   <TabsContent value="triagem" className="mt-0 space-y-3 px-4 py-4">
@@ -1248,6 +1260,21 @@ export function LeadDetalheDialog({
                         </Button>
                       ) : null}
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="documentacoes" className="mt-0 space-y-4 px-4 py-4">
+                    <DocumentosPanel
+                      entityType="lead"
+                      entityId={lead.id}
+                      categoria="ficha"
+                      title="Ficha"
+                    />
+                    <DocumentosPanel
+                      entityType="lead"
+                      entityId={lead.id}
+                      categoria="proposta"
+                      title="Propostas"
+                    />
                   </TabsContent>
 
                   {hasOzapChat ? (

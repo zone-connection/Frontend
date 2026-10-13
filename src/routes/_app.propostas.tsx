@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
 import { PagePanel, PanelLink } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -3496,6 +3497,21 @@ function Page() {
               }
             />
           </div>
+          {editingId ? (
+            <div className="lg:col-span-2">
+              <DocumentosPanel
+                entityType="proposta"
+                entityId={editingId}
+                categoria="proposta"
+                extraVinculo={
+                  form.leadId
+                    ? { entityType: "lead", entityId: form.leadId }
+                    : undefined
+                }
+                title="PDF da proposta"
+              />
+            </div>
+          ) : null}
         </FormDialogBody>
       </FormDialogShell>
 

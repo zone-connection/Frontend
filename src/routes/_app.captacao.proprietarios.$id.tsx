@@ -31,6 +31,7 @@ import {
 import { digitsOnly, formatCpfCnpj } from "@/lib/utils";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentosPanel } from "@/components/documentos-panel";
 
 export const Route = createFileRoute("/_app/captacao/proprietarios/$id")({
   component: ProprietarioDetalhePage,
@@ -246,6 +247,11 @@ function ProprietarioDetalhePage() {
             </Button>
           </div>
         }
+      />
+      <DocumentosPanel
+        entityType="proprietario"
+        entityId={item.id}
+        title="Documentos"
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-primary/15 shadow-sm">

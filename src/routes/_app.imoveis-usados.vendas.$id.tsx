@@ -23,6 +23,7 @@ import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
 import { PropostaLinkPublicoButton } from "@/components/proposta-link-publico-button";
 import { fetchFunis, type Funil } from "@/lib/funis-api";
 import { PillTabs } from "@/components/operacao-ui";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import {
   addNegociacaoMovimento,
   createPropostaUsado,
@@ -1039,6 +1040,14 @@ function VendaUsadoDetalhePage() {
 
       {tab === "documentacao" ? (
         <div className="space-y-4">
+          <DocumentosPanel
+            entityType="venda_usado"
+            entityId={id}
+            extraVinculo={
+              im?.id ? { entityType: "imovel", entityId: im.id } : undefined
+            }
+            title="Arquivos PDF"
+          />
           {!fechamentoAberto ? (
             <Card>
               <CardContent className="py-6 text-sm text-muted-foreground">
