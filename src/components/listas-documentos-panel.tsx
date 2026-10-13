@@ -523,7 +523,7 @@ function ListaPreview({
         </p>
         <ul className="space-y-2">
           {lista.itens.map((item, index) => (
-            <li key={item.id} className="flex items-start gap-3 rounded-xl border bg-white px-3 py-3">
+            <li key={item.id} className="flex items-start gap-3 rounded-xl border bg-white px-3 py-3 dark:border-white/10 dark:bg-[#141a22]">
               <span
                 className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
                 style={{ background: palette.tint, color: palette.accent }}
@@ -547,7 +547,7 @@ function ListaPreview({
             </li>
           ))}
         </ul>
-        <div className="flex gap-3 rounded-xl border bg-white p-3">
+        <div className="flex gap-3 rounded-xl border bg-white p-3 dark:border-white/10 dark:bg-[#141a22]">
           <span className="w-1 shrink-0 rounded-full" style={{ background: palette.accent }} />
           <div>
             <p className="text-sm font-semibold" style={{ color: palette.accent }}>

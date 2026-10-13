@@ -146,11 +146,11 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
     "teal",
   ] as const;
   const wash: Record<(typeof tones)[number], string> = {
-    blue: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
-    violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
-    orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
-    emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
-    teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA]",
+    blue: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]",
+    violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] dark:border-[#875BF7]/40 dark:from-[#261838] dark:to-[#141a22]",
+    orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
+    emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6] dark:border-[#12B76A]/40 dark:from-[#123528] dark:to-[#141a22]",
+    teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA] dark:border-[#12B5A0]/40 dark:from-[#123830] dark:to-[#141a22]",
   };
   const iconBg: Record<(typeof tones)[number], string> = {
     blue: "bg-[#2E90FA] shadow-[0_6px_14px_rgba(46,144,250,0.35)]",

@@ -422,7 +422,7 @@ function TarefasPage() {
                   </span>
                 </div>
                 <DialogHeader className="mt-2 space-y-0 text-left">
-                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148]">
+                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
                     {detalhe.titulo}
                   </DialogTitle>
                 </DialogHeader>
@@ -437,7 +437,7 @@ function TarefasPage() {
                   <DetalheLinha icon={Home} label="Imóvel" value={detalhe.contexto.imovel.rotulo} />
                 ) : null}
                 {detalhe.descricao ? (
-                  <p className="rounded-xl border border-[#E6EDF2] bg-white px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-[#16324A]">
+                  <p className="rounded-xl border border-[#E6EDF2] bg-white px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-[#16324A] dark:border-white/10 dark:bg-[#141a22] dark:text-[#f8fafc]">
                     {detalhe.descricao}
                   </p>
                 ) : null}
@@ -517,20 +517,20 @@ function DetalheLinha({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#E6EDF2] bg-[#F8FBFC] px-3 py-2.5">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#E7F6FB] text-[#079ED4]">
+    <div className="flex items-center gap-3 rounded-xl border border-[#E6EDF2] bg-[#F8FBFC] px-3 py-2.5 dark:border-white/10 dark:bg-[#141a22]">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#E7F6FB] text-[#079ED4] dark:bg-[#079ED4]/15">
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0">
-        <p className="text-[11px] text-[#8B98A3]">{label}</p>
-        <p className="truncate text-[13px] font-medium text-[#16324A]">{value}</p>
+        <p className="text-[11px] text-[#8B98A3] dark:text-[#94a3b8]">{label}</p>
+        <p className="truncate text-[13px] font-medium text-[#16324A] dark:text-[#f8fafc]">{value}</p>
       </div>
     </div>
   );
 }
 
 const selectClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm shadow-none";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm text-[#16324A] shadow-none dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc]";
 
 function horaSeguinte(horario: string) {
   const [hora, minuto] = horario.split(":").map(Number);

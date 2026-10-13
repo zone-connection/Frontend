@@ -1147,7 +1147,7 @@ export function MuralChavesPage() {
           )}
 
           <div className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/80 to-card p-4 shadow-sm">
+            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/80 to-card p-4 shadow-sm dark:border-white/10 dark:from-[#13283a] dark:to-[#141a22]">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white">
                   <LogOut className="h-4 w-4" />
@@ -1171,7 +1171,7 @@ export function MuralChavesPage() {
                 Registrar retirada
               </Button>
             </div>
-            <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-card p-4 shadow-sm">
+            <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-card p-4 shadow-sm dark:border-white/10 dark:from-[#261838] dark:to-[#141a22]">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500 text-white">
                   <KeyRound className="h-4 w-4" />
@@ -1187,7 +1187,7 @@ export function MuralChavesPage() {
                 </Button>
               ) : null}
             </div>
-            <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-card p-4 shadow-sm">
+            <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-card p-4 shadow-sm dark:border-white/10 dark:from-[#3a2a14] dark:to-[#141a22]">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="flex items-center gap-2 text-sm font-semibold">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white">

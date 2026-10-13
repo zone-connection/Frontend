@@ -51,9 +51,9 @@ export function FormDialogShell({
           closeOnOutsideClick ? undefined : (event) => event.preventDefault()
         }
       >
-        <DialogHeader className="shrink-0 border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/40 to-card px-4 pb-4 pt-5 sm:px-6 sm:pt-6">
+        <DialogHeader className="shrink-0 border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/40 to-card px-4 pb-4 pt-5 dark:via-[#141a22] sm:px-6 sm:pt-6">
           <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary shadow-sm">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
               {icon}
             </div>
             <div className="space-y-1 pr-6 min-w-0">
@@ -156,7 +156,7 @@ export function FormSection({
     >
       <div className="flex items-start gap-2.5">
         {icon ? (
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]">
             {icon}
           </span>
         ) : null}

@@ -786,28 +786,28 @@ function Page() {
 
 const RANK_TONE = {
   emerald: {
-    card: "border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-emerald-50/30",
+    card: "border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-emerald-50/30 dark:border-emerald-500/30 dark:from-[#123528] dark:to-[#141a22]",
     icon: "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25",
-    fill: "bg-emerald-200/70",
-    pill: "bg-emerald-100 text-emerald-800",
+    fill: "bg-emerald-200/70 dark:bg-emerald-500/25",
+    pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
     rankOn: "bg-emerald-600 text-white",
-    rankOff: "bg-white text-emerald-700 ring-1 ring-emerald-200",
+    rankOff: "bg-white text-emerald-700 ring-1 ring-emerald-200 dark:bg-[#1c2430] dark:text-emerald-200 dark:ring-emerald-500/30",
   },
   rose: {
-    card: "border-rose-200/80 bg-gradient-to-b from-rose-50 to-rose-50/30",
+    card: "border-rose-200/80 bg-gradient-to-b from-rose-50 to-rose-50/30 dark:border-rose-500/30 dark:from-[#3a1822] dark:to-[#141a22]",
     icon: "bg-rose-600 text-white shadow-sm shadow-rose-600/25",
-    fill: "bg-rose-200/70",
-    pill: "bg-rose-100 text-rose-800",
+    fill: "bg-rose-200/70 dark:bg-rose-500/25",
+    pill: "bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-200",
     rankOn: "bg-rose-600 text-white",
-    rankOff: "bg-white text-rose-700 ring-1 ring-rose-200",
+    rankOff: "bg-white text-rose-700 ring-1 ring-rose-200 dark:bg-[#1c2430] dark:text-rose-200 dark:ring-rose-500/30",
   },
   amber: {
-    card: "border-amber-200/80 bg-gradient-to-b from-amber-50 to-amber-50/30",
+    card: "border-amber-200/80 bg-gradient-to-b from-amber-50 to-amber-50/30 dark:border-amber-500/30 dark:from-[#3a2a14] dark:to-[#141a22]",
     icon: "bg-amber-500 text-white shadow-sm shadow-amber-500/25",
-    fill: "bg-amber-200/80",
-    pill: "bg-amber-100 text-amber-900",
+    fill: "bg-amber-200/80 dark:bg-amber-500/25",
+    pill: "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100",
     rankOn: "bg-amber-500 text-white",
-    rankOff: "bg-white text-amber-800 ring-1 ring-amber-200",
+    rankOff: "bg-white text-amber-800 ring-1 ring-amber-200 dark:bg-[#1c2430] dark:text-amber-100 dark:ring-amber-500/30",
   },
 } as const;
 
@@ -857,7 +857,7 @@ function RankCard({
             return (
               <li
                 key={item.userId}
-                className="relative overflow-hidden rounded-2xl bg-white/80 ring-1 ring-black/[0.04]"
+                className="relative overflow-hidden rounded-2xl bg-white/80 ring-1 ring-black/[0.04] dark:bg-[#1c2430] dark:ring-white/10"
               >
                 <span
                   className={cn("absolute inset-y-0 left-0", style.fill)}

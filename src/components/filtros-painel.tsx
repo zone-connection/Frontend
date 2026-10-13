@@ -14,7 +14,7 @@ import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 
 export const FILTRO_CAMPO =
-  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !text-[13px] !text-[#0B3148] !shadow-none placeholder:!text-[#8B98A3] focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5]";
+  "!h-9 !w-full !rounded-lg !border-[#E2E8EC] !bg-white !pl-3 !pr-3 !text-[13px] !text-[#0B3148] !shadow-none placeholder:!text-[#8B98A3] focus:!border-[#079ED4] focus:!ring-2 focus:!ring-[#D3EBF5] dark:!border-white/15 dark:!bg-[#1c2430] dark:!text-[#f8fafc] dark:placeholder:!text-[#94a3b8] dark:focus:!border-[#079ED4] dark:focus:!ring-[#079ED4]/30";
 
 /** Select nativo no mesmo desenho dos filtros da marca. */
 export function FiltroSelectNativo({ className, ...props }: ComponentProps<"select">) {
@@ -63,34 +63,34 @@ export function FiltrosPainel({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] [&>button]:hidden"
+          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] dark:border-white/10 dark:bg-[#0b0f14] [&>button]:hidden"
         >
-          <SheetHeader className="relative border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/50 to-white px-5 py-4 text-left">
+          <SheetHeader className="relative border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/50 to-white px-5 py-4 text-left dark:from-[#079ED4]/15 dark:via-[#141a22] dark:to-[#141a22]">
             <div className="flex items-start gap-3 pr-10">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-[#079ED4] shadow-sm">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-[#079ED4] shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
                 <SlidersHorizontal className="size-5" />
               </div>
               <div className="min-w-0 space-y-0.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86] dark:text-[#7DD3FC]">
                   {kicker}
                 </p>
-                <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148]">
+                <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
                   Filtros
                 </SheetTitle>
-                <p className="text-[13px] text-[#5C6B76]">{description}</p>
+                <p className="text-[13px] text-[#5C6B76] dark:text-[#94a3b8]">{description}</p>
               </div>
             </div>
-            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD]">
+            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:bg-[#243044]">
               <X className="size-4" />
               <span className="sr-only">Fechar</span>
             </SheetClose>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4 [&_button]:w-full [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76]">
+            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4 dark:border-white/10 dark:bg-[#141a22] [&_button]:w-full [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76] dark:[&_label]:text-[#94a3b8]">
               {children}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3 dark:border-white/10 dark:bg-[#141a22]">
             <button
               type="button"
               className="text-sm font-medium text-[#05749E] hover:text-[#079ED4]"

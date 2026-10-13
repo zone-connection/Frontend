@@ -1999,7 +1999,7 @@ function AgendaPage() {
             >
               {form.date && form.timeStart ? (
                 <div
-                  className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/15 bg-white px-3 py-2.5 text-sm text-foreground"
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/15 bg-white px-3 py-2.5 text-sm text-foreground dark:border-white/10 dark:bg-[#141a22]"
                 >
                   <Clock className="h-4 w-4 shrink-0" />
                   <span className="font-semibold capitalize">

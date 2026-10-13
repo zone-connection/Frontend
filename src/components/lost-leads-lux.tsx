@@ -67,12 +67,12 @@ const KPI_ICON_BG: Record<string, string> = {
 };
 
 const KPI_WASH: Record<string, string> = {
-  retorno: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
-  invalido: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
-  financeiro: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
-  perfil: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
-  comprou: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
-  desist: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
+  retorno: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7] dark:border-[#F04464]/40 dark:from-[#3a1822] dark:to-[#141a22]",
+  invalido: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
+  financeiro: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
+  perfil: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
+  comprou: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]",
+  desist: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] dark:border-[#875BF7]/40 dark:from-[#261838] dark:to-[#141a22]",
 };
 
 function toneKey(motivo: string) {
@@ -117,7 +117,7 @@ export function LostLeadsMotivoKpis({
       {items.map((item) => {
         const Icon = lostMotivoIcon(item.motivo);
         const selected = active.toLowerCase() === item.motivo.toLowerCase();
-        const wash = KPI_WASH[toneKey(item.motivo)] ?? "border-slate-100 bg-slate-50";
+        const wash = KPI_WASH[toneKey(item.motivo)] ?? "border-slate-100 bg-slate-50 dark:border-white/10 dark:bg-[#141a22]";
         return (
           <button
             key={item.motivo}

@@ -74,24 +74,24 @@ function saudacao() {
 
 const TONS = {
   sky: {
-    card: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
+    card: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]",
     icon: "bg-[#2E90FA] text-white shadow-[0_6px_14px_rgba(46,144,250,0.35)]",
-    valor: "text-[#175CD3]",
+    valor: "text-[#175CD3] dark:text-[#7DD3FC]",
   },
   violet: {
-    card: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
+    card: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] dark:border-[#875BF7]/40 dark:from-[#261838] dark:to-[#141a22]",
     icon: "bg-[#875BF7] text-white shadow-[0_6px_14px_rgba(135,91,247,0.35)]",
-    valor: "text-[#6927DA]",
+    valor: "text-[#6927DA] dark:text-[#C4B5FD]",
   },
   rose: {
-    card: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
+    card: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7] dark:border-[#F04464]/40 dark:from-[#3a1822] dark:to-[#141a22]",
     icon: "bg-[#F04464] text-white shadow-[0_6px_14px_rgba(240,68,100,0.35)]",
-    valor: "text-[#C01048]",
+    valor: "text-[#C01048] dark:text-[#FDA4AF]",
   },
   emerald: {
-    card: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
+    card: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6] dark:border-[#12B76A]/40 dark:from-[#123528] dark:to-[#141a22]",
     icon: "bg-[#12B76A] text-white shadow-[0_6px_14px_rgba(18,183,106,0.35)]",
-    valor: "text-[#067647]",
+    valor: "text-[#067647] dark:text-[#6EE7B7]",
   },
 } as const;
 

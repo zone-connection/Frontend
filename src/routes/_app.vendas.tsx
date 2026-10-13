@@ -776,9 +776,9 @@ function VendasDocumentacaoPage() {
             else void navigate({ to: "/vendas", search: { comVgv: true } });
           }}
         />
-        <div className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] px-3.5 py-3">
-          <h2 className="text-[13px] font-semibold text-[#16324A]">Origem das vendas</h2>
-          <p className="text-[11px] text-[#8B98A3]">De onde vieram as vendas do recorte.</p>
+        <div className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] px-3.5 py-3 dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]">
+          <h2 className="text-[13px] font-semibold text-[#16324A] dark:text-[#f8fafc]">Origem das vendas</h2>
+          <p className="text-[11px] text-[#8B98A3] dark:text-[#94a3b8]">De onde vieram as vendas do recorte.</p>
           <div className="mt-2 flex items-center gap-2">
             <DashDonut
               items={origemDonut}

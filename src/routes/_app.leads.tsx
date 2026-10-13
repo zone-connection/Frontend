@@ -540,7 +540,7 @@ const LEADS_PRIMARY_BTN =
   "!h-9 !rounded-lg border-0 bg-[#079ED4] px-3.5 text-[13px] font-medium text-white shadow-none before:hidden hover:bg-[#0689b8] hover:brightness-100";
 
 const LEADS_SECONDARY_BTN =
-  "!h-9 !rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] hover:text-[#16324A]";
+  "!h-9 !rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] hover:text-[#16324A] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:border-[#079ED4]/50 dark:hover:bg-[#243044] dark:hover:text-[#f8fafc]";
 
 function LeadKpi({
   label,
@@ -2626,7 +2626,7 @@ function LeadsPage() {
                   className="h-11 rounded-xl bg-background"
                 />
               </div>
-              <div className="flex items-start gap-2 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-primary/5 px-3 py-2.5 text-sm text-sky-950">
+              <div className="flex items-start gap-2 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-primary/5 px-3 py-2.5 text-sm text-sky-950 dark:border-[#2E90FA]/30 dark:from-[#13283a] dark:to-[#141a22] dark:text-[#BAE6FD]">
                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
                 <p>
                   Dica: você pode pular esta etapa e continuar depois. Mas quanto mais completo, melhor o atendimento!
@@ -3570,7 +3570,7 @@ function LeadsPage() {
 
       {showTeamColumns && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5">
+          <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5 dark:border-white/15 dark:bg-[#0b0f14]">
             {(
               [
                 {
@@ -3628,7 +3628,7 @@ function LeadsPage() {
                     "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
                     selected
                       ? "bg-[#079ED4] text-white"
-                      : "text-[#5C6B76] hover:bg-white hover:text-[#0B3148]",
+                      : "text-[#5C6B76] hover:bg-white hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
                   )}
                 >
                   {Icon ? <Icon className="size-3.5 shrink-0" /> : null}

@@ -7,30 +7,30 @@ export const FILTER_BAR_SHELL = `mb-4 flex flex-col gap-3 ${FILTER_BAR_SURFACE} 
 
 export const FILTER_BAR_STACK = `mb-4 space-y-3 ${FILTER_BAR_SURFACE}`;
 
-export const FILTER_LABEL = "mb-1.5 block text-xs font-medium text-[#5C6B76]";
+export const FILTER_LABEL = "mb-1.5 block text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]";
 
 /** Campo de filtro: mesmo recorte da identidade (8px, borda fria, foco ciano). */
 export const FILTER_CONTROL =
-  "h-9 rounded-lg border-[#E2E8EC] bg-white text-[13px] text-[#0B3148] shadow-none placeholder:text-[#8B98A3] focus:border-[#079ED4] focus:bg-white focus:ring-2 focus:ring-[#D3EBF5] focus-visible:border-[#079ED4] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#D3EBF5] md:text-[13px]";
+  "h-9 rounded-lg border-[#E2E8EC] bg-white text-[13px] text-[#0B3148] shadow-none placeholder:text-[#8B98A3] focus:border-[#079ED4] focus:bg-white focus:ring-2 focus:ring-[#D3EBF5] focus-visible:border-[#079ED4] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#D3EBF5] md:text-[13px] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:placeholder:text-[#94a3b8] dark:focus:border-[#079ED4] dark:focus:bg-[#1c2430] dark:focus-visible:bg-[#1c2430]";
 
 /** Select nativo com a mesma caixa do campo de filtro. */
 export const FILTER_NATIVE =
-  "h-9 w-full cursor-pointer appearance-none rounded-lg border border-[#E2E8EC] bg-white pl-3 pr-8 text-[13px] text-[#0B3148] shadow-none outline-none focus:border-[#079ED4] focus:ring-2 focus:ring-[#D3EBF5]";
+  "h-9 w-full cursor-pointer appearance-none rounded-lg border border-[#E2E8EC] bg-white pl-3 pr-8 text-[13px] text-[#0B3148] shadow-none outline-none focus:border-[#079ED4] focus:ring-2 focus:ring-[#D3EBF5] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:focus:bg-[#1c2430]";
 
 export const FILTER_SEARCH_ICON =
-  "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3]";
+  "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3] dark:text-[#94a3b8]";
 
 export const FILTER_CLEAR_BTN =
-  "text-[13px] font-medium text-[#05749E] hover:bg-[#F3FAFD] hover:text-[#079ED4]";
+  "text-[13px] font-medium text-[#05749E] hover:bg-[#F3FAFD] hover:text-[#079ED4] dark:text-[#7DD3FC] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]";
 
 export const FILTER_VISTA_WRAP =
-  "inline-flex h-9 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5";
+  "inline-flex h-9 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5 dark:border-white/15 dark:bg-[#0b0f14]";
 
 export const FILTER_VISTA_BTN =
-  "h-8 rounded-lg px-3 text-[13px] text-[#5C6B76] hover:bg-white hover:text-[#0B3148]";
+  "h-8 rounded-lg px-3 text-[13px] text-[#5C6B76] hover:bg-white hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]";
 
 export const FILTER_VISTA_BTN_ACTIVE =
-  "rounded-lg bg-white text-[#0B3148] shadow-sm hover:bg-white hover:text-[#0B3148]";
+  "rounded-lg bg-white text-[#0B3148] shadow-sm hover:bg-white hover:text-[#0B3148] dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]";
 
 /** Lista no mesmo card claro do restante da tela. */
 export const TABLE_SHELL =

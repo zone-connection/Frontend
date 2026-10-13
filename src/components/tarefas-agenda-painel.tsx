@@ -127,7 +127,7 @@ export function TarefasAgendaPainel() {
       <AgendaLuxKpis kpis={kpis} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
-          <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#E6EDF2] bg-white px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#E6EDF2] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#141a22] lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -159,12 +159,12 @@ export function TarefasAgendaPainel() {
                   <ChevronRight className="size-4" />
                 </Button>
               </div>
-              <h2 className="min-w-0 text-base font-semibold capitalize text-[#0B3148]">
+              <h2 className="min-w-0 text-base font-semibold capitalize text-[#0B3148] dark:text-[#f8fafc]">
                 {formatRangeLabel(visao, anchor)}
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-white p-0.5">
+              <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-white p-0.5 dark:border-white/15 dark:bg-[#0b0f14]">
                 {(
                   [
                     ["dia", "Dia"],
@@ -180,7 +180,7 @@ export function TarefasAgendaPainel() {
                       "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
                       visao === id
                         ? "bg-[#079ED4] text-white"
-                        : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
+                        : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
                     )}
                   >
                     {label}
@@ -255,7 +255,7 @@ export function TarefasAgendaPainel() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#05749E]">
                     Compromisso
                   </p>
-                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148]">
+                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
                     {editando.titulo}
                   </DialogTitle>
                 </DialogHeader>

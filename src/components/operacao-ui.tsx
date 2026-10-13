@@ -6,7 +6,7 @@ import { isNavPathNovo } from "@/lib/novidades";
 import { cn } from "@/lib/utils";
 
 const NAV_SHELL =
-  "mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-xl border border-[#E2E8EC] bg-white p-1";
+  "mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-xl border border-[#E2E8EC] bg-white p-1 dark:border-white/10 dark:bg-[#141a22]";
 
 export function SlidingNav({
   className,
@@ -30,7 +30,7 @@ export const navItemClass = (active: boolean) =>
     "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-500 ease-out motion-reduce:transition-none",
     active
       ? "bg-[#079ED4] text-white"
-      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
+      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
   );
 
 export function ModulePageTransition({
@@ -118,7 +118,7 @@ export function PillTabs({
             {item.novo ? (
               <NovoBadge
                 compact
-                className={active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]"}
+                className={active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148] dark:bg-[#079ED4]/20 dark:text-[#7DD3FC]"}
               />
             ) : null}
           </button>

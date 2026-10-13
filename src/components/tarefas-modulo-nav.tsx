@@ -83,7 +83,7 @@ function Item({
         <span
           className={cn(
             "rounded-full px-1.5 text-xs",
-            active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]",
+            active ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148] dark:bg-[#079ED4]/20 dark:text-[#7DD3FC]",
           )}
         >
           {badge}

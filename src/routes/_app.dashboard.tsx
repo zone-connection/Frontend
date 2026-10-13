@@ -247,13 +247,13 @@ function MotivosDonut({
 }
 
 const WASH: Record<string, string> = {
-  teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA]",
-  sky: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE]",
-  emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6]",
-  violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF]",
-  rose: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7]",
-  orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
-  amber: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1]",
+  teal: "border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA] dark:border-[#12B5A0]/40 dark:from-[#123830] dark:to-[#141a22]",
+  sky: "border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]",
+  emerald: "border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6] dark:border-[#12B76A]/40 dark:from-[#123528] dark:to-[#141a22]",
+  violet: "border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] dark:border-[#875BF7]/40 dark:from-[#261838] dark:to-[#141a22]",
+  rose: "border-[#F5B8C4] bg-gradient-to-br from-[#FFD6DE] to-[#FFF6F7] dark:border-[#F04464]/40 dark:from-[#3a1822] dark:to-[#141a22]",
+  orange: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
+  amber: "border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] dark:border-[#F79009]/40 dark:from-[#3a2a14] dark:to-[#141a22]",
 };
 
 function WashTile({
@@ -285,7 +285,7 @@ function FunnelWashBars({
         return (
           <div
             key={row.etapa}
-            className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-[#9DCEF5] bg-gradient-to-r from-[#D3ECFE] to-[#F4F9FE] px-2.5 py-1.5"
+            className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-[#9DCEF5] bg-gradient-to-r from-[#D3ECFE] to-[#F4F9FE] px-2.5 py-1.5 dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22]"
           >
             <span className="truncate text-xs font-medium">{row.etapa}</span>
             <div className="h-1.5 overflow-hidden rounded-full bg-white/80 dark:bg-black/20">
@@ -993,7 +993,7 @@ function DashboardAdminView() {
           action={<PanelLink to="/funil">Ver funil</PanelLink>}
         >
           {funnelData.length === 0 ? (
-            <p className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] py-10 text-center text-sm text-[#1570C8]">
+            <p className="rounded-xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] py-10 text-center text-sm text-[#1570C8] dark:border-[#2E90FA]/40 dark:from-[#13283a] dark:to-[#141a22] dark:text-[#7DD3FC]">
               Nenhum lead ativo no funil.
             </p>
           ) : (

@@ -745,7 +745,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-tipo">Tipo</Label>
                     <select
                       id="edit-tipo"
-                      className="relative z-10 flex h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm pointer-events-auto"
+                      className="relative z-10 flex h-10 w-full rounded-lg border border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] px-3 text-sm pointer-events-auto"
                       value={editTipo}
                       onChange={(e) => setEditTipo(e.target.value as CaptacaoImovelTipo)}
                     >
@@ -767,7 +767,7 @@ function PortalImovelPage() {
                       id="edit-valor"
                       inputMode="numeric"
                       placeholder="R$ 0,00"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editValor}
                       onChange={(e) => setEditValor(maskMoneyInput(e.target.value))}
                     />
@@ -785,7 +785,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-logradouro">Logradouro</Label>
                     <Input
                       id="edit-logradouro"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editLogradouro}
                       onChange={(e) => setEditLogradouro(e.target.value)}
                     />
@@ -794,7 +794,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-numero">Número</Label>
                     <Input
                       id="edit-numero"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editNumero}
                       onChange={(e) => setEditNumero(e.target.value)}
                     />
@@ -804,7 +804,7 @@ function PortalImovelPage() {
                   <Label htmlFor="edit-complemento">Complemento</Label>
                   <Input
                     id="edit-complemento"
-                    className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                    className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                     placeholder="Apto, bloco, referência"
                     value={editComplemento}
                     onChange={(e) => setEditComplemento(e.target.value)}
@@ -815,7 +815,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-bairro">Bairro</Label>
                     <Input
                       id="edit-bairro"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editBairro}
                       onChange={(e) => setEditBairro(e.target.value)}
                     />
@@ -824,7 +824,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-cidade">Cidade</Label>
                     <Input
                       id="edit-cidade"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editCidade}
                       onChange={(e) => setEditCidade(e.target.value)}
                     />
@@ -834,7 +834,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-estado"
                       maxLength={2}
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 uppercase pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] uppercase pointer-events-auto"
                       value={editEstado}
                       onChange={(e) => setEditEstado(e.target.value)}
                     />
@@ -843,7 +843,7 @@ function PortalImovelPage() {
                     <Label htmlFor="edit-cep">CEP</Label>
                     <Input
                       id="edit-cep"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editCep}
                       onChange={(e) => setEditCep(e.target.value)}
                     />
@@ -862,7 +862,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-area"
                       inputMode="decimal"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editArea}
                       onChange={(e) => setEditArea(e.target.value)}
                     />
@@ -872,7 +872,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-quartos"
                       inputMode="numeric"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editQuartos}
                       onChange={(e) => setEditQuartos(e.target.value)}
                     />
@@ -882,7 +882,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-suites"
                       inputMode="numeric"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editSuites}
                       onChange={(e) => setEditSuites(e.target.value)}
                     />
@@ -892,7 +892,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-banheiros"
                       inputMode="numeric"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editBanheiros}
                       onChange={(e) => setEditBanheiros(e.target.value)}
                     />
@@ -902,7 +902,7 @@ function PortalImovelPage() {
                     <Input
                       id="edit-vagas"
                       inputMode="numeric"
-                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 pointer-events-auto"
+                      className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editVagas}
                       onChange={(e) => setEditVagas(e.target.value)}
                     />
@@ -913,7 +913,7 @@ function PortalImovelPage() {
                   <textarea
                     id="edit-descricao"
                     rows={4}
-                    className="relative z-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm pointer-events-auto"
+                    className="relative z-10 w-full rounded-lg border border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] px-3 py-2 text-sm pointer-events-auto"
                     placeholder="Conte o que destaca este imóvel."
                     value={editDescricao}
                     onChange={(e) => setEditDescricao(e.target.value)}
