@@ -29,7 +29,7 @@ import {
   type GuiaTopic,
 } from "@/lib/guia-sistema-content";
 import { peekGuiaTourLive, startGuiaTour, stopGuiaTour } from "@/lib/guia-tour";
-import { canAccessRoute } from "@/lib/permissions";
+import { canUserAccessRoute } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const JOURNEY_ID = "jornada";
@@ -346,13 +346,7 @@ export function GuiaSistemaPage({
       topics: group.topics.filter((topic) => {
         if (group.alwaysShow) return true;
         if (!topic.href || !user) return true;
-        return canAccessRoute(
-          user.role,
-          topic.href,
-          user.tenant?.modules ?? null,
-          user.tenant?.plano ?? null,
-          user.permissions ?? null,
-        );
+        return canUserAccessRoute(user, topic.href);
       }),
     })).filter((group) => group.topics.length > 0);
 
@@ -396,13 +390,7 @@ export function GuiaSistemaPage({
 
   function canOpen(href?: string) {
     if (!href || !user) return false;
-    return canAccessRoute(
-      user.role,
-      href,
-      user.tenant?.modules ?? null,
-      user.tenant?.plano ?? null,
-      user.permissions ?? null,
-    );
+    return canUserAccessRoute(user, href);
   }
 
   return (

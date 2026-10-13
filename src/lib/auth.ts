@@ -41,6 +41,7 @@ export type TenantBranding = {
   usuariosExtras?: number;
   iaBotEnabled?: boolean;
   tarefasEnabled?: boolean;
+  hasOzapConnection?: boolean;
 };
 
 export interface AuthUser {

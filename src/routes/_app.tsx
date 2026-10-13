@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { ensureSession, getSession, type AuthUser } from "@/lib/auth";
-import { canAccessRoute, canSeeComissao, defaultRouteForRole } from "@/lib/permissions";
+import { canSeeComissao, canUserAccessRoute, defaultRouteForRole } from "@/lib/permissions";
 import { LeadsProvider } from "@/lib/leads-store";
 import { CatalogProvider } from "@/lib/catalog-store";
 import { TenantThemeProvider } from "@/lib/tenant-theme";
@@ -11,13 +11,7 @@ function guardUser(user: AuthUser, pathname: string) {
     pathname.includes("/financeiro/comissao") && !canSeeComissao(user);
   if (
     blockedComissao ||
-    !canAccessRoute(
-      user.role,
-      pathname,
-      user.tenant?.modules ?? null,
-      user.tenant?.plano ?? null,
-      user.permissions ?? null,
-    )
+    !canUserAccessRoute(user, pathname)
   ) {
     throw redirect({ to: defaultRouteForRole(user.role, user) });
   }

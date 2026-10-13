@@ -238,8 +238,12 @@ export function canAccessRoute(
   modules?: Record<string, boolean> | null,
   plano?: TenantPlano | null,
   userPermissions?: UserPermissions | null,
+  options?: { hasOzapConnection?: boolean | null },
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
+  if (path === "/whatsapp" && options?.hasOzapConnection !== true) {
+    return false;
+  }
   if (path === "/perfil") return true;
   if (path === "/tarefas") {
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
@@ -325,6 +329,20 @@ export function canAccessRoute(
   );
 }
 
+export function canUserAccessRoute(
+  user: Pick<AuthUser, "role" | "tenant" | "permissions">,
+  pathname: string,
+): boolean {
+  return canAccessRoute(
+    user.role,
+    pathname,
+    user.tenant?.modules ?? null,
+    user.tenant?.plano ?? null,
+    user.permissions ?? null,
+    { hasOzapConnection: user.tenant?.hasOzapConnection === true },
+  );
+}
+
 export function defaultRouteForRole(
   role: Role,
   user?: Pick<AuthUser, "tenant" | "permissions"> | null,
@@ -346,6 +364,7 @@ export function defaultRouteForRole(
       user?.tenant?.modules ?? null,
       user?.tenant?.plano ?? null,
       user?.permissions ?? null,
+      { hasOzapConnection: user?.tenant?.hasOzapConnection === true },
     )
   ) {
     return home;
@@ -357,6 +376,7 @@ export function defaultRouteForRole(
       user?.tenant?.modules ?? null,
       user?.tenant?.plano ?? null,
       user?.permissions ?? null,
+      { hasOzapConnection: user?.tenant?.hasOzapConnection === true },
     )
   ) {
     return "/dashboard";

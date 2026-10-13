@@ -55,7 +55,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
-import { canAccessRoute, canSeeComissao } from "@/lib/permissions";
+import { canAccessRoute, canSeeComissao, canUserAccessRoute } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
@@ -1023,13 +1023,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             .map((item) => {
               if (isNavGroup(item)) {
                 const children = item.children.filter((c) =>
-                  canAccessRoute(
-                    user.role,
-                    c.to,
-                    user.tenant?.modules ?? modules,
-                    plano,
-                    user.permissions,
-                  ) &&
+                  canUserAccessRoute(user, c.to) &&
                   (c.to !== "/financeiro/comissao" || canSeeComissao(user)),
                 );
                 return children.length ? { ...item, children } : null;
@@ -1052,15 +1046,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ) {
                 return null;
               }
-              return canAccessRoute(
-                user.role,
-                item.to,
-                user.tenant?.modules ?? modules,
-                plano,
-                user.permissions,
-              )
-                ? item
-                : null;
+              return canUserAccessRoute(user, item.to) ? item : null;
             })
             .filter((item): item is NavItem => item !== null),
         };
@@ -1076,13 +1062,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .map((item) => {
           if (isNavGroup(item)) {
             const children = item.children.filter((child) =>
-              canAccessRoute(
-                user.role,
-                child.to,
-                user.tenant?.modules ?? modules,
-                plano,
-                user.permissions,
-              ),
+              canUserAccessRoute(user, child.to),
             );
             return children.length ? { ...item, children } : null;
           }
@@ -1093,15 +1073,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) {
             return null;
           }
-          return canAccessRoute(
-            user.role,
-            item.to,
-            user.tenant?.modules ?? modules,
-            plano,
-            user.permissions,
-          )
-            ? item
-            : null;
+          return canUserAccessRoute(user, item.to) ? item : null;
         })
         .filter((item): item is NavItem => item !== null),
     })).filter((op) => op.items.length > 0);

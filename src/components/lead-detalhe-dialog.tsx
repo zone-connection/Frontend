@@ -84,6 +84,7 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
+import { getSession } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const PRIORIDADE_AVATAR: Record<Lead["prioridade"], string> = {
@@ -546,6 +547,7 @@ export function LeadDetalheDialog({
   onAddAtividade?: () => void;
 }) {
   const { funnelStages, origens, colorByLabel } = useCatalog();
+  const hasOzapChat = getSession()?.tenant?.hasOzapConnection === true;
   const [tab, setTab] = useState("info");
   const hist = useTriagemHistory(open && lead ? lead.id : null);
 
@@ -734,10 +736,12 @@ export function LeadDetalheDialog({
                       <FileText className="mr-1.5 h-3.5 w-3.5" />
                       Observações
                     </TabsTrigger>
-                    <TabsTrigger value="whatsapp" className="rounded-full px-3">
-                      <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
-                      WhatsApp
-                    </TabsTrigger>
+                    {hasOzapChat ? (
+                      <TabsTrigger value="whatsapp" className="rounded-full px-3">
+                        <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
+                        WhatsApp
+                      </TabsTrigger>
+                    ) : null}
                   </TabsList>
 
                   <TabsContent value="info" className="mt-0 space-y-3">
@@ -1036,12 +1040,14 @@ export function LeadDetalheDialog({
                     )}
                   </TabsContent>
 
-                  <TabsContent value="whatsapp" className="mt-0">
-                    <LeadWhatsappChat
-                      leadId={lead.id}
-                      active={tab === "whatsapp"}
-                    />
-                  </TabsContent>
+                  {hasOzapChat ? (
+                    <TabsContent value="whatsapp" className="mt-0">
+                      <LeadWhatsappChat
+                        leadId={lead.id}
+                        active={tab === "whatsapp"}
+                      />
+                    </TabsContent>
+                  ) : null}
                 </Tabs>
               </div>
 
@@ -1114,7 +1120,9 @@ export function LeadDetalheDialog({
                     type="button"
                     className="h-10 bg-[#22c55e] text-white hover:bg-[#16a34a]"
                     disabled={!temTelefone}
-                    onClick={() => setTab("whatsapp")}
+                    onClick={() =>
+                      hasOzapChat ? setTab("whatsapp") : abrirWhatsApp()
+                    }
                   >
                     <FaWhatsapp className="mr-1.5 h-4 w-4" />
                     WhatsApp
