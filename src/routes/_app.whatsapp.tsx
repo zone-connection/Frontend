@@ -301,7 +301,7 @@ function WhatsappInboxPage() {
     user?.role === "admin" ||
     user?.role === "super_admin" ||
     user?.role === "gerente";
-  const cacheKey = `crm-whatsapp-inbox-chats-v3:${user?.id ?? "anon"}`;
+  const cacheKey = `crm-whatsapp-inbox-chats-v4:${user?.id ?? "anon"}:${equipeId}:${corretorId}:${tagId ?? ""}`;
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
 
