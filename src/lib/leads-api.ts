@@ -646,6 +646,10 @@ export type LeadWhatsappMessage = {
   source: string | null;
   mediaType?: string | null;
   mediaUrl?: string | null;
+  delivery?: "pending" | "sent" | "delivered" | "read" | "failed" | null;
+  deliveredAt?: string | null;
+  readAt?: string | null;
+  error?: string | null;
 };
 
 export type LeadWhatsappChat = {

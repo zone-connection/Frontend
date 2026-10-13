@@ -2,6 +2,13 @@ import { apiFetch } from "@/lib/api";
 
 export type WhatsappBubbleKind = "client" | "ai" | "agent" | "follow_up";
 
+export type WhatsappDeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
+
 export type WhatsappInboxMessage = {
   id: string;
   direction: "in" | "out";
@@ -11,6 +18,10 @@ export type WhatsappInboxMessage = {
   source: string | null;
   mediaType: string | null;
   mediaUrl: string | null;
+  delivery?: WhatsappDeliveryStatus | null;
+  deliveredAt?: string | null;
+  readAt?: string | null;
+  error?: string | null;
 };
 
 export type WhatsappInboxChat = {
@@ -157,6 +168,27 @@ export async function sendWhatsappInboxMessage(chatId: string, content: string) 
   return apiFetch<{ ok: true; aiPaused: true }>(
     `/whatsapp/chats/${chatPath(chatId)}/messages`,
     { method: "POST", body: { content } },
+  );
+}
+
+export async function editWhatsappInboxMessage(
+  chatId: string,
+  messageId: string,
+  content: string,
+) {
+  return apiFetch<{ ok: true }>(
+    `/whatsapp/chats/${chatPath(chatId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "PATCH", body: { content } },
+  );
+}
+
+export async function deleteWhatsappInboxMessage(
+  chatId: string,
+  messageId: string,
+) {
+  return apiFetch<{ ok: true }>(
+    `/whatsapp/chats/${chatPath(chatId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "DELETE" },
   );
 }
 

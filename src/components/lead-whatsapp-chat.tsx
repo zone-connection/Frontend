@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Loader2, RefreshCw, Send } from "lucide-react";
+import { Loader2, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import {
@@ -7,35 +7,26 @@ import {
   sendLeadWhatsappChat,
   type LeadWhatsappMessage,
 } from "@/lib/leads-api";
+import {
+  deleteWhatsappInboxMessage,
+  editWhatsappInboxMessage,
+} from "@/lib/whatsapp-inbox-api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getSession } from "@/lib/auth";
 import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { chatPaneClass, chatPaneVars } from "@/components/whatsapp-chat-look";
 import {
-  chatPaneClass,
-  chatPaneVars,
-  isMediaPlaceholder,
-  mediaSrc,
-  WhatsappAudioBubble,
-} from "@/components/whatsapp-chat-look";
+  WhatsappMessageBubble,
+  WhatsappMessageDetailsDialog,
+  WhatsappMessageEditDialog,
+} from "@/components/whatsapp-message-bubble";
 
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof ApiError) return err.message;
   if (err instanceof Error && err.message) return err.message;
   return fallback;
-}
-
-function formatWhen(at: string | null) {
-  if (!at) return "";
-  const date = new Date(at);
-  if (Number.isNaN(date.getTime())) return at;
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function bubbleMeta(msg: LeadWhatsappMessage) {
@@ -69,25 +60,48 @@ export function LeadWhatsappChat({
   >(null);
   const [ozapError, setOzapError] = useState<string | null>(null);
   const [messages, setMessages] = useState<LeadWhatsappMessage[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [detailMsg, setDetailMsg] = useState<LeadWhatsappMessage | null>(null);
+  const [editMsg, setEditMsg] = useState<LeadWhatsappMessage | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingMsg, setSavingMsg] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
   const session = getSession();
   const canSend = canSendWhatsappInbox(
     session?.role,
     session?.tenant?.modules ?? null,
   );
 
-  async function load() {
-    setLoading(true);
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     try {
       const chat = await fetchLeadWhatsappChat(leadId);
       setAvailable(chat.available);
       setReason(chat.reason ?? null);
       setOzapError(chat.error ?? null);
-      setMessages(chat.messages);
+      setChatId(chat.chatId ?? null);
+      setMessages((prev) => {
+        if (
+          silent &&
+          prev.length === chat.messages.length &&
+          prev.every(
+            (msg, i) =>
+              msg.id === chat.messages[i]?.id &&
+              msg.text === chat.messages[i]?.text &&
+              msg.delivery === chat.messages[i]?.delivery,
+          )
+        ) {
+          return prev;
+        }
+        return chat.messages;
+      });
     } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível carregar o WhatsApp."));
+      if (!silent) {
+        toast.error(errorMessage(err, "Não foi possível carregar o WhatsApp."));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -101,6 +115,7 @@ export function LeadWhatsappChat({
         setAvailable(chat.available);
         setReason(chat.reason ?? null);
         setOzapError(chat.error ?? null);
+        setChatId(chat.chatId ?? null);
         setMessages(chat.messages);
       })
       .catch((err) => {
@@ -116,10 +131,55 @@ export function LeadWhatsappChat({
   }, [leadId, active]);
 
   useEffect(() => {
+    if (!active) return;
+    const tick = () => {
+      if (document.hidden) return;
+      void load(true);
+    };
+    const timer = window.setInterval(tick, 4000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [leadId, active]);
+
+  useEffect(() => {
     const el = scroller.current;
-    if (!el) return;
+    if (!el || !stickToBottom.current) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
+
+  async function saveEditedMessage() {
+    if (!canSend || !chatId || !editMsg || savingMsg) return;
+    const text = editDraft.trim();
+    if (!text) return;
+    setSavingMsg(true);
+    try {
+      await editWhatsappInboxMessage(chatId, editMsg.id, text);
+      setMessages((prev) =>
+        prev.map((item) => (item.id === editMsg.id ? { ...item, text } : item)),
+      );
+      setEditMsg(null);
+      toast.success("Mensagem editada.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível editar a mensagem."));
+    } finally {
+      setSavingMsg(false);
+    }
+  }
+
+  async function removeMessage(msg: LeadWhatsappMessage) {
+    if (!canSend || !chatId) return;
+    if (!window.confirm("Excluir esta mensagem no WhatsApp?")) return;
+    try {
+      await deleteWhatsappInboxMessage(chatId, msg.id);
+      setMessages((prev) => prev.filter((item) => item.id !== msg.id));
+      toast.success("Mensagem excluída.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível excluir a mensagem."));
+    }
+  }
 
   async function send() {
     const text = draft.trim();
@@ -128,6 +188,7 @@ export function LeadWhatsappChat({
     try {
       await sendLeadWhatsappChat(leadId, text);
       setDraft("");
+      stickToBottom.current = true;
       setMessages((prev) => [
         ...prev,
         {
@@ -139,7 +200,7 @@ export function LeadWhatsappChat({
           source: "crm",
         },
       ]);
-      await load();
+      await load(true);
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível enviar a mensagem."));
     } finally {
@@ -198,6 +259,11 @@ export function LeadWhatsappChat({
           chatPaneClass,
         )}
         style={chatPaneVars}
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          stickToBottom.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+        }}
       >
         {loading && messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -212,72 +278,19 @@ export function LeadWhatsappChat({
             {messages.map((msg) => {
               const meta = bubbleMeta(msg);
               return (
-                <div
+                <WhatsappMessageBubble
                   key={msg.id}
-                  className={cn(
-                    "flex",
-                    meta.outgoing ? "justify-end" : "justify-start",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                      meta.outgoing
-                        ? "rounded-br-md bg-primary text-primary-foreground"
-                        : "rounded-bl-md border bg-card",
-                    )}
-                  >
-                    <p className="flex items-center gap-1 text-[10px] font-medium opacity-80">
-                      {meta.label === "IA" || meta.label === "Follow-up" ? (
-                        <Bot className="h-3 w-3" />
-                      ) : null}
-                      {meta.label}
-                      {msg.at ? ` · ${formatWhen(msg.at)}` : ""}
-                    </p>
-                    {msg.mediaUrl && msg.mediaType === "image" ? (
-                      <a
-                        href={mediaSrc(msg.mediaUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 block"
-                      >
-                        <img
-                          src={mediaSrc(msg.mediaUrl)}
-                          alt=""
-                          className="max-h-56 rounded-lg"
-                        />
-                      </a>
-                    ) : null}
-                    {(msg.mediaType?.toLowerCase() === "audio" ||
-                      (isMediaPlaceholder(msg.text) &&
-                        /audio/i.test(msg.text))) &&
-                    msg.mediaUrl ? (
-                      <WhatsappAudioBubble
-                        url={msg.mediaUrl}
-                        outgoing={meta.outgoing}
-                      />
-                    ) : null}
-                    {msg.mediaUrl &&
-                    msg.mediaType &&
-                    msg.mediaType !== "image" &&
-                    msg.mediaType !== "audio" &&
-                    msg.mediaType !== "text" ? (
-                      <a
-                        href={mediaSrc(msg.mediaUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-block underline"
-                      >
-                        Abrir {msg.mediaType}
-                      </a>
-                    ) : null}
-                    {msg.text && !isMediaPlaceholder(msg.text) ? (
-                      <p className="mt-0.5 whitespace-pre-wrap break-words">
-                        {msg.text}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
+                  message={msg}
+                  label={meta.label}
+                  outgoing={meta.outgoing}
+                  canMutate={canSend && meta.outgoing && Boolean(chatId)}
+                  onDetails={() => setDetailMsg(msg)}
+                  onEdit={() => {
+                    setEditMsg(msg);
+                    setEditDraft(msg.text);
+                  }}
+                  onDelete={() => void removeMessage(msg)}
+                />
               );
             })}
           </div>
@@ -322,6 +335,23 @@ export function LeadWhatsappChat({
           Seu perfil só visualiza as conversas dos seus leads.
         </p>
       )}
+      <WhatsappMessageDetailsDialog
+        message={detailMsg}
+        open={Boolean(detailMsg)}
+        onOpenChange={(open) => {
+          if (!open) setDetailMsg(null);
+        }}
+      />
+      <WhatsappMessageEditDialog
+        open={Boolean(editMsg)}
+        value={editDraft}
+        saving={savingMsg}
+        onOpenChange={(open) => {
+          if (!open) setEditMsg(null);
+        }}
+        onChange={setEditDraft}
+        onSave={() => void saveEditedMessage()}
+      />
     </div>
   );
 }

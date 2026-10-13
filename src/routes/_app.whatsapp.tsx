@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bot,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -36,6 +35,7 @@ import {
   CATALOG_COLORS,
   DEFAULT_CATALOG_COLOR,
   catalogColorBadgeClass,
+  catalogColorBadgeStyle,
   catalogColorSwatchStyle,
   sameCatalogColor,
 } from "@/lib/catalog-colors";
@@ -57,6 +57,8 @@ import {
   createWhatsappTag,
   deleteWhatsappTag,
   detachWhatsappChatTag,
+  deleteWhatsappInboxMessage,
+  editWhatsappInboxMessage,
   fetchWhatsappInboxChats,
   fetchWhatsappInboxMessages,
   isCrmWhatsappLeadNotifyChat,
@@ -78,10 +80,12 @@ import { cn } from "@/lib/utils";
 import {
   chatPaneClass,
   chatPaneVars,
-  isMediaPlaceholder,
-  mediaSrc,
-  WhatsappAudioBubble,
-} from "@/components/whatsapp-chat-look";
+import { chatPaneClass, chatPaneVars } from "@/components/whatsapp-chat-look";
+import {
+  WhatsappMessageBubble,
+  WhatsappMessageDetailsDialog,
+  WhatsappMessageEditDialog,
+} from "@/components/whatsapp-message-bubble";
 
 export const Route = createFileRoute("/_app/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Zone Connection" }] }),
@@ -113,6 +117,17 @@ function formatWhen(at: string | null) {
     day: "2-digit",
     month: "2-digit",
   });
+}
+
+function tagChipProps(color: string, extra?: string) {
+  return {
+    className: cn(
+      catalogColorBadgeClass(color),
+      "h-auto w-auto max-w-[9rem] shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+      extra,
+    ),
+    style: catalogColorBadgeStyle(color),
+  };
 }
 
 function ChatTagPicker({
@@ -170,9 +185,9 @@ function ChatTagPicker({
                     onClick={() => onToggle(tag)}
                   >
                     <span
-                      className={catalogColorBadgeClass(
+                      {...tagChipProps(
                         tag.color,
-                        "min-w-0 flex-1 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        "min-w-0 flex-1 truncate text-[11px]",
                       )}
                     >
                       {tag.name}
@@ -260,9 +275,14 @@ function WhatsappInboxPage() {
   const [total, setTotal] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<WhatsappInboxMessage[]>([]);
+  const [detailMsg, setDetailMsg] = useState<WhatsappInboxMessage | null>(null);
+  const [editMsg, setEditMsg] = useState<WhatsappInboxMessage | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingMsg, setSavingMsg] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const loadGen = useRef(0);
+  const stickToBottom = useRef(true);
   const pageSize = 50;
   const user = getSession();
   const [canSend, setCanSend] = useState(
@@ -284,8 +304,8 @@ function WhatsappInboxPage() {
     });
   }
 
-  async function loadChats(nextPage = page) {
-    if (chats.length === 0) setLoading(true);
+  async function loadChats(nextPage = page, silent = false) {
+    if (!silent && chats.length === 0) setLoading(true);
     try {
       const result = await fetchWhatsappInboxChats(nextPage, pageSize, {
         ...(equipeId !== "__all__" ? { equipeId } : {}),
@@ -314,33 +334,53 @@ function WhatsappInboxPage() {
         /* ignore */
       }
     } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível listar as conversas."));
+      if (!silent) {
+        toast.error(errorMessage(err, "Não foi possível listar as conversas."));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
-  async function loadMessages(chatId: string) {
-    const gen = ++loadGen.current;
+  async function loadMessages(chatId: string, silent = false) {
+    const gen = silent ? loadGen.current : ++loadGen.current;
     const cached = readWhatsappMessagesCache(chatId);
-    if (cached && cached.length > 0) {
-      setMessages(cached);
-      setLoadingMsgs(false);
-    } else {
-      setMessages([]);
-      setLoadingMsgs(true);
+    if (!silent) {
+      if (cached && cached.length > 0) {
+        setMessages(cached);
+        setLoadingMsgs(false);
+      } else {
+        setMessages([]);
+        setLoadingMsgs(true);
+      }
     }
     try {
       const result = await fetchWhatsappInboxMessages(chatId);
       if (gen !== loadGen.current) return;
-      setMessages(result.messages);
+      setMessages((prev) => {
+        if (
+          silent &&
+          prev.length === result.messages.length &&
+          prev.every(
+            (msg, i) =>
+              msg.id === result.messages[i]?.id &&
+              msg.text === result.messages[i]?.text &&
+              msg.delivery === result.messages[i]?.delivery,
+          )
+        ) {
+          return prev;
+        }
+        return result.messages;
+      });
       writeWhatsappMessagesCache(chatId, result.messages);
     } catch (err) {
       if (gen !== loadGen.current) return;
-      toast.error(errorMessage(err, "Não foi possível abrir a conversa."));
-      if (!cached?.length) setMessages([]);
+      if (!silent) {
+        toast.error(errorMessage(err, "Não foi possível abrir a conversa."));
+        if (!cached?.length) setMessages([]);
+      }
     } finally {
-      if (gen === loadGen.current) setLoadingMsgs(false);
+      if (!silent && gen === loadGen.current) setLoadingMsgs(false);
     }
   }
 
@@ -413,8 +453,22 @@ function WhatsappInboxPage() {
   }, [activeId]);
 
   useEffect(() => {
+    const tick = () => {
+      if (document.hidden) return;
+      void loadChats(page, true);
+      if (activeId) void loadMessages(activeId, true);
+    };
+    const timer = window.setInterval(tick, 4000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [activeId, page, equipeId, corretorId, tagId]);
+
+  useEffect(() => {
     const el = scroller.current;
-    if (!el) return;
+    if (!el || !stickToBottom.current) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, loadingMsgs]);
 
@@ -442,6 +496,37 @@ function WhatsappInboxPage() {
     );
   }, [chats, query]);
 
+  async function saveEditedMessage() {
+    if (!canSend || !activeId || !editMsg || savingMsg) return;
+    const text = editDraft.trim();
+    if (!text) return;
+    setSavingMsg(true);
+    try {
+      await editWhatsappInboxMessage(activeId, editMsg.id, text);
+      setMessages((prev) =>
+        prev.map((item) => (item.id === editMsg.id ? { ...item, text } : item)),
+      );
+      setEditMsg(null);
+      toast.success("Mensagem editada.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível editar a mensagem."));
+    } finally {
+      setSavingMsg(false);
+    }
+  }
+
+  async function removeMessage(msg: WhatsappInboxMessage) {
+    if (!canSend || !activeId) return;
+    if (!window.confirm("Excluir esta mensagem no WhatsApp?")) return;
+    try {
+      await deleteWhatsappInboxMessage(activeId, msg.id);
+      setMessages((prev) => prev.filter((item) => item.id !== msg.id));
+      toast.success("Mensagem excluída.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível excluir a mensagem."));
+    }
+  }
+
   async function send() {
     if (!canSend || !activeId || !draft.trim() || sending) return;
     const text = draft.trim();
@@ -461,6 +546,7 @@ function WhatsappInboxPage() {
             : chat,
         ),
       );
+      stickToBottom.current = true;
       await loadMessages(activeId);
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível enviar."));
@@ -691,14 +777,11 @@ function WhatsappInboxPage() {
                 <button
                   key={tag.id}
                   type="button"
-                  className={cn(
-                    catalogColorBadgeClass(
-                      tag.color,
-                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    ),
+                  {...tagChipProps(
+                    tag.color,
                     tagId === tag.id
                       ? "ring-2 ring-white/80"
-                      : "opacity-80 hover:opacity-100",
+                      : "opacity-90 hover:opacity-100",
                   )}
                   onClick={() => setTagId((cur) => (cur === tag.id ? null : tag.id))}
                 >
@@ -761,10 +844,7 @@ function WhatsappInboxPage() {
                           {(chat.tags ?? []).map((tag) => (
                             <span
                               key={tag.id}
-                              className={catalogColorBadgeClass(
-                                tag.color,
-                                "rounded-full px-1.5 py-px text-[9px] font-semibold",
-                              )}
+                              {...tagChipProps(tag.color, "px-1.5 py-px text-[9px]")}
                             >
                               {tag.name}
                             </span>
@@ -842,10 +922,7 @@ function WhatsappInboxPage() {
                         <button
                           key={tag.id}
                           type="button"
-                          className={catalogColorBadgeClass(
-                            tag.color,
-                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                          )}
+                          {...tagChipProps(tag.color)}
                           title="Remover tag"
                           onClick={() => void toggleChatTag(active.chatId, tag)}
                         >
@@ -896,6 +973,11 @@ function WhatsappInboxPage() {
                   chatPaneClass,
                 )}
                 style={chatPaneVars}
+                onScroll={(event) => {
+                  const el = event.currentTarget;
+                  stickToBottom.current =
+                    el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+                }}
               >
                 {loadingMsgs && messages.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
@@ -910,67 +992,19 @@ function WhatsappInboxPage() {
                   {messages.map((msg) => {
                     const meta = bubbleMeta(msg.kind);
                     return (
-                      <div
+                      <WhatsappMessageBubble
                         key={msg.id}
-                        className={cn(
-                          "flex",
-                          meta.outgoing ? "justify-end" : "justify-start",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                            meta.outgoing
-                              ? "rounded-br-md bg-primary text-primary-foreground"
-                              : "rounded-bl-md border bg-card",
-                          )}
-                        >
-                          <p className="flex items-center gap-1 text-[10px] font-medium opacity-80">
-                            {msg.kind === "ai" || msg.kind === "follow_up" ? (
-                              <Bot className="h-3 w-3" />
-                            ) : null}
-                            {meta.label}
-                            {msg.at ? ` · ${formatWhen(msg.at)}` : ""}
-                          </p>
-                          {msg.mediaUrl && msg.mediaType === "image" ? (
-                            <a
-                              href={mediaSrc(msg.mediaUrl)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 block"
-                            >
-                              <img
-                                src={mediaSrc(msg.mediaUrl)}
-                                alt=""
-                                className="max-h-56 rounded-lg"
-                              />
-                            </a>
-                          ) : null}
-                          {msg.mediaType === "audio" && msg.mediaUrl ? (
-                            <WhatsappAudioBubble url={msg.mediaUrl} outgoing={meta.outgoing} />
-                          ) : null}
-                          {msg.mediaUrl &&
-                          msg.mediaType &&
-                          msg.mediaType !== "image" &&
-                          msg.mediaType !== "audio" &&
-                          msg.mediaType !== "text" ? (
-                            <a
-                              href={msg.mediaUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 inline-block underline"
-                            >
-                              Abrir {msg.mediaType}
-                            </a>
-                          ) : null}
-                          {msg.text &&
-                          !isMediaPlaceholder(msg.text) ? (
-                            <p className="mt-0.5 whitespace-pre-wrap break-words">
-                              {msg.text}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
+                        message={msg}
+                        label={meta.label}
+                        outgoing={meta.outgoing}
+                        canMutate={canSend && meta.outgoing}
+                        onDetails={() => setDetailMsg(msg)}
+                        onEdit={() => {
+                          setEditMsg(msg);
+                          setEditDraft(msg.text);
+                        }}
+                        onDelete={() => void removeMessage(msg)}
+                      />
                     );
                   })}
                   </div>
@@ -1126,12 +1160,7 @@ function WhatsappInboxPage() {
                       </>
                     ) : (
                       <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={catalogColorBadgeClass(
-                            tag.color,
-                            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                          )}
-                        >
+                        <span {...tagChipProps(tag.color, "text-[11px]")}>
                           {tag.name}
                           {tag.source === "funil" ? " · funil" : ""}
                         </span>
@@ -1171,6 +1200,23 @@ function WhatsappInboxPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <WhatsappMessageDetailsDialog
+        message={detailMsg}
+        open={Boolean(detailMsg)}
+        onOpenChange={(open) => {
+          if (!open) setDetailMsg(null);
+        }}
+      />
+      <WhatsappMessageEditDialog
+        open={Boolean(editMsg)}
+        value={editDraft}
+        saving={savingMsg}
+        onOpenChange={(open) => {
+          if (!open) setEditMsg(null);
+        }}
+        onChange={setEditDraft}
+        onSave={() => void saveEditedMessage()}
+      />
     </div>
   );
 }
