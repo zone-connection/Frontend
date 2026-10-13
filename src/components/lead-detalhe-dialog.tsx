@@ -118,6 +118,9 @@ const ESTADO_CIVIL_OPTIONS = [
 
 const PRIORIDADE_OPTIONS: Lead["prioridade"][] = ["Alta", "Média", "Baixa"];
 
+const FICHA_TAB =
+  "!h-auto !rounded-none !border-b-2 !border-transparent !bg-transparent !bg-none !px-3 !pb-2 !pt-1 !text-muted-foreground !shadow-none data-[state=active]:!border-primary data-[state=active]:!bg-transparent data-[state=active]:!bg-none data-[state=active]:!text-primary data-[state=active]:!shadow-none";
+
 function initials(nome: string) {
   return nome
     .split(" ")
@@ -261,7 +264,7 @@ function EditableValue({
       )}
       onClick={() => setEditing(true)}
     >
-      <span className={cn("min-w-0 flex-1 truncate text-sm", !empty && "font-medium", className)}>
+      <span className={cn("min-w-0 flex-1 whitespace-normal break-words text-sm", !empty && "font-medium", className)}>
         {empty ? placeholder : (display ?? value)}
       </span>
       <Pencil className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 group-hover/field:opacity-100" />
@@ -774,44 +777,44 @@ export function LeadDetalheDialog({
               ) : null}
             </header>
 
-            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(26rem,34rem)_minmax(0,1fr)]">
               <aside className="order-2 flex min-h-0 flex-col overflow-y-auto border-t [scrollbar-width:thin] lg:order-1 lg:border-t-0 lg:border-r">
                 <SideSection title="Resumo">
                   <dl className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Wallet className="h-4 w-4" /> Renda
                       </dt>
                       <dd className="font-medium">{lead.renda != null ? brl(lead.renda) : "—"}</dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <User className="h-4 w-4" /> Pessoa
                       </dt>
-                      <dd className="truncate font-medium text-primary">{lead.nome}</dd>
+                      <dd className="min-w-0 text-right font-medium break-words text-primary">{lead.nome}</dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Phone className="h-4 w-4" /> Telefone
                       </dt>
-                      <dd className="truncate">{lead.telefone || "—"}</dd>
+                      <dd className="min-w-0 text-right break-words">{lead.telefone || "—"}</dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Mail className="h-4 w-4" /> E-mail
                       </dt>
-                      <dd className="truncate">{email || "—"}</dd>
+                      <dd className="min-w-0 text-right break-all">{email || "—"}</dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Flag className="h-4 w-4" /> Prioridade
                       </dt>
                       <dd className={lead.prioridade === "Alta" ? "text-destructive" : ""}>
                         {lead.prioridade}
                       </dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Clock className="h-4 w-4" /> Criado em
                       </dt>
                       <dd>
@@ -1098,17 +1101,17 @@ export function LeadDetalheDialog({
               <div className="order-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:thin] lg:order-2">
                 <Tabs value={tab} onValueChange={setTab}>
                   <div className="sticky top-0 z-10 border-b bg-card">
-                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-none border-0 bg-transparent px-4 pt-2">
-                      <TabsTrigger value="atividade" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 !rounded-none !border-0 !bg-transparent px-4 pt-2 !shadow-none">
+                      <TabsTrigger value="atividade" className={FICHA_TAB}>
                         <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
                         Atividade
                       </TabsTrigger>
-                      <TabsTrigger value="triagem" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                      <TabsTrigger value="triagem" className={FICHA_TAB}>
                         <StickyNote className="mr-1.5 h-3.5 w-3.5" />
                         Triagem
                       </TabsTrigger>
                       {hasOzapChat ? (
-                        <TabsTrigger value="whatsapp" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                        <TabsTrigger value="whatsapp" className={FICHA_TAB}>
                           <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
                           WhatsApp
                         </TabsTrigger>
