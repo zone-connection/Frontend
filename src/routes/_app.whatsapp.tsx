@@ -77,9 +77,6 @@ import {
 import { getSession } from "@/lib/auth";
 import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import {
-  chatPaneClass,
-  chatPaneVars,
 import { chatPaneClass, chatPaneVars } from "@/components/whatsapp-chat-look";
 import {
   WhatsappMessageBubble,
