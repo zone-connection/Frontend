@@ -29,6 +29,24 @@ export type WhatsappInboxChat = {
   tags?: WhatsappUserTag[];
 };
 
+export function isCrmWhatsappLeadNotifyChat(chat: {
+  lastMessage?: string | null;
+  name?: string | null;
+}) {
+  const text = `${chat.lastMessage ?? ""} ${chat.name ?? ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return (
+    /abra (o|no) crm/.test(text) ||
+    /voce recebeu\s+\d+\s+leads? novos?/.test(text) ||
+    /novo lead no pool/.test(text) ||
+    /novo lead atribuido/.test(text) ||
+    /\d+\s+leads? no pool da equipe/.test(text) ||
+    /funil\?lead=/.test(text)
+  );
+}
+
 export type WhatsappUserTag = {
   id: string;
   name: string;

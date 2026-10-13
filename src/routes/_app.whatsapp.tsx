@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
+  Check,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -18,6 +19,11 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +59,7 @@ import {
   detachWhatsappChatTag,
   fetchWhatsappInboxChats,
   fetchWhatsappInboxMessages,
+  isCrmWhatsappLeadNotifyChat,
   fetchWhatsappTags,
   importWhatsappTagsFromFunil,
   readWhatsappMessagesCache,
@@ -106,6 +113,89 @@ function formatWhen(at: string | null) {
     day: "2-digit",
     month: "2-digit",
   });
+}
+
+function ChatTagPicker({
+  assigned,
+  tags,
+  onToggle,
+  onManage,
+  compact,
+}: {
+  assigned: WhatsappUserTag[];
+  tags: WhatsappUserTag[];
+  onToggle: (tag: WhatsappUserTag) => void;
+  onManage: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant={compact ? "ghost" : "outline"}
+          size="sm"
+          className={cn(
+            compact ? "h-8 w-8 shrink-0 px-0" : "h-8 shrink-0",
+            assigned.length > 0 && compact && "text-primary",
+          )}
+          title="Atribuir tag"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Tag className={cn("h-3.5 w-3.5", !compact && "mr-1.5")} />
+          {compact ? null : "Tag"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-56 space-y-2 p-2"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="px-1 text-[11px] font-medium text-muted-foreground">
+          Atribuir tag a esta conversa
+        </p>
+        {tags.length === 0 ? (
+          <p className="px-1 text-xs text-muted-foreground">
+            Crie uma tag primeiro.
+          </p>
+        ) : (
+          <ul className="max-h-56 space-y-0.5 overflow-y-auto">
+            {tags.map((tag) => {
+              const on = assigned.some((item) => item.id === tag.id);
+              return (
+                <li key={tag.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left hover:bg-muted"
+                    onClick={() => onToggle(tag)}
+                  >
+                    <span
+                      className={catalogColorBadgeClass(
+                        tag.color,
+                        "min-w-0 flex-1 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      )}
+                    >
+                      {tag.name}
+                    </span>
+                    {on ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 w-full text-[11px]"
+          onClick={onManage}
+        >
+          Gerenciar tags
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function TagColorPicker({
@@ -182,7 +272,7 @@ function WhatsappInboxPage() {
     user?.role === "admin" ||
     user?.role === "super_admin" ||
     user?.role === "gerente";
-  const cacheKey = `crm-whatsapp-inbox-chats:${user?.id ?? "anon"}`;
+  const cacheKey = `crm-whatsapp-inbox-chats-v3:${user?.id ?? "anon"}`;
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
 
@@ -203,7 +293,9 @@ function WhatsappInboxPage() {
         ...(tagId ? { tagId } : {}),
       });
       if (typeof result.canSend === "boolean") setCanSend(result.canSend);
-      const next = sortChats(result.chats);
+      const next = sortChats(
+        result.chats.filter((chat) => !isCrmWhatsappLeadNotifyChat(chat)),
+      );
       setChats(next);
       setPage(result.page);
       setHasMore(result.hasMore);
@@ -266,7 +358,9 @@ function WhatsappInboxPage() {
             };
         const list = Array.isArray(cached) ? cached : cached.chats;
         if (Array.isArray(list) && list.length > 0) {
-          setChats(sortChats(list));
+          setChats(
+            sortChats(list.filter((chat) => !isCrmWhatsappLeadNotifyChat(chat))),
+          );
           if (!Array.isArray(cached)) {
             setPage(cached.page || 1);
             setHasMore(Boolean(cached.hasMore));
@@ -501,18 +595,18 @@ function WhatsappInboxPage() {
     }
   }
 
-  async function toggleChatTag(next: WhatsappUserTag) {
-    if (!activeId) return;
-    const on = (active?.tags ?? []).some((tag) => tag.id === next.id);
+  async function toggleChatTag(chatId: string, next: WhatsappUserTag) {
+    const chat = chats.find((item) => item.chatId === chatId);
+    const on = (chat?.tags ?? []).some((tag) => tag.id === next.id);
     try {
-      if (on) await detachWhatsappChatTag(activeId, next.id);
-      else await attachWhatsappChatTag(activeId, next.id);
+      if (on) await detachWhatsappChatTag(chatId, next.id);
+      else await attachWhatsappChatTag(chatId, next.id);
       setChats((prev) =>
-        prev.map((chat) => {
-          if (chat.chatId !== activeId) return chat;
-          const current = chat.tags ?? [];
+        prev.map((item) => {
+          if (item.chatId !== chatId) return item;
+          const current = item.tags ?? [];
           return {
-            ...chat,
+            ...item,
             tags: on
               ? current.filter((tag) => tag.id !== next.id)
               : [...current, next],
@@ -634,53 +728,66 @@ function WhatsappInboxPage() {
               </p>
             ) : (
               filtered.map((chat) => (
-                <button
+                <div
                   key={chat.chatId}
-                  type="button"
                   className={cn(
-                    "flex w-full items-start gap-3 border-b px-3 py-3 text-left hover:bg-muted/50",
+                    "flex items-start gap-1 border-b hover:bg-muted/50",
                     activeId === chat.chatId && "bg-primary/10",
                   )}
-                  onClick={() => setActiveId(chat.chatId)}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <FaWhatsapp className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {chat.leadNome || chat.name}
-                      </span>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
-                        {formatWhen(chat.lastMessageAt)}
-                      </span>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-start gap-3 px-3 py-3 text-left"
+                    onClick={() => setActiveId(chat.chatId)}
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <FaWhatsapp className="h-5 w-5" />
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {chat.aiPaused ? "IA pausada · " : ""}
-                      {chat.lastMessage || "Sem mensagens"}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {chat.leadNome || chat.name}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {formatWhen(chat.lastMessageAt)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {chat.aiPaused ? "IA pausada · " : ""}
+                        {chat.lastMessage || "Sem mensagens"}
+                      </span>
+                      {(chat.tags ?? []).length > 0 ? (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {(chat.tags ?? []).map((tag) => (
+                            <span
+                              key={tag.id}
+                              className={catalogColorBadgeClass(
+                                tag.color,
+                                "rounded-full px-1.5 py-px text-[9px] font-semibold",
+                              )}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
                     </span>
-                    {(chat.tags ?? []).length > 0 ? (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {(chat.tags ?? []).map((tag) => (
-                          <span
-                            key={tag.id}
-                            className={catalogColorBadgeClass(
-                              tag.color,
-                              "rounded-full px-1.5 py-px text-[9px] font-semibold",
-                            )}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
+                    {chat.unread > 0 ? (
+                      <span className="mt-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                        {chat.unread}
                       </span>
                     ) : null}
-                  </span>
-                  {chat.unread > 0 ? (
-                    <span className="mt-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                      {chat.unread}
-                    </span>
-                  ) : null}
-                </button>
+                  </button>
+                  <div className="shrink-0 py-2 pr-1">
+                    <ChatTagPicker
+                      compact
+                      assigned={chat.tags ?? []}
+                      tags={tags}
+                      onToggle={(tag) => void toggleChatTag(chat.chatId, tag)}
+                      onManage={() => setTagDialog(true)}
+                    />
+                  </div>
+                </div>
               ))
             )}
           </div>
@@ -729,31 +836,32 @@ function WhatsappInboxPage() {
                     {active.aiPaused ? " · IA pausada" : " · IA ativa"}
                     {loadingMsgs && messages.length > 0 ? " · atualizando" : ""}
                   </p>
-                  {tags.length > 0 ? (
+                  {(active.tags ?? []).length > 0 ? (
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {tags.map((tag) => {
-                        const on = (active.tags ?? []).some((item) => item.id === tag.id);
-                        return (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            className={cn(
-                              catalogColorBadgeClass(
-                                tag.color,
-                                "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                              ),
-                              on ? "ring-1 ring-white/70" : "opacity-50 hover:opacity-100",
-                            )}
-                            onClick={() => void toggleChatTag(tag)}
-                          >
-                            {tag.name}
-                          </button>
-                        );
-                      })}
+                      {(active.tags ?? []).map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          className={catalogColorBadgeClass(
+                            tag.color,
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                          )}
+                          title="Remover tag"
+                          onClick={() => void toggleChatTag(active.chatId, tag)}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
                     </div>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <ChatTagPicker
+                    assigned={active.tags ?? []}
+                    tags={tags}
+                    onToggle={(tag) => void toggleChatTag(active.chatId, tag)}
+                    onManage={() => setTagDialog(true)}
+                  />
                   {active.leadId ? (
                     <Button asChild variant="outline" size="sm">
                       <Link to="/funil" search={{ lead: active.leadId }}>
