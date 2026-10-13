@@ -8,14 +8,12 @@ import {
 } from "react";
 import {
   AlarmClockOff,
-  BarChart3,
   Briefcase,
   CalendarClock,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
   Clock,
-  FileText,
   Flag,
   Globe,
   Hourglass,
@@ -439,14 +437,21 @@ function ActionRow({ action }: { action: LeadDetalheAction }) {
   );
 }
 
+function daysSince(iso?: string | null) {
+  if (!iso) return null;
+  const time = new Date(iso).getTime();
+  if (!Number.isFinite(time)) return null;
+  return Math.max(0, Math.floor((Date.now() - time) / 86_400_000));
+}
+
 function FunilTrack({
   stages,
   currentId,
-  onVerTriagem,
+  enteredAt,
 }: {
   stages: { id: string; name: string; papel?: string | null }[];
   currentId: string;
-  onVerTriagem?: () => void;
+  enteredAt?: string | null;
 }) {
   const list = stages.filter(
     (s) => s.papel !== "perdido" && s.papel !== "venda",
@@ -456,51 +461,68 @@ function FunilTrack({
     0,
     track.findIndex((s) => s.id === currentId),
   );
+  const days = daysSince(enteredAt);
 
   return (
-    <div className="rounded-xl border bg-background/30 p-3">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-        <BarChart3 className="h-4 w-4 text-primary" />
-        Lead em andamento
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {track.map((s, i) => {
-          const done = i < idx;
-          const current = s.id === currentId;
-          return (
-            <div key={s.id} className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                  current
-                    ? "bg-primary text-primary-foreground"
-                    : done
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted text-muted-foreground",
-                )}
-              >
-                {s.name}
-              </span>
-              {i < track.length - 1 ? (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : null}
-            </div>
-          );
-        })}
-        {onVerTriagem ? (
-          <>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <button
-              type="button"
-              className="text-[11px] font-medium text-primary hover:underline"
-              onClick={onVerTriagem}
-            >
-              Ver triagem
-            </button>
-          </>
-        ) : null}
-      </div>
+    <div className="mt-3 flex overflow-x-auto pb-1 [scrollbar-width:thin]">
+      {track.map((s, i) => {
+        const reached = i <= idx;
+        const current = s.id === currentId;
+        return (
+          <span
+            key={s.id}
+            title={s.name}
+            className={cn(
+              "relative shrink-0 py-1.5 pr-4 text-[11px] font-medium whitespace-nowrap",
+              i > 0 && "-ml-1.5",
+              reached
+                ? "bg-[#1f9d55] text-white"
+                : "bg-[#e6ebf0] text-[#5c6b76] dark:bg-[#1c2430] dark:text-[#94a3b8]",
+            )}
+            style={{
+              zIndex: track.length - i,
+              paddingLeft: i === 0 ? 12 : 18,
+              clipPath:
+                i === track.length - 1
+                  ? i === 0
+                    ? "none"
+                    : "polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%)"
+                  : i === 0
+                    ? "polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%)"
+                    : "polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%)",
+            }}
+          >
+            {current && days != null ? `${days} ${days === 1 ? "dia" : "dias"} · ` : ""}
+            {s.name}
+          </span>
+        );
+      })}
     </div>
+  );
+}
+
+function SideSection({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border-b">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition", !open && "-rotate-90")} />
+        {title}
+      </button>
+      {open ? <div className="px-4 pb-4">{children}</div> : null}
+    </section>
   );
 }
 
@@ -548,11 +570,11 @@ export function LeadDetalheDialog({
 }) {
   const { funnelStages, origens, colorByLabel } = useCatalog();
   const hasOzapChat = getSession()?.tenant?.hasOzapConnection === true;
-  const [tab, setTab] = useState("info");
+  const [tab, setTab] = useState("atividade");
   const hist = useTriagemHistory(open && lead ? lead.id : null);
 
   useEffect(() => {
-    setTab("info");
+    setTab("atividade");
   }, [lead?.id]);
   const stage = funnelStages.find((item) => item.id === lead?.stage);
   const telefoneDigits = lead ? phoneDigits(lead.telefone) : "";
@@ -639,7 +661,7 @@ export function LeadDetalheDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-[calc(100vw-1.25rem)] gap-0 overflow-hidden rounded-2xl border bg-card p-0 sm:max-w-5xl",
+          "w-[calc(100vw-1.25rem)] gap-0 overflow-hidden rounded-2xl border bg-card p-0 sm:max-w-6xl",
           "!flex !flex-col",
           "!top-[max(0.5rem,1.5dvh)] !translate-y-0",
           "max-h-[calc(100dvh-1rem)]",
@@ -647,58 +669,90 @@ export function LeadDetalheDialog({
       >
         {lead ? (
           <>
-            <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
-              <div className="flex min-w-0 items-start gap-3">
-                <span
-                  className={cn(
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold",
-                    PRIORIDADE_AVATAR[lead.prioridade],
-                  )}
-                >
-                  {initials(lead.nome)}
-                </span>
-                <div className="min-w-0">
-                  <DialogTitle className="sr-only">{lead.nome}</DialogTitle>
-                  <DialogDescription className="sr-only">
-                    Detalhes de {lead.nome}
-                  </DialogDescription>
-                  <EditableValue
-                    value={lead.nome}
-                    className="text-lg font-semibold tracking-tight"
-                    onSave={(next) => saveText("nome", next, { required: true })}
-                  />
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {lead.tipo === "cliente" ? "Cliente" : "Lead"}
-                    {stage ? ` · ${stage.name}` : ""}
-                    {showCorretor && lead.corretor && lead.corretor !== "—"
-                      ? ` · ${lead.corretor}`
-                      : ""}
-                    {(equipe ?? lead.equipe)
-                      ? ` · ${equipe ?? lead.equipe}`
-                      : ""}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {showMeuLeadBadge ? <MeuLeadBadge /> : null}
-                    <LeadOrigemLiberacaoBadge lead={lead} />
-                    {lead.analise &&
-                    shouldShowAnaliseStatus(lead.analise.status) ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          analiseBadgeClass(lead.analise.status),
-                          "h-5 rounded-full px-2 text-[10px]",
-                        )}
-                      >
-                        {ANALISE_STATUS_LABEL[lead.analise.status]}
-                      </Badge>
-                    ) : null}
+            <header className="shrink-0 border-b px-4 py-3 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold",
+                      PRIORIDADE_AVATAR[lead.prioridade],
+                    )}
+                  >
+                    {initials(showCorretor && lead.corretor && lead.corretor !== "—" ? lead.corretor : lead.nome)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {showCorretor && lead.corretor && lead.corretor !== "—"
+                        ? lead.corretor
+                        : lead.nome}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {equipe ?? lead.equipe ?? (lead.tipo === "cliente" ? "Cliente" : "Lead")}
+                    </p>
                   </div>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {showMeuLeadBadge ? <MeuLeadBadge /> : null}
+                  <LeadOrigemLiberacaoBadge lead={lead} />
+                  {perdaAction ? (
+                    <Button
+                      type="button"
+                      className="h-8 bg-[#e23b3b] px-3 text-white hover:bg-[#c92f2f]"
+                      onClick={perdaAction.onClick}
+                    >
+                      Perdido
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8"
+                    disabled={!temTelefone}
+                    aria-label="WhatsApp"
+                    onClick={() =>
+                      hasOzapChat ? setTab("whatsapp") : abrirWhatsApp()
+                    }
+                  >
+                    <FaWhatsapp className="h-4 w-4 text-[#25D366]" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8"
+                    disabled={!temTelefone}
+                    aria-label="Ligar"
+                    onClick={ligar}
+                  >
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+              <DialogTitle className="sr-only">{lead.nome}</DialogTitle>
+              <DialogDescription className="sr-only">
+                Detalhes de {lead.nome}
+              </DialogDescription>
+              <div className="mt-3">
+                <EditableValue
+                  value={lead.nome}
+                  className="text-xl font-semibold tracking-tight"
+                  onSave={(next) => saveText("nome", next, { required: true })}
+                />
+              </div>
+              <FunilTrack
+                stages={funnelStages}
+                currentId={lead.stage}
+                enteredAt={mon?.stageEnteredAt}
+              />
+              <p className="mt-2 text-xs text-primary">
+                {lead.origem && lead.origem !== "Não informado" ? lead.origem : lead.tipo === "cliente" ? "Clientes" : "Leads"}
+                {stage ? ` → ${stage.name}` : ""}
+              </p>
               {mon && mon.problemas.length > 0 ? (
                 <div
                   className={cn(
-                    "flex max-w-sm items-start gap-2 rounded-xl px-3 py-2 text-xs",
+                    "mt-2 flex max-w-xl items-start gap-2 rounded-lg px-3 py-2 text-xs",
                     atrasado
                       ? "bg-rose-500/15 text-rose-700 dark:text-rose-200"
                       : "bg-amber-500/15 text-amber-800 dark:text-amber-200",
@@ -720,36 +774,64 @@ export function LeadDetalheDialog({
               ) : null}
             </header>
 
-            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_17.5rem]">
-              <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-width:thin]">
-                <Tabs value={tab} onValueChange={setTab}>
-                  <TabsList className="mb-4 h-auto min-h-10 w-full flex-wrap justify-start gap-1 rounded-full bg-muted/60 p-1 sm:w-auto">
-                    <TabsTrigger value="info" className="rounded-full px-3">
-                      <UserRound className="mr-1.5 h-3.5 w-3.5" />
-                      Informações
-                    </TabsTrigger>
-                    <TabsTrigger value="hist" className="rounded-full px-3">
-                      <Clock className="mr-1.5 h-3.5 w-3.5" />
-                      Histórico
-                    </TabsTrigger>
-                    <TabsTrigger value="obs" className="rounded-full px-3">
-                      <FileText className="mr-1.5 h-3.5 w-3.5" />
-                      Observações
-                    </TabsTrigger>
-                    {hasOzapChat ? (
-                      <TabsTrigger value="whatsapp" className="rounded-full px-3">
-                        <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
-                        WhatsApp
-                      </TabsTrigger>
-                    ) : null}
-                  </TabsList>
-
-                  <TabsContent value="info" className="mt-0 space-y-3">
-                    <section className="rounded-xl border bg-background/30 p-4">
-                      <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                        <User className="h-4 w-4 text-primary" />
-                        Dados do lead
-                      </h3>
+            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+              <aside className="order-2 flex min-h-0 flex-col overflow-y-auto border-t [scrollbar-width:thin] lg:order-1 lg:border-t-0 lg:border-r">
+                <SideSection title="Resumo">
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <Wallet className="h-4 w-4" /> Renda
+                      </dt>
+                      <dd className="font-medium">{lead.renda != null ? brl(lead.renda) : "—"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-4 w-4" /> Pessoa
+                      </dt>
+                      <dd className="truncate font-medium text-primary">{lead.nome}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" /> Telefone
+                      </dt>
+                      <dd className="truncate">{lead.telefone || "—"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" /> E-mail
+                      </dt>
+                      <dd className="truncate">{email || "—"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <Flag className="h-4 w-4" /> Prioridade
+                      </dt>
+                      <dd className={lead.prioridade === "Alta" ? "text-destructive" : ""}>
+                        {lead.prioridade}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4" /> Criado em
+                      </dt>
+                      <dd>
+                        {lead.createdAt
+                          ? formatDateTimePt(lead.createdAt)
+                          : lead.updatedAt}
+                      </dd>
+                    </div>
+                  </dl>
+                  {lead.analise && shouldShowAnaliseStatus(lead.analise.status) ? (
+                    <Badge
+                      variant="outline"
+                      className={cn("mt-3", analiseBadgeClass(lead.analise.status))}
+                    >
+                      {ANALISE_STATUS_LABEL[lead.analise.status]}
+                    </Badge>
+                  ) : null}
+                </SideSection>
+                <SideSection title="Detalhes">
+                    <section>
                       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                         <DataField icon={Phone} label="Telefone">
                           <div className="flex items-center gap-1">
@@ -976,12 +1058,75 @@ export function LeadDetalheDialog({
                       </section>
                     ) : null}
 
-                    <FunilTrack
-                      stages={funnelStages}
-                      currentId={lead.stage}
-                      onVerTriagem={verTriagem?.onClick}
-                    />
+                    {stageControl ? (
+                      <div className="mt-4 rounded-xl border bg-background/40 p-3">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                          Etapa atual
+                        </p>
+                        {stageControl}
+                      </div>
+                    ) : null}
+                </SideSection>
+                {sidebarActions.length > 0 ? (
+                  <div className="space-y-2 p-4">
+                    {sidebarActions.map((action) => (
+                      <ActionRow key={action.label} action={action} />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="mt-auto space-y-2 p-4">
+                  <div className="flex items-center justify-between rounded-xl border px-3 py-2.5">
+                    <span className="text-sm">Status</span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        atrasado &&
+                          "border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-200",
+                      )}
+                    >
+                      {atrasado ? (
+                        <TriangleAlert className="mr-1 h-3 w-3" />
+                      ) : null}
+                      {statusLabel}
+                    </Badge>
+                  </div>
+                  {primaryAction}
+                  {footer}
+                </div>
+              </aside>
 
+              <div className="order-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:thin] lg:order-2">
+                <Tabs value={tab} onValueChange={setTab}>
+                  <div className="sticky top-0 z-10 border-b bg-card">
+                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-none border-0 bg-transparent px-4 pt-2">
+                      <TabsTrigger value="atividade" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                        <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+                        Atividade
+                      </TabsTrigger>
+                      <TabsTrigger value="triagem" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                        <StickyNote className="mr-1.5 h-3.5 w-3.5" />
+                        Triagem
+                      </TabsTrigger>
+                      {hasOzapChat ? (
+                        <TabsTrigger value="whatsapp" className="rounded-none border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                          <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
+                          WhatsApp
+                        </TabsTrigger>
+                      ) : null}
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="atividade" className="mt-0 space-y-4 px-4 py-4">
+                    <button
+                      type="button"
+                      className="w-full rounded-lg border bg-muted/30 px-3 py-5 text-left text-sm text-muted-foreground hover:bg-muted/50 disabled:cursor-default"
+                      disabled={!onAddAtividade}
+                      onClick={onAddAtividade}
+                    >
+                      {onAddAtividade
+                        ? "Clique aqui para adicionar uma atividade..."
+                        : "As atividades deste registro aparecem no histórico."}
+                    </button>
                     <MonitoramentoCard
                       lead={lead}
                       inatividadeFallback={inatividadeFallback}
@@ -991,57 +1136,40 @@ export function LeadDetalheDialog({
                     </MonitoramentoCard>
                   </TabsContent>
 
-                  <TabsContent value="hist" className="mt-0">
-                    <HistoryTimeline
-                      events={hist.events}
-                      contactName={lead.nome}
-                      stageLabel={(slug) =>
-                        funnelStages.find((s) => s.id === slug)?.name ??
-                        slug ??
-                        ""
-                      }
-                      fallbackStage={lead.stage}
-                      loading={hist.loading}
-                      leadId={lead.id}
-                      onEventUpdated={(ev) =>
-                        hist.setEvents((cur) =>
-                          cur.map((item) => (item.id === ev.id ? ev : item)),
-                        )
-                      }
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="obs" className="mt-0 space-y-3">
-                    {lead.analise?.parecer &&
-                    shouldShowAnaliseStatus(lead.analise.status) ? (
-                      <div className="rounded-xl border p-3 text-sm whitespace-pre-wrap">
-                        {lead.analise.parecer}
-                      </div>
-                    ) : null}
-                    {hist.events.length === 0 && !hist.loading ? (
-                      <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                        Nenhuma observação registrada. Use Registrar histórico
-                        para incluir um relato.
-                      </p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {hist.events.map((ev) => (
-                          <li
-                            key={ev.id}
-                            className="rounded-xl border bg-background/40 p-3 text-sm"
-                          >
-                            <p className="text-[11px] text-muted-foreground">
-                              {ev.autor.name} · {formatTriagemWhen(ev.createdAt)}
-                            </p>
-                            <p className="mt-1 whitespace-pre-wrap">{ev.texto}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                  <TabsContent value="triagem" className="mt-0 space-y-3 px-4 py-4">
+                    <div className="rounded-lg border border-[#f3e2a2] bg-[#fff8dc] p-3 text-sm text-[#3d3420] dark:border-[#f5c48a]/30 dark:bg-[#3a2a14] dark:text-[#f8fafc]">
+                      {lead.analise?.parecer && shouldShowAnaliseStatus(lead.analise.status) ? (
+                        <p className="mb-3 whitespace-pre-wrap">{lead.analise.parecer}</p>
+                      ) : null}
+                      {hist.events.length === 0 && !hist.loading ? (
+                        <p>Nenhum relato de triagem ainda.</p>
+                      ) : (
+                        <ul className="space-y-3">
+                          {hist.events.map((ev) => (
+                            <li key={ev.id}>
+                              <p className="text-[11px] opacity-70">
+                                {ev.autor.name} · {formatTriagemWhen(ev.createdAt)}
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap">{ev.texto}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {verTriagem ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-3 h-8 bg-white/80 dark:bg-[#1c2430]"
+                          onClick={verTriagem.onClick}
+                        >
+                          Abrir triagem
+                        </Button>
+                      ) : null}
+                    </div>
                   </TabsContent>
 
                   {hasOzapChat ? (
-                    <TabsContent value="whatsapp" className="mt-0">
+                    <TabsContent value="whatsapp" className="mt-0 px-4 py-4">
                       <LeadWhatsappChat
                         leadId={lead.id}
                         active={tab === "whatsapp"}
@@ -1049,107 +1177,31 @@ export function LeadDetalheDialog({
                     </TabsContent>
                   ) : null}
                 </Tabs>
-              </div>
 
-              <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t p-4 lg:border-t-0 lg:border-l">
-                <div className="space-y-2">
-                  {sidebarActions.map((action) => (
-                    <ActionRow key={action.label} action={action} />
-                  ))}
-                </div>
-                {stageControl ? (
-                  <div className="rounded-xl border bg-background/40 p-3">
-                    <p className="mb-2 text-xs font-medium text-muted-foreground">
-                      Etapa atual
-                    </p>
-                    {stageControl}
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between rounded-xl border px-3 py-2.5">
-                  <span className="text-sm">Status do lead</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      atrasado &&
-                        "border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-200",
-                    )}
-                  >
-                    {atrasado ? (
-                      <TriangleAlert className="mr-1 h-3 w-3" />
-                    ) : null}
-                    {statusLabel}
-                  </Badge>
-                </div>
-                <div className="rounded-xl border bg-background/40 p-3 text-sm">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Resumo rápido
-                  </p>
-                  <dl className="space-y-1.5 text-xs">
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Origem</dt>
-                      <dd>{lead.origem || "—"}</dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Prioridade</dt>
-                      <dd
-                        className={
-                          lead.prioridade === "Alta" ? "text-destructive" : ""
-                        }
-                      >
-                        {lead.prioridade}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Renda mensal</dt>
-                      <dd>
-                        {lead.renda != null ? brl(lead.renda) : "—"}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Criado em</dt>
-                      <dd>
-                        {lead.createdAt
-                          ? formatDateTimePt(lead.createdAt)
-                          : lead.updatedAt}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-                <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
-                  <Button
-                    type="button"
-                    className="h-10 bg-[#22c55e] text-white hover:bg-[#16a34a]"
-                    disabled={!temTelefone}
-                    onClick={() =>
-                      hasOzapChat ? setTab("whatsapp") : abrirWhatsApp()
+                <section className="border-t px-4 py-4">
+                  <h3 className="mb-3 flex items-center gap-1 text-sm font-semibold">
+                    Histórico
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </h3>
+                  <HistoryTimeline
+                    events={hist.events}
+                    contactName={lead.nome}
+                    stageLabel={(slug) =>
+                      funnelStages.find((s) => s.id === slug)?.name ??
+                      slug ??
+                      ""
                     }
-                  >
-                    <FaWhatsapp className="mr-1.5 h-4 w-4" />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10"
-                    disabled={!temTelefone}
-                    onClick={ligar}
-                  >
-                    <Phone className="mr-1.5 h-4 w-4" />
-                    Ligar
-                  </Button>
-                </div>
-                {primaryAction}
-                {perdaAction ? (
-                  <button
-                    type="button"
-                    className="text-center text-xs text-destructive hover:underline"
-                    onClick={perdaAction.onClick}
-                  >
-                    {perdaAction.label}
-                  </button>
-                ) : null}
-                {footer}
-              </aside>
+                    fallbackStage={lead.stage}
+                    loading={hist.loading}
+                    leadId={lead.id}
+                    onEventUpdated={(ev) =>
+                      hist.setEvents((cur) =>
+                        cur.map((item) => (item.id === ev.id ? ev : item)),
+                      )
+                    }
+                  />
+                </section>
+              </div>
             </div>
           </>
         ) : null}

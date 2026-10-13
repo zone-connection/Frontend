@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import { dashCardTone } from "@/components/finance-kpi-card";
 import { Card } from "@/components/ui/card";
 import { TablePager } from "@/components/table-pager";
@@ -59,7 +60,6 @@ import {
   FormDialogShell,
   FormSection,
   FormSectionNav,
-  DetailField,
 } from "@/components/form-dialog";
 import { getSession } from "@/lib/auth";
 import { getAdminVerClientesCorretor } from "@/lib/clientes-nav-prefs";
@@ -80,7 +80,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import { FlowTrack } from "@/components/flow-bar";
-import { brl, interessesAtivos, rotuloInteresseAlvo, splitPendingInteresseKeys, type Lead } from "@/lib/crm-types";
+import { splitPendingInteresseKeys, type Lead } from "@/lib/crm-types";
 import { ApiError } from "@/lib/api";
 import { importLeads, checkImportDuplicates } from "@/lib/leads-api";
 import {
@@ -347,15 +347,11 @@ function Clientes() {
     refresh,
   } = useLeads();
   const {
-    funnelStages,
     origens: origemOptions,
     tags: tagOptions,
     colorByLabel,
     refresh: refreshCatalog,
   } = useCatalog();
-
-  const stageName = (stage: Lead["stage"]) =>
-    funnelStages.find((s) => s.id === stage)?.name ?? stage;
 
   const clientes = useMemo(() => {
     const byTipo = allLeads.filter((l) => l.tipo === "cliente");
@@ -1640,151 +1636,47 @@ function Clientes() {
         </form>
       </FormDialogShell>
 
-      {/* Visualizar */}
-      <FormDialogShell
+      <LeadDetalheDialog
+        lead={detail}
         open={!!detail}
         onOpenChange={(open) => !open && setDetail(null)}
-        icon={<Eye className="w-5 h-5" />}
-        title={detail?.nome ?? "Detalhes do cliente"}
-        description={
-          detail ? (
-            <span className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className={STATUS_CHIP_CLASS} title={detail.interesse}>
-                {detail.interesse}
-              </Badge>
-              <span>{stageName(detail.stage)}</span>
-            </span>
-          ) : undefined
+        onUpdated={(next) => {
+          applyLead(next);
+          setDetail(next);
+        }}
+        showCorretor={!isCorretor}
+        moreActions={
+          detail
+            ? [
+                {
+                  label: "Ver triagem",
+                  icon: FileText,
+                  onClick: () => {
+                    const id = detail.id;
+                    setDetail(null);
+                    void navigate({ to: "/triagem", search: { leadId: id } });
+                  },
+                },
+                {
+                  label: "Editar",
+                  icon: Pencil,
+                  onClick: () => openEdit(detail),
+                },
+                {
+                  label: "Contrato",
+                  icon: FileSpreadsheet,
+                  onClick: () => setContratoCliente(detail),
+                },
+                {
+                  label: "Perda",
+                  icon: Trash2,
+                  destructive: true,
+                  onClick: () => setDeleteTarget(detail),
+                },
+              ]
+            : undefined
         }
-      >
-        {detail && (
-          <>
-            <FormDialogBody>
-              <FormSection
-                icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-                title="Contato"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <DetailField label="Telefone" value={detail.telefone} />
-                  <DetailField
-                    label="E-mail"
-                    value={displayEmail(detail.email) || "—"}
-                  />
-                  <DetailField
-                    label="Origem"
-                    value={
-                      detail.origem ? (
-                        <Badge
-                          className={catalogColorBadgeClass(
-                            colorByLabel("origem", detail.origem),
-                          )}
-                          style={catalogColorBadgeStyle(
-                            colorByLabel("origem", detail.origem),
-                          )}
-                          title={detail.origem}
-                        >
-                          {detail.origem}
-                        </Badge>
-                      ) : (
-                        "—"
-                      )
-                    }
-                  />
-                  {!isCorretor && (
-                    <DetailField label="Corretor" value={detail.corretor} />
-                  )}
-                </div>
-              </FormSection>
-              <FormSection
-                icon={<Wallet className="w-3.5 h-3.5 text-primary" />}
-                title="Interesse e renda"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <DetailField label="Interesse" value={detail.interesse} />
-                  <DetailField
-                    label="Renda mensal"
-                    value={detail.renda != null ? brl(detail.renda) : "—"}
-                  />
-                  {(detail.documentacaoStatus1 ||
-                    detail.documentacaoStatus2 ||
-                    detail.tags.length > 0) && (
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <div className="text-xs text-muted-foreground">Tags</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <DocStatusFunilTags
-                          status1={detail.documentacaoStatus1}
-                          status2={detail.documentacaoStatus2}
-                          className="justify-start"
-                        />
-                        {detail.tags
-                          .filter((t) => {
-                            const key = t.trim().toLowerCase();
-                            return (
-                              key !==
-                                detail.documentacaoStatus1?.trim().toLowerCase() &&
-                              key !==
-                                detail.documentacaoStatus2?.trim().toLowerCase()
-                            );
-                          })
-                          .map((t) => (
-                          <Badge
-                            key={t}
-                            className={cn(STATUS_CHIP_CLASS, colorByLabel("tag", t))}
-                            title={t}
-                          >
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {interessesAtivos(detail.interesses).length > 0 && (
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <div className="text-xs text-muted-foreground">
-                        Empreendimentos de interesse
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {interessesAtivos(detail.interesses).map((item) => (
-                          <Badge key={item.id} variant="secondary" title={item.empreendimento.cidade ?? undefined}>
-                            {rotuloInteresseAlvo(item)}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </FormSection>
-              <FormSection
-                icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
-                title="Localização"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <DetailField label="Cidade" value={detail.cidade} />
-                  <DetailField label="Bairro" value={detail.bairro} />
-                </div>
-              </FormSection>
-            </FormDialogBody>
-            <FormDialogActions hint={`Atualizado em ${detail.updatedAt}`}>
-              <Button
-                variant="outline"
-                className={`flex-1 sm:flex-none ${SOFT_BTN}`}
-                onClick={() => openEdit(detail)}
-              >
-                <Pencil className="w-4 h-4" />
-                Editar
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1 sm:flex-none"
-                onClick={() => setDeleteTarget(detail)}
-              >
-                <Trash2 className="w-4 h-4" />
-                Perda
-              </Button>
-            </FormDialogActions>
-          </>
-        )}
-      </FormDialogShell>
+      />
 
       <Dialog
         open={Boolean(contratoCliente)}

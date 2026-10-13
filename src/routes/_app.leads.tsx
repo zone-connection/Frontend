@@ -85,6 +85,7 @@ import {
   Repeat,
   Briefcase,
   UserCheck,
+  ClipboardList,
   UserRoundCog,
   Users,
   Layers,
@@ -2998,6 +2999,15 @@ function LeadsPage() {
         moreActions={
           detailLead
             ? [
+                {
+                  label: "Ver triagem",
+                  icon: ClipboardList,
+                  onClick: () => {
+                    const id = detailLead.id;
+                    setDetailLead(null);
+                    void navigate({ to: "/triagem", search: { leadId: id } });
+                  },
+                },
                 ...(canReassign && leadPodeRedistribuir(detailLead)
                   ? [
                       {
