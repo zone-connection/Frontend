@@ -4,6 +4,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ListChecks,
   Loader2,
   Pause,
   Play,
@@ -17,6 +18,16 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -79,6 +90,9 @@ import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { chatPaneClass, chatPaneVars } from "@/components/whatsapp-chat-look";
 import {
+  inferReadDelivery,
+  isRemoteWhatsappMessage,
+  WhatsappDeleteMessagesDialog,
   WhatsappMessageBubble,
   WhatsappMessageDetailsDialog,
   WhatsappMessageEditDialog,
@@ -264,6 +278,8 @@ function WhatsappInboxPage() {
   const [editTagName, setEditTagName] = useState("");
   const [editTagColor, setEditTagColor] = useState<string>(DEFAULT_CATALOG_COLOR);
   const [savingTag, setSavingTag] = useState(false);
+  const [deletingTag, setDeletingTag] = useState<WhatsappUserTag | null>(null);
+  const [deletingTagBusy, setDeletingTagBusy] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [draft, setDraft] = useState("");
   const [chats, setChats] = useState<WhatsappInboxChat[]>([]);
@@ -276,6 +292,10 @@ function WhatsappInboxPage() {
   const [editMsg, setEditMsg] = useState<WhatsappInboxMessage | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingMsg, setSavingMsg] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<WhatsappInboxMessage[]>([]);
+  const [deletingMsgs, setDeletingMsgs] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const loadGen = useRef(0);
@@ -446,6 +466,8 @@ function WhatsappInboxPage() {
 
   useEffect(() => {
     if (!activeId) return;
+    setSelectMode(false);
+    setSelectedIds([]);
     void loadMessages(activeId);
   }, [activeId]);
 
@@ -493,6 +515,11 @@ function WhatsappInboxPage() {
     );
   }, [chats, query]);
 
+  const threadMessages = useMemo(
+    () => inferReadDelivery(messages),
+    [messages],
+  );
+
   async function saveEditedMessage() {
     if (!canSend || !activeId || !editMsg || savingMsg) return;
     const text = editDraft.trim();
@@ -512,15 +539,47 @@ function WhatsappInboxPage() {
     }
   }
 
-  async function removeMessage(msg: WhatsappInboxMessage) {
-    if (!canSend || !activeId) return;
-    if (!window.confirm("Excluir esta mensagem no WhatsApp?")) return;
+  function toggleSelectMessage(id: string) {
+    setSelectMode(true);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
+
+  function askDeleteMessages(list: WhatsappInboxMessage[]) {
+    const removable = list.filter(
+      (item) => item.direction === "out" && isRemoteWhatsappMessage(item.id),
+    );
+    if (removable.length === 0) return;
+    setPendingDelete(removable);
+  }
+
+  async function confirmDeleteMessages() {
+    if (!canSend || !activeId || pendingDelete.length === 0 || deletingMsgs) return;
+    setDeletingMsgs(true);
+    const removed: string[] = [];
     try {
-      await deleteWhatsappInboxMessage(activeId, msg.id);
-      setMessages((prev) => prev.filter((item) => item.id !== msg.id));
-      toast.success("Mensagem excluída.");
+      for (const msg of pendingDelete) {
+        await deleteWhatsappInboxMessage(activeId, msg.id);
+        removed.push(msg.id);
+      }
+      setMessages((prev) => prev.filter((item) => !removed.includes(item.id)));
+      setSelectedIds([]);
+      setSelectMode(false);
+      setPendingDelete([]);
+      toast.success(
+        removed.length > 1
+          ? `${removed.length} mensagens excluídas.`
+          : "Mensagem excluída.",
+      );
     } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível excluir a mensagem."));
+      if (removed.length > 0) {
+        setMessages((prev) => prev.filter((item) => !removed.includes(item.id)));
+        setSelectedIds((prev) => prev.filter((id) => !removed.includes(id)));
+      }
+      toast.error(errorMessage(err, "Não foi possível excluir as mensagens."));
+    } finally {
+      setDeletingMsgs(false);
     }
   }
 
@@ -652,29 +711,27 @@ function WhatsappInboxPage() {
     }
   }
 
-  async function handleDeleteTag(id: string) {
-    const tag = tags.find((item) => item.id === id);
-    if (
-      !window.confirm(
-        `Excluir a tag "${tag?.name ?? ""}"? Ela sai de todas as conversas.`,
-      )
-    ) {
-      return;
-    }
+  async function confirmDeleteTag() {
+    const tag = deletingTag;
+    if (!tag || deletingTagBusy) return;
+    setDeletingTagBusy(true);
     try {
-      await deleteWhatsappTag(id);
-      if (tagId === id) setTagId(null);
-      if (editingTagId === id) setEditingTagId(null);
-      setTags((prev) => prev.filter((item) => item.id !== id));
+      await deleteWhatsappTag(tag.id);
+      if (tagId === tag.id) setTagId(null);
+      if (editingTagId === tag.id) setEditingTagId(null);
+      setTags((prev) => prev.filter((item) => item.id !== tag.id));
       setChats((prev) =>
         prev.map((chat) => ({
           ...chat,
-          tags: (chat.tags ?? []).filter((item) => item.id !== id),
+          tags: (chat.tags ?? []).filter((item) => item.id !== tag.id),
         })),
       );
+      setDeletingTag(null);
       toast.success("Tag excluída.");
     } catch (err) {
       toast.error(errorMessage(err, "Não foi possível excluir a tag."));
+    } finally {
+      setDeletingTagBusy(false);
     }
   }
 
@@ -930,6 +987,22 @@ function WhatsappInboxPage() {
                   ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {canSend ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={selectMode ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectMode((cur) => {
+                          if (cur) setSelectedIds([]);
+                          return !cur;
+                        });
+                      }}
+                    >
+                      <ListChecks className="mr-1.5 h-3.5 w-3.5" />
+                      {selectMode ? "Cancelar" : "Selecionar"}
+                    </Button>
+                  ) : null}
                   <ChatTagPicker
                     assigned={active.tags ?? []}
                     tags={tags}
@@ -986,7 +1059,7 @@ function WhatsappInboxPage() {
                   </p>
                 ) : (
                   <div className="mt-auto flex min-h-full flex-col justify-end gap-2">
-                  {messages.map((msg) => {
+                  {threadMessages.map((msg) => {
                     const meta = bubbleMeta(msg.kind);
                     return (
                       <WhatsappMessageBubble
@@ -995,19 +1068,59 @@ function WhatsappInboxPage() {
                         label={meta.label}
                         outgoing={meta.outgoing}
                         canMutate={canSend && meta.outgoing}
+                        selecting={selectMode}
+                        selected={selectedIds.includes(msg.id)}
+                        onToggleSelect={() => toggleSelectMessage(msg.id)}
                         onDetails={() => setDetailMsg(msg)}
                         onEdit={() => {
                           setEditMsg(msg);
                           setEditDraft(msg.text);
                         }}
-                        onDelete={() => void removeMessage(msg)}
+                        onDelete={() => askDeleteMessages([msg])}
+                        onStartSelect={() => toggleSelectMessage(msg.id)}
                       />
                     );
                   })}
                   </div>
                 )}
               </div>
-              {canSend ? (
+              {selectMode ? (
+                <div className="flex shrink-0 items-center justify-between gap-2 border-t bg-primary/[0.06] px-3 py-2.5">
+                  <p className="text-sm">
+                    {selectedIds.length}{" "}
+                    {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectMode(false);
+                        setSelectedIds([]);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      disabled={selectedIds.length === 0}
+                      onClick={() =>
+                        askDeleteMessages(
+                          threadMessages.filter((item) =>
+                            selectedIds.includes(item.id),
+                          ),
+                        )
+                      }
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              ) : canSend ? (
                 <form
                   className="flex shrink-0 items-end gap-2 border-t bg-primary/[0.04] p-3"
                   onSubmit={(event) => {
@@ -1136,7 +1249,7 @@ function WhatsappInboxPage() {
                             variant="destructive"
                             className="h-8"
                             disabled={savingTag}
-                            onClick={() => void handleDeleteTag(tag.id)}
+                            onClick={() => setDeletingTag(tag)}
                           >
                             <Trash2 className="mr-1 h-3.5 w-3.5" />
                             Excluir
@@ -1177,7 +1290,7 @@ function WhatsappInboxPage() {
                           <button
                             type="button"
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
-                            onClick={() => void handleDeleteTag(tag.id)}
+                            onClick={() => setDeletingTag(tag)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             Excluir
@@ -1197,6 +1310,69 @@ function WhatsappInboxPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog
+        open={Boolean(deletingTag)}
+        onOpenChange={(open) => {
+          if (!open && !deletingTagBusy) setDeletingTag(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-[22rem] gap-0 overflow-hidden rounded-2xl border-destructive/25 p-0 sm:rounded-2xl">
+          <div className="bg-destructive/10 px-6 pb-4 pt-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <AlertDialogHeader className="mt-4 space-y-1.5 text-left">
+              <AlertDialogTitle>Excluir esta tag?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ela some da lista e de todas as conversas em que estiver. Essa tag
+                era visível só para você.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <div className="space-y-4 px-6 py-5">
+            {deletingTag ? (
+              <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-3">
+                <span {...tagChipProps(deletingTag.color, "text-[11px]")}>
+                  {deletingTag.name}
+                </span>
+                <p className="min-w-0 text-xs text-muted-foreground">
+                  {deletingTag.source === "funil" ? "Copiada do funil" : "Tag pessoal"}
+                </p>
+              </div>
+            ) : null}
+            <AlertDialogFooter className="sm:justify-stretch">
+              <AlertDialogCancel
+                disabled={deletingTagBusy}
+                className="mt-0 flex-1"
+              >
+                Manter tag
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deletingTagBusy}
+                className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={(event) => {
+                  event.preventDefault();
+                  void confirmDeleteTag();
+                }}
+              >
+                {deletingTagBusy ? "Excluindo…" : "Excluir tag"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+      <WhatsappDeleteMessagesDialog
+        open={pendingDelete.length > 0}
+        count={pendingDelete.length}
+        previews={pendingDelete.slice(0, 3).map(
+          (item) => item.text?.trim() || item.mediaType || "Mensagem",
+        )}
+        busy={deletingMsgs}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete([]);
+        }}
+        onConfirm={() => void confirmDeleteMessages()}
+      />
       <WhatsappMessageDetailsDialog
         message={detailMsg}
         open={Boolean(detailMsg)}

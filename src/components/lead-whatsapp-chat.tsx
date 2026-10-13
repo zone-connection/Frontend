@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Loader2, RefreshCw, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ListChecks, Loader2, RefreshCw, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import {
@@ -18,6 +18,9 @@ import { canSendWhatsappInbox } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { chatPaneClass, chatPaneVars } from "@/components/whatsapp-chat-look";
 import {
+  inferReadDelivery,
+  isRemoteWhatsappMessage,
+  WhatsappDeleteMessagesDialog,
   WhatsappMessageBubble,
   WhatsappMessageDetailsDialog,
   WhatsappMessageEditDialog,
@@ -65,12 +68,20 @@ export function LeadWhatsappChat({
   const [editMsg, setEditMsg] = useState<LeadWhatsappMessage | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingMsg, setSavingMsg] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<LeadWhatsappMessage[]>([]);
+  const [deletingMsgs, setDeletingMsgs] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const session = getSession();
   const canSend = canSendWhatsappInbox(
     session?.role,
     session?.tenant?.modules ?? null,
+  );
+  const threadMessages = useMemo(
+    () => inferReadDelivery(messages),
+    [messages],
   );
 
   async function load(silent = false) {
@@ -107,6 +118,8 @@ export function LeadWhatsappChat({
 
   useEffect(() => {
     if (!active) return;
+    setSelectMode(false);
+    setSelectedIds([]);
     let cancelled = false;
     setLoading(true);
     void fetchLeadWhatsappChat(leadId)
@@ -169,15 +182,48 @@ export function LeadWhatsappChat({
     }
   }
 
-  async function removeMessage(msg: LeadWhatsappMessage) {
-    if (!canSend || !chatId) return;
-    if (!window.confirm("Excluir esta mensagem no WhatsApp?")) return;
+  function toggleSelectMessage(id: string) {
+    setSelectMode(true);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
+
+  function askDeleteMessages(list: LeadWhatsappMessage[]) {
+    const removable = list.filter(
+      (item) =>
+        (item.direction === "out" || item.kind === "agent" || item.kind === "ai") &&
+        isRemoteWhatsappMessage(item.id),
+    );
+    if (removable.length === 0) return;
+    setPendingDelete(removable);
+  }
+
+  async function confirmDeleteMessages() {
+    if (!canSend || !chatId || pendingDelete.length === 0 || deletingMsgs) return;
+    setDeletingMsgs(true);
+    const removed: string[] = [];
     try {
-      await deleteWhatsappInboxMessage(chatId, msg.id);
-      setMessages((prev) => prev.filter((item) => item.id !== msg.id));
-      toast.success("Mensagem excluída.");
+      for (const msg of pendingDelete) {
+        await deleteWhatsappInboxMessage(chatId, msg.id);
+        removed.push(msg.id);
+      }
+      setMessages((prev) => prev.filter((item) => !removed.includes(item.id)));
+      setSelectedIds([]);
+      setSelectMode(false);
+      setPendingDelete([]);
+      toast.success(
+        removed.length > 1
+          ? `${removed.length} mensagens excluídas.`
+          : "Mensagem excluída.",
+      );
     } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível excluir a mensagem."));
+      if (removed.length > 0) {
+        setMessages((prev) => prev.filter((item) => !removed.includes(item.id)));
+      }
+      toast.error(errorMessage(err, "Não foi possível excluir as mensagens."));
+    } finally {
+      setDeletingMsgs(false);
     }
   }
 
@@ -237,6 +283,24 @@ export function LeadWhatsappChat({
         <p className="text-xs font-medium text-muted-foreground">
           Conversa no WhatsApp
         </p>
+        <div className="flex items-center gap-1">
+          {canSend ? (
+            <Button
+              type="button"
+              variant={selectMode ? "default" : "ghost"}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => {
+                setSelectMode((cur) => {
+                  if (cur) setSelectedIds([]);
+                  return !cur;
+                });
+              }}
+            >
+              <ListChecks className="mr-1 h-3.5 w-3.5" />
+              {selectMode ? "Cancelar" : "Selecionar"}
+            </Button>
+          ) : null}
         <Button
           type="button"
           variant="ghost"
@@ -251,6 +315,7 @@ export function LeadWhatsappChat({
             <RefreshCw className="h-3.5 w-3.5" />
           )}
         </Button>
+        </div>
       </div>
       <div
         ref={scroller}
@@ -275,7 +340,7 @@ export function LeadWhatsappChat({
           </p>
         ) : (
           <div className="flex flex-col justify-end gap-2">
-            {messages.map((msg) => {
+            {threadMessages.map((msg) => {
               const meta = bubbleMeta(msg);
               return (
                 <WhatsappMessageBubble
@@ -284,19 +349,45 @@ export function LeadWhatsappChat({
                   label={meta.label}
                   outgoing={meta.outgoing}
                   canMutate={canSend && meta.outgoing && Boolean(chatId)}
+                  selecting={selectMode}
+                  selected={selectedIds.includes(msg.id)}
+                  onToggleSelect={() => toggleSelectMessage(msg.id)}
                   onDetails={() => setDetailMsg(msg)}
                   onEdit={() => {
                     setEditMsg(msg);
                     setEditDraft(msg.text);
                   }}
-                  onDelete={() => void removeMessage(msg)}
+                  onDelete={() => askDeleteMessages([msg])}
+                  onStartSelect={() => toggleSelectMessage(msg.id)}
                 />
               );
             })}
           </div>
         )}
       </div>
-      {canSend ? (
+      {selectMode ? (
+        <div className="flex items-center justify-between gap-2 border-t bg-primary/[0.06] px-3 py-2">
+          <p className="text-xs">
+            {selectedIds.length}{" "}
+            {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
+          </p>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="h-8"
+            disabled={selectedIds.length === 0}
+            onClick={() =>
+              askDeleteMessages(
+                threadMessages.filter((item) => selectedIds.includes(item.id)),
+              )
+            }
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            Excluir
+          </Button>
+        </div>
+      ) : canSend ? (
         <form
           className="flex items-end gap-2 border-t bg-primary/[0.04] p-2"
           onSubmit={(event) => {
@@ -335,6 +426,18 @@ export function LeadWhatsappChat({
           Seu perfil só visualiza as conversas dos seus leads.
         </p>
       )}
+      <WhatsappDeleteMessagesDialog
+        open={pendingDelete.length > 0}
+        count={pendingDelete.length}
+        previews={pendingDelete.slice(0, 3).map(
+          (item) => item.text?.trim() || item.mediaType || "Mensagem",
+        )}
+        busy={deletingMsgs}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete([]);
+        }}
+        onConfirm={() => void confirmDeleteMessages()}
+      />
       <WhatsappMessageDetailsDialog
         message={detailMsg}
         open={Boolean(detailMsg)}
