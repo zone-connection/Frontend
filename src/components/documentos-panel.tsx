@@ -1,15 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+  FormSection,
+} from "@/components/form-dialog";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
@@ -29,14 +27,20 @@ import {
   type ArquivoVinculoTipo,
   type DocumentoTag,
 } from "@/lib/arquivos-api";
+import { SOFT_BTN, SOFT_BTN_ACTIVE } from "@/lib/soft-btn";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Download,
+  Eye,
   FileText,
   Loader2,
   Mail,
+  Pencil,
   Plus,
+  Tags,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 function canGestor() {
@@ -50,6 +54,38 @@ function formatWhen(iso: string) {
   } catch {
     return iso;
   }
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function TagChip({
+  active,
+  children,
+  onClick,
+}: {
+  active?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+        active
+          ? "border-[#079ED4] bg-[#E7F4FA] text-[#0B3148] dark:border-[#079ED4]/60 dark:bg-[#079ED4]/20 dark:text-[#E7F4FA]"
+          : "border-[#E2E8EC] bg-white text-[#16324A] hover:border-[#B7D7E6] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc]",
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 export function DocumentosPanel({
@@ -70,6 +106,7 @@ export function DocumentosPanel({
   allowUpload?: boolean;
 }) {
   const gestor = canGestor();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<ArquivoDocumento[]>([]);
   const [relatedItems, setRelatedItems] = useState<ArquivoDocumento[]>([]);
   const [tags, setTags] = useState<DocumentoTag[]>([]);
@@ -107,7 +144,9 @@ export function DocumentosPanel({
       }
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.message : "Não foi possível carregar os documentos.",
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível carregar os documentos.",
       );
     } finally {
       setLoading(false);
@@ -121,9 +160,18 @@ export function DocumentosPanel({
   const visible = useMemo(() => {
     if (!filterTag) return items;
     return items.filter((item) =>
-      item.tags.some((t) => t.nome.toLowerCase().includes(filterTag.toLowerCase())),
+      item.tags.some((t) =>
+        t.nome.toLowerCase().includes(filterTag.toLowerCase()),
+      ),
     );
   }, [items, filterTag]);
+
+  function pickFile(next: File | null) {
+    setFile(next);
+    if (next && !nome.trim()) {
+      setNome(next.name.replace(/\.pdf$/i, ""));
+    }
+  }
 
   async function enviar() {
     if (!file) {
@@ -165,12 +213,16 @@ export function DocumentosPanel({
     setBusy(true);
     try {
       const tag = await createDocumentoTag(nomeTag);
-      setTags((cur) => [...cur, tag].sort((a, b) => a.nome.localeCompare(b.nome)));
+      setTags((cur) =>
+        [...cur, tag].sort((a, b) => a.nome.localeCompare(b.nome)),
+      );
       setTagIds((cur) => [...cur, tag.id]);
       setNewTag("");
       toast.success("Tag criada.");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível criar a tag.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível criar a tag.",
+      );
     } finally {
       setBusy(false);
     }
@@ -190,7 +242,9 @@ export function DocumentosPanel({
       const { url } = await previewArquivo(id);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível abrir o PDF.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível abrir o PDF.",
+      );
     }
   }
 
@@ -200,7 +254,9 @@ export function DocumentosPanel({
       toast.success("Documento removido.");
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível excluir.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível excluir.",
+      );
     }
   }
 
@@ -253,7 +309,9 @@ export function DocumentosPanel({
       await load();
       setEditId(null);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível atualizar as tags.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível atualizar as tags.",
+      );
     }
   }
 
@@ -264,20 +322,36 @@ export function DocumentosPanel({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border bg-card p-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <FileText className="h-4 w-4" />
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0B3148] dark:text-[#E7F4FA]">
+          <span className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]">
+            <FileText className="h-4 w-4" />
+          </span>
           {title}
         </h3>
         <div className="flex flex-wrap gap-2">
           {gestor ? (
             <>
-              <Button type="button" size="sm" variant="outline" disabled={busy || items.length === 0} onClick={() => void zip()}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={SOFT_BTN}
+                disabled={busy || items.length === 0}
+                onClick={() => void zip()}
+              >
                 <Download className="mr-1 h-3.5 w-3.5" />
                 Baixar todos
               </Button>
-              <Button type="button" size="sm" variant="outline" disabled={items.length === 0} onClick={() => setShareOpen(true)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={SOFT_BTN}
+                disabled={items.length === 0}
+                onClick={() => setShareOpen(true)}
+              >
                 <Mail className="mr-1 h-3.5 w-3.5" />
                 E-mail
               </Button>
@@ -295,96 +369,133 @@ export function DocumentosPanel({
         placeholder="Filtrar por tag"
         value={filterTag}
         onChange={(e) => setFilterTag(e.target.value)}
-        className="h-8 max-w-xs"
+        className="h-9 max-w-xs"
       />
       {loading ? (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
           Carregando documentos…
         </p>
       ) : visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhum PDF nesta seção.</p>
+        <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] px-4 py-8 text-center">
+          <FileText className="h-6 w-6 text-primary/70" />
+          <p className="text-sm font-medium">Nenhum PDF nesta seção</p>
+          <p className="text-xs text-muted-foreground">
+            {allowUpload
+              ? "Envie o PDF e marque as tags do documento."
+              : "Os arquivos cadastrados no processo aparecem aqui."}
+          </p>
+        </div>
       ) : (
         <ul className="space-y-2">
           {visible.map((item) => (
             <li
               key={item.id}
-              className="flex flex-wrap items-start justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
+              className="rounded-2xl border border-primary/10 bg-gradient-to-br from-card to-primary/[0.04] px-3 py-3"
             >
-              <div className="min-w-0 space-y-1">
-                <label className="flex items-center gap-2 font-medium">
-                  {gestor ? (
-                    <input
-                      type="checkbox"
-                      checked={selected.has(item.id)}
-                      onChange={() => {
-                        setSelected((cur) => {
-                          const next = new Set(cur);
-                          if (next.has(item.id)) next.delete(item.id);
-                          else next.add(item.id);
-                          return next;
-                        });
-                      }}
-                    />
-                  ) : null}
-                  {item.nome}
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  {formatWhen(item.createdAt)}
-                  {item.uploadedBy ? ` · ${item.uploadedBy.name}` : ""}
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag.id} variant="secondary" className="text-[10px]">
-                      {tag.nome}
-                    </Badge>
-                  ))}
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1.5">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    {gestor ? (
+                      <input
+                        type="checkbox"
+                        className="accent-[#079ED4]"
+                        checked={selected.has(item.id)}
+                        onChange={() => {
+                          setSelected((cur) => {
+                            const next = new Set(cur);
+                            if (next.has(item.id)) next.delete(item.id);
+                            else next.add(item.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    ) : null}
+                    {item.nome}
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {formatWhen(item.createdAt)}
+                    {item.uploadedBy ? ` · ${item.uploadedBy.name}` : ""}
+                    {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="rounded-full border border-[#079ED4]/30 bg-[#E7F4FA] px-2 py-0.5 text-[10px] font-medium text-[#0B3148] dark:border-[#079ED4]/40 dark:bg-[#079ED4]/15 dark:text-[#E7F4FA]"
+                      >
+                        {tag.nome}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <Button type="button" size="sm" variant="ghost" onClick={() => void ver(item.id)}>
-                  Ver
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => void baixar(item.id)}>
-                  Baixar
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(item.id)}>
-                  Tags
-                </Button>
-                {allowUpload ? (
+                <div className="flex flex-wrap gap-1">
                   <Button
                     type="button"
                     size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => void excluir(item.id)}
+                    variant="outline"
+                    className={SOFT_BTN}
+                    onClick={() => void ver(item.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Eye className="mr-1 h-3.5 w-3.5" />
+                    Ver
                   </Button>
-                ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className={SOFT_BTN}
+                    onClick={() => void baixar(item.id)}
+                  >
+                    <Download className="mr-1 h-3.5 w-3.5" />
+                    Baixar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className={editId === item.id ? SOFT_BTN_ACTIVE : SOFT_BTN}
+                    onClick={() =>
+                      setEditId((cur) => (cur === item.id ? null : item.id))
+                    }
+                  >
+                    <Tags className="mr-1 h-3.5 w-3.5" />
+                    Tags
+                  </Button>
+                  {allowUpload ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => void excluir(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
               {editId === item.id ? (
-                <div className="w-full space-y-2 border-t pt-2">
-                  <div className="flex flex-wrap gap-1">
-                    {tags.map((tag) => {
-                      const on = item.tags.some((t) => t.id === tag.id);
-                      return (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          className={`rounded-full border px-2 py-0.5 text-[11px] ${on ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => {
-                            const next = on
-                              ? item.tags.filter((t) => t.id !== tag.id).map((t) => t.id)
-                              : [...item.tags.map((t) => t.id), tag.id];
-                            void salvarTags(item.id, next);
-                          }}
-                        >
-                          {tag.nome}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-primary/10 pt-3">
+                  {tags.map((tag) => {
+                    const on = item.tags.some((t) => t.id === tag.id);
+                    return (
+                      <TagChip
+                        key={tag.id}
+                        active={on}
+                        onClick={() => {
+                          const next = on
+                            ? item.tags
+                                .filter((t) => t.id !== tag.id)
+                                .map((t) => t.id)
+                            : [...item.tags.map((t) => t.id), tag.id];
+                          void salvarTags(item.id, next);
+                        }}
+                      >
+                        {tag.nome}
+                      </TagChip>
+                    );
+                  })}
                 </div>
               ) : null}
             </li>
@@ -393,22 +504,34 @@ export function DocumentosPanel({
       )}
 
       {related && relatedItems.length > 0 ? (
-        <div className="space-y-2 border-t pt-3">
+        <div className="space-y-2 border-t border-primary/10 pt-3">
           <p className="text-xs font-medium text-muted-foreground">
             Relacionados a {related.label}
           </p>
           <ul className="space-y-1 text-sm">
             {relatedItems.map((item) => (
-              <li key={item.id} className="flex justify-between gap-2">
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-2 rounded-xl border border-primary/10 px-3 py-2"
+              >
                 <span>
                   {item.nome}{" "}
                   {item.tags.map((t) => (
-                    <Badge key={t.id} variant="outline" className="ml-1 text-[10px]">
+                    <span
+                      key={t.id}
+                      className="ml-1 rounded-full border border-[#079ED4]/30 bg-[#E7F4FA] px-2 py-0.5 text-[10px] text-[#0B3148] dark:bg-[#079ED4]/15 dark:text-[#E7F4FA]"
+                    >
                       {t.nome}
-                    </Badge>
+                    </span>
                   ))}
                 </span>
-                <Button type="button" size="sm" variant="ghost" onClick={() => void ver(item.id)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={SOFT_BTN}
+                  onClick={() => void ver(item.id)}
+                >
                   Ver
                 </Button>
               </li>
@@ -417,93 +540,183 @@ export function DocumentosPanel({
         </div>
       ) : null}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enviar PDF</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Arquivo (PDF, máx. 5 MB)</Label>
-              <Input
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Nome do documento</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: RG frente e verso" />
-            </div>
-            <div className="space-y-1">
-              <Label>Tags (obrigatório)</Label>
-              <div className="flex flex-wrap gap-1">
-                {tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    className={`rounded-full border px-2 py-0.5 text-xs ${tagIds.includes(tag.id) ? "bg-primary text-primary-foreground" : ""}`}
-                    onClick={() => toggleTag(tag.id)}
-                  >
-                    {tag.nome}
-                  </button>
-                ))}
-              </div>
-              {gestor ? (
-                <div className="flex gap-2 pt-1">
-                  <Input
-                    placeholder="Criar nova tag"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                  />
-                  <Button type="button" variant="outline" onClick={() => void criarTag()} disabled={busy}>
-                    Criar
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+      <FormDialogShell
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setFile(null);
+            setNome("");
+            setTagIds([]);
+          }
+        }}
+        icon={<Upload className="h-5 w-5" />}
+        title="Enviar PDF"
+        description="Arquivo em PDF, até 5 MB. Escolha as tags do documento."
+        footer={
+          <FormDialogActions hint="As tags ajudam o gerente a identificar o que falta.">
+            <Button
+              type="button"
+              variant="outline"
+              className={SOFT_BTN}
+              onClick={() => setOpen(false)}
+            >
               Cancelar
             </Button>
             <Button type="button" onClick={() => void enviar()} disabled={busy}>
-              {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              {busy ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-1 h-4 w-4" />
+              )}
               Enviar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormDialogActions>
+        }
+      >
+        <FormDialogBody>
+          <FormSection
+            icon={<FileText className="h-4 w-4" />}
+            title="Arquivo"
+            description="Somente PDF, no máximo 5 MB."
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/[0.04] px-4 py-8 text-center transition hover:border-primary/50 hover:bg-primary/[0.07]"
+            >
+              <span className="flex size-11 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary shadow-sm dark:bg-[#1c2430]">
+                <Upload className="h-5 w-5" />
+              </span>
+              {file ? (
+                <>
+                  <p className="text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(file.size)} · clique para trocar
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium">
+                    Clique para escolher o PDF
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Ou selecione o arquivo no computador
+                  </p>
+                </>
+              )}
+            </button>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Nome do documento</Label>
+              <Input
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: RG frente e verso"
+              />
+            </div>
+          </FormSection>
+          <FormSection
+            icon={<Tags className="h-4 w-4" />}
+            title="Tags"
+            description="Obrigatório. Marque o tipo do documento."
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <TagChip
+                  key={tag.id}
+                  active={tagIds.includes(tag.id)}
+                  onClick={() => toggleTag(tag.id)}
+                >
+                  {tag.nome}
+                </TagChip>
+              ))}
+            </div>
+            {gestor ? (
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+                <Input
+                  placeholder="Criar nova tag"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void criarTag();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOFT_BTN}
+                  onClick={() => void criarTag()}
+                  disabled={busy}
+                >
+                  <Pencil className="mr-1 h-4 w-4" />
+                  Criar
+                </Button>
+              </div>
+            ) : null}
+          </FormSection>
+        </FormDialogBody>
+      </FormDialogShell>
 
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Compartilhar por e-mail</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Destinatário</Label>
+      <FormDialogShell
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        icon={<Mail className="h-5 w-5" />}
+        title="Compartilhar por e-mail"
+        description="O destinatário recebe os PDFs ou um link temporário."
+        footer={
+          <FormDialogActions>
+            <Button
+              type="button"
+              variant="outline"
+              className={SOFT_BTN}
+              onClick={() => setShareOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void enviarEmail()}
+              disabled={busy}
+            >
+              {busy ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="mr-1 h-4 w-4" />
+              )}
+              Enviar
+            </Button>
+          </FormDialogActions>
+        }
+      >
+        <FormDialogBody>
+          <FormSection
+            icon={<Mail className="h-4 w-4" />}
+            title="Destinatário"
+            description={
+              selected.size
+                ? `${selected.size} documento(s) selecionado(s).`
+                : "Todos os documentos autorizados deste registro."
+            }
+          >
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@exemplo.com"
             />
-            <p className="text-xs text-muted-foreground">
-              {selected.size
-                ? `${selected.size} documento(s) selecionado(s).`
-                : "Todos os documentos autorizados deste registro."}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShareOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="button" onClick={() => void enviarEmail()} disabled={busy}>
-              Enviar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormSection>
+        </FormDialogBody>
+      </FormDialogShell>
     </div>
   );
 }
