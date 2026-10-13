@@ -54,9 +54,11 @@ function bubbleMeta(msg: LeadWhatsappMessage) {
 export function LeadWhatsappChat({
   leadId,
   active,
+  className,
 }: {
   leadId: string;
   active: boolean;
+  className?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -147,7 +149,12 @@ export function LeadWhatsappChat({
 
   if (!available) {
     return (
-      <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <div
+        className={cn(
+          "flex min-h-[22rem] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground",
+          className,
+        )}
+      >
         {reason === "not_configured"
           ? "A integração com o OZap ainda não está configurada no servidor."
           : reason === "ozap_error"
@@ -159,7 +166,12 @@ export function LeadWhatsappChat({
   }
 
   return (
-    <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-xl border bg-primary/[0.04]">
+    <div
+      className={cn(
+        "flex min-h-[22rem] flex-1 flex-col overflow-hidden rounded-xl border bg-primary/[0.04]",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between border-b bg-primary/[0.04] px-3 py-2">
         <p className="text-xs font-medium text-muted-foreground">
           Conversa no WhatsApp

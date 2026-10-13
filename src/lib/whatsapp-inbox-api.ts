@@ -167,6 +167,16 @@ export async function createWhatsappTag(name: string, color?: string) {
   });
 }
 
+export async function updateWhatsappTag(
+  tagId: string,
+  input: { name?: string; color?: string },
+) {
+  return apiFetch<WhatsappUserTag>(`/whatsapp/tags/${tagId}`, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
 export async function importWhatsappTagsFromFunil() {
   return apiFetch<WhatsappUserTag[]>("/whatsapp/tags/from-funil", {
     method: "POST",

@@ -1141,9 +1141,20 @@ export function LeadDetalheDialog({
                 </div>
               </aside>
 
-              <div className="order-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:thin] lg:order-2">
-                <Tabs value={tab} onValueChange={setTab}>
-                  <div className="sticky top-0 z-10 border-b bg-card">
+              <div
+                className={cn(
+                  "order-1 min-h-0 lg:order-2",
+                  tab === "whatsapp"
+                    ? "flex flex-col overflow-hidden"
+                    : "overflow-y-auto overscroll-contain [scrollbar-width:thin]",
+                )}
+              >
+                <Tabs
+                  value={tab}
+                  onValueChange={setTab}
+                  className={cn(tab === "whatsapp" && "flex min-h-0 flex-1 flex-col")}
+                >
+                  <div className="sticky top-0 z-10 shrink-0 border-b bg-card">
                     <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 !rounded-none !border-0 !bg-transparent px-4 pt-2 !shadow-none">
                       <TabsTrigger value="atividade" className={FICHA_TAB}>
                         <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
@@ -1240,10 +1251,14 @@ export function LeadDetalheDialog({
                   </TabsContent>
 
                   {hasOzapChat ? (
-                    <TabsContent value="whatsapp" className="mt-0 px-4 py-4">
+                    <TabsContent
+                      value="whatsapp"
+                      className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-4 data-[state=inactive]:hidden"
+                    >
                       <LeadWhatsappChat
                         leadId={lead.id}
                         active={tab === "whatsapp"}
+                        className="h-full min-h-0"
                       />
                     </TabsContent>
                   ) : null}

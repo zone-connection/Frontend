@@ -7,7 +7,9 @@ import {
   Loader2,
   Pause,
   Play,
+  Pencil,
   RefreshCw,
+  Trash2,
   Search,
   Send,
   Tag,
@@ -24,7 +26,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { catalogColorBadgeClass } from "@/lib/catalog-colors";
+import {
+  CATALOG_COLORS,
+  DEFAULT_CATALOG_COLOR,
+  catalogColorBadgeClass,
+  catalogColorSwatchStyle,
+  sameCatalogColor,
+} from "@/lib/catalog-colors";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -48,6 +56,7 @@ import {
   fetchWhatsappTags,
   importWhatsappTagsFromFunil,
   readWhatsappMessagesCache,
+  updateWhatsappTag,
   resumeWhatsappInboxChat,
   sendWhatsappInboxMessage,
   writeWhatsappMessagesCache,
@@ -99,6 +108,37 @@ function formatWhen(at: string | null) {
   });
 }
 
+function TagColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {CATALOG_COLORS.map((color) => {
+        const selected = sameCatalogColor(value, color);
+        return (
+          <button
+            key={color}
+            type="button"
+            title={color}
+            aria-label="Escolher cor"
+            aria-pressed={selected}
+            onClick={() => onChange(color)}
+            className={cn(
+              "h-6 w-6 rounded-md border-2 transition",
+              selected ? "scale-110 border-foreground" : "border-transparent",
+            )}
+            style={catalogColorSwatchStyle(color)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function bubbleMeta(kind: WhatsappBubbleKind) {
   if (kind === "client") return { label: "Cliente", outgoing: false };
   if (kind === "ai") return { label: "IA", outgoing: true };
@@ -117,6 +157,10 @@ function WhatsappInboxPage() {
   const [tags, setTags] = useState<WhatsappUserTag[]>([]);
   const [tagDialog, setTagDialog] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState<string>(DEFAULT_CATALOG_COLOR);
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editTagName, setEditTagName] = useState("");
+  const [editTagColor, setEditTagColor] = useState<string>(DEFAULT_CATALOG_COLOR);
   const [savingTag, setSavingTag] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [draft, setDraft] = useState("");
@@ -372,8 +416,9 @@ function WhatsappInboxPage() {
     if (!name || savingTag) return;
     setSavingTag(true);
     try {
-      await createWhatsappTag(name);
+      await createWhatsappTag(name, newTagColor);
       setNewTagName("");
+      setNewTagColor(DEFAULT_CATALOG_COLOR);
       await reloadTags();
       toast.success("Tag criada. Só você vê.");
     } catch (err) {
@@ -396,19 +441,63 @@ function WhatsappInboxPage() {
     }
   }
 
+  function applyTagUpdate(updated: WhatsappUserTag) {
+    setTags((prev) =>
+      prev.map((tag) => (tag.id === updated.id ? { ...tag, ...updated } : tag)),
+    );
+    setChats((prev) =>
+      prev.map((chat) => ({
+        ...chat,
+        tags: (chat.tags ?? []).map((tag) =>
+          tag.id === updated.id ? { ...tag, name: updated.name, color: updated.color } : tag,
+        ),
+      })),
+    );
+  }
+
+  async function handleSaveEditTag() {
+    if (!editingTagId || savingTag) return;
+    const name = editTagName.trim();
+    if (!name) return;
+    setSavingTag(true);
+    try {
+      const updated = await updateWhatsappTag(editingTagId, {
+        name,
+        color: editTagColor,
+      });
+      applyTagUpdate(updated);
+      setEditingTagId(null);
+      toast.success("Tag atualizada.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível editar a tag."));
+    } finally {
+      setSavingTag(false);
+    }
+  }
+
   async function handleDeleteTag(id: string) {
+    const tag = tags.find((item) => item.id === id);
+    if (
+      !window.confirm(
+        `Excluir a tag "${tag?.name ?? ""}"? Ela sai de todas as conversas.`,
+      )
+    ) {
+      return;
+    }
     try {
       await deleteWhatsappTag(id);
       if (tagId === id) setTagId(null);
-      setTags((prev) => prev.filter((tag) => tag.id !== id));
+      if (editingTagId === id) setEditingTagId(null);
+      setTags((prev) => prev.filter((item) => item.id !== id));
       setChats((prev) =>
         prev.map((chat) => ({
           ...chat,
-          tags: (chat.tags ?? []).filter((tag) => tag.id !== id),
+          tags: (chat.tags ?? []).filter((item) => item.id !== id),
         })),
       );
+      toast.success("Tag excluída.");
     } catch (err) {
-      toast.error(errorMessage(err, "Não foi possível apagar a tag."));
+      toast.error(errorMessage(err, "Não foi possível excluir a tag."));
     }
   }
 
@@ -833,13 +922,18 @@ function WhatsappInboxPage() {
           )}
         </section>
       </div>
-      <Dialog open={tagDialog} onOpenChange={setTagDialog}>
+      <Dialog
+        open={tagDialog}
+        onOpenChange={(open) => {
+          setTagDialog(open);
+          if (!open) setEditingTagId(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Suas tags do WhatsApp</DialogTitle>
             <DialogDescription>
-              Só você vê. Crie as suas ou copie as etapas do funil da
-              imobiliária.
+              Só você vê. Crie, edite, escolha a cor ou exclua.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -858,6 +952,7 @@ function WhatsappInboxPage() {
                 Criar
               </Button>
             </div>
+            <TagColorPicker value={newTagColor} onChange={setNewTagColor} />
             <Button
               type="button"
               variant="outline"
@@ -872,29 +967,90 @@ function WhatsappInboxPage() {
                 Nenhuma tag ainda.
               </p>
             ) : (
-              <ul className="max-h-56 space-y-1 overflow-y-auto">
+              <ul className="max-h-72 space-y-2 overflow-y-auto">
                 {tags.map((tag) => (
                   <li
                     key={tag.id}
-                    className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
+                    className="space-y-2 rounded-md border px-2 py-1.5"
                   >
-                    <span
-                      className={catalogColorBadgeClass(
-                        tag.color,
-                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                      )}
-                    >
-                      {tag.name}
-                      {tag.source === "funil" ? " · funil" : ""}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDeleteTag(tag.id)}
-                      aria-label={`Apagar ${tag.name}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    {editingTagId === tag.id ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editTagName}
+                            onChange={(event) => setEditTagName(event.target.value)}
+                            maxLength={40}
+                            className="h-8"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8"
+                            disabled={savingTag || !editTagName.trim()}
+                            onClick={() => void handleSaveEditTag()}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="h-8"
+                            disabled={savingTag}
+                            onClick={() => void handleDeleteTag(tag.id)}
+                          >
+                            <Trash2 className="mr-1 h-3.5 w-3.5" />
+                            Excluir
+                          </Button>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditingTagId(null)}
+                            aria-label="Cancelar edição"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <TagColorPicker
+                          value={editTagColor}
+                          onChange={setEditTagColor}
+                        />
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={catalogColorBadgeClass(
+                            tag.color,
+                            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                          )}
+                        >
+                          {tag.name}
+                          {tag.source === "funil" ? " · funil" : ""}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            onClick={() => {
+                              setEditingTagId(tag.id);
+                              setEditTagName(tag.name);
+                              setEditTagColor(tag.color || DEFAULT_CATALOG_COLOR);
+                            }}
+                            aria-label={`Editar ${tag.name}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
+                            onClick={() => void handleDeleteTag(tag.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Excluir
+                          </button>
+                        </span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
