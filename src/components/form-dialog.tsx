@@ -140,12 +140,14 @@ export function FormSection({
   description,
   children,
   className,
+  iconClassName,
 }: {
   icon?: ReactNode;
   title: string;
   description?: ReactNode;
   children: ReactNode;
   className?: string;
+  iconClassName?: string;
 }) {
   return (
     <section
@@ -156,7 +158,12 @@ export function FormSection({
     >
       <div className="flex items-start gap-2.5">
         {icon ? (
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]">
+          <span
+            className={cn(
+              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]",
+              iconClassName,
+            )}
+          >
             {icon}
           </span>
         ) : null}

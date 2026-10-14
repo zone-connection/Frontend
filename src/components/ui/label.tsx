@@ -17,7 +17,13 @@ const Label = React.forwardRef<
     VariantProps<typeof labelVariants>
 >(({ className, children, ...props }, ref) => {
   const inForm = React.useContext(FormFieldIconContext);
-  const Icon = inForm ? iconForLabel(children) : null;
+  const alreadyHasIcon = React.Children.toArray(children).some((child) =>
+    React.isValidElement(child),
+  );
+  const Icon =
+    inForm && !alreadyHasIcon && props["data-no-icon"] == null
+      ? iconForLabel(children)
+      : null;
   return (
     <LabelPrimitive.Root
       ref={ref}

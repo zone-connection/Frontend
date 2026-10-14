@@ -145,6 +145,65 @@ function StatusPill({ status }: { status: ProcessoStatus }) {
   );
 }
 
+const SECTION_WASH =
+  "border-[#D3EBF5] bg-gradient-to-br from-white via-[#F3FAFD] to-[#E7F4FA] shadow-[0_12px_32px_-20px_rgba(7,158,212,0.65)] dark:border-[#079ED4]/25 dark:from-[#141a22] dark:via-[#102838] dark:to-[#0f1c24] dark:shadow-none";
+
+const ICON_CYAN =
+  "border-transparent bg-[#079ED4] text-white shadow-sm dark:border-transparent dark:bg-[#079ED4] dark:text-white";
+const ICON_DEEP =
+  "border-transparent bg-[#05749E] text-white shadow-sm dark:border-transparent dark:bg-[#0689b8] dark:text-white";
+const ICON_INK =
+  "border-transparent bg-[#0B3148] text-white shadow-sm dark:border-white/10 dark:bg-[#1c2430] dark:text-[#7DD3FC]";
+
+const STATUS_BAND: Record<ProcessoStatus, string> = {
+  rascunho:
+    "border-[#D3EBF5] bg-gradient-to-r from-[#E7F4FA] to-white dark:border-[#079ED4]/30 dark:from-[#102838] dark:to-[#141a22]",
+  enviado:
+    "border-[#B7D7E6] bg-gradient-to-r from-[#079ED4]/15 to-white dark:border-[#079ED4]/40 dark:from-[#079ED4]/20 dark:to-[#141a22]",
+  aprovado:
+    "border-emerald-200 bg-gradient-to-r from-emerald-50 to-white dark:border-emerald-500/30 dark:from-emerald-950/50 dark:to-[#141a22]",
+  reprovado:
+    "border-rose-200 bg-gradient-to-r from-rose-50 to-white dark:border-rose-500/30 dark:from-rose-950/40 dark:to-[#141a22]",
+};
+
+const STATUS_HINT: Record<ProcessoStatus, string> = {
+  rascunho: "Ficha em preparação, ainda não enviada.",
+  enviado: "Aguardando a análise do gerente.",
+  aprovado: "O gerente aprovou este processo.",
+  reprovado: "O gerente devolveu este processo.",
+};
+
+function ReadValue({ value }: { value: string }) {
+  const text = value.trim();
+  return (
+    <div
+      className={cn(
+        "flex min-h-9 items-center rounded-xl border px-3 py-2 text-sm",
+        text
+          ? "border-[#D3EBF5] bg-white font-medium text-[#0B3148] shadow-[inset_3px_0_0_#079ED4] dark:border-[#079ED4]/25 dark:bg-[#141a22] dark:text-[#f8fafc] dark:shadow-[inset_3px_0_0_#079ED4]"
+          : "border-dashed border-[#D3EBF5] bg-white/40 text-[#8B98A3] dark:border-white/10 dark:bg-transparent dark:text-[#94a3b8]",
+      )}
+    >
+      {text || "Não informado"}
+    </div>
+  );
+}
+
+function ChoiceValue({ yes }: { yes: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold",
+        yes
+          ? "bg-[#079ED4] text-white"
+          : "bg-white text-[#5C6B76] ring-1 ring-[#D3EBF5] dark:bg-[#1c2430] dark:text-[#94a3b8] dark:ring-white/10",
+      )}
+    >
+      {yes ? "Sim" : "Não"}
+    </span>
+  );
+}
+
 function ProcessosPage() {
   const gestor = isGestor();
   const [rows, setRows] = useState<Processo[]>([]);
@@ -656,13 +715,14 @@ function ProcessosPage() {
           icon={<ClipboardList className="h-5 w-5" />}
           title={selected.nome}
           description={
-            <>
-              {selected.lead?.tipo === "cliente" ? "Cliente" : "Lead"}
-              {selected.fonte ? ` · Fonte ${selected.fonte}` : ""}
-              {selected.corretor?.name ? ` · ${selected.corretor.name}` : ""}
-              {" · "}
-              {STATUS_LABEL[selected.status]}
-            </>
+            <span className="flex flex-wrap items-center gap-2">
+              <span>
+                {selected.lead?.tipo === "cliente" ? "Cliente" : "Lead"}
+                {selected.fonte ? ` · Fonte ${selected.fonte}` : ""}
+                {selected.corretor?.name ? ` · ${selected.corretor.name}` : ""}
+              </span>
+              <StatusPill status={selected.status} />
+            </span>
           }
           footer={
             <FormDialogActions
@@ -719,181 +779,257 @@ function ProcessosPage() {
           }
         >
           <FormDialogBody>
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3",
+                STATUS_BAND[selected.status],
+              )}
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#05749E] dark:text-[#7DD3FC]">
+                  Situação da ficha
+                </p>
+                <p className="mt-0.5 text-sm font-medium text-[#0B3148] dark:text-[#f8fafc]">
+                  {STATUS_HINT[selected.status]}
+                </p>
+              </div>
+              <StatusPill status={selected.status} />
+            </div>
             <FormSection
+              className={SECTION_WASH}
+              iconClassName={ICON_CYAN}
               icon={<UserRound className="h-4 w-4" />}
               title="Dados do contato"
               description="Informações preenchidas a partir do lead ou cliente."
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Nome">
-                  <Input
-                    value={form.nome}
-                    disabled={!canEdit}
-                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  />
+                <Field label="Nome" icon={false}>
+                  {canEdit ? (
+                    <Input
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                    />
+                  ) : (
+                    <ReadValue value={form.nome} />
+                  )}
                 </Field>
                 <Field label="Fonte">
-                  <Input
-                    value={form.fonte}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      setForm({ ...form, fonte: e.target.value })
-                    }
-                  />
+                  {canEdit ? (
+                    <Input
+                      value={form.fonte}
+                      onChange={(e) =>
+                        setForm({ ...form, fonte: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <ReadValue value={form.fonte} />
+                  )}
                 </Field>
                 <Field
                   label="Contato"
                   icon={<Phone className="h-3.5 w-3.5 text-primary" />}
                 >
-                  <Input
-                    value={form.telefone}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      setForm({ ...form, telefone: e.target.value })
-                    }
-                  />
+                  {canEdit ? (
+                    <Input
+                      value={form.telefone}
+                      onChange={(e) =>
+                        setForm({ ...form, telefone: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <ReadValue
+                      value={formatPhone(form.telefone) || form.telefone}
+                    />
+                  )}
                 </Field>
                 <Field
                   label="E-mail"
                   icon={<Mail className="h-3.5 w-3.5 text-primary" />}
                 >
-                  <Input
-                    value={form.email}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
-                  />
+                  {canEdit ? (
+                    <Input
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm({ ...form, email: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <ReadValue value={form.email} />
+                  )}
                 </Field>
                 <Field label="Estado civil">
-                  <Input
-                    value={form.estadoCivil}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      setForm({ ...form, estadoCivil: e.target.value })
-                    }
-                  />
+                  {canEdit ? (
+                    <Input
+                      value={form.estadoCivil}
+                      onChange={(e) =>
+                        setForm({ ...form, estadoCivil: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <ReadValue value={form.estadoCivil} />
+                  )}
                 </Field>
                 <Field label="Carteira assinada / tipo de renda">
-                  <Input
-                    value={form.tipoRenda}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      setForm({ ...form, tipoRenda: e.target.value })
-                    }
-                  />
+                  {canEdit ? (
+                    <Input
+                      value={form.tipoRenda}
+                      onChange={(e) =>
+                        setForm({ ...form, tipoRenda: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <ReadValue value={form.tipoRenda} />
+                  )}
                 </Field>
                 <Field label="Cotista">
-                  <Select
-                    value={form.cotista ? "sim" : "nao"}
-                    disabled={!canEdit}
-                    onValueChange={(v) =>
-                      setForm({ ...form, cotista: v === "sim" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sim">Sim</SelectItem>
-                      <SelectItem value="nao">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {canEdit ? (
+                    <Select
+                      value={form.cotista ? "sim" : "nao"}
+                      onValueChange={(v) =>
+                        setForm({ ...form, cotista: v === "sim" })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <ChoiceValue yes={form.cotista} />
+                  )}
                 </Field>
                 <Field label="Dependente">
-                  <Select
-                    value={form.dependente ? "sim" : "nao"}
-                    disabled={!canEdit}
-                    onValueChange={(v) =>
-                      setForm({ ...form, dependente: v === "sim" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sim">Sim</SelectItem>
-                      <SelectItem value="nao">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {canEdit ? (
+                    <Select
+                      value={form.dependente ? "sim" : "nao"}
+                      onValueChange={(v) =>
+                        setForm({ ...form, dependente: v === "sim" })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <ChoiceValue yes={form.dependente} />
+                  )}
                 </Field>
               </div>
             </FormSection>
 
             <FormSection
+              className={SECTION_WASH}
+              iconClassName={ICON_DEEP}
               icon={<Building2 className="h-4 w-4" />}
               title="Comercial"
               description="Empreendimento, corretor responsável e gerente que recebe o envio."
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Empreendimento">
-                  <Select
-                    value={form.empreendimentoId || undefined}
-                    disabled={!canEdit}
-                    onValueChange={(v) =>
-                      setForm({ ...form, empreendimentoId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {empreendimentos.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>
-                          {e.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Field label="Empreendimento" icon={false}>
+                  {canEdit ? (
+                    <Select
+                      value={form.empreendimentoId || undefined}
+                      onValueChange={(v) =>
+                        setForm({ ...form, empreendimentoId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {empreendimentos.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <ReadValue
+                      value={
+                        empreendimentos.find((e) => e.id === form.empreendimentoId)
+                          ?.nome ??
+                        selected.empreendimento?.nome ??
+                        ""
+                      }
+                    />
+                  )}
                 </Field>
                 <Field
                   label="Corretor"
                   icon={<Briefcase className="h-3.5 w-3.5 text-primary" />}
                 >
-                  <Select
-                    value={form.corretorId || undefined}
-                    disabled={!canEdit}
-                    onValueChange={(v) =>
-                      setForm({ ...form, corretorId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {assignees.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {canEdit ? (
+                    <Select
+                      value={form.corretorId || undefined}
+                      onValueChange={(v) =>
+                        setForm({ ...form, corretorId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignees.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <ReadValue
+                      value={
+                        assignees.find((u) => u.id === form.corretorId)?.name ??
+                        selected.corretor?.name ??
+                        ""
+                      }
+                    />
+                  )}
                 </Field>
                 <Field
                   label="Gerente"
                   icon={<Users className="h-3.5 w-3.5 text-primary" />}
                 >
-                  <Select
-                    value={form.gerenteId || undefined}
-                    disabled={!canEdit}
-                    onValueChange={(v) => setForm({ ...form, gerenteId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {gerentes.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {canEdit ? (
+                    <Select
+                      value={form.gerenteId || undefined}
+                      onValueChange={(v) => setForm({ ...form, gerenteId: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {gerentes.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <ReadValue
+                      value={
+                        gerentes.find((u) => u.id === form.gerenteId)?.name ??
+                        selected.gerente?.name ??
+                        ""
+                      }
+                    />
+                  )}
                 </Field>
               </div>
             </FormSection>
 
             <FormSection
+              className={SECTION_WASH}
+              iconClassName={ICON_INK}
               icon={<FileText className="h-4 w-4" />}
               title="Documentações"
               description="Os arquivos sobem aqui e aparecem na ficha do lead ou cliente."
@@ -914,6 +1050,8 @@ function ProcessosPage() {
 
             {(selected.retornos?.length ?? 0) > 0 ? (
               <FormSection
+                className={SECTION_WASH}
+                iconClassName={ICON_INK}
                 icon={<Inbox className="h-4 w-4" />}
                 title="Histórico de retornos"
                 description="Parecer do gerente ou administrador sobre esta ficha."
@@ -966,6 +1104,8 @@ function ProcessosPage() {
 
             {gestor && selected.status === "enviado" ? (
               <FormSection
+                className={SECTION_WASH}
+                iconClassName={ICON_CYAN}
                 icon={<Send className="h-4 w-4" />}
                 title="Retorno ao corretor"
                 description="Aprove ou reprove com um texto e, se quiser, um PDF de pendências."
@@ -1103,12 +1243,15 @@ function Field({
 }: {
   label: string;
   children: ReactNode;
-  icon?: ReactNode;
+  icon?: ReactNode | false;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="flex items-center gap-1.5 text-xs font-medium text-[#0B3148] dark:text-[#E7F4FA]">
-        {icon}
+      <Label
+        data-no-icon={icon === false ? "" : undefined}
+        className="flex items-center gap-1.5 text-xs font-medium text-[#0B3148] dark:text-[#E7F4FA]"
+      >
+        {icon || null}
         {label}
       </Label>
       {children}
