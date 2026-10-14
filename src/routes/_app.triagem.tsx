@@ -498,7 +498,7 @@ function CorretorTriagem() {
     loading: historyLoading,
   } = useTriagemHistory(selectedId);
 
-  const [createOpen, setCreateOpen] = useState(Boolean(search.leadId));
+  const [createOpen, setCreateOpen] = useState(false);
   const [createOrigem, setCreateOrigem] = useState<TriagemOrigem>(
     search.leadId ? "funil" : "manual",
   );
@@ -533,26 +533,16 @@ function CorretorTriagem() {
     [clientes, stageFilter],
   );
 
-  // Prefill vindo do funil (?leadId=&stage=).
+  // Abre o contato vindo de lead, cliente ou funil (?leadId=).
   useEffect(() => {
     if (!search.leadId) return;
     setSelectedId(search.leadId);
-    setCreateLeadId(search.leadId);
-    setCreateClienteId("");
-    setCreateStage(search.stage ?? "__none__");
-    setCreateOrigem("funil");
-    setCreateTexto("");
-    setCreateOpen(true);
-  }, [search.leadId, search.stage]);
-
-  useEffect(() => {
-    if (!search.leadId) return;
-    if (clientes.some((c) => c.id === search.leadId)) {
-      setTipoFilter("cliente");
-      setCreateLeadId("");
-      setCreateClienteId(search.leadId);
-    }
-  }, [search.leadId, clientes]);
+    setStageFilter("__all__");
+    setCreateOpen(false);
+    const contact = [...leads, ...clientes].find((item) => item.id === search.leadId);
+    if (contact?.tipo === "cliente") setTipoFilter("cliente");
+    else if (contact) setTipoFilter("lead");
+  }, [search.leadId, leads, clientes]);
 
   function selectContact(id: string) {
     setSelectedId(id);
@@ -1111,6 +1101,7 @@ function CorretorTriagem() {
 
 function ManagerTriagem() {
   const user = getSession();
+  const search = Route.useSearch();
   const isAdmin = user?.role === "admin";
   const isPlatformAdmin = user?.role === "super_admin";
   const canWrite = canWriteTriagem(user?.role);
@@ -1260,6 +1251,16 @@ function ManagerTriagem() {
     allCorretores.find((c) => c.id === selectedCorretorId) ??
     corretores.find((c) => c.id === selectedCorretorId);
   const detalheLead = useLeadDetalhe(detalheId);
+
+  useEffect(() => {
+    if (!search.leadId || allLeads.length === 0) return;
+    const contact = allLeads.find((item) => item.id === search.leadId);
+    if (!contact) return;
+    setTipoFilter(contact.tipo === "cliente" ? "cliente" : "lead");
+    setStageFilter("__all__");
+    setSelectedLeadId(contact.id);
+    if (contact.corretorId) setSelectedCorretorId(contact.corretorId);
+  }, [search.leadId, allLeads]);
 
   const leadStatsByCorretor = useMemo(() => {
     const map = new Map<string, { leads: number; analise: number }>();

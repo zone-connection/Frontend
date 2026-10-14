@@ -231,6 +231,7 @@ export function ComercialFunilBoard({
   openLeadId?: string;
 }) {
   const isClientesFunil = tipoFiltro === "cliente";
+  const navigate = useNavigate();
   const user = getSession();
   const isSolo = user?.tenant?.plano === "solo";
   const canSeeTeam = user ? canViewTeamData(user.role) : false;
@@ -1873,9 +1874,9 @@ export function ComercialFunilBoard({
             label: "Ver triagem",
             icon: ClipboardList,
             onClick: () => {
-              const lead = detailLead;
+              const id = lead.id;
               setDetailLead(null);
-              setTriagemLead(lead);
+              void navigate({ to: "/triagem", search: { leadId: id } });
             },
           },
           ...(canWriteTriagem
