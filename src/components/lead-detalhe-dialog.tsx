@@ -91,7 +91,6 @@ import { canWriteTriagem } from "@/lib/permissions";
 import { createTriagemEvent } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { cn } from "@/lib/utils";
-import { DocumentosPanel } from "@/components/documentos-panel";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import {
   fetchArquivoHistorico,
@@ -815,7 +814,7 @@ export function LeadDetalheDialog({
                   ) : null}
                 </div>
                 <SideSection title="Resumo">
-                  <dl className="space-y-2 text-sm">
+                  <dl className="space-y-3 text-sm">
                     <div className="flex items-start justify-between gap-3">
                       <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Wallet className="h-4 w-4" /> Renda
@@ -838,7 +837,7 @@ export function LeadDetalheDialog({
                       <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
                         <Mail className="h-4 w-4" /> E-mail
                       </dt>
-                      <dd className="min-w-0 text-right break-all">{email || "—"}</dd>
+                      <dd className="min-w-0 truncate text-right" title={email || undefined}>{email || "—"}</dd>
                     </div>
                     <div className="flex items-start justify-between gap-3">
                       <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
@@ -1189,13 +1188,6 @@ export function LeadDetalheDialog({
                     >
                       {monitoramentoSlot}
                     </MonitoramentoCard>
-                    <DocumentosPanel
-                      entityType="lead"
-                      entityId={lead.id}
-                      categoria="proposta"
-                      title="Propostas (PDF)"
-                      onActivity={refreshArquivos}
-                    />
                   </TabsContent>
 
                   <TabsContent value="triagem" className="mt-0 space-y-3 px-4 py-4">
