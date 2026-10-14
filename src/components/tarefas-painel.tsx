@@ -5,7 +5,9 @@ import {
   ChevronRight,
   Clock3,
   List,
+  Pencil,
   Plus,
+  Trash2,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,6 +106,8 @@ export function TarefasPainel({
   onVisao,
   onAnchor,
   onOpen,
+  onEdit,
+  onDelete,
   onComplete,
   onCreate,
   onCreateSlot,
@@ -123,6 +127,8 @@ export function TarefasPainel({
   onVisao: (visao: TarefaVisao) => void;
   onAnchor: (ymd: string) => void;
   onOpen: (tarefa: TarefaVisivel) => void;
+  onEdit: (tarefa: TarefaVisivel) => void;
+  onDelete: (tarefa: TarefaVisivel) => void;
   onComplete: (tarefa: TarefaVisivel) => void;
   onCreate: () => void;
   onCreateSlot?: (ymd: string, hour?: number) => void;
@@ -386,6 +392,22 @@ export function TarefasPainel({
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[11px] font-semibold text-white shadow-sm">
                           {iniciais(tarefa.responsavel.name)}
                         </span>
+                        <button
+                          type="button"
+                          aria-label="Editar tarefa"
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#079ED4]"
+                          onClick={() => onEdit(tarefa)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Excluir tarefa"
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#5C6B76] hover:bg-[#F8ECEC] hover:text-[#A33B3B]"
+                          onClick={() => onDelete(tarefa)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </article>
                     );
                   })}

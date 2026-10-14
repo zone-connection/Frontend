@@ -39,6 +39,7 @@ import { getSession, type Role } from "@/lib/auth";
 import {
   comentarTarefa,
   createTarefa,
+  deleteTarefa,
   fetchTarefas,
   fetchTarefasAcesso,
   PRIORIDADE_LABEL,
@@ -391,6 +392,25 @@ function TarefasPage() {
         onVisao={setVisao}
         onAnchor={setAnchor}
         onOpen={(tarefa) => setDetalhe(tarefa)}
+        onEdit={(tarefa) => {
+          if (tarefa.demonstracao) {
+            toast.error("Exemplos não podem ser editados.");
+            return;
+          }
+          abrirEdicao(tarefa);
+        }}
+        onDelete={(tarefa) => {
+          if (tarefa.demonstracao) {
+            setDemos((current) => current.filter((item) => item.id !== tarefa.id));
+            return;
+          }
+          void deleteTarefa(tarefa.id)
+            .then(() => {
+              toast.success("Tarefa excluída.");
+              void load();
+            })
+            .catch((err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível excluir."));
+        }}
         onComplete={(tarefa) => {
           if (tarefa.demonstracao) {
             setDemos((current) =>

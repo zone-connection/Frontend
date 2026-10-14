@@ -229,7 +229,7 @@ export function LeadFichaView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background [scrollbar-width:thin]">
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between py-3 pl-6 pr-14">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>

@@ -477,7 +477,6 @@ const NAV_SECTIONS: {
     icon: Handshake,
     items: [
       { to: "/documentacao", label: "Documentação", icon: FolderOpen },
-      { to: "/processos", label: "Processos", icon: FileText },
       { to: "/propostas", label: "Propostas", icon: ClipboardList },
       { to: "/contratos", label: "Contratos", icon: FileSignature },
       { to: "/vendas", label: "Vendas", icon: DollarSign },
@@ -868,7 +867,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
     if (n.tipo === "processo_pendencia" || n.tipo === "processo_reenvio") {
-      void navigate({ to: "/processos" });
+      void navigate({ to: "/documentacao" });
       return;
     }
     if (
