@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { FlowBar } from "@/components/flow-bar";
 import {
   Select,
   SelectContent,
@@ -29,7 +28,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { SemConexao } from "@/components/sem-conexao";
-import { ConversaoComparativa } from "@/components/conversao-comparativa";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canViewModule } from "@/lib/permissions";
@@ -166,14 +164,11 @@ function agoraBrasil() {
 }
 
 function descricaoPeriodo(
-  platform: boolean,
+  _platform: boolean,
   periodoLabel: string,
-  periodoNoun: string,
+  _periodoNoun: string,
 ) {
-  const comparacao = `comparação com o ${periodoNoun} anterior`;
-  return platform
-    ? `Vendas e conversão · ${periodoLabel} · ${comparacao}.`
-    : `Documentações, aprovações e vendas · ${periodoLabel} · ${comparacao}.`;
+  return periodoLabel;
 }
 
 function money(n: number) {
@@ -470,35 +465,6 @@ function Page() {
         actions={filtrosPeriodo}
       />
 
-      <div
-        className={
-          mostrarRecorte
-            ? "mb-4 grid gap-4 lg:grid-cols-2"
-            : "mb-4 grid gap-4"
-        }
-      >
-        <ConversaoComparativa
-          title="Consolidado geral"
-          subtitle={`Números reais do ${periodoNoun} selecionado.`}
-          documentacoes={conv.documentacoes.valor}
-          aprovacoes={conv.aprovacoes?.valor ?? 0}
-          vendas={conv.vendas.valor}
-        />
-        {mostrarRecorte ? (
-          <ConversaoComparativa
-            title={
-              equipe !== "__all__"
-                ? `Equipe ${equipe}`
-                : "Recorte filtrado"
-            }
-            subtitle="Mesma lógica aplicada só aos corretores visíveis."
-            documentacoes={recorte.documentacoes}
-            aprovacoes={recorte.aprovacoes}
-            vendas={recorte.vendas}
-          />
-        ) : null}
-      </div>
-
       <section
         className={
           isPlatformAdmin
@@ -587,93 +553,14 @@ function Page() {
         )}
       </section>
 
-      <Card className="mb-4 overflow-hidden rounded-2xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Funil do {periodoNoun}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {isPlatformAdmin ? (
-              <>
-                {conv.vendas.valor} venda
-                {conv.vendas.valor === 1 ? "" : "s"} no {periodoNoun} (
-                <span className="table-person-name tabular-nums">
-                  {conv.taxa.valor.toLocaleString("pt-BR", {
-                    maximumFractionDigits: 1,
-                  })}
-                  %
-                </span>{" "}
-                de conversão) · {admin.perdidos.mes.valor} perdido
-                {admin.perdidos.mes.valor === 1 ? "" : "s"}.
-              </>
-            ) : (
-              <>
-                Das {conv.documentacoes.valor.toLocaleString("pt-BR")}{" "}
-                documentações, {conv.aprovacoes?.valor ?? 0} foram aprovadas e{" "}
-                {conv.vendas.valor.toLocaleString("pt-BR")} viraram venda (
-                {conv.taxa.valor.toLocaleString("pt-BR", {
-                  maximumFractionDigits: 1,
-                })}
-                % sobre documentações e{" "}
-                {(conv.taxaAprovacao?.valor ?? 0).toLocaleString("pt-BR", {
-                  maximumFractionDigits: 1,
-                })}
-                % sobre aprovações).
-              </>
-            )}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {isPlatformAdmin ? null : (
-            <>
-            <FlowBar
-              label="Documentações"
-              value={conv.documentacoes.valor}
-              max={Math.max(
-                conv.documentacoes.valor,
-                conv.aprovacoes?.valor ?? 0,
-                conv.vendas.valor,
-                1,
-              )}
-              tone="sky"
-            />
-            <FlowBar
-              label="Aprovações"
-              value={conv.aprovacoes?.valor ?? 0}
-              max={Math.max(
-                conv.documentacoes.valor,
-                conv.aprovacoes?.valor ?? 0,
-                conv.vendas.valor,
-                1,
-              )}
-              tone="primary"
-            />
-            </>
-          )}
-          <FlowBar
-            label="Vendas"
-            value={conv.vendas.valor}
-            max={Math.max(
-              isPlatformAdmin
-                ? conv.vendas.valor
-                : conv.documentacoes.valor,
-              admin.perdidos.mes.valor,
-              1,
-            )}
-            tone="emerald"
-          />
-          <FlowBar
-            label={`Perdidos no ${periodoNoun}`}
-            value={admin.perdidos.mes.valor}
-            max={Math.max(
-              isPlatformAdmin
-                ? conv.vendas.valor
-                : conv.documentacoes.valor,
-              admin.perdidos.mes.valor,
-              1,
-            )}
-            tone="rose"
-          />
-        </CardContent>
-      </Card>
+      {mostrarRecorte ? (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {equipe !== "__all__" ? `Equipe ${equipe}` : "Recorte filtrado"}:{" "}
+          {recorte.documentacoes.toLocaleString("pt-BR")} documentações ·{" "}
+          {recorte.aprovacoes.toLocaleString("pt-BR")} aprovações ·{" "}
+          {recorte.vendas.toLocaleString("pt-BR")} vendas
+        </p>
+      ) : null}
 
       {isPlatformAdmin ? null : (
       <>
