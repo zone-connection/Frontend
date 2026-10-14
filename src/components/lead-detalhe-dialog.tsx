@@ -92,6 +92,7 @@ import { createTriagemEvent } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { cn } from "@/lib/utils";
 import { DocumentosPanel } from "@/components/documentos-panel";
+import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import {
   fetchArquivoHistorico,
   type ArquivoHistoricoItem,
@@ -1287,33 +1288,9 @@ export function LeadDetalheDialog({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="documentacoes" className="mt-0 space-y-4 px-4 py-4">
-                    <p className="text-sm text-muted-foreground">
-                      Ficha e propostas vêm do módulo de Processos. Em Arquivos
-                      você envia outros documentos deste cadastro.
-                    </p>
-                    <DocumentosPanel
-                      entityType="lead"
-                      entityId={lead.id}
-                      categoria="ficha"
-                      title="Ficha"
-                      allowUpload={false}
-                      onActivity={refreshArquivos}
-                    />
-                    <DocumentosPanel
-                      entityType="lead"
-                      entityId={lead.id}
-                      categoria="proposta"
-                      title="Propostas"
-                      allowUpload={false}
-                      onActivity={refreshArquivos}
-                    />
-                    <DocumentosPanel
-                      entityType="lead"
-                      entityId={lead.id}
-                      categoria="outro"
-                      title="Arquivos"
-                      allowUpload
+                  <TabsContent value="documentacoes" className="mt-0 px-4 py-4">
+                    <DocumentacoesLeadPanel
+                      leadId={lead.id}
                       onActivity={refreshArquivos}
                     />
                   </TabsContent>
