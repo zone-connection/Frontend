@@ -1,20 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Download,
   Eye,
   FileText,
+  LayoutGrid,
+  List,
   Loader2,
   Mail,
   MoreHorizontal,
-  Paperclip,
   Plus,
+  Search,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentosPanel } from "@/components/documentos-panel";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,35 +35,40 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
+  deleteArquivo,
   downloadArquivoFile,
   downloadArquivosZip,
   fetchArquivos,
   previewArquivo,
   saveBlob,
   shareArquivos,
-  deleteArquivo,
   type ArquivoCategoria,
   type ArquivoDocumento,
 } from "@/lib/arquivos-api";
 import { cn } from "@/lib/utils";
 
-type Filtro = "todos" | ArquivoCategoria;
+const PAGE_SIZE = 9;
 
-const GRUPOS: { id: ArquivoCategoria; label: string; badge: string }[] = [
-  { id: "ficha", label: "Ficha", badge: "Ficha" },
-  { id: "proposta", label: "Propostas", badge: "Proposta" },
-  { id: "outro", label: "Outros arquivos", badge: "Outros arquivos" },
-];
+const CATEGORIA_LABEL: Record<ArquivoCategoria, string> = {
+  ficha: "Ficha",
+  proposta: "Propostas",
+  outro: "Outros arquivos",
+};
+
+const CATEGORIA_PILL: Record<ArquivoCategoria, string> = {
+  ficha: "bg-[#E7F1FF] text-[#2563EB]",
+  proposta: "bg-[#F3E8FF] text-[#7C3AED]",
+  outro: "bg-[#E7F8EE] text-[#16A34A]",
+};
 
 function canGestor() {
   const role = getSession()?.role;
@@ -95,13 +111,11 @@ export function DocumentacoesLeadPanel({
   const gestor = canGestor();
   const [items, setItems] = useState<ArquivoDocumento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    ficha: true,
-    proposta: true,
-    outro: true,
-  });
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [busca, setBusca] = useState("");
+  const [categoria, setCategoria] = useState<"todas" | ArquivoCategoria>("todas");
+  const [vista, setVista] = useState<"lista" | "categorias">("lista");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -110,8 +124,7 @@ export function DocumentacoesLeadPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await fetchArquivos({ entityType: "lead", entityId: leadId });
-      setItems(list);
+      setItems(await fetchArquivos({ entityType: "lead", entityId: leadId }));
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível carregar os documentos.",
@@ -125,14 +138,40 @@ export function DocumentacoesLeadPanel({
     void load();
   }, [load]);
 
-  const counts = useMemo(() => {
-    const ficha = items.filter((item) => item.categoria === "ficha").length;
-    const proposta = items.filter((item) => item.categoria === "proposta").length;
-    const outro = items.filter((item) => item.categoria === "outro").length;
-    return { todos: items.length, ficha, proposta, outro };
-  }, [items]);
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return items.filter((item) => {
+      if (categoria !== "todas" && item.categoria !== categoria) return false;
+      if (!q) return true;
+      return item.nome.toLowerCase().includes(q) || item.nomeOriginal.toLowerCase().includes(q);
+    });
+  }, [items, busca, categoria]);
 
-  const grupos = GRUPOS.filter((grupo) => filtro === "todos" || filtro === grupo.id);
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const pagina = filtrados.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const todosMarcados = pagina.length > 0 && pagina.every((item) => selected.has(item.id));
+
+  useEffect(() => {
+    setPage(1);
+  }, [busca, categoria, vista]);
+
+  function toggle(id: string) {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePagina() {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (todosMarcados) pagina.forEach((item) => next.delete(item.id));
+      else pagina.forEach((item) => next.add(item.id));
+      return next;
+    });
+  }
 
   async function baixar(id: string) {
     try {
@@ -158,6 +197,11 @@ export function DocumentacoesLeadPanel({
     try {
       await deleteArquivo(id, "lead", leadId);
       toast.success("Arquivo removido.");
+      setSelected((cur) => {
+        const next = new Set(cur);
+        next.delete(id);
+        return next;
+      });
       onActivity?.();
       await load();
     } catch (err) {
@@ -165,12 +209,14 @@ export function DocumentacoesLeadPanel({
     }
   }
 
-  async function baixarTodos() {
+  async function baixarSelecionados() {
+    if (selected.size === 0) return;
     setBusy(true);
     try {
       const { blob, filename } = await downloadArquivosZip({
         entityType: "lead",
         entityId: leadId,
+        ids: [...selected],
       });
       saveBlob(blob, filename);
       onActivity?.();
@@ -192,7 +238,8 @@ export function DocumentacoesLeadPanel({
         entityType: "lead",
         entityId: leadId,
         email: email.trim(),
-        all: true,
+        ids: selected.size ? [...selected] : undefined,
+        all: selected.size === 0,
       });
       toast.success("Documentos enviados por e-mail.");
       setShareOpen(false);
@@ -205,257 +252,196 @@ export function DocumentacoesLeadPanel({
     }
   }
 
+  const grupos = (["ficha", "proposta", "outro"] as const)
+    .map((id) => ({
+      id,
+      label: CATEGORIA_LABEL[id],
+      items: filtrados.filter((item) => item.categoria === id),
+    }))
+    .filter((grupo) => grupo.items.length > 0);
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#E7F4FA]">
-          <FileText className="h-5 w-5 text-[#079ED4]" />
-          Documentações
-        </h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Centralize e gerencie os documentos deste cadastro.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#E7F4FA]">
+            <FileText className="h-5 w-5 text-[#2563EB]" />
+            Documentações
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Arquivos e documentos vinculados a este lead.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <ResumoCard
-          icon={FileText}
-          label="Documentos"
-          value={counts.todos}
-          active={filtro === "todos"}
-          onClick={() => setFiltro("todos")}
-        />
-        <ResumoCard
-          icon={FileText}
-          label="Ficha"
-          value={counts.ficha}
-          active={filtro === "ficha"}
-          onClick={() => setFiltro("ficha")}
-        />
-        <ResumoCard
-          icon={FileText}
-          label="Propostas"
-          value={counts.proposta}
-          active={filtro === "proposta"}
-          onClick={() => setFiltro("proposta")}
-        />
-        <ResumoCard
-          icon={Paperclip}
-          label="Arquivos"
-          value={counts.outro}
-          active={filtro === "outro"}
-          onClick={() => setFiltro("outro")}
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[14rem] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Buscar por nome do documento..."
+            className="h-10 pl-9"
+          />
+        </div>
+        <Select value={categoria} onValueChange={(value) => setCategoria(value as typeof categoria)}>
+          <SelectTrigger className="h-10 w-[190px]">
+            <SelectValue placeholder="Todas as categorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as categorias</SelectItem>
+            <SelectItem value="ficha">Ficha</SelectItem>
+            <SelectItem value="proposta">Propostas</SelectItem>
+            <SelectItem value="outro">Outros arquivos</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          className="h-10 bg-[#2563EB] px-3 text-white hover:bg-[#1D4ED8]"
+          onClick={() => setUploadNonce((n) => n + 1)}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          Enviar arquivo
+        </Button>
       </div>
 
-      <section className="rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold">Documentos do processo</h3>
-            <p className="text-xs text-muted-foreground">
-              Ficha e propostas vinculadas ao módulo de Processos.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {gestor ? (
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 bg-[#2563EB] px-3 text-white hover:bg-[#1D4ED8]"
-                disabled={busy || items.length === 0}
-                onClick={() => void baixarTodos()}
-              >
-                <Download className="mr-1.5 h-3.5 w-3.5" />
-                Baixar todos
-              </Button>
-            ) : null}
-            {gestor ? (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex rounded-lg border bg-card p-0.5">
+          <button
+            type="button"
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium",
+              vista === "lista" ? "bg-[#E7F1FF] text-[#2563EB]" : "text-muted-foreground",
+            )}
+            onClick={() => setVista("lista")}
+          >
+            <List className="h-3.5 w-3.5" /> Lista
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium",
+              vista === "categorias" ? "bg-[#E7F1FF] text-[#2563EB]" : "text-muted-foreground",
+            )}
+            onClick={() => setVista("categorias")}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" /> Categorias
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>{selected.size} selecionados</span>
+          {gestor ? (
+            <>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-9"
+                className="h-8"
+                disabled={busy || selected.size === 0}
+                onClick={() => void baixarSelecionados()}
+              >
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                Baixar selecionados
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8"
                 disabled={items.length === 0}
                 onClick={() => setShareOpen(true)}
               >
                 <Mail className="mr-1.5 h-3.5 w-3.5" />
                 Enviar por e-mail
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-9"
-              onClick={() => setUploadNonce((n) => n + 1)}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Enviar arquivo
-            </Button>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando documentos…
+        </p>
+      ) : vista === "categorias" ? (
+        <div className="space-y-4">
+          {grupos.length === 0 ? (
+            <p className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+              Nenhum documento encontrado.
+            </p>
+          ) : (
+            grupos.map((grupo) => (
+              <section key={grupo.id} className="overflow-hidden rounded-xl border bg-card">
+                <h3 className="border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
+                  {grupo.label} ({grupo.items.length})
+                </h3>
+                <Tabela
+                  rows={grupo.items}
+                  selected={selected}
+                  onToggle={toggle}
+                  onToggleAll={() => {
+                    setSelected((cur) => {
+                      const next = new Set(cur);
+                      const all = grupo.items.every((item) => next.has(item.id));
+                      grupo.items.forEach((item) => {
+                        if (all) next.delete(item.id);
+                        else next.add(item.id);
+                      });
+                      return next;
+                    });
+                  }}
+                  allChecked={grupo.items.every((item) => selected.has(item.id))}
+                  onDownload={(id) => void baixar(id)}
+                  onView={(id) => void ver(id)}
+                  onDelete={(id) => void excluir(id)}
+                />
+              </section>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border bg-card">
+          <Tabela
+            rows={pagina}
+            selected={selected}
+            onToggle={toggle}
+            onToggleAll={togglePagina}
+            allChecked={todosMarcados}
+            onDownload={(id) => void baixar(id)}
+            onView={(id) => void ver(id)}
+            onDelete={(id) => void excluir(id)}
+          />
+          <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
+            <span>
+              Mostrando {pagina.length} de {filtrados.length} documentos
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-6 text-center font-medium text-foreground">{page}</span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(
-            [
-              ["todos", "Todos"],
-              ["ficha", "Ficha"],
-              ["proposta", "Propostas"],
-              ["outro", "Outros arquivos"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFiltro(id)}
-              className={cn(
-                "h-8 rounded-full px-3 text-xs font-medium transition",
-                filtro === id
-                  ? "bg-[#2563EB] text-white"
-                  : "border bg-background text-foreground hover:bg-muted",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <p className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando documentos…
-          </p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {grupos.map((grupo) => {
-              const lista = items.filter((item) => item.categoria === grupo.id);
-              const aberto = openGroups[grupo.id] !== false;
-              const mostraTudo = expanded[grupo.id] === true;
-              const visiveis = mostraTudo ? lista : lista.slice(0, 4);
-              const resto = lista.length - visiveis.length;
-              return (
-                <div key={grupo.id} className="overflow-hidden rounded-xl border">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 bg-muted/30 px-3 py-2.5 text-left"
-                    onClick={() =>
-                      setOpenGroups((cur) => ({ ...cur, [grupo.id]: !aberto }))
-                    }
-                  >
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      {grupo.id === "outro" ? (
-                        <Paperclip className="h-4 w-4 text-[#079ED4]" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-[#079ED4]" />
-                      )}
-                      {grupo.label}
-                      <span className="font-normal text-muted-foreground">
-                        ({lista.length})
-                      </span>
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 text-muted-foreground transition",
-                        !aberto && "-rotate-90",
-                      )}
-                    />
-                  </button>
-                  {aberto ? (
-                    lista.length === 0 ? (
-                      <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        Nenhum arquivo nesta seção.
-                      </p>
-                    ) : (
-                      <ul>
-                        {visiveis.map((item) => {
-                          const kind = fileKind(item);
-                          return (
-                            <li
-                              key={item.id}
-                              className="flex items-center gap-3 border-t px-3 py-2.5"
-                            >
-                              <span
-                                className={cn(
-                                  "flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg text-[10px] font-bold",
-                                  kind.className,
-                                )}
-                              >
-                                {kind.label}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">{item.nome}</p>
-                              </div>
-                              <span className="hidden rounded-full bg-[#E7F1FF] px-2 py-0.5 text-[11px] text-[#2563EB] sm:inline">
-                                {grupo.badge}
-                              </span>
-                              <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground md:inline-flex">
-                                {formatWhen(item.createdAt)}
-                              </span>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-[#2563EB]"
-                                aria-label={`Baixar ${item.nome}`}
-                                onClick={() => void baixar(item.id)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    aria-label="Mais ações"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => void ver(item.id)}>
-                                    <Eye className="mr-2 h-4 w-4" /> Ver
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => void baixar(item.id)}>
-                                    <Download className="mr-2 h-4 w-4" /> Baixar
-                                  </DropdownMenuItem>
-                                  {grupo.id === "outro" ? (
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={() => void excluir(item.id)}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                    </DropdownMenuItem>
-                                  ) : null}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </li>
-                          );
-                        })}
-                        {resto > 0 ? (
-                          <li className="border-t">
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-center gap-1 py-2 text-xs font-medium text-[#2563EB]"
-                              onClick={() =>
-                                setExpanded((cur) => ({ ...cur, [grupo.id]: true }))
-                              }
-                            >
-                              Ver mais {resto} arquivo(s)
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            </button>
-                          </li>
-                        ) : null}
-                      </ul>
-                    )
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      )}
 
       <div className="hidden">
         <DocumentosPanel
@@ -477,7 +463,9 @@ export function DocumentacoesLeadPanel({
           <DialogHeader>
             <DialogTitle>Enviar por e-mail</DialogTitle>
             <DialogDescription>
-              Os documentos deste cadastro seguem para o endereço informado.
+              {selected.size
+                ? `${selected.size} arquivo(s) selecionado(s) seguem para o endereço informado.`
+                : "Os documentos deste cadastro seguem para o endereço informado."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
@@ -505,36 +493,124 @@ export function DocumentacoesLeadPanel({
   );
 }
 
-function ResumoCard({
-  icon: Icon,
-  label,
-  value,
-  active,
-  onClick,
+function Tabela({
+  rows,
+  selected,
+  allChecked,
+  onToggle,
+  onToggleAll,
+  onDownload,
+  onView,
+  onDelete,
 }: {
-  icon: typeof FileText;
-  label: string;
-  value: number;
-  active: boolean;
-  onClick: () => void;
+  rows: ArquivoDocumento[];
+  selected: Set<string>;
+  allChecked: boolean;
+  onToggle: (id: string) => void;
+  onToggleAll: () => void;
+  onDownload: (id: string) => void;
+  onView: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
+  if (rows.length === 0) {
+    return (
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        Nenhum documento encontrado.
+      </p>
+    );
+  }
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-2xl border bg-card px-3 py-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#93C5FD]",
-        active && "border-[#2563EB]",
-      )}
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E7F1FF] text-[#2563EB]">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs text-muted-foreground">{label}</span>
-        <span className="block text-xl font-semibold leading-tight">{value}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </button>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead className="bg-[#F8FAFC] text-left text-xs text-muted-foreground dark:bg-[#1c2430]">
+          <tr>
+            <th className="w-10 px-3 py-2.5 font-medium">
+              <Checkbox checked={allChecked} onCheckedChange={onToggleAll} aria-label="Selecionar página" />
+            </th>
+            <th className="px-2 py-2.5 font-medium">Nome do documento</th>
+            <th className="px-2 py-2.5 font-medium">Categoria</th>
+            <th className="px-2 py-2.5 font-medium">Data de envio</th>
+            <th className="px-3 py-2.5 text-right font-medium">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((item) => {
+            const kind = fileKind(item);
+            return (
+              <tr key={item.id} className="border-t">
+                <td className="px-3 py-2.5">
+                  <Checkbox
+                    checked={selected.has(item.id)}
+                    onCheckedChange={() => onToggle(item.id)}
+                    aria-label={`Selecionar ${item.nome}`}
+                  />
+                </td>
+                <td className="px-2 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[9px] font-bold",
+                        kind.className,
+                      )}
+                    >
+                      {kind.label}
+                    </span>
+                    <span className="truncate font-medium">{item.nome}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {kind.label}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-2 py-2.5">
+                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", CATEGORIA_PILL[item.categoria])}>
+                    {CATEGORIA_LABEL[item.categoria]}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-2 py-2.5 text-muted-foreground">
+                  {formatWhen(item.createdAt)}
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-[#2563EB]"
+                      aria-label={`Baixar ${item.nome}`}
+                      onClick={() => onDownload(item.id)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Mais ações">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onView(item.id)}>
+                          <Eye className="mr-2 h-4 w-4" /> Ver
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDownload(item.id)}>
+                          <Download className="mr-2 h-4 w-4" /> Baixar
+                        </DropdownMenuItem>
+                        {item.categoria === "outro" ? (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onDelete(item.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
