@@ -1008,11 +1008,12 @@ function ProcessosPage() {
             </span>
           }
           footer={
+            canEdit || canMutate(selected) ? (
             <FormDialogActions
               hint={
                 canEdit
-                  ? "Salve a ficha ou envie para o gerente analisar."
-                  : "Clique em Editar no menu da lista para alterar a ficha."
+                  ? "Salve a ficha ou envie para análise."
+                  : undefined
               }
             >
               {canEdit ? (
@@ -1051,48 +1052,22 @@ function ProcessosPage() {
                     </Button>
                   )}
                 </>
-              ) : canMutate(selected) ? (
+              ) : (
                 <Button
                   type="button"
                   onClick={() => setFichaMode("edit")}
                 >
                   <Pencil className="mr-1 h-4 w-4" />
-                  Editar
-                </Button>
-              ) : analista ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOFT_BTN}
-                  onClick={() => {
-                    setPendenciaProcesso(selected);
-                    setPendenciaForm({
-                      titulo: "",
-                      descricao: "",
-                      textoComplementar: "",
-                    });
-                    setPendenciaFiles([]);
-                    setPendenciaOpen(true);
-                  }}
-                >
-                  <Paperclip className="mr-1 h-4 w-4" />
-                  Solicitar pendência
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOFT_BTN}
-                  onClick={() => setDetailOpen(false)}
-                >
-                  Fechar
+                  Editar ficha
                 </Button>
               )}
             </FormDialogActions>
+            ) : undefined
           }
         >
           <FormDialogBody className="flex min-h-0 flex-1 flex-col space-y-0 overflow-hidden px-0 py-0 sm:px-0 sm:py-0">
-            <div className="flex gap-1 border-b border-primary/10 bg-white px-3 pt-2 dark:bg-[#141a22] sm:px-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/10 bg-card px-3 sm:px-4">
+              <div className="flex gap-1">
               {(
                 [
                   { id: "gestao" as const, label: "Gestão do processo" },
@@ -1113,52 +1088,28 @@ function ProcessosPage() {
                   {aba.label}
                 </button>
               ))}
-            </div>
-            <div className="flex items-center justify-between gap-3 bg-[#05749E] px-4 py-3 text-white">
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold">
-                  Processo · {selected.nome}
-                </p>
-                <p className="truncate text-xs text-white/80">
-                  {PROCESSO_ETAPA_LABEL[selected.etapa]} ·{" "}
-                  {STATUS_HINT[selected.status]}
-                </p>
               </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                {analista ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white/15 text-white hover:bg-white/25"
-                    onClick={() => {
-                      setPendenciaProcesso(selected);
-                      setPendenciaForm({
-                        titulo: "",
-                        descricao: "",
-                        textoComplementar: "",
-                      });
-                      setPendenciaFiles([]);
-                      setPendenciaOpen(true);
-                    }}
-                  >
-                    <Paperclip className="mr-1 h-3.5 w-3.5" />
-                    Solicitar pendência
-                  </Button>
-                ) : null}
-                {canMutate(selected) && fichaMode !== "edit" ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white text-[#05749E] hover:bg-white/90"
-                    onClick={() => setFichaMode("edit")}
-                  >
-                    <Pencil className="mr-1 h-3.5 w-3.5" />
-                    Editar ficha
-                  </Button>
-                ) : null}
-              </div>
+              {analista ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={cn("my-1.5", SOFT_BTN)}
+                  onClick={() => {
+                    setPendenciaProcesso(selected);
+                    setPendenciaForm({
+                      titulo: "",
+                      descricao: "",
+                      textoComplementar: "",
+                    });
+                    setPendenciaFiles([]);
+                    setPendenciaOpen(true);
+                  }}
+                >
+                  <Paperclip className="mr-1 h-3.5 w-3.5" />
+                  Solicitar pendência
+                </Button>
+              ) : null}
             </div>
             {detailAba === "andamento" ? (
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
@@ -1192,7 +1143,7 @@ function ProcessosPage() {
               </div>
             ) : (
             <div className="flex min-h-0 flex-1 overflow-hidden">
-              <nav className="hidden w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-primary/10 bg-[#05749E] p-2 sm:flex">
+              <nav className="hidden w-52 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-primary/10 bg-muted/40 p-2 sm:flex">
                 {(
                   [
                     { id: "informacoes" as const, label: "Informações", icon: UserRound },
@@ -1220,8 +1171,8 @@ function ProcessosPage() {
                       className={cn(
                         "flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition",
                         active
-                          ? "bg-white font-semibold text-[#05749E]"
-                          : "text-white/90 hover:bg-white/10",
+                          ? "bg-primary font-semibold text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-background hover:text-foreground",
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
