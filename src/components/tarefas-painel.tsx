@@ -261,23 +261,33 @@ export function TarefasPainel({
 
       <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
         <section className="min-w-0 rounded-2xl border bg-card">
-          <div className="flex gap-6 overflow-x-auto border-b px-5 pt-4 text-sm">
-            {FILTROS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={cn(
-                  "shrink-0 pb-3",
-                  filtro === item.id
-                    ? "border-b-2 border-primary font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-                onClick={() => onFiltro(item.id)}
-              >
-                {item.label}{" "}
-                <span className="text-muted-foreground">{counts[item.id]}</span>
-              </button>
-            ))}
+          <div className="flex gap-1 overflow-x-auto border-b px-3 py-3">
+            {FILTROS.map((item) => {
+              const ativo = filtro === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    ativo
+                      ? "bg-[#079ED4] text-white"
+                      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
+                  )}
+                  onClick={() => onFiltro(item.id)}
+                >
+                  {item.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-xs tabular-nums",
+                      ativo ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]",
+                    )}
+                  >
+                    {counts[item.id]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">

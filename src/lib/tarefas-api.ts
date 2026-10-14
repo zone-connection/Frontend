@@ -106,13 +106,13 @@ export async function fetchTarefas(params: {
 }
 
 export async function createTarefa(input: TarefaInput) {
-  return apiFetch<Tarefa>("/tarefas", { method: "POST", body: JSON.stringify(input) });
+  return apiFetch<Tarefa>("/tarefas", { method: "POST", body: input });
 }
 
 export async function updateTarefa(id: string, input: Partial<TarefaInput>) {
   return apiFetch<Tarefa>(`/tarefas/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -123,6 +123,6 @@ export async function deleteTarefa(id: string) {
 export async function comentarTarefa(id: string, texto: string) {
   return apiFetch(`/tarefas/${id}/comentarios`, {
     method: "POST",
-    body: JSON.stringify({ texto }),
+    body: { texto },
   });
 }

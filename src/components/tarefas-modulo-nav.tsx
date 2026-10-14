@@ -15,7 +15,7 @@ export type TarefaSecao =
   | "atendimentos";
 
 const WORKSPACE: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
-  { id: "tarefas", label: "Pendências", icon: ListTodo },
+  { id: "tarefas", label: "Tarefas", icon: ListTodo },
   { id: "calendario", label: "Agenda", icon: CalendarDays },
 ];
 
