@@ -64,6 +64,29 @@ export function updateDocumentoTag(
   });
 }
 
+export type ArquivoHistoricoItem = {
+  id: string;
+  tipo: string;
+  createdAt: string;
+  autor: { id: string; name: string } | null;
+  arquivo: string | null;
+  email: string | null;
+  count: number | null;
+  nomes: string[];
+  resultado: string | null;
+};
+
+export function fetchArquivoHistorico(params: {
+  entityType: ArquivoVinculoTipo;
+  entityId: string;
+}) {
+  const qs = new URLSearchParams({
+    entityType: params.entityType,
+    entityId: params.entityId,
+  });
+  return apiFetch<ArquivoHistoricoItem[]>(`/arquivos/historico?${qs}`);
+}
+
 export function fetchArquivos(params: {
   entityType: ArquivoVinculoTipo;
   entityId: string;

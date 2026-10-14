@@ -16,6 +16,7 @@ import { getSession } from "@/lib/auth";
 import { canWriteTriagem } from "@/lib/permissions";
 import { ApiError } from "@/lib/api";
 import { updateTriagemEvent, type TriagemEvent } from "@/lib/triagem-api";
+import type { ArquivoHistoricoItem } from "@/lib/arquivos-api";
 import {
   getTriagemHistoryCached,
   loadTriagemHistory,
@@ -50,8 +51,37 @@ export function personInitials(name: string) {
     .toUpperCase();
 }
 
+function arquivoHistoricoTexto(ev: ArquivoHistoricoItem) {
+  const quem = ev.autor?.name ?? "Alguém";
+  const nome = ev.arquivo || ev.nomes[0] || "um arquivo";
+  const lista = ev.nomes.length > 0 ? ev.nomes.join(", ") : nome;
+  const quantidade = ev.count ?? (ev.nomes.length || null);
+  switch (ev.tipo) {
+    case "upload":
+      return `${quem} enviou o arquivo ${nome}.`;
+    case "download":
+      return `${quem} baixou o arquivo ${nome}.`;
+    case "visualizar":
+      return `${quem} visualizou o arquivo ${nome}.`;
+    case "excluir":
+      return `${quem} excluiu o arquivo ${nome}.`;
+    case "download_zip":
+      return quantidade
+        ? `${quem} baixou ${quantidade} arquivo(s): ${lista}.`
+        : `${quem} baixou os arquivos.`;
+    case "compartilhar_email":
+      if (ev.resultado === "falha") {
+        return `${quem} tentou compartilhar arquivos por e-mail com ${ev.email ?? "um destinatário"}, sem sucesso.`;
+      }
+      return `${quem} compartilhou ${quantidade ?? "os"} arquivo(s) por e-mail com ${ev.email ?? "um destinatário"}${ev.nomes.length ? `: ${lista}` : ""}.`;
+    default:
+      return `${quem} atualizou um arquivo.`;
+  }
+}
+
 export function HistoryTimeline({
   events,
+  fileEvents = [],
   contactName,
   stageLabel,
   fallbackStage,
@@ -60,6 +90,7 @@ export function HistoryTimeline({
   onEventUpdated,
 }: {
   events: TriagemEvent[];
+  fileEvents?: ArquivoHistoricoItem[];
   contactName: string;
   stageLabel: (slug: string | null) => string;
   /** Etapa atual do lead — usada só em relatos antigos sem stage gravado. */
@@ -121,7 +152,20 @@ export function HistoryTimeline({
     }
   }
 
-  if (loading && events.length === 0) {
+  const rows = [
+    ...events.map((event) => ({
+      kind: "triagem" as const,
+      at: event.createdAt,
+      event,
+    })),
+    ...fileEvents.map((event) => ({
+      kind: "arquivo" as const,
+      at: event.createdAt,
+      event,
+    })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  if (loading && rows.length === 0) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -129,7 +173,7 @@ export function HistoryTimeline({
       </div>
     );
   }
-  if (events.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-10 border border-dashed rounded-xl">
         Nenhum relato registrado para este contato.
@@ -140,7 +184,49 @@ export function HistoryTimeline({
   return (
     <div className="space-y-1">
       <ol className="relative space-y-0">
-        {events.map((ev, index) => {
+        {rows.map((row, index) => {
+          if (row.kind === "arquivo") {
+            const ev = row.event;
+            const isLast = index === rows.length - 1;
+            return (
+              <li key={`arq-${ev.id}`} className="relative flex gap-3 pb-4 last:pb-0">
+                <div className="flex flex-col items-center w-5 shrink-0">
+                  <span className="relative z-10 mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <FileText className="h-2.5 w-2.5" />
+                  </span>
+                  {!isLast && (
+                    <span aria-hidden className="mt-1 w-px flex-1 min-h-6 bg-border" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="text-xs text-muted-foreground tabular-nums">
+                    {formatTriagemWhen(ev.createdAt)}
+                  </div>
+                  <div className="rounded-2xl border border-black/5 bg-card p-3.5 space-y-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+                    <div className="flex items-start gap-2.5">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback
+                          className={cn(
+                            "text-[10px] font-semibold text-white",
+                            lostLeadAvatarClass(ev.autor?.name ?? "Arquivo"),
+                          )}
+                        >
+                          {personInitials(ev.autor?.name ?? "AR")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 space-y-1.5">
+                        <p className="text-sm leading-snug">{arquivoHistoricoTexto(ev)}</p>
+                        <Badge variant="outline" className="rounded-full text-[10px]">
+                          Arquivo
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+          const ev = row.event;
           const stageSlug = ev.stageNovo || ev.stageAnterior || fallbackStage;
           const stageName = stageSlug ? stageLabel(stageSlug) : null;
           const fromStageName = ev.stageAnterior
@@ -155,7 +241,7 @@ export function HistoryTimeline({
             changedStage && fromStageName && stageName
               ? `${fromStageName} → ${stageName}`
               : null;
-          const isLast = index === events.length - 1;
+          const isLast = index === rows.length - 1;
           const isOwn =
             canEditOwn && session?.id != null && ev.autor.id === session.id;
           const showOriginal =

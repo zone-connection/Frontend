@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -24,7 +25,6 @@ import {
   StickyNote,
   Timer,
   TriangleAlert,
-  Upload,
   User,
   UserRound,
   Wallet,
@@ -92,6 +92,10 @@ import { createTriagemEvent } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
 import { cn } from "@/lib/utils";
 import { DocumentosPanel } from "@/components/documentos-panel";
+import {
+  fetchArquivoHistorico,
+  type ArquivoHistoricoItem,
+} from "@/lib/arquivos-api";
 
 const PRIORIDADE_AVATAR: Record<Lead["prioridade"], string> = {
   Alta: "from-rose-400 to-rose-600 text-white",
@@ -587,6 +591,23 @@ export function LeadDetalheDialog({
   const [triagemTexto, setTriagemTexto] = useState("");
   const [triagemSaving, setTriagemSaving] = useState(false);
   const hist = useTriagemHistory(open && lead ? lead.id : null);
+  const [arquivoHist, setArquivoHist] = useState<ArquivoHistoricoItem[]>([]);
+  const [arquivoTick, setArquivoTick] = useState(0);
+  const refreshArquivos = useCallback(() => setArquivoTick((n) => n + 1), []);
+  useEffect(() => {
+    if (!open || !lead) return;
+    let cancel = false;
+    void fetchArquivoHistorico({ entityType: "lead", entityId: lead.id })
+      .then((rows) => {
+        if (!cancel) setArquivoHist(rows);
+      })
+      .catch(() => {
+        if (!cancel) setArquivoHist([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [open, lead, arquivoTick]);
   const podeTriagem = canWriteTriagem(getSession()?.role);
 
   useEffect(() => {
@@ -740,7 +761,7 @@ export function LeadDetalheDialog({
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 pr-8">
                   {showMeuLeadBadge ? <MeuLeadBadge /> : null}
                   <LeadOrigemLiberacaoBadge lead={lead} />
                   {perdaAction ? (
@@ -1001,7 +1022,7 @@ export function LeadDetalheDialog({
                           />
                         </DataField>
                       </div>
-                      <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-3">
+                      <div className="mt-5 grid grid-cols-3 gap-x-4 gap-y-4 border-t pt-5">
                         <DataField icon={StickyNote} label="CPF">
                           <EditableValue
                             value={lead.cpf ?? ""}
@@ -1021,7 +1042,7 @@ export function LeadDetalheDialog({
                           />
                         </DataField>
                       </div>
-                      <div className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                      <div className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
                         <DataField icon={Globe} label="Cidade">
                           <EditableValue
                             value={lead.cidade}
@@ -1044,7 +1065,7 @@ export function LeadDetalheDialog({
                       {lead.documentacaoStatus1 ||
                       lead.documentacaoStatus2 ||
                       lead.tags.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-5">
                           <DocStatusFunilTags
                             status1={lead.documentacaoStatus1}
                             status2={lead.documentacaoStatus2}
@@ -1076,11 +1097,13 @@ export function LeadDetalheDialog({
                       ) : null}
                     </section>
                     {lead ? (
+                      <div className="mt-5">
                       <EmpreendimentosInteressePanel
                         leadId={lead.id}
                         interesses={lead.interesses}
                         onLeadChange={onUpdated}
                       />
+                      </div>
                     ) : null}
 
                     {isProspeccao ? (
@@ -1177,10 +1200,6 @@ export function LeadDetalheDialog({
                         <FileText className="mr-1.5 h-3.5 w-3.5" />
                         Documentações
                       </TabsTrigger>
-                      <TabsTrigger value="arquivos" className={FICHA_TAB}>
-                        <Upload className="mr-1.5 h-3.5 w-3.5" />
-                        Arquivos
-                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -1207,6 +1226,7 @@ export function LeadDetalheDialog({
                       entityId={lead.id}
                       categoria="proposta"
                       title="Propostas (PDF)"
+                      onActivity={refreshArquivos}
                     />
                   </TabsContent>
 
@@ -1269,8 +1289,8 @@ export function LeadDetalheDialog({
 
                   <TabsContent value="documentacoes" className="mt-0 space-y-4 px-4 py-4">
                     <p className="text-sm text-muted-foreground">
-                      Os documentos são cadastrados no módulo de Processos. Aqui
-                      aparece apenas o que já foi enviado.
+                      Ficha e propostas vêm do módulo de Processos. Em Arquivos
+                      você envia outros documentos deste cadastro.
                     </p>
                     <DocumentosPanel
                       entityType="lead"
@@ -1278,6 +1298,7 @@ export function LeadDetalheDialog({
                       categoria="ficha"
                       title="Ficha"
                       allowUpload={false}
+                      onActivity={refreshArquivos}
                     />
                     <DocumentosPanel
                       entityType="lead"
@@ -1285,16 +1306,15 @@ export function LeadDetalheDialog({
                       categoria="proposta"
                       title="Propostas"
                       allowUpload={false}
+                      onActivity={refreshArquivos}
                     />
-                  </TabsContent>
-
-                  <TabsContent value="arquivos" className="mt-0 space-y-4 px-4 py-4">
                     <DocumentosPanel
                       entityType="lead"
                       entityId={lead.id}
                       categoria="outro"
                       title="Arquivos"
                       allowUpload
+                      onActivity={refreshArquivos}
                     />
                   </TabsContent>
 
@@ -1320,6 +1340,7 @@ export function LeadDetalheDialog({
                   </h3>
                   <HistoryTimeline
                     events={hist.events}
+                    fileEvents={arquivoHist}
                     contactName={lead.nome}
                     stageLabel={(slug) =>
                       funnelStages.find((s) => s.id === slug)?.name ??

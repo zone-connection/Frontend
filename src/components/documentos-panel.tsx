@@ -97,6 +97,7 @@ export function DocumentosPanel({
   title = "Documentos",
   allowUpload = true,
   uploadNonce = 0,
+  onActivity,
 }: {
   entityType: ArquivoVinculoTipo;
   entityId: string;
@@ -107,6 +108,8 @@ export function DocumentosPanel({
   allowUpload?: boolean;
   /** Incrementar para abrir o diálogo de envio de PDF. */
   uploadNonce?: number;
+  /** Disparado depois de enviar, baixar, ver, excluir ou compartilhar. */
+  onActivity?: () => void;
 }) {
   const gestor = canGestor();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -202,6 +205,7 @@ export function DocumentosPanel({
         extraEntityId: extraVinculo?.entityId,
       });
       toast.success("Documento enviado.");
+      onActivity?.();
       setOpen(false);
       setFile(null);
       setNome("");
@@ -239,6 +243,7 @@ export function DocumentosPanel({
     try {
       const { blob, filename } = await downloadArquivoFile(id);
       saveBlob(blob, filename);
+      onActivity?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha no download.");
     }
@@ -248,6 +253,7 @@ export function DocumentosPanel({
     try {
       const { url } = await previewArquivo(id);
       window.open(url, "_blank", "noopener,noreferrer");
+      onActivity?.();
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível abrir o PDF.",
@@ -259,6 +265,7 @@ export function DocumentosPanel({
     try {
       await deleteArquivo(id, entityType, entityId);
       toast.success("Documento removido.");
+      onActivity?.();
       await load();
     } catch (err) {
       toast.error(
@@ -276,6 +283,7 @@ export function DocumentosPanel({
         ids: selected.size ? [...selected] : undefined,
       });
       saveBlob(blob, filename);
+      onActivity?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha ao gerar o ZIP.");
     } finally {
@@ -303,6 +311,7 @@ export function DocumentosPanel({
           : "Documentos enviados por e-mail.",
       );
       setShareOpen(false);
+      onActivity?.();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha no envio.");
     } finally {

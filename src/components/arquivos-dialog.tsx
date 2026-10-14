@@ -24,7 +24,10 @@ export function ArquivosDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        className="max-h-[min(80vh,40rem)] w-[min(40rem,calc(100%-2rem))] !max-w-none overflow-y-auto md:!left-[calc(50%+var(--app-sidebar,15rem)/2)]"
+        style={{ transform: "translate(-50%, -50%)" }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
