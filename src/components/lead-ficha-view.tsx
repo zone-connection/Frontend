@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
@@ -98,6 +99,28 @@ function initials(nome: string) {
     .join("");
 }
 
+function basicStages(
+  stages: { id: string; name: string; papel?: string | null }[],
+  currentIndex: number,
+) {
+  const tagged = stages.map((stage, index) => ({ ...stage, index }));
+  if (tagged.length <= 6) return tagged;
+  const wanted = new Set<number>([0, tagged.length - 1]);
+  if (currentIndex >= 0) wanted.add(currentIndex);
+  for (let i = 0; i < 6; i++) {
+    wanted.add(Math.round((i / 5) * (tagged.length - 1)));
+  }
+  let indexes = [...wanted].sort((a, b) => a - b);
+  while (indexes.length > 6) {
+    const drop = indexes
+      .filter((index) => index !== 0 && index !== tagged.length - 1 && index !== currentIndex)
+      .sort((a, b) => Math.abs(b - currentIndex) - Math.abs(a - currentIndex))[0];
+    if (drop == null) break;
+    indexes = indexes.filter((index) => index !== drop);
+  }
+  return indexes.map((index) => tagged[index]);
+}
+
 function daysSince(iso?: string | null) {
   if (!iso) return null;
   const time = new Date(iso).getTime();
@@ -166,6 +189,7 @@ export function LeadFichaView({
   const prazoProximo = mon?.visual === "laranja";
   const funnel = stages;
   const currentIndex = funnel.findIndex((s) => s.id === lead.stage);
+  const basic = basicStages(funnel, currentIndex);
   const days = daysSince(mon?.stageEnteredAt);
   const created = formatDateTimePt(lead.createdAt);
 
@@ -204,30 +228,30 @@ export function LeadFichaView({
   const local = [lead.bairro, lead.cidade].filter(Boolean).join(", ");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#F5F7FB] [scrollbar-width:thin]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background [scrollbar-width:thin]">
       <div className="flex items-center justify-between px-6 py-3">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
+        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
-        {created ? <span className="text-xs text-slate-400">Criado em: {created}</span> : null}
+        {created ? <span className="text-xs text-muted-foreground">Criado em: {created}</span> : null}
       </div>
 
-      <div className="mx-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <div className="mx-6 rounded-2xl border border-border bg-card px-5 py-4 text-card-foreground shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 gap-4">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-lg font-semibold text-white">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#079ED4] text-lg font-semibold text-white">
               {initials(lead.nome) || "?"}
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{lead.nome}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{lead.nome}</h1>
                 {showMeuLeadBadge ? <MeuLeadBadge /> : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {lead.tipo === "cliente" ? "Cliente" : "Lead"}
                 </span>
-                {lead.origem ? <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{lead.origem}</span> : null}
+                {lead.origem ? <span className="rounded-full bg-secondary px-2 py-1 text-secondary-foreground">{lead.origem}</span> : null}
                 <span className={cn(
                   "rounded-full px-2 py-1 font-medium",
                   lead.prioridade === "Alta" && "bg-rose-50 text-rose-700",
@@ -237,7 +261,7 @@ export function LeadFichaView({
                   Prioridade {lead.prioridade}
                 </span>
               </div>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {lead.origem ? <span>Origem: {lead.origem}</span> : null}
                 {lead.atrasoLiberadoAt ? <span>Liberado em: {formatDateTimePt(lead.atrasoLiberadoAt)}</span> : null}
                 {equipe || lead.equipe ? (
@@ -250,42 +274,42 @@ export function LeadFichaView({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" disabled={!temTelefone} onClick={onCall} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
-              <Phone className="h-4 w-4" /> Ligar
-            </button>
-            <button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
-              <FaWhatsapp className="h-4 w-4" /> WhatsApp
-            </button>
+            <Button type="button" disabled={!temTelefone} onClick={onCall}>
+              <Phone /> Ligar
+            </Button>
+            <Button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="bg-[#25D366] hover:bg-[#1ebe5d]">
+              <FaWhatsapp /> WhatsApp
+            </Button>
             {perdaAction ? (
-              <button type="button" disabled={perdaAction.disabled} onClick={perdaAction.onClick} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white disabled:opacity-40">
-                <Trash2 className="h-4 w-4" /> {perdaAction.label}
-              </button>
+              <Button type="button" variant="destructive" disabled={perdaAction.disabled} onClick={perdaAction.onClick}>
+                <Trash2 /> {perdaAction.label}
+              </Button>
             ) : null}
           </div>
         </div>
       </div>
 
       <div className="mx-6 mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800">{funnelName || "Funil de vendas"}</h2>
-          <div className="mt-4 flex items-center overflow-x-auto">
-            {funnel.map((stage, index) => {
-              const state = currentIndex < 0 ? "next" : index < currentIndex ? "done" : index === currentIndex ? "current" : "next";
+        <section className="rounded-2xl border border-border bg-card px-5 py-4 text-card-foreground shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground">{funnelName || "Funil de vendas"}</h2>
+          <div className="mt-4 flex items-center">
+            {basic.map((stage, index) => {
+              const state = currentIndex < 0 ? "next" : stage.index < currentIndex ? "done" : stage.index === currentIndex ? "current" : "next";
               return (
-                <div key={stage.id} className="flex min-w-[5.5rem] flex-1 items-center">
-                  <div className="flex flex-col items-center">
+                <div key={stage.id} className="flex min-w-0 flex-1 items-center">
+                  <div className="flex min-w-0 flex-col items-center">
                     <span className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs",
                       state === "done" && "border-emerald-500 bg-emerald-500 text-white",
-                      state === "current" && "border-blue-600 bg-white text-blue-600",
-                      state === "next" && "border-slate-200 bg-white text-slate-300",
+                      state === "current" && "border-[#079ED4] bg-card text-[#079ED4]",
+                      state === "next" && "border-border bg-card text-muted-foreground",
                     )}>
-                      {state === "done" ? <Check className="h-4 w-4" /> : state === "current" ? <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                      {state === "done" ? <Check className="h-4 w-4" /> : state === "current" ? <span className="h-2.5 w-2.5 rounded-full bg-[#079ED4]" /> : <ChevronRight className="h-3.5 w-3.5" />}
                     </span>
-                    {state === "current" && days != null ? <span className="mt-1 text-[10px] font-medium text-blue-600">{days} dias</span> : <span className="mt-1 h-4" />}
-                    <span className={cn("max-w-[6rem] truncate text-xs", state === "current" ? "font-semibold text-blue-700" : "text-slate-500")}>{stage.name}</span>
+                    {state === "current" && days != null ? <span className="mt-1 text-[10px] font-medium text-[#05749E]">{days} dias</span> : <span className="mt-1 h-4" />}
+                    <span className={cn("max-w-[6.5rem] truncate text-xs", state === "current" ? "font-semibold text-[#05749E]" : "text-muted-foreground")}>{stage.name}</span>
                   </div>
-                  {index < funnel.length - 1 ? <span className={cn("mb-5 h-0.5 flex-1", index < currentIndex ? "bg-emerald-500" : "bg-slate-200")} /> : null}
+                  {index < basic.length - 1 ? <span className={cn("mb-5 h-0.5 flex-1", basic[index + 1].index <= currentIndex ? "bg-emerald-500" : "bg-border")} /> : null}
                 </div>
               );
             })}
@@ -328,7 +352,7 @@ export function LeadFichaView({
             onClick={() => setTab(item)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm",
-              tab === item ? "bg-[#2563EB] font-medium text-white" : "bg-white text-slate-600 ring-1 ring-slate-200",
+              tab === item ? "bg-[#079ED4] font-medium text-white" : "bg-card text-muted-foreground ring-1 ring-border",
             )}
           >
             {item}
@@ -338,12 +362,12 @@ export function LeadFichaView({
       </div>
 
       <div className="mx-6 mb-8 mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           {tab === "Atividade" || tab === "Triagem" ? (
             <>
               <h2 className="text-sm font-semibold">{tab === "Triagem" ? "Triagem" : "Atividade"}</h2>
               {podeTriagem ? (
-                <div className="mt-3 rounded-xl border border-slate-200 p-3">
+                <div className="mt-3 rounded-xl border border-border p-3">
                   <textarea
                     value={triagemTexto}
                     maxLength={MAX_TRIAGEM_TEXTO}
@@ -352,10 +376,10 @@ export function LeadFichaView({
                     className="h-16 w-full resize-none bg-transparent text-sm outline-none"
                   />
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">{triagemTexto.length}/{MAX_TRIAGEM_TEXTO}</span>
-                    <button type="button" disabled={triagemSaving} onClick={onRegistrarTriagem} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 text-xs font-medium text-white disabled:opacity-50">
-                      <Send className="h-3.5 w-3.5" /> {triagemSaving ? "Salvando..." : "Registrar atividade"}
-                    </button>
+                    <span className="text-[11px] text-muted-foreground">{triagemTexto.length}/{MAX_TRIAGEM_TEXTO}</span>
+                    <Button type="button" size="sm" disabled={triagemSaving} onClick={onRegistrarTriagem}>
+                      <Send /> {triagemSaving ? "Salvando..." : "Registrar atividade"}
+                    </Button>
                   </div>
                 </div>
               ) : null}
@@ -381,16 +405,16 @@ export function LeadFichaView({
                     key={item.id}
                     type="button"
                     onClick={() => setFilter(item.id)}
-                    className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", filter === item.id ? "bg-[#2563EB] text-white" : "bg-slate-100 text-slate-600")}
+                    className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", filter === item.id ? "bg-[#079ED4] text-white" : "bg-muted text-muted-foreground")}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
               {eventsLoading && visible.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-400">Carregando histórico...</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">Carregando histórico...</p>
               ) : visible.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-400">Nenhuma atividade neste filtro.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma atividade neste filtro.</p>
               ) : (
                 <ul className="mt-3 divide-y">
                   {visible.map((item) => (
@@ -399,12 +423,12 @@ export function LeadFichaView({
                         <item.icon className="h-3.5 w-3.5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-800">{item.title}</p>
-                        <p className="truncate text-xs text-slate-500">{item.detail}</p>
+                        <p className="text-sm font-medium text-foreground">{item.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
                       </div>
                       <div className="hidden text-right sm:block">
-                        <p className="text-xs font-medium text-slate-700">{item.who}</p>
-                        <p className="text-[11px] text-slate-400">{item.when}</p>
+                        <p className="text-xs font-medium text-foreground">{item.who}</p>
+                        <p className="text-[11px] text-muted-foreground">{item.when}</p>
                       </div>
                     </li>
                   ))}
@@ -431,11 +455,11 @@ export function LeadFichaView({
             hasWhatsapp ? (
               <LeadWhatsappChat leadId={lead.id} active className="min-h-[420px]" />
             ) : (
-              <div className="py-10 text-center text-sm text-slate-500">
+              <div className="py-10 text-center text-sm text-muted-foreground">
                 <p>O chat do WhatsApp não está conectado nesta conta.</p>
-                <button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
-                  <FaWhatsapp className="h-4 w-4" /> Abrir conversa
-                </button>
+                <Button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="mt-4 bg-[#25D366] hover:bg-[#1ebe5d]">
+                  <FaWhatsapp /> Abrir conversa
+                </Button>
               </div>
             )
           ) : null}
@@ -467,20 +491,20 @@ export function LeadFichaView({
         </section>
 
         <aside className="space-y-3">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <h2 className="text-sm font-semibold">Ações rápidas</h2>
             {moreActions.length === 0 ? (
-              <p className="mt-3 text-xs text-slate-400">Nenhuma ação disponível.</p>
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma ação disponível.</p>
             ) : (
               <ul className="mt-2">
                 {moreActions.map((action) => {
                   const Icon = action.icon ?? MoreHorizontal;
                   return (
                     <li key={action.label}>
-                      <button type="button" disabled={action.disabled} onClick={action.onClick} className="flex w-full items-center gap-2 border-b border-slate-100 py-2.5 text-left text-sm text-slate-700 last:border-0 disabled:opacity-40">
-                        <Icon className="h-4 w-4 text-slate-400" />
+                      <button type="button" disabled={action.disabled} onClick={action.onClick} className="flex w-full items-center gap-2 border-b border-border py-2.5 text-left text-sm text-foreground last:border-0 hover:text-[#05749E] disabled:opacity-40">
+                        <Icon className="h-4 w-4 text-[#079ED4]" />
                         <span className="flex-1">{action.label}</span>
-                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </button>
                     </li>
                   );
@@ -488,18 +512,18 @@ export function LeadFichaView({
               </ul>
             )}
           </section>
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <h2 className="text-sm font-semibold">Status do monitoramento</h2>
             <p className={cn("mt-3 inline-flex items-center gap-2 text-sm font-medium", atrasado ? "text-rose-700" : prazoProximo ? "text-amber-700" : "text-emerald-700")}>
               <span className={cn("h-2 w-2 rounded-full", atrasado ? "bg-rose-500" : prazoProximo ? "bg-amber-500" : "bg-emerald-500")} />
               {atrasado ? "Atrasado" : prazoProximo ? "Prazo próximo" : "Ativo"}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               {principal?.detalhe || "O lead está sendo acompanhado nesta etapa."}
             </p>
           </section>
           {primaryAction ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
               <h2 className="text-sm font-semibold">Ação principal</h2>
               <div className="mt-3">{primaryAction}</div>
             </section>
@@ -512,18 +536,18 @@ export function LeadFichaView({
 
 function Fact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-      <p className="flex items-center gap-1.5 text-[11px] text-slate-400"><Icon className="h-3.5 w-3.5" /> {label}</p>
-      <p className="mt-1 truncate text-sm font-medium text-slate-800">{value}</p>
+    <div className="rounded-2xl border border-border bg-card px-3 py-2.5 text-card-foreground shadow-sm">
+      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Icon className="h-3.5 w-3.5 text-[#079ED4]" /> {label}</p>
+      <p className="mt-1 truncate text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }
 
 function Data({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-      <p className="text-[11px] text-slate-400">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-slate-800">{value}</p>
+    <div className="rounded-xl bg-muted px-3 py-2.5">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }

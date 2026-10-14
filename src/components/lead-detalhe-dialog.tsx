@@ -750,7 +750,7 @@ export function LeadDetalheDialog({
         className={cn(
           "!left-0 !right-0 !top-14 !bottom-0 !h-auto !max-h-none !w-auto !max-w-none !translate-x-0 !translate-y-0",
           "md:!left-[var(--app-sidebar,15rem)]",
-          "!flex !flex-col gap-0 overflow-hidden rounded-none border-0 bg-[#EEF3F8] p-0 shadow-none dark:bg-[#0f141b]",
+          "!flex !flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none",
         )}
       >
         {lead ? (
