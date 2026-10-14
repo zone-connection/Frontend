@@ -336,7 +336,7 @@ const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
   { to: "/leads", label: "Leads", icon: Users },
   { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
   { to: "/funil", label: "Funil", icon: Funnel },
-  { to: "/agenda", label: "Agenda", icon: Calendar },
+  { to: "/tarefas", label: "Tarefas", icon: ListTodo },
   { to: "/metas", label: "Metas", icon: Target },
 ];
 
@@ -496,13 +496,6 @@ const NAV_SECTIONS: {
     icon: ListTodo,
     standalone: true,
     items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
-  },
-  {
-    id: "agenda",
-    label: "Agenda",
-    icon: Calendar,
-    standalone: true,
-    items: [{ to: "/agenda", label: "Agenda", icon: Calendar }],
   },
   {
     id: "catalogo",
@@ -862,7 +855,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.tipo === "agenda_lembrete_2h" ||
       n.tipo === "agenda_lembrete_1h"
     ) {
-      void navigate({ to: "/agenda" });
+      void navigate({ to: "/tarefas", search: { aba: "agenda" } });
       return;
     }
     if (n.tipo === "analise_resultado") {
@@ -2142,7 +2135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         informativo={user?.role === "admin"}
         onGoAgenda={() => {
           setLembretesOpen(false);
-          void navigate({ to: "/agenda" });
+          void navigate({ to: "/tarefas", search: { aba: "agenda" } });
         }}
       />
 

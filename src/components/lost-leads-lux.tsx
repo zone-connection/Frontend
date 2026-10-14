@@ -113,7 +113,7 @@ export function LostLeadsMotivoKpis({
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 gap-3 p-3 sm:p-4 xl:grid-cols-6">
+    <div className="grid w-full gap-3 p-3 sm:p-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
       {items.map((item) => {
         const Icon = lostMotivoIcon(item.motivo);
         const selected = active.toLowerCase() === item.motivo.toLowerCase();

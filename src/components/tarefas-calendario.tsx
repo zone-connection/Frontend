@@ -108,14 +108,19 @@ function Evento({
       onClick={() => onOpen(tarefa)}
       title={`${tarefa.horario ?? "Sem horário"} · ${PRIORIDADE_LABEL[tarefa.prioridade]}`}
       className={cn(
-        "w-full rounded-lg border-l-[3px] px-2 py-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "w-full rounded-md border px-1.5 py-1 text-left transition hover:brightness-95",
+        compacto && "rounded-lg",
         tom(tarefa),
         tarefa.status === "concluida" && "line-through opacity-70",
       )}
     >
-      <span className={cn("block font-semibold", compacto ? "truncate text-[11px]" : "text-sm")}>
-        {tarefa.horario ? `${tarefa.horario}  ` : ""}
-        {tarefa.titulo}
+      <span className={cn("block font-medium leading-tight", compacto ? "text-[11px]" : "text-sm")}>
+        {compacto && tarefa.horario ? (
+          <span className="mb-0.5 block font-semibold tabular-nums">{tarefa.horario}</span>
+        ) : tarefa.horario ? (
+          `${tarefa.horario}  `
+        ) : null}
+        <span className={compacto ? "line-clamp-2" : undefined}>{tarefa.titulo}</span>
       </span>
       {compacto ? null : (
         <span className="mt-0.5 block text-[11px] opacity-70">
@@ -225,43 +230,45 @@ export function TarefasCalendario({
     const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
     const hoje = hojeYmd();
     return (
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
-        {days.map((day, index) => {
-          const lista = grouped.get(day) ?? [];
-          const isHoje = day === hoje;
-          return (
-            <section
-              key={day}
-              className={cn(
-                "flex min-h-52 flex-col rounded-2xl border bg-card p-2",
-                isHoje && "border-primary bg-primary/5 shadow-sm",
-              )}
-            >
-              <button
-                type="button"
-                className="mb-2 flex items-center justify-between rounded-xl px-1.5 py-1 text-left hover:bg-background/70"
-                onClick={() => onPickDay(day)}
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {WEEKDAYS[index]}
-                </span>
-                <span
-                  className={cn(
-                    "grid h-7 w-7 place-items-center rounded-full text-sm font-semibold",
-                    isHoje && "bg-primary text-primary-foreground",
-                  )}
+      <div className="overflow-x-auto rounded-2xl border bg-card">
+        <div className="grid min-w-[720px] grid-cols-7 divide-x">
+          {days.map((day, index) => {
+            const lista = [...(grouped.get(day) ?? [])].sort((a, b) =>
+              (a.horario ?? "99:99").localeCompare(b.horario ?? "99:99"),
+            );
+            const isHoje = day === hoje;
+            return (
+              <section key={day} className={cn("flex min-h-72 flex-col", isHoje && "bg-primary/5")}>
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-1 border-b px-2 py-3 hover:bg-muted/50"
+                  onClick={() => onPickDay(day)}
                 >
-                  {Number(day.slice(8))}
-                </span>
-              </button>
-              <div className="space-y-1.5">
-                {lista.map((tarefa) => (
-                  <Evento key={tarefa.id} tarefa={tarefa} onOpen={onOpen} compacto />
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {WEEKDAYS[index]}
+                  </span>
+                  <span
+                    className={cn(
+                      "grid h-8 w-8 place-items-center rounded-full text-sm font-semibold",
+                      isHoje ? "bg-[#079ED4] text-white" : "text-foreground",
+                    )}
+                  >
+                    {Number(day.slice(8))}
+                  </span>
+                </button>
+                <div className="flex flex-1 flex-col gap-1.5 p-2">
+                  {lista.length === 0 ? (
+                    <p className="px-1 py-2 text-center text-[11px] text-muted-foreground">Livre</p>
+                  ) : (
+                    lista.map((tarefa) => (
+                      <Evento key={tarefa.id} tarefa={tarefa} onOpen={onOpen} compacto />
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </div>
     );
   }

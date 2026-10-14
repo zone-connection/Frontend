@@ -23,6 +23,7 @@ import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
+import { toDateInput } from "@/components/agenda-board";
 import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +74,10 @@ import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
 import { DocumentosPanel } from "@/components/documentos-panel";
 
 export const Route = createFileRoute("/_app/tarefas")({
-  head: () => ({ meta: [{ title: "Tarefas â€” Zone Connection" }] }),
+  head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    aba: search.aba === "agenda" ? ("agenda" as const) : undefined,
+  }),
   component: TarefasPage,
 });
 
@@ -102,6 +106,7 @@ function emptyForm(userId: string): TarefaInput {
 function TarefasPage() {
   const session = getSession();
   const navigate = useNavigate();
+  const { aba } = Route.useSearch();
   const [enabled, setEnabled] = useState<boolean | null>(
     session?.tenant?.plano === "prata" ||
       session?.tenant?.plano === "ouro" ||
@@ -109,7 +114,7 @@ function TarefasPage() {
       ? true
       : (session?.tenant?.tarefasEnabled ?? null),
   );
-  const [secao, setSecao] = useState<TarefaSecao>("geral");
+  const [secao, setSecao] = useState<TarefaSecao>(aba === "agenda" ? "calendario" : "tarefas");
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
   const [visao, setVisao] = useState<TarefaVisao>("lista");
   const [anchor, setAnchor] = useState(hojeYmd);
@@ -351,18 +356,33 @@ function TarefasPage() {
         abertas={painel.filter((item) => item.status === "aberta").length}
         onChange={(next) => {
           setSecao(next);
-          if (next === "tarefas" || next === "geral") setVisao("lista");
+          void navigate({
+            to: "/tarefas",
+            search: { aba: next === "calendario" ? "agenda" : undefined },
+            replace: true,
+          });
         }}
       />
       {secao === "calendario" ? (
-        <TarefasAgendaPainel />
+        <TarefasAgendaPainel
+          onCreateAt={(day, hour) => {
+            setEditing(null);
+            setNota("");
+            setForm({
+              ...emptyForm(session?.id ?? ""),
+              data: toDateInput(day),
+              horario: hour != null ? `${String(hour).padStart(2, "0")}:00` : "",
+            });
+            setOpen(true);
+          }}
+        />
       ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
           if (!tarefa.demonstracao) abrirEdicao(tarefa);
         }} />
       ) : (
       <TarefasPainel
-        modo={secao === "tarefas" ? "lista" : "geral"}
+        modo="lista"
         items={painel}
         filtro={filtro}
         visao={visao}
@@ -396,6 +416,20 @@ function TarefasPage() {
             return;
           }
           abrirNova();
+        }}
+        onCreateSlot={(ymd, hour) => {
+          if (enabled === false) {
+            toast.error("Tarefas reais entram a partir do plano Prata.");
+            return;
+          }
+          setEditing(null);
+          setNota("");
+          setForm({
+            ...emptyForm(session?.id ?? ""),
+            data: ymd,
+            horario: hour != null ? `${String(hour).padStart(2, "0")}:00` : "",
+          });
+          setOpen(true);
         }}
         podeVerEquipe={podeVerEquipe}
         verEquipe={verEquipe}

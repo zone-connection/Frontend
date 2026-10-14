@@ -1,10 +1,6 @@
 import {
-  Building2,
   CalendarDays,
-  Headset,
-  LayoutGrid,
   ListTodo,
-  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,15 +15,8 @@ export type TarefaSecao =
   | "atendimentos";
 
 const WORKSPACE: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
-  { id: "geral", label: "Visão geral", icon: LayoutGrid },
-  { id: "tarefas", label: "Minhas tarefas", icon: ListTodo },
+  { id: "tarefas", label: "Pendências", icon: ListTodo },
   { id: "calendario", label: "Agenda", icon: CalendarDays },
-];
-
-const RELACIONAMENTOS: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
-  { id: "leads", label: "Leads e clientes", icon: Users },
-  { id: "imoveis", label: "Imóveis", icon: Building2 },
-  { id: "atendimentos", label: "Atendimentos", icon: Headset },
 ];
 
 export function TarefasModuloNav({
@@ -49,10 +38,6 @@ export function TarefasModuloNav({
             badge={item.id === "tarefas" ? abertas : undefined}
             onChange={onChange}
           />
-        ))}
-        <span className="relative z-10 mx-1 h-6 w-px bg-[#E2E8EC]" />
-        {RELACIONAMENTOS.map((item) => (
-          <Item key={item.id} item={item} active={secao === item.id} onChange={onChange} />
         ))}
     </SlidingNav>
   );

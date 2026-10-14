@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -147,6 +147,9 @@ type AgendaSearch = {
 };
 
 export const Route = createFileRoute("/_app/agenda")({
+  beforeLoad: () => {
+    throw redirect({ to: "/tarefas", search: { aba: "agenda" } });
+  },
   head: () => ({ meta: [{ title: "Agenda — Zone Connection" }] }),
   validateSearch: (search: Record<string, unknown>): AgendaSearch => {
     const corretorId =

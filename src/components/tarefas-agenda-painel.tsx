@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -7,6 +6,7 @@ import {
   formatRangeLabel,
   getVisibleRange,
   startOfMonth,
+  toDateInput,
   type AgendaViewMode,
 } from "@/components/agenda-board";
 import {
@@ -38,12 +38,21 @@ import {
   AGENDAMENTO_STATUS_LABEL,
   fetchAgendaKpis,
   fetchAgendamentos,
+  fetchSolicitacoesAgenda,
+  aprovarAgendamento,
+  recusarAgendamento,
   getAgendamentoVisual,
   updateAgendamento,
   type AgendaKpis,
   type Agendamento,
   type AgendamentoStatus,
+  type AgendamentoTipo,
 } from "@/lib/agenda-api";
+import { getSession } from "@/lib/auth";
+import { fetchEquipes } from "@/lib/equipes-api";
+import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
+import { canViewTeamData } from "@/lib/permissions";
+import { fetchUsers } from "@/lib/users-api";
 import { cn } from "@/lib/utils";
 
 function shiftAnchor(view: AgendaViewMode, anchor: Date, dir: -1 | 1) {
@@ -54,45 +63,86 @@ function shiftAnchor(view: AgendaViewMode, anchor: Date, dir: -1 | 1) {
   return next;
 }
 
-export function TarefasAgendaPainel() {
-  const navigate = useNavigate();
-  const [visao, setVisao] = useState<AgendaViewMode>("semana");
-  const [anchor, setAnchor] = useState(() => new Date());
+export function TarefasAgendaPainel({
+  compacto = false,
+  visaoInicial,
+  anchorYmd,
+  onAnchorYmd,
+  onCreateAt,
+}: {
+  compacto?: boolean;
+  visaoInicial?: AgendaViewMode;
+  anchorYmd?: string;
+  onAnchorYmd?: (ymd: string) => void;
+  onCreateAt?: (day: Date, hour?: number) => void;
+} = {}) {
+  const session = getSession();
+  const gestor = canViewTeamData(session?.role);
+  const gerente = session?.role === "gerente" || session?.role === "admin" || session?.role === "super_admin";
+  const [visao, setVisao] = useState<AgendaViewMode>(visaoInicial ?? "semana");
+  const [anchor, setAnchor] = useState(() => (anchorYmd ? new Date(`${anchorYmd}T12:00:00`) : new Date()));
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const [items, setItems] = useState<Agendamento[]>([]);
   const [kpis, setKpis] = useState<AgendaKpis | null>(null);
   const [loading, setLoading] = useState(true);
   const [tipo, setTipo] = useState("__all__");
   const [status, setStatus] = useState("__all__");
+  const [equipeId, setEquipeId] = useState("__all__");
+  const [corretorId, setCorretorId] = useState("__all__");
+  const [empreendimentoId, setEmpreendimentoId] = useState("__all__");
+  const [equipes, setEquipes] = useState<{ id: string; nome: string }[]>([]);
+  const [corretores, setCorretores] = useState<{ id: string; name: string }[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<{ id: string; nome: string }[]>([]);
+  const [solicitacoes, setSolicitacoes] = useState<Agendamento[]>([]);
   const [editando, setEditando] = useState<Agendamento | null>(null);
   const [titulo, setTitulo] = useState("");
   const [local, setLocal] = useState("");
 
-  async function carregar() {
+  const carregar = useCallback(async () => {
     const range = getVisibleRange(visao, anchor);
     setLoading(true);
     try {
-      const data = await fetchAgendamentos({
-        from: range.from.toISOString(),
-        to: range.to.toISOString(),
-      });
+      const tipoApi = tipo !== "__all__" && tipo !== "aniversario" ? (tipo as AgendamentoTipo) : undefined;
+      const [data, sols, kpiData] = await Promise.all([
+        fetchAgendamentos({
+          from: range.from.toISOString(),
+          to: range.to.toISOString(),
+          equipeId: gestor && equipeId !== "__all__" ? equipeId : undefined,
+          corretorId: gestor && corretorId !== "__all__" ? corretorId : undefined,
+          empreendimentoId: empreendimentoId !== "__all__" ? empreendimentoId : undefined,
+          tipo: tipoApi,
+          status: status !== "__all__" ? (status as AgendamentoStatus) : undefined,
+        }),
+        gerente || session?.role === "corretor" ? fetchSolicitacoesAgenda().catch(() => []) : Promise.resolve([]),
+        fetchAgendaKpis({
+          equipeId: gestor && equipeId !== "__all__" ? equipeId : undefined,
+          corretorId: gestor && corretorId !== "__all__" ? corretorId : undefined,
+        }).catch(() => null),
+      ]);
       setItems(data);
+      setSolicitacoes(sols);
+      setKpis(kpiData);
     } catch {
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [visao, anchor, gestor, gerente, session?.role, equipeId, corretorId, empreendimentoId, tipo, status]);
+
+  useEffect(() => {
+    if (visaoInicial) setVisao(visaoInicial);
+  }, [visaoInicial]);
 
   useEffect(() => {
     void carregar();
-  }, [visao, anchor]);
+  }, [carregar]);
 
   useEffect(() => {
-    void fetchAgendaKpis()
-      .then(setKpis)
-      .catch(() => setKpis(null));
-  }, []);
+    if (!gestor) return;
+    void fetchEquipes().then((rows) => setEquipes(rows.filter((item) => item.status === "ativo").map((item) => ({ id: item.id, nome: item.name })))).catch(() => setEquipes([]));
+    void fetchUsers({ status: "ativo", page: 1, limit: 100 }).then((res) => setCorretores(res.data.filter((item) => item.role !== "super_admin").map((item) => ({ id: item.id, name: item.name })))).catch(() => setCorretores([]));
+    void fetchEmpreendimentos({ ativo: true }).then((rows) => setEmpreendimentos(rows.map((item) => ({ id: item.id, nome: item.nome })))).catch(() => setEmpreendimentos([]));
+  }, [gestor]);
 
   const visiveis = items.filter((item) => {
     if (tipo !== "__all__" && getAgendamentoVisual(item) !== tipo) return false;
@@ -103,6 +153,15 @@ export function TarefasAgendaPainel() {
   function selecionarDia(day: Date) {
     setAnchor(day);
     setCalendarMonth(startOfMonth(day));
+    onAnchorYmd?.(toDateInput(day));
+  }
+
+  function criarNoHorario(day: Date, hour?: number) {
+    if (onCreateAt) {
+      onCreateAt(day, hour);
+      return;
+    }
+    selecionarDia(day);
   }
 
   async function mudarStatus(item: Agendamento, statusNovo: "concluido" | "cancelado") {
@@ -117,14 +176,18 @@ export function TarefasAgendaPainel() {
 
   return (
     <AgendaLuxShell>
+      {compacto ? null : (
+      <>
       <AgendaLuxHeader
         actions={
-          <Button type="button" onClick={() => void navigate({ to: "/agenda" })}>
+          <Button type="button" onClick={() => onCreateAt?.(anchor)}>
             Novo compromisso
           </Button>
         }
       />
       <AgendaLuxKpis kpis={kpis} />
+      </>
+      )}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#E6EDF2] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#141a22] lg:flex-row lg:items-center lg:justify-between">
@@ -205,13 +268,40 @@ export function TarefasAgendaPainel() {
           <div className="mb-2">
             <AgendaLuxTypeChips value={tipo} onChange={setTipo} />
           </div>
+          {gestor ? (
+            <div className="mb-2 grid gap-2 sm:grid-cols-3">
+              <Filtro label="Equipe" value={equipeId} onChange={setEquipeId} options={[{ id: "__all__", label: "Todas as equipes" }, ...equipes.map((item) => ({ id: item.id, label: item.nome }))]} />
+              <Filtro label="Corretor" value={corretorId} onChange={setCorretorId} options={[{ id: "__all__", label: "Minha agenda" }, ...corretores.map((item) => ({ id: item.id, label: item.name }))]} />
+              <Filtro label="Empreendimento" value={empreendimentoId} onChange={setEmpreendimentoId} options={[{ id: "__all__", label: "Todos os imóveis" }, ...empreendimentos.map((item) => ({ id: item.id, label: item.nome }))]} />
+            </div>
+          ) : null}
+          {solicitacoes.length > 0 ? (
+            <ul className="mb-2 divide-y rounded-xl border bg-card">
+              {solicitacoes.map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span className="min-w-0">
+                    <span className="font-medium">{item.titulo}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{new Date(item.startsAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                  </span>
+                  {gerente ? (
+                    <span className="flex gap-1">
+                      <Button type="button" size="sm" onClick={() => void aprovarAgendamento(item.id).then(() => carregar())}>Aprovar</Button>
+                      <Button type="button" size="sm" variant="destructive" onClick={() => void recusarAgendamento(item.id).then(() => carregar())}>Recusar</Button>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Aguardando o gerente</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <AgendaBoard
             view={visao}
             anchor={anchor}
             items={visiveis}
             loading={loading}
             onSelectDay={selecionarDia}
-            onCreateAt={selecionarDia}
+            onCreateAt={criarNoHorario}
             onEdit={(item) => {
               setEditando(item);
               setTitulo(item.titulo);
@@ -240,8 +330,8 @@ export function TarefasAgendaPainel() {
             }}
           />
           <AgendaLuxQuickActions
-            onCreate={() => void navigate({ to: "/agenda" })}
-            onBlock={() => void navigate({ to: "/agenda" })}
+            onCreate={() => onCreateAt?.(anchor)}
+            onBlock={() => onCreateAt?.(anchor)}
           />
         </aside>
       </div>
@@ -291,5 +381,30 @@ export function TarefasAgendaPainel() {
         </DialogContent>
       </Dialog>
     </AgendaLuxShell>
+  );
+}
+
+function Filtro({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { id: string; label: string }[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-9" aria-label={label}>
+        <SelectValue placeholder={label} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((item) => (
+          <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

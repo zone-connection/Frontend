@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { FiltroSelectNativo } from "@/components/filtros-painel";
 import {
-  TarefasCalendario,
   addDays,
   dayLabel,
   hojeYmd,
@@ -20,6 +19,7 @@ import {
   startOfWeek,
   type TarefaVisao,
 } from "@/components/tarefas-calendario";
+import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { AgendamentoTipoDot } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
 import { PRIORIDADE_LABEL, type TarefaFiltro } from "@/lib/tarefas-api";
@@ -106,6 +106,7 @@ export function TarefasPainel({
   onOpen,
   onComplete,
   onCreate,
+  onCreateSlot,
   modo = "geral",
   podeVerEquipe = false,
   verEquipe = false,
@@ -124,6 +125,7 @@ export function TarefasPainel({
   onOpen: (tarefa: TarefaVisivel) => void;
   onComplete: (tarefa: TarefaVisivel) => void;
   onCreate: () => void;
+  onCreateSlot?: (ymd: string, hour?: number) => void;
   modo?: "geral" | "lista" | "calendario";
   podeVerEquipe?: boolean;
   verEquipe?: boolean;
@@ -380,14 +382,16 @@ export function TarefasPainel({
                 </div>
               ))
             ) : (
-              <TarefasCalendario
-                visao={visao === "lista" ? "mes" : visao}
-                anchor={anchor}
-                items={visiveis}
-                onOpen={onOpen}
-                onPickDay={(day) => {
-                  onAnchor(day);
-                  onVisao("dia");
+              <TarefasAgendaPainel
+                compacto
+                visaoInicial={visao === "dia" || visao === "semana" ? visao : "mes"}
+                anchorYmd={anchor}
+                onAnchorYmd={onAnchor}
+                onCreateAt={(day, hour) => {
+                  const y = day.getFullYear();
+                  const m = String(day.getMonth() + 1).padStart(2, "0");
+                  const d = String(day.getDate()).padStart(2, "0");
+                  onCreateSlot?.(`${y}-${m}-${d}`, hour);
                 }}
               />
             )}
