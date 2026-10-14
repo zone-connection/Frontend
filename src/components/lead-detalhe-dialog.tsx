@@ -472,29 +472,33 @@ function FunilTrack({
     (s) => s.papel !== "perdido" && s.papel !== "venda",
   );
   const track = list.length ? list : stages;
+  const idx = Math.max(0, track.findIndex((s) => s.id === currentId));
   const days = daysSince(enteredAt);
 
   return (
-    <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
-      {track.map((s) => {
+    <ol className="flex gap-1 overflow-x-auto [scrollbar-width:thin]">
+      {track.map((s, i) => {
         const current = s.id === currentId;
+        const reached = i < idx;
         return (
-          <span
+          <li
             key={s.id}
             title={s.name}
             className={cn(
-              "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+              "min-w-[7.5rem] flex-1 truncate rounded-lg px-3 py-2 text-center text-[11px] font-medium",
               current
-                ? "border-transparent bg-[#2563EB] text-white"
-                : "border-[#E2E8F0] bg-white text-[#64748B] dark:border-white/10 dark:bg-[#1c2430] dark:text-[#94a3b8]",
+                ? "bg-[#0F172A] text-white"
+                : reached
+                  ? "bg-[#E8EEF5] text-[#0F172A]"
+                  : "bg-[#F8FAFC] text-[#94A3B8]",
             )}
           >
-            {current && days != null ? `${days} ${days === 1 ? "dia" : "dias"} · ` : ""}
+            {current && days != null ? `${days}d · ` : ""}
             {s.name}
-          </span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -724,149 +728,97 @@ export function LeadDetalheDialog({
               Detalhes de {lead.nome}
             </DialogDescription>
 
-            <div className="grid min-h-0 flex-1 gap-3 overflow-hidden p-3 lg:grid-cols-[24rem_minmax(0,1fr)]">
-              <aside className="order-2 flex min-h-0 flex-col gap-3 overflow-y-auto [scrollbar-width:thin] lg:order-1">
-                <div className="rounded-2xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold",
-                          PRIORIDADE_AVATAR[lead.prioridade],
-                        )}
-                      >
-                        {initials(showCorretor && lead.corretor && lead.corretor !== "—" ? lead.corretor : lead.nome)}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{lead.nome}</p>
-                        <p className="text-[11px] text-[#2563EB]">
-                          {stage?.name ?? (lead.tipo === "cliente" ? "Cliente" : "Novo lead")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="size-8 rounded-full"
-                        disabled={!temTelefone}
-                        aria-label="Ligar"
-                        onClick={ligar}
-                      >
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="size-8 rounded-full"
-                        disabled={!temTelefone}
-                        aria-label="WhatsApp"
-                        onClick={() =>
-                          hasOzapChat ? setTab("whatsapp") : abrirWhatsApp()
-                        }
-                      >
-                        <FaWhatsapp className="h-4 w-4 text-[#25D366]" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-[#141a22]">
+              <header className="flex flex-wrap items-center gap-4 border-b px-6 py-4 pr-16">
+                <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-semibold", PRIORIDADE_AVATAR[lead.prioridade])}>
+                  {initials(showCorretor && lead.corretor && lead.corretor !== "—" ? lead.corretor : lead.nome)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-lg font-semibold tracking-tight">{lead.nome}</p>
+                    <span className="rounded-full bg-[#0F172A] px-2.5 py-0.5 text-[11px] font-medium text-white">
+                      {stage?.name ?? (lead.tipo === "cliente" ? "Cliente" : "Lead")}
+                    </span>
                     {showMeuLeadBadge ? <MeuLeadBadge /> : null}
                     <LeadOrigemLiberacaoBadge lead={lead} />
-                    {perdaAction ? (
-                      <Button
-                        type="button"
-                        className="h-7 bg-[#e23b3b] px-2.5 text-xs text-white hover:bg-[#c92f2f]"
-                        onClick={perdaAction.onClick}
-                      >
-                        Perdido
-                      </Button>
-                    ) : null}
                   </div>
-                  <FunilTrack
-                    stages={funnelStages}
-                    currentId={lead.stage}
-                    enteredAt={mon?.stageEnteredAt}
-                  />
-                  {mon && mon.problemas.length > 0 ? (
-                    <div
-                      className={cn(
-                        "mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs",
-                        atrasado
-                          ? "bg-rose-500/15 text-rose-700 dark:text-rose-200"
-                          : "bg-amber-500/15 text-amber-800 dark:text-amber-200",
-                      )}
-                    >
-                      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                      <div>
-                        <p className="font-semibold">{statusLabel}</p>
-                        <p className="text-[11px] opacity-90">
-                          {mon.problemas[0]?.titulo}
-                          {mon.tempoAtrasoLabel
-                            ? ` · ${mon.tempoAtrasoLabel}`
-                            : mon.tempoSemMovimentacaoLabel
-                              ? ` · ${mon.tempoSemMovimentacaoLabel}`
-                              : ""}
-                        </p>
-                      </div>
-                    </div>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {(equipe ?? lead.equipe) || (lead.tipo === "cliente" ? "Cliente" : "Lead")}
+                    {lead.corretor && lead.corretor !== "—" ? ` · ${lead.corretor}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" className="h-9" disabled={!temTelefone} onClick={ligar}>
+                    <Phone className="mr-1.5 h-4 w-4" /> Ligar
+                  </Button>
+                  <Button type="button" variant="outline" className="h-9" disabled={!temTelefone} onClick={() => (hasOzapChat ? setTab("whatsapp") : abrirWhatsApp())}>
+                    <FaWhatsapp className="mr-1.5 h-4 w-4 text-[#25D366]" /> WhatsApp
+                  </Button>
+                  {perdaAction ? (
+                    <Button type="button" className="h-9 bg-[#e23b3b] text-white hover:bg-[#c92f2f]" onClick={perdaAction.onClick}>Perdido</Button>
                   ) : null}
                 </div>
-                <SideSection title="Resumo">
-                  <dl className="space-y-3 text-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
-                        <Wallet className="h-4 w-4" /> Renda
-                      </dt>
-                      <dd className="font-medium">{lead.renda != null ? brl(lead.renda) : "—"}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
-                        <User className="h-4 w-4" /> Pessoa
-                      </dt>
-                      <dd className="min-w-0 text-right font-medium break-words text-primary">{lead.nome}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
-                        <Phone className="h-4 w-4" /> Telefone
-                      </dt>
-                      <dd className="min-w-0 text-right break-words">{lead.telefone || "—"}</dd>
-                    </div>
-                    <div className="space-y-0.5">
-                      <dt className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-4 w-4" /> E-mail
-                      </dt>
-                      <dd className="break-all pl-6 text-[13px]">{email || "—"}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
-                        <Flag className="h-4 w-4" /> Prioridade
-                      </dt>
-                      <dd className={lead.prioridade === "Alta" ? "text-destructive" : ""}>
-                        {lead.prioridade}
-                      </dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
-                        <Clock className="h-4 w-4" /> Criado em
-                      </dt>
-                      <dd>
-                        {lead.createdAt
-                          ? formatDateTimePt(lead.createdAt)
-                          : lead.updatedAt}
-                      </dd>
-                    </div>
-                  </dl>
-                  {lead.analise && shouldShowAnaliseStatus(lead.analise.status) ? (
-                    <Badge
-                      variant="outline"
-                      className={cn("mt-3", analiseBadgeClass(lead.analise.status))}
-                    >
-                      {ANALISE_STATUS_LABEL[lead.analise.status]}
-                    </Badge>
-                  ) : null}
-                </SideSection>
+              </header>
+              <div className="border-b px-6 py-3">
+                <FunilTrack stages={funnelStages} currentId={lead.stage} enteredAt={mon?.stageEnteredAt} />
+                {mon && mon.problemas.length > 0 ? (
+                  <p className={cn("mt-2 text-xs", atrasado ? "text-rose-600" : "text-amber-700")}>
+                    {statusLabel}
+                    {mon.problemas[0]?.titulo ? ` · ${mon.problemas[0].titulo}` : ""}
+                    {mon.tempoAtrasoLabel ? ` · ${mon.tempoAtrasoLabel}` : mon.tempoSemMovimentacaoLabel ? ` · ${mon.tempoSemMovimentacaoLabel}` : ""}
+                  </p>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-2 border-b sm:grid-cols-3 xl:grid-cols-6">
+                {([
+                  ["Telefone", lead.telefone || "—"],
+                  ["E-mail", email || "—"],
+                  ["Renda", lead.renda != null ? brl(lead.renda) : "—"],
+                  ["Prioridade", lead.prioridade],
+                  ["Origem", lead.origem && lead.origem !== "Não informado" ? lead.origem : "—"],
+                  ["Desde", lead.createdAt ? formatDateTimePt(lead.createdAt) : lead.updatedAt || "—"],
+                ] as const).map(([label, value]) => (
+                  <div key={label} className="min-w-0 border-r border-[#F1F5F9] px-5 py-3 last:border-r-0">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                    <p className="truncate text-sm font-medium" title={value}>{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className={cn("min-h-0 flex-1", tab === "whatsapp" ? "flex flex-col overflow-hidden" : "overflow-y-auto overscroll-contain [scrollbar-width:thin]")}>
+                <Tabs
+                  value={tab}
+                  onValueChange={setTab}
+                  className={cn(tab === "whatsapp" && "flex min-h-0 flex-1 flex-col")}
+                >
+                  <div className="sticky top-0 z-10 shrink-0 border-b bg-card">
+                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 !rounded-none !border-0 !bg-transparent px-4 pr-28 pt-2 !shadow-none">
+                      <TabsTrigger value="atividade" className={FICHA_TAB}>
+                        <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+                        Atividade
+                      </TabsTrigger>
+                      <TabsTrigger value="triagem" className={FICHA_TAB}>
+                        <StickyNote className="mr-1.5 h-3.5 w-3.5" />
+                        Triagem
+                      </TabsTrigger>
+                      {hasOzapChat ? (
+                        <TabsTrigger value="whatsapp" className={FICHA_TAB}>
+                          <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
+                          WhatsApp
+                        </TabsTrigger>
+                      ) : null}
+                      <TabsTrigger value="dados" className={FICHA_TAB}>
+                        <User className="mr-1.5 h-3.5 w-3.5" />
+                        Dados
+                      </TabsTrigger>
+                      <TabsTrigger value="documentacoes" className={FICHA_TAB}>
+                        <FileText className="mr-1.5 h-3.5 w-3.5" />
+                        Documentações
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="dados" className="mt-0 px-6 py-5">
+                    <div className="mx-auto max-w-5xl">
                 <SideSection title="Detalhes">
                     <section>
                       <div className="grid gap-3">
@@ -1132,45 +1084,10 @@ export function LeadDetalheDialog({
                   {primaryAction}
                   {footer}
                 </div>
-              </aside>
+                    </div>
+                  </TabsContent>
 
-              <div
-                className={cn(
-                  "order-1 min-h-0 rounded-2xl border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:order-2",
-                  tab === "whatsapp"
-                    ? "flex flex-col overflow-hidden"
-                    : "overflow-y-auto overscroll-contain [scrollbar-width:thin]",
-                )}
-              >
-                <Tabs
-                  value={tab}
-                  onValueChange={setTab}
-                  className={cn(tab === "whatsapp" && "flex min-h-0 flex-1 flex-col")}
-                >
-                  <div className="sticky top-0 z-10 shrink-0 border-b bg-card">
-                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 !rounded-none !border-0 !bg-transparent px-4 pr-28 pt-2 !shadow-none">
-                      <TabsTrigger value="atividade" className={FICHA_TAB}>
-                        <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
-                        Atividade
-                      </TabsTrigger>
-                      <TabsTrigger value="triagem" className={FICHA_TAB}>
-                        <StickyNote className="mr-1.5 h-3.5 w-3.5" />
-                        Triagem
-                      </TabsTrigger>
-                      {hasOzapChat ? (
-                        <TabsTrigger value="whatsapp" className={FICHA_TAB}>
-                          <FaWhatsapp className="mr-1.5 h-3.5 w-3.5" />
-                          WhatsApp
-                        </TabsTrigger>
-                      ) : null}
-                      <TabsTrigger value="documentacoes" className={FICHA_TAB}>
-                        <FileText className="mr-1.5 h-3.5 w-3.5" />
-                        Documentações
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-
-                  <TabsContent value="atividade" className="mt-0 space-y-4 px-4 py-4">
+                  <TabsContent value="atividade" className="mt-0 space-y-4 px-6 py-5">
                     <button
                       type="button"
                       className="w-full rounded-lg border bg-muted/30 px-3 py-5 text-left text-sm text-muted-foreground hover:bg-muted/50 disabled:cursor-default"
