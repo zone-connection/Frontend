@@ -207,15 +207,26 @@ export function ProcessoDossie({
   processo,
   allowUpload,
   uploadNonce,
+  parts = ["cabecalho", "documentos", "pendencias", "historico"],
 }: {
   processo: Processo;
   allowUpload: boolean;
   uploadNonce: number;
+  parts?: Array<"cabecalho" | "documentos" | "pendencias" | "historico">;
 }) {
   const [arquivos, setArquivos] = useState<ArquivoDocumento[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const precisaArquivos =
+    parts.includes("documentos") ||
+    parts.includes("pendencias") ||
+    parts.includes("historico");
+
   const load = useCallback(async () => {
+    if (!precisaArquivos) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       setArquivos(
@@ -230,7 +241,7 @@ export function ProcessoDossie({
     } finally {
       setLoading(false);
     }
-  }, [processo.id]);
+  }, [processo.id, precisaArquivos]);
 
   useEffect(() => {
     void load();
@@ -294,8 +305,11 @@ export function ProcessoDossie({
     );
   }, [originais, processo.pendencias]);
 
+  const show = (part: (typeof parts)[number]) => parts.includes(part);
+
   return (
     <div className="space-y-5">
+      {show("cabecalho") ? (
       <div className="rounded-2xl border border-[#D3EBF5] bg-gradient-to-br from-white via-[#F3FAFD] to-[#E7F4FA] p-4 dark:border-[#079ED4]/25 dark:from-[#141a22] dark:via-[#102838] dark:to-[#0f1c24]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#05749E] dark:text-[#7DD3FC]">
           Cabeçalho do processo
@@ -342,7 +356,9 @@ export function ProcessoDossie({
           />
         </div>
       </div>
+      ) : null}
 
+      {show("documentos") ? (
       <DocumentosPanel
         entityType="processo"
         entityId={processo.id}
@@ -359,15 +375,16 @@ export function ProcessoDossie({
         allowUpload={allowUpload}
         uploadNonce={uploadNonce}
       />
+      ) : null}
 
-      {loading ? (
+      {precisaArquivos && loading ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Organizando arquivos do
           fluxo…
         </p>
       ) : (
         <>
-          {complementares.length > 0 ? (
+          {show("documentos") && complementares.length > 0 ? (
             <ArquivoGrupo
               titulo="Documentos complementares"
               descricao="Arquivos enviados fora da ficha original, inclusive retornos da análise."
@@ -376,7 +393,13 @@ export function ProcessoDossie({
             />
           ) : null}
 
-          {(processo.pendencias?.length ?? 0) > 0 ? (
+          {show("pendencias") && (processo.pendencias?.length ?? 0) === 0 ? (
+            <p className="rounded-xl border border-dashed border-primary/20 px-4 py-8 text-center text-sm text-muted-foreground">
+              Nenhuma pendência documentacional neste processo.
+            </p>
+          ) : null}
+
+          {show("pendencias") && (processo.pendencias?.length ?? 0) > 0 ? (
             <div className="space-y-3">
               <p className="text-sm font-semibold">Pendências e correções</p>
               {(processo.pendencias as ProcessoPendencia[]).map((p) => (
@@ -430,7 +453,7 @@ export function ProcessoDossie({
             </div>
           ) : null}
 
-          {historicoDocs.length > 0 ? (
+          {show("historico") && historicoDocs.length > 0 ? (
             <div className="space-y-2">
               <p className="text-sm font-semibold">Histórico documental</p>
               <p className="text-xs text-muted-foreground">

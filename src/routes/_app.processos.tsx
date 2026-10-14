@@ -91,6 +91,7 @@ import {
   Briefcase,
   Building2,
   CheckCircle2,
+  ChevronRight,
   ClipboardList,
   Columns3,
   FileText,
@@ -106,6 +107,7 @@ import {
   Phone,
   Plus,
   RotateCcw,
+  SearchCheck,
   Send,
   Trash2,
   Upload,
@@ -234,6 +236,10 @@ function ProcessosPage() {
   const [selected, setSelected] = useState<Processo | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [fichaMode, setFichaMode] = useState<"view" | "edit">("view");
+  const [detailAba, setDetailAba] = useState<"gestao" | "andamento">("gestao");
+  const [detailNav, setDetailNav] = useState<
+    "informacoes" | "documentos" | "pendencias" | "historico" | "analise"
+  >("informacoes");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [uploadNonce, setUploadNonce] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
@@ -348,9 +354,14 @@ function ProcessosPage() {
   }
 
   function applySelected(p: Processo, mode: "view" | "edit" = "view") {
+    const troca = !detailOpen || selected?.id !== p.id;
     setSelected(p);
     setFichaMode(mode);
     setDetailOpen(true);
+    if (troca) {
+      setDetailAba("gestao");
+      setDetailNav(p.etapa === "retrabalho" ? "pendencias" : "informacoes");
+    }
     setForm({
       nome: p.nome,
       fonte: p.fonte,
@@ -981,6 +992,7 @@ function ProcessosPage() {
             if (!open) setFichaMode("view");
           }}
           icon={<ClipboardList className="h-5 w-5" />}
+          contentClassName="!flex min-h-0 flex-1 flex-col overflow-hidden"
           title={selected.nome}
           description={
             <span className="flex flex-wrap items-center gap-2">
@@ -1079,24 +1091,177 @@ function ProcessosPage() {
             </FormDialogActions>
           }
         >
-          <FormDialogBody>
-            <div
-              className={cn(
-                "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3",
-                STATUS_BAND[selected.status],
-              )}
-            >
+          <FormDialogBody className="flex min-h-0 flex-1 flex-col space-y-0 overflow-hidden px-0 py-0 sm:px-0 sm:py-0">
+            <div className="flex gap-1 border-b border-primary/10 bg-white px-3 pt-2 dark:bg-[#141a22] sm:px-4">
+              {(
+                [
+                  { id: "gestao" as const, label: "Gestão do processo" },
+                  { id: "andamento" as const, label: "Andamento do processo" },
+                ] as const
+              ).map((aba) => (
+                <button
+                  key={aba.id}
+                  type="button"
+                  onClick={() => setDetailAba(aba.id)}
+                  className={cn(
+                    "-mb-px border-b-2 px-3 py-2.5 text-sm font-medium transition",
+                    detailAba === aba.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {aba.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3 bg-[#05749E] px-4 py-3 text-white">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#05749E] dark:text-[#7DD3FC]">
-                  Situação da ficha
+                <p className="truncate text-base font-semibold">
+                  Processo · {selected.nome}
                 </p>
-                <p className="mt-0.5 text-sm font-medium text-[#0B3148] dark:text-[#f8fafc]">
+                <p className="truncate text-xs text-white/80">
                   {PROCESSO_ETAPA_LABEL[selected.etapa]} ·{" "}
                   {STATUS_HINT[selected.status]}
                 </p>
               </div>
-              <StatusPill status={selected.status} />
+              <div className="flex flex-wrap justify-end gap-2">
+                {analista ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="bg-white/15 text-white hover:bg-white/25"
+                    onClick={() => {
+                      setPendenciaProcesso(selected);
+                      setPendenciaForm({
+                        titulo: "",
+                        descricao: "",
+                        textoComplementar: "",
+                      });
+                      setPendenciaFiles([]);
+                      setPendenciaOpen(true);
+                    }}
+                  >
+                    <Paperclip className="mr-1 h-3.5 w-3.5" />
+                    Solicitar pendência
+                  </Button>
+                ) : null}
+                {canMutate(selected) && fichaMode !== "edit" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="bg-white text-[#05749E] hover:bg-white/90"
+                    onClick={() => setFichaMode("edit")}
+                  >
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                    Editar ficha
+                  </Button>
+                ) : null}
+              </div>
             </div>
+            {detailAba === "andamento" ? (
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {PROCESSOS_ETAPAS.map((etapa, index) => {
+                    const atual = selected.etapa === etapa.id;
+                    const pos = PROCESSOS_ETAPAS.findIndex(
+                      (e) => e.id === selected.etapa,
+                    );
+                    const feita = index < pos;
+                    return (
+                      <div
+                        key={etapa.id}
+                        className={cn(
+                          "rounded-xl border px-3 py-3 text-sm",
+                          atual
+                            ? "border-primary bg-primary/10 font-semibold text-primary"
+                            : feita
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-300"
+                              : "border-black/5 bg-card text-muted-foreground",
+                        )}
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+                          Etapa {index + 1}
+                        </p>
+                        <p className="mt-0.5">{etapa.label}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+            <div className="flex min-h-0 flex-1 overflow-hidden">
+              <nav className="hidden w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-primary/10 bg-[#05749E] p-2 sm:flex">
+                {(
+                  [
+                    { id: "informacoes" as const, label: "Informações", icon: UserRound },
+                    { id: "documentos" as const, label: "Documentos", icon: FolderOpen },
+                    { id: "pendencias" as const, label: "Pendências", icon: RotateCcw },
+                    { id: "historico" as const, label: "Histórico", icon: History },
+                    ...(analista
+                      ? [
+                          {
+                            id: "analise" as const,
+                            label: "Análise",
+                            icon: SearchCheck,
+                          },
+                        ]
+                      : []),
+                  ] as const
+                ).map((item) => {
+                  const Icon = item.icon;
+                  const active = detailNav === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setDetailNav(item.id)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition",
+                        active
+                          ? "bg-white font-semibold text-[#05749E]"
+                          : "text-white/90 hover:bg-white/10",
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="flex-1">{item.label}</span>
+                      {active ? <ChevronRight className="h-4 w-4" /> : null}
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="flex gap-1 overflow-x-auto border-b border-primary/10 px-3 py-2 sm:hidden">
+                  {(
+                    [
+                      { id: "informacoes" as const, label: "Informações" },
+                      { id: "documentos" as const, label: "Documentos" },
+                      { id: "pendencias" as const, label: "Pendências" },
+                      { id: "historico" as const, label: "Histórico" },
+                      ...(analista
+                        ? [{ id: "analise" as const, label: "Análise" }]
+                        : []),
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setDetailNav(item.id)}
+                      className={cn(
+                        "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium",
+                        detailNav === item.id
+                          ? "bg-primary text-white"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-5 px-4 py-4 sm:px-6">
+            {detailNav === "informacoes" ? (
+            <>
             <FormSection
               className={SECTION_WASH}
               iconClassName={ICON_CYAN}
@@ -1328,21 +1493,48 @@ function ProcessosPage() {
                 </Field>
               </div>
             </FormSection>
+            <ProcessoDossie
+              processo={selected}
+              allowUpload={false}
+              uploadNonce={uploadNonce}
+              parts={["cabecalho"]}
+            />
+            </>
+            ) : null}
 
+            {detailNav === "documentos" ? (
             <FormSection
               className={SECTION_WASH}
               iconClassName={ICON_INK}
               icon={<FileText className="h-4 w-4" />}
-              title="Dossiê do processo"
-              description="Cabeçalho enviado, documentos originais, complementares, pendências e histórico documental no mesmo lugar."
+              title="Documentos"
+              description="Arquivos originais, complementares e da ficha do lead, com visualização e download."
             >
               <ProcessoDossie
                 processo={selected}
                 allowUpload={canUpload}
                 uploadNonce={uploadNonce}
+                parts={["documentos"]}
               />
             </FormSection>
+            ) : null}
 
+            {detailNav === "pendencias" ? (
+            <>
+            <FormSection
+              className={SECTION_WASH}
+              iconClassName={ICON_CYAN}
+              icon={<RotateCcw className="h-4 w-4" />}
+              title="Pendências documentacionais"
+              description="Solicitações da análise e correções enviadas no retrabalho."
+            >
+              <ProcessoDossie
+                processo={selected}
+                allowUpload={false}
+                uploadNonce={uploadNonce}
+                parts={["pendencias"]}
+              />
+            </FormSection>
             {canMutate(selected) &&
             selected.etapa === "retrabalho" &&
             (selected.pendencias?.length ?? 0) > 0 ? (
@@ -1409,7 +1601,17 @@ function ProcessosPage() {
                 </div>
               </FormSection>
             ) : null}
+            </>
+            ) : null}
 
+            {detailNav === "historico" ? (
+            <>
+            <ProcessoDossie
+              processo={selected}
+              allowUpload={false}
+              uploadNonce={uploadNonce}
+              parts={["historico"]}
+            />
             {(selected.movimentos?.length ?? 0) > 0 ? (
               <FormSection
                 className={SECTION_WASH}
@@ -1494,7 +1696,11 @@ function ProcessosPage() {
               </FormSection>
             ) : null}
 
-            {analista &&
+            </>
+            ) : null}
+
+            {detailNav === "analise" &&
+            analista &&
             selected.etapa !== "nova_avaliacao" &&
             selected.etapa !== "retrabalho" ? (
               <FormSection
@@ -1543,7 +1749,16 @@ function ProcessosPage() {
                   </div>
                 </div>
               </FormSection>
+            ) : detailNav === "analise" ? (
+              <p className="text-sm text-muted-foreground">
+                O parecer de aprovação fica disponível quando o processo está em
+                análise.
+              </p>
             ) : null}
+                </div>
+              </div>
+            </div>
+            )}
           </FormDialogBody>
         </FormDialogShell>
       ) : null}
