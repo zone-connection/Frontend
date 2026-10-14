@@ -421,7 +421,7 @@ function DataField({
   children: ReactNode;
 }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 rounded-xl bg-[#F8FAFC] px-3 py-2.5 dark:bg-white/5">
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <Icon className="h-3.5 w-3.5 shrink-0" />
         {label}
@@ -475,7 +475,7 @@ function FunilTrack({
   const days = daysSince(enteredAt);
 
   return (
-    <div className="mt-3 flex flex-wrap gap-1.5">
+    <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
       {track.map((s) => {
         const current = s.id === currentId;
         return (
@@ -483,7 +483,7 @@ function FunilTrack({
             key={s.id}
             title={s.name}
             className={cn(
-              "rounded-md border px-2 py-1 text-[11px] font-medium",
+              "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium",
               current
                 ? "border-transparent bg-[#2563EB] text-white"
                 : "border-[#E2E8F0] bg-white text-[#64748B] dark:border-white/10 dark:bg-[#1c2430] dark:text-[#94a3b8]",
@@ -509,7 +509,7 @@ function SideSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="border-b">
+    <section className="rounded-2xl border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <button
         type="button"
         className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold"
@@ -518,7 +518,7 @@ function SideSection({
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition", !open && "-rotate-90")} />
         {title}
       </button>
-      {open ? <div className="px-4 pb-4">{children}</div> : null}
+      {open ? <div className="border-t px-4 py-4">{children}</div> : null}
     </section>
   );
 }
@@ -714,7 +714,7 @@ export function LeadDetalheDialog({
         className={cn(
           "!left-0 !right-0 !top-14 !bottom-0 !h-auto !max-h-none !w-auto !max-w-none !translate-x-0 !translate-y-0",
           "md:!left-[var(--app-sidebar,15rem)]",
-          "!flex !flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 shadow-none",
+          "!flex !flex-col gap-0 overflow-hidden rounded-none border-0 bg-[#EEF3F8] p-0 shadow-none dark:bg-[#0f141b]",
         )}
       >
         {lead ? (
@@ -724,9 +724,9 @@ export function LeadDetalheDialog({
               Detalhes de {lead.nome}
             </DialogDescription>
 
-            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[22.5rem_minmax(0,1fr)]">
-              <aside className="order-2 flex min-h-0 flex-col overflow-y-auto border-t bg-[#F8FAFC] [scrollbar-width:thin] lg:order-1 lg:border-t-0 lg:border-r dark:bg-[#121820]">
-                <div className="border-b bg-card px-4 py-4">
+            <div className="grid min-h-0 flex-1 gap-3 overflow-hidden p-3 lg:grid-cols-[24rem_minmax(0,1fr)]">
+              <aside className="order-2 flex min-h-0 flex-col gap-3 overflow-y-auto [scrollbar-width:thin] lg:order-1">
+                <div className="rounded-2xl border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span
@@ -833,11 +833,11 @@ export function LeadDetalheDialog({
                       </dt>
                       <dd className="min-w-0 text-right break-words">{lead.telefone || "—"}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
+                    <div className="space-y-0.5">
+                      <dt className="flex items-center gap-2 text-muted-foreground">
                         <Mail className="h-4 w-4" /> E-mail
                       </dt>
-                      <dd className="min-w-0 truncate text-right" title={email || undefined}>{email || "—"}</dd>
+                      <dd className="break-all pl-6 text-[13px]">{email || "—"}</dd>
                     </div>
                     <div className="flex items-start justify-between gap-3">
                       <dt className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
@@ -869,7 +869,7 @@ export function LeadDetalheDialog({
                 </SideSection>
                 <SideSection title="Detalhes">
                     <section>
-                      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                      <div className="grid gap-3">
                         <DataField icon={Phone} label="Telefone">
                           <div className="flex items-center gap-1">
                             <div className="min-w-0 flex-1">
@@ -989,7 +989,7 @@ export function LeadDetalheDialog({
                           />
                         </DataField>
                       </div>
-                      <div className="mt-5 grid grid-cols-3 gap-x-4 gap-y-4 border-t pt-5">
+                      <div className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-3">
                         <DataField icon={StickyNote} label="CPF">
                           <EditableValue
                             value={lead.cpf ?? ""}
@@ -1009,7 +1009,7 @@ export function LeadDetalheDialog({
                           />
                         </DataField>
                       </div>
-                      <div className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                      <div className="mt-5 grid gap-4 border-t pt-5">
                         <DataField icon={Globe} label="Cidade">
                           <EditableValue
                             value={lead.cidade}
@@ -1076,7 +1076,7 @@ export function LeadDetalheDialog({
                     {isProspeccao ? (
                       <section className="rounded-xl border bg-background/30 p-4">
                         <h3 className="mb-3 text-sm font-medium">Prospecção</h3>
-                        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                        <div className="grid gap-3">
                           {(
                             [
                               ["quemAbordar", "Quem abordar"],
@@ -1136,7 +1136,7 @@ export function LeadDetalheDialog({
 
               <div
                 className={cn(
-                  "order-1 min-h-0 lg:order-2",
+                  "order-1 min-h-0 rounded-2xl border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:order-2",
                   tab === "whatsapp"
                     ? "flex flex-col overflow-hidden"
                     : "overflow-y-auto overscroll-contain [scrollbar-width:thin]",
