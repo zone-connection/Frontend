@@ -71,6 +71,10 @@ export function enviarProcesso(id: string) {
   return apiFetch<Processo>(`/processos/${id}/enviar`, { method: "POST" });
 }
 
+export function deleteProcesso(id: string) {
+  return apiFetch<void>(`/processos/${id}`, { method: "DELETE" });
+}
+
 export function retornarProcesso(
   id: string,
   body: {

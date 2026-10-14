@@ -16,8 +16,24 @@ import {
   FormDialogShell,
   FormSection,
 } from "@/components/form-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +65,7 @@ import {
 import { formatPhone } from "@/lib/phone";
 import {
   createProcesso,
+  deleteProcesso,
   enviarProcesso,
   fetchProcessos,
   retornarProcesso,
@@ -69,10 +86,13 @@ import {
   Inbox,
   Loader2,
   Mail,
+  MoreHorizontal,
   Pencil,
   Phone,
   Plus,
   Send,
+  Trash2,
+  Upload,
   UserRound,
   Users,
   XCircle,
@@ -131,6 +151,10 @@ function ProcessosPage() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<ProcessoStatus | "todos">("todos");
   const [selected, setSelected] = useState<Processo | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [fichaMode, setFichaMode] = useState<"view" | "edit">("view");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [uploadNonce, setUploadNonce] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [leads, setLeads] = useState<ApiLead[]>([]);
   const [assignees, setAssignees] = useState<LeadAssignee[]>([]);
@@ -228,8 +252,10 @@ function ProcessosPage() {
     });
   }
 
-  function applySelected(p: Processo) {
+  function applySelected(p: Processo, mode: "view" | "edit" = "view") {
     setSelected(p);
+    setFichaMode(mode);
+    setDetailOpen(true);
     setForm({
       nome: p.nome,
       fonte: p.fonte,
@@ -247,9 +273,33 @@ function ProcessosPage() {
     setRetornoPdf(null);
   }
 
-  const canEdit =
-    selected &&
-    (selected.status === "rascunho" || selected.status === "reprovado");
+  function canMutate(row: Processo) {
+    return row.status === "rascunho" || row.status === "reprovado";
+  }
+
+  const canEdit = Boolean(selected && fichaMode === "edit" && canMutate(selected));
+  const canUpload = Boolean(selected && canMutate(selected));
+
+  async function onDelete() {
+    if (!deleteId) return;
+    setSaving(true);
+    try {
+      await deleteProcesso(deleteId);
+      toast.success("Processo excluído.");
+      if (selected?.id === deleteId) {
+        setSelected(null);
+        setDetailOpen(false);
+      }
+      setDeleteId(null);
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível excluir.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function onCreate() {
     if (!leadId) {
@@ -268,7 +318,7 @@ function ProcessosPage() {
       toast.success("Processo cadastrado.");
       setCreateOpen(false);
       await load();
-      applySelected(created);
+      applySelected(created, "edit");
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível cadastrar.",
@@ -289,7 +339,7 @@ function ProcessosPage() {
         gerenteId: form.gerenteId || null,
       });
       toast.success("Ficha atualizada.");
-      applySelected(updated);
+      applySelected(updated, "edit");
       await load();
     } catch (err) {
       toast.error(
@@ -300,21 +350,20 @@ function ProcessosPage() {
     }
   }
 
-  async function onEnviar() {
-    if (!selected) return;
+  async function enviarFicha(id: string, salvarAntes = false) {
     setSaving(true);
     try {
-      if (canEdit) {
-        await updateProcesso(selected.id, {
+      if (salvarAntes && selected?.id === id && canEdit) {
+        await updateProcesso(id, {
           ...form,
           empreendimentoId: form.empreendimentoId || null,
           corretorId: form.corretorId || null,
           gerenteId: form.gerenteId || null,
         });
       }
-      const updated = await enviarProcesso(selected.id);
+      const updated = await enviarProcesso(id);
       toast.success("Processo enviado ao gerente.");
-      applySelected(updated);
+      applySelected(updated, "view");
       await load();
     } catch (err) {
       toast.error(
@@ -323,6 +372,11 @@ function ProcessosPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function onEnviar() {
+    if (!selected) return;
+    await enviarFicha(selected.id, true);
   }
 
   async function onRetorno(resultado: "aprovado" | "reprovado") {
@@ -470,6 +524,7 @@ function ProcessosPage() {
                     Corretor
                   </TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[1%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -478,9 +533,11 @@ function ProcessosPage() {
                     key={row.id}
                     className={cn(
                       "cursor-pointer",
-                      selected?.id === row.id && "bg-primary/[0.06]",
+                      selected?.id === row.id &&
+                        detailOpen &&
+                        "bg-primary/[0.06]",
                     )}
-                    onClick={() => applySelected(row)}
+                    onClick={() => applySelected(row, "view")}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -509,6 +566,78 @@ function ProcessosPage() {
                     <TableCell>
                       <StatusPill status={row.status} />
                     </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        {canMutate(row) ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8"
+                            disabled={saving}
+                            title="Enviar ao gerente"
+                            onClick={() => void enviarFicha(row.id)}
+                          >
+                            <Send className="mr-1 h-3.5 w-3.5" />
+                            Enviar
+                          </Button>
+                        ) : null}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Ações"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canMutate(row) ? (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => applySelected(row, "edit")}
+                                >
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={saving}
+                                  onClick={() => void enviarFicha(row.id)}
+                                >
+                                  <Send className="mr-2 h-3.5 w-3.5" />
+                                  Enviar ao gerente
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    applySelected(row, "view");
+                                    setUploadNonce((n) => n + 1);
+                                  }}
+                                >
+                                  <Upload className="mr-2 h-3.5 w-3.5" />
+                                  Enviar PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeleteId(row.id)}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => applySelected(row, "view")}
+                              >
+                                <ClipboardList className="mr-2 h-3.5 w-3.5" />
+                                Ver detalhes
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -518,32 +647,78 @@ function ProcessosPage() {
       </PagePanel>
 
       {selected ? (
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/40 to-card px-4 py-4 dark:via-[#141a22] sm:px-6">
-            <div className="flex items-start gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
-                <ClipboardList className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                  Ficha do processo
-                </p>
-                <h2 className="text-lg font-semibold tracking-tight">
-                  {selected.nome}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {selected.lead?.tipo === "cliente" ? "Cliente" : "Lead"}
-                  {selected.fonte ? ` · Fonte ${selected.fonte}` : ""}
-                  {selected.corretor?.name
-                    ? ` · ${selected.corretor.name}`
-                    : ""}
-                </p>
-              </div>
-            </div>
-            <StatusPill status={selected.status} />
-          </div>
-
-          <div className="space-y-5 p-4 sm:p-6">
+        <FormDialogShell
+          open={detailOpen}
+          onOpenChange={(open) => {
+            setDetailOpen(open);
+            if (!open) setFichaMode("view");
+          }}
+          icon={<ClipboardList className="h-5 w-5" />}
+          title={selected.nome}
+          description={
+            <>
+              {selected.lead?.tipo === "cliente" ? "Cliente" : "Lead"}
+              {selected.fonte ? ` · Fonte ${selected.fonte}` : ""}
+              {selected.corretor?.name ? ` · ${selected.corretor.name}` : ""}
+              {" · "}
+              {STATUS_LABEL[selected.status]}
+            </>
+          }
+          footer={
+            <FormDialogActions
+              hint={
+                canEdit
+                  ? "Salve a ficha ou envie para o gerente analisar."
+                  : "Clique em Editar no menu da lista para alterar a ficha."
+              }
+            >
+              {canEdit ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={SOFT_BTN}
+                    onClick={() => void onSave()}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Pencil className="mr-1 h-4 w-4" />
+                    )}
+                    Salvar ficha
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void onEnviar()}
+                    disabled={saving}
+                  >
+                    <Send className="mr-1 h-4 w-4" />
+                    Enviar
+                  </Button>
+                </>
+              ) : canMutate(selected) ? (
+                <Button
+                  type="button"
+                  onClick={() => setFichaMode("edit")}
+                >
+                  <Pencil className="mr-1 h-4 w-4" />
+                  Editar
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOFT_BTN}
+                  onClick={() => setDetailOpen(false)}
+                >
+                  Fechar
+                </Button>
+              )}
+            </FormDialogActions>
+          }
+        >
+          <FormDialogBody>
             <FormSection
               icon={<UserRound className="h-4 w-4" />}
               title="Dados do contato"
@@ -718,33 +893,6 @@ function ProcessosPage() {
               </div>
             </FormSection>
 
-            {canEdit ? (
-              <div className="flex flex-wrap items-center justify-end gap-2 rounded-2xl border border-primary/10 bg-gradient-to-r from-card to-primary/[0.04] px-4 py-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOFT_BTN}
-                  onClick={() => void onSave()}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Pencil className="mr-1 h-4 w-4" />
-                  )}
-                  Salvar ficha
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => void onEnviar()}
-                  disabled={saving}
-                >
-                  <Send className="mr-1 h-4 w-4" />
-                  Enviar
-                </Button>
-              </div>
-            ) : null}
-
             <FormSection
               icon={<FileText className="h-4 w-4" />}
               title="Documentações"
@@ -759,7 +907,8 @@ function ProcessosPage() {
                   entityId: selected.leadId,
                 }}
                 title="Arquivos do processo"
-                allowUpload={Boolean(canEdit)}
+                allowUpload={canUpload}
+                uploadNonce={uploadNonce}
               />
             </FormSection>
 
@@ -861,9 +1010,35 @@ function ProcessosPage() {
                 </div>
               </FormSection>
             ) : null}
-          </div>
-        </div>
+          </FormDialogBody>
+        </FormDialogShell>
       ) : null}
+
+      <AlertDialog
+        open={Boolean(deleteId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir processo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A ficha será removida. Os documentos já enviados continuam na
+              ficha do lead, se estiverem vinculados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void onDelete()}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <FormDialogShell
         open={createOpen}

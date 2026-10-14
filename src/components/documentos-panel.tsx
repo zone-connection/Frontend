@@ -96,6 +96,7 @@ export function DocumentosPanel({
   related,
   title = "Documentos",
   allowUpload = true,
+  uploadNonce = 0,
 }: {
   entityType: ArquivoVinculoTipo;
   entityId: string;
@@ -104,6 +105,8 @@ export function DocumentosPanel({
   related?: { entityType: ArquivoVinculoTipo; entityId: string; label: string };
   title?: string;
   allowUpload?: boolean;
+  /** Incrementar para abrir o diálogo de envio de PDF. */
+  uploadNonce?: number;
 }) {
   const gestor = canGestor();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -156,6 +159,10 @@ export function DocumentosPanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (uploadNonce > 0 && allowUpload) setOpen(true);
+  }, [uploadNonce, allowUpload]);
 
   const visible = useMemo(() => {
     if (!filterTag) return items;
