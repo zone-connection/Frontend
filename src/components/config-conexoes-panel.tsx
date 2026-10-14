@@ -228,10 +228,10 @@ function MetaConexoesCard({ selectingMeta }: { selectingMeta: boolean }) {
             </p>
             {assets && assets.pages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nenhuma Página veio nesta autorização. Cancele, clique de novo
-                em Conectar Facebook e, na tela da Meta, marque as Páginas
-                (não só o perfil). Quem conecta precisa ser administrador da
-                Página no Gerenciador de Negócios.
+                Nenhuma Página veio nesta autorização. Cancele e conecte de
+                novo. Na Meta, marque as Páginas e os portfólios do Gerenciador
+                de Negócios (não só o perfil). Quem conecta precisa administrar
+                a Página ou o portfólio.
               </p>
             ) : null}
             {assets && assets.pages.length > 0 ? (
