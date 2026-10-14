@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ListTodo } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { NovoBadge } from "@/components/novo-badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ function NovidadesPage() {
         <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="border-b bg-muted/40 px-5 py-4 sm:px-8">
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-              <ListTodo className="h-3.5 w-3.5" />
+              <Sparkles className="h-3.5 w-3.5" />
               {item.kicker}
               <span className="text-muted-foreground/70">·</span>
               <span className="font-medium normal-case tracking-normal text-muted-foreground">
@@ -40,9 +40,8 @@ function NovidadesPage() {
           </div>
 
           <div className="space-y-5 px-5 py-6 sm:px-8">
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
-              {item.status}. O módulo ainda está em desenvolvimento, então nada
-              é desligado agora.
+            <p className="rounded-xl border border-[#B7D7E6] bg-[#F3FAFD] px-4 py-3 text-sm leading-relaxed text-[#0B3148]">
+              {item.status}
             </p>
 
             <div>
@@ -55,12 +54,11 @@ function NovidadesPage() {
             </div>
 
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {item.where} O selo <NovoBadge className="align-middle" /> fica
-              só em Tarefas.
+              {item.where} O selo <NovoBadge className="align-middle" /> marca o menu Leads.
             </p>
 
             <Button asChild>
-              <Link to="/tarefas">
+              <Link to="/leads">
                 {item.hrefLabel}
                 <ArrowRight className="h-4 w-4" />
               </Link>

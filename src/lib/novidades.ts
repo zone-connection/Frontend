@@ -26,24 +26,23 @@ const ANUNCIO_STORAGE_KEY = "crm-novidade-anuncio-vista";
 
 export const NOVIDADES: Novidade[] = [
   {
-    id: "tarefas-substitui-agenda",
-    title: "Tarefas vai substituir a Agenda",
-    kicker: "Em desenvolvimento",
-    publishedAt: "2026-10-09",
+    id: "documentos-no-lead",
+    title: "Envie documentos no lead",
+    kicker: "Novidade",
+    publishedAt: "2026-10-14",
     summary:
-      "Estamos migrando a Agenda para o módulo Tarefas. A mudança ainda está em desenvolvimento: os dois convivem, e a Agenda continua valendo para os compromissos de agora.",
-    where:
-      "No menu, Tarefas leva o selo Novo. A Agenda permanece no lugar até a migração terminar.",
-    href: "/tarefas",
-    hrefLabel: "Abrir Tarefas",
-    status: "Migração em andamento",
+      "Agora dá para anexar arquivos direto no lead e no cliente. PDF e imagem ficam na ficha, em Documentações.",
+    where: "Abra um lead ou cliente e vá em Documentações.",
+    href: "/leads",
+    hrefLabel: "Abrir leads",
+    status: "Disponível na ficha do lead e do cliente",
     agora: [
-      "Tarefas é o módulo que vai assumir a Agenda.",
-      "A troca ainda não terminou. Continue usando a Agenda normalmente.",
-      "Quando a migração acabar, avisamos aqui e a Agenda sai do menu.",
+      "Envie PDF ou imagem de até 5 MB.",
+      "O histórico registra quem enviou, visualizou, baixou ou compartilhou.",
+      "A mesma ficha vale para lead e cliente.",
     ],
-    navPaths: ["/tarefas"],
-    pagePaths: ["/tarefas"],
+    navPaths: ["/leads"],
+    pagePaths: ["/leads"],
   },
 ];
 

@@ -119,6 +119,11 @@ export const GUIA_GROUPS: GuiaGroup[] = [
               "Seleciona leads do pool e envia para corretor ou para o pool da equipe. Gerente distribui no recorte da própria equipe.",
           },
           {
+            title: "Enviar documentos na ficha",
+            detail:
+              "Abra o lead e vá em Documentações. Envie PDF ou imagem (JPG, PNG, WEBP ou GIF), até 5 MB. O histórico registra quem enviou, visualizou, baixou, compartilhou ou excluiu.",
+          },
+          {
             title: "Editar, filtrar e exportar",
             detail:
               "Filtros por corretor, equipe, origem, etapa, tag, cidade. Exporta a lista filtrada em Excel ou CSV. Na linha: ver, editar, atribuir, perder.",
@@ -236,10 +241,10 @@ export const GUIA_GROUPS: GuiaGroup[] = [
       {
         id: "agenda",
         title: "Agenda",
-        href: "/agenda",
+        href: "/tarefas",
         who: "Todo o comercial. Analista não usa este módulo. Admin vê o time; corretor vê o próprio + itens compartilhados da equipe.",
         summary:
-          "Compromissos pessoais e de equipe: visita, ligação, tarefa. O sino avisa o que está perto (hoje, 2 h, 1 h).",
+          "A Agenda fica dentro de Tarefas, na aba Agenda. Compromissos pessoais e de equipe: visita, ligação, reunião, bloqueio. O sino avisa o que está perto.",
         actions: [
           {
             title: "Google Agenda",
@@ -281,6 +286,11 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         summary:
           "Carteira: contatos já assumidos. Mesma ficha do lead, tipo “cliente”. Perda daqui vai para Perda de cliente.",
         actions: [
+          {
+            title: "Enviar documentos na ficha",
+            detail:
+              "A ficha do cliente tem a mesma área de Documentações do lead. PDF ou imagem de até 5 MB, com histórico de envio, visualização, download e compartilhamento.",
+          },
           {
             title: "Trabalhar a lista",
             detail:

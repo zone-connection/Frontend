@@ -37,8 +37,8 @@ export function NovidadeAnuncioDialog({
             {item.summary}
           </DialogDescription>
         </DialogHeader>
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-relaxed text-amber-950">
-          {item.status}. A Agenda segue disponível enquanto Tarefas é concluída.
+        <p className="rounded-xl border border-[#B7D7E6] bg-[#F3FAFD] px-3 py-2 text-sm leading-relaxed text-[#0B3148]">
+          {item.status}
         </p>
         <DialogFooter className="gap-2 sm:gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -46,7 +46,7 @@ export function NovidadeAnuncioDialog({
           </Button>
           {podeAbrirTarefas ? (
             <Button type="button" asChild>
-              <Link to="/tarefas" onClick={() => onOpenChange(false)}>
+              <Link to={item.href as "/leads"} onClick={() => onOpenChange(false)}>
                 {item.hrefLabel}
                 <ArrowRight className="h-4 w-4" />
               </Link>
