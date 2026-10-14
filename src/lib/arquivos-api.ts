@@ -27,6 +27,7 @@ export type ArquivoDocumento = {
   nome: string;
   nomeOriginal: string;
   categoria: ArquivoCategoria;
+  mime?: string;
   bytes: number;
   createdAt: string;
   uploadedBy: { id: string; name: string } | null;

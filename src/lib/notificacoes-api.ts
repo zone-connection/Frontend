@@ -20,7 +20,9 @@ export type NotificacaoTipo =
   | "lead_pool"
   | "chave_retirada"
   | "chave_devolucao"
-  | "chave_confirmacao";
+  | "chave_confirmacao"
+  | "processo_pendencia"
+  | "processo_reenvio";
 
 export type Notificacao = {
   id: string;

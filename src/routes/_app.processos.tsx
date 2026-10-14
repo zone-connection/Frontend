@@ -8,8 +8,12 @@ import {
 } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { PagePanel } from "@/components/page-panel";
-import { DocumentosPanel } from "@/components/documentos-panel";
+import {
+  ProcessoArquivoAcoes,
+  ProcessoDossie,
+} from "@/components/processo-dossie";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { OperationFunnelBoard } from "@/components/operation-funnel-board";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -54,7 +58,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { previewArquivo, uploadArquivo } from "@/lib/arquivos-api";
+import { uploadArquivo } from "@/lib/arquivos-api";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import {
   fetchLeadAssignees,
@@ -64,13 +68,20 @@ import {
 } from "@/lib/leads-api";
 import { formatPhone } from "@/lib/phone";
 import {
+  PROCESSOS_ETAPAS,
+  PROCESSO_ETAPA_LABEL,
   createProcesso,
+  criarCorrecaoPendencia,
+  criarPendenciaProcesso,
   deleteProcesso,
   enviarProcesso,
   fetchProcessos,
+  moverProcessoEtapa,
+  reenviarProcesso,
   retornarProcesso,
   updateProcesso,
   type Processo,
+  type ProcessoEtapa,
   type ProcessoStatus,
 } from "@/lib/processos-api";
 import { SOFT_BTN, SOFT_BTN_ACTIVE } from "@/lib/soft-btn";
@@ -81,15 +92,20 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
+  Columns3,
   FileText,
   FolderOpen,
+  History,
   Inbox,
+  LayoutList,
   Loader2,
   Mail,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Phone,
   Plus,
+  RotateCcw,
   Send,
   Trash2,
   Upload,
@@ -123,6 +139,11 @@ const STATUS_PILL: Record<ProcessoStatus, string> = {
 function isGestor() {
   const role = getSession()?.role;
   return role === "admin" || role === "gerente" || role === "super_admin";
+}
+
+function canAnalisar() {
+  const role = getSession()?.role;
+  return isGestor() || role === "analista";
 }
 
 function initials(name: string) {
@@ -205,9 +226,10 @@ function ChoiceValue({ yes }: { yes: boolean }) {
 }
 
 function ProcessosPage() {
-  const gestor = isGestor();
+  const analista = canAnalisar();
   const [rows, setRows] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vista, setVista] = useState<"funil" | "lista">("funil");
   const [filtro, setFiltro] = useState<ProcessoStatus | "todos">("todos");
   const [selected, setSelected] = useState<Processo | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -215,6 +237,20 @@ function ProcessosPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [uploadNonce, setUploadNonce] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [pendenciaOpen, setPendenciaOpen] = useState(false);
+  const [pendenciaProcesso, setPendenciaProcesso] = useState<Processo | null>(
+    null,
+  );
+  const [pendenciaForm, setPendenciaForm] = useState({
+    titulo: "",
+    descricao: "",
+    textoComplementar: "",
+  });
+  const [pendenciaFiles, setPendenciaFiles] = useState<File[]>([]);
+  const [correcaoTexto, setCorrecaoTexto] = useState("");
+  const [correcaoFiles, setCorrecaoFiles] = useState<File[]>([]);
+  const [correcaoPendenciaId, setCorrecaoPendenciaId] = useState("");
   const [leads, setLeads] = useState<ApiLead[]>([]);
   const [assignees, setAssignees] = useState<LeadAssignee[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<
@@ -330,10 +366,19 @@ function ProcessosPage() {
     });
     setRetornoTexto("");
     setRetornoPdf(null);
+    setCorrecaoTexto("");
+    setCorrecaoFiles([]);
+    const aberta = p.pendencias?.find((x) => x.status === "aberta");
+    setCorrecaoPendenciaId(aberta?.id ?? p.pendencias?.[0]?.id ?? "");
   }
 
   function canMutate(row: Processo) {
-    return row.status === "rascunho" || row.status === "reprovado";
+    return (
+      row.etapa === "nova_avaliacao" ||
+      row.etapa === "retrabalho" ||
+      row.status === "rascunho" ||
+      row.status === "reprovado"
+    );
   }
 
   const canEdit = Boolean(selected && fichaMode === "edit" && canMutate(selected));
@@ -421,7 +466,7 @@ function ProcessosPage() {
         });
       }
       const updated = await enviarProcesso(id);
-      toast.success("Processo enviado ao gerente.");
+      toast.success("Processo enviado para análise.");
       applySelected(updated, "view");
       await load();
     } catch (err) {
@@ -473,6 +518,135 @@ function ProcessosPage() {
     }
   }
 
+  async function onMoverEtapa(cardId: string, etapaId: string) {
+    const etapa = etapaId as ProcessoEtapa;
+    const row = rows.find((r) => r.id === cardId);
+    if (!row || !analista) return;
+    if (etapa === "pendencia_documentacional") {
+      setPendenciaProcesso(row);
+      setPendenciaForm({ titulo: "", descricao: "", textoComplementar: "" });
+      setPendenciaFiles([]);
+      setPendenciaOpen(true);
+      return;
+    }
+    setMovingId(cardId);
+    try {
+      const updated = await moverProcessoEtapa(cardId, { etapa });
+      setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      if (selected?.id === updated.id) applySelected(updated, fichaMode);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível mover.",
+      );
+    } finally {
+      setMovingId(null);
+    }
+  }
+
+  async function uploadMany(processoId: string, files: File[], nome: string) {
+    const ids: string[] = [];
+    for (const file of files) {
+      const uploaded = await uploadArquivo({
+        file,
+        entityType: "processo",
+        entityId: processoId,
+        nome,
+        categoria: "outro",
+        tagIds: [],
+      });
+      ids.push(uploaded.id);
+    }
+    return ids;
+  }
+
+  async function onSalvarPendencia() {
+    if (!pendenciaProcesso) return;
+    if (!pendenciaForm.titulo.trim()) {
+      toast.error("Informe o título da pendência.");
+      return;
+    }
+    if (!pendenciaForm.descricao.trim() && pendenciaFiles.length === 0) {
+      toast.error("Informe a descrição ou anexe arquivos.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const arquivoIds = await uploadMany(
+        pendenciaProcesso.id,
+        pendenciaFiles,
+        `Pendência ${pendenciaForm.titulo}`,
+      );
+      const updated = await criarPendenciaProcesso(pendenciaProcesso.id, {
+        titulo: pendenciaForm.titulo,
+        descricao: pendenciaForm.descricao,
+        textoComplementar: pendenciaForm.textoComplementar,
+        arquivoIds,
+      });
+      toast.success("Pendência registrada. O processo voltou para Retrabalho.");
+      setPendenciaOpen(false);
+      applySelected(updated);
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível registrar.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onCorrecao() {
+    if (!selected || !correcaoPendenciaId) {
+      toast.error("Selecione a pendência que está corrigindo.");
+      return;
+    }
+    if (!correcaoTexto.trim() && correcaoFiles.length === 0) {
+      toast.error("Envie um comentário ou os documentos corrigidos.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const arquivoIds = await uploadMany(
+        selected.id,
+        correcaoFiles,
+        "Correção de retrabalho",
+      );
+      const updated = await criarCorrecaoPendencia(
+        selected.id,
+        correcaoPendenciaId,
+        { comentario: correcaoTexto, arquivoIds },
+      );
+      toast.success("Correção registrada.");
+      setCorrecaoTexto("");
+      setCorrecaoFiles([]);
+      applySelected(updated, "edit");
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível salvar.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onReenviar() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const updated = await reenviarProcesso(selected.id);
+      toast.success("Processo reenviado para análise.");
+      applySelected(updated, "view");
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível reenviar.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const filtros = [
     { id: "todos" as const, label: "Todos", count: rows.length },
     { id: "rascunho" as const, label: "Rascunho", count: counts.rascunho },
@@ -486,12 +660,42 @@ function ProcessosPage() {
       <PageHeader
         eyebrow="Fechamento"
         title="Processos"
-        description="Cadastre a ficha e os documentos do lead ou cliente. O envio vai para o gerente analisar."
+        description="Acompanhe a análise no funil, solicite pendências e registre o retrabalho no mesmo lugar."
         actions={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            Cadastrar processos
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-8 overflow-hidden rounded-full border bg-background">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-8 rounded-none px-3",
+                  vista === "funil" && "bg-primary/10 text-primary",
+                )}
+                onClick={() => setVista("funil")}
+              >
+                <Columns3 className="mr-1 h-3.5 w-3.5" />
+                Funil
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-8 rounded-none px-3",
+                  vista === "lista" && "bg-primary/10 text-primary",
+                )}
+                onClick={() => setVista("lista")}
+              >
+                <LayoutList className="mr-1 h-3.5 w-3.5" />
+                Lista
+              </Button>
+            </div>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Cadastrar processos
+            </Button>
+          </div>
         }
       />
 
@@ -503,7 +707,10 @@ function ProcessosPage() {
           icon={Pencil}
           tone="blue"
           format="number"
-          onClick={() => setFiltro("rascunho")}
+          onClick={() => {
+            setVista("lista");
+            setFiltro("rascunho");
+          }}
         />
         <FinanceKpiCard
           variant="dash"
@@ -512,7 +719,10 @@ function ProcessosPage() {
           icon={Inbox}
           tone="violet"
           format="number"
-          onClick={() => setFiltro("enviado")}
+          onClick={() => {
+            setVista("lista");
+            setFiltro("enviado");
+          }}
         />
         <FinanceKpiCard
           variant="dash"
@@ -521,7 +731,10 @@ function ProcessosPage() {
           icon={CheckCircle2}
           tone="emerald"
           format="number"
-          onClick={() => setFiltro("aprovado")}
+          onClick={() => {
+            setVista("lista");
+            setFiltro("aprovado");
+          }}
         />
         <FinanceKpiCard
           variant="dash"
@@ -530,10 +743,59 @@ function ProcessosPage() {
           icon={XCircle}
           tone="rose"
           format="number"
-          onClick={() => setFiltro("reprovado")}
+          onClick={() => {
+            setVista("lista");
+            setFiltro("reprovado");
+          }}
         />
       </div>
 
+      {vista === "funil" ? (
+        <PagePanel
+          title="Funil de processos"
+          description={
+            analista
+              ? "Arraste o card entre as etapas. Ao soltar em Pendência Documentacional, registre o que precisa ser corrigido."
+              : "Acompanhe a etapa da análise. No Retrabalho, abra o card para enviar as correções."
+          }
+        >
+          {loading ? (
+            <p className="flex items-center gap-2 px-1 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />{" "}
+              Carregando processos...
+            </p>
+          ) : (
+            <OperationFunnelBoard
+              stages={PROCESSOS_ETAPAS}
+              movingId={movingId}
+              onMove={onMoverEtapa}
+              onCardClick={(id) => {
+                const row = rows.find((r) => r.id === id);
+                if (row) applySelected(row, "view");
+              }}
+              cards={rows.map((row) => ({
+                id: row.id,
+                etapaId: row.etapa,
+                title: row.nome,
+                subtitle: row.empreendimento?.nome ?? row.fonte,
+                meta: row.corretor?.name ?? row.autor?.name,
+                href: "/processos",
+                phone: row.telefone,
+                footer: PROCESSO_ETAPA_LABEL[row.etapa],
+                tag:
+                  row.pendencias?.some((p) => p.status === "aberta")
+                    ? {
+                        label: "Pendência",
+                        className: "bg-orange-500/15 text-orange-800",
+                      }
+                    : undefined,
+              }))}
+            />
+          )}
+        </PagePanel>
+      ) : null}
+
+      {vista === "lista" ? (
       <PagePanel
         title="Lista de processos"
         description="Clique em um registro para abrir a ficha, os documentos e o retorno do gerente."
@@ -582,7 +844,7 @@ function ProcessosPage() {
                   <TableHead className="hidden lg:table-cell">
                     Corretor
                   </TableHead>
-                  <TableHead>Status</TableHead>
+                    <TableHead>Etapa</TableHead>
                   <TableHead className="w-[1%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -623,7 +885,12 @@ function ProcessosPage() {
                       {row.corretor?.name ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <StatusPill status={row.status} />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-semibold">
+                          {PROCESSO_ETAPA_LABEL[row.etapa]}
+                        </span>
+                        <StatusPill status={row.status} />
+                      </div>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
@@ -704,6 +971,7 @@ function ProcessosPage() {
           </div>
         )}
       </PagePanel>
+      ) : null}
 
       {selected ? (
         <FormDialogShell
@@ -722,6 +990,9 @@ function ProcessosPage() {
                 {selected.corretor?.name ? ` · ${selected.corretor.name}` : ""}
               </span>
               <StatusPill status={selected.status} />
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold">
+                {PROCESSO_ETAPA_LABEL[selected.etapa]}
+              </span>
             </span>
           }
           footer={
@@ -748,14 +1019,25 @@ function ProcessosPage() {
                     )}
                     Salvar ficha
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={() => void onEnviar()}
-                    disabled={saving}
-                  >
-                    <Send className="mr-1 h-4 w-4" />
-                    Enviar
-                  </Button>
+                  {selected.etapa === "retrabalho" ? (
+                    <Button
+                      type="button"
+                      onClick={() => void onReenviar()}
+                      disabled={saving}
+                    >
+                      <RotateCcw className="mr-1 h-4 w-4" />
+                      Reenviar para análise
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => void onEnviar()}
+                      disabled={saving}
+                    >
+                      <Send className="mr-1 h-4 w-4" />
+                      Enviar
+                    </Button>
+                  )}
                 </>
               ) : canMutate(selected) ? (
                 <Button
@@ -764,6 +1046,25 @@ function ProcessosPage() {
                 >
                   <Pencil className="mr-1 h-4 w-4" />
                   Editar
+                </Button>
+              ) : analista ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOFT_BTN}
+                  onClick={() => {
+                    setPendenciaProcesso(selected);
+                    setPendenciaForm({
+                      titulo: "",
+                      descricao: "",
+                      textoComplementar: "",
+                    });
+                    setPendenciaFiles([]);
+                    setPendenciaOpen(true);
+                  }}
+                >
+                  <Paperclip className="mr-1 h-4 w-4" />
+                  Solicitar pendência
                 </Button>
               ) : (
                 <Button
@@ -790,6 +1091,7 @@ function ProcessosPage() {
                   Situação da ficha
                 </p>
                 <p className="mt-0.5 text-sm font-medium text-[#0B3148] dark:text-[#f8fafc]">
+                  {PROCESSO_ETAPA_LABEL[selected.etapa]} ·{" "}
                   {STATUS_HINT[selected.status]}
                 </p>
               </div>
@@ -1031,22 +1333,123 @@ function ProcessosPage() {
               className={SECTION_WASH}
               iconClassName={ICON_INK}
               icon={<FileText className="h-4 w-4" />}
-              title="Documentações"
-              description="Os arquivos sobem aqui e aparecem na ficha do lead ou cliente."
+              title="Dossiê do processo"
+              description="Cabeçalho enviado, documentos originais, complementares, pendências e histórico documental no mesmo lugar."
             >
-              <DocumentosPanel
-                entityType="processo"
-                entityId={selected.id}
-                categoria="ficha"
-                extraVinculo={{
-                  entityType: "lead",
-                  entityId: selected.leadId,
-                }}
-                title="Arquivos do processo"
+              <ProcessoDossie
+                processo={selected}
                 allowUpload={canUpload}
                 uploadNonce={uploadNonce}
               />
             </FormSection>
+
+            {canMutate(selected) &&
+            selected.etapa === "retrabalho" &&
+            (selected.pendencias?.length ?? 0) > 0 ? (
+              <FormSection
+                className={SECTION_WASH}
+                iconClassName={ICON_CYAN}
+                icon={<RotateCcw className="h-4 w-4" />}
+                title="Enviar correção"
+                description="Anexe os documentos corrigidos e reenvie para a análise."
+              >
+                <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-500/30 dark:bg-amber-950/20">
+                  <p className="text-sm font-medium">
+                    Enviar correção desta pendência
+                  </p>
+                  <Select
+                    value={correcaoPendenciaId || undefined}
+                    onValueChange={setCorrecaoPendenciaId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pendência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selected.pendencias!.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.titulo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    rows={3}
+                    placeholder="Comente o que foi ajustado..."
+                    value={correcaoTexto}
+                    onChange={(e) => setCorrecaoTexto(e.target.value)}
+                  />
+                  <Input
+                    type="file"
+                    multiple
+                    accept=".pdf,image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) =>
+                      setCorrecaoFiles(Array.from(e.target.files ?? []))
+                    }
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={SOFT_BTN}
+                      disabled={saving}
+                      onClick={() => void onCorrecao()}
+                    >
+                      <Upload className="mr-1 h-4 w-4" />
+                      Registrar correção
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void onReenviar()}
+                    >
+                      <Send className="mr-1 h-4 w-4" />
+                      Reenviar para análise
+                    </Button>
+                  </div>
+                </div>
+              </FormSection>
+            ) : null}
+
+            {(selected.movimentos?.length ?? 0) > 0 ? (
+              <FormSection
+                className={SECTION_WASH}
+                iconClassName={ICON_INK}
+                icon={<History className="h-4 w-4" />}
+                title="Histórico do funil"
+                description="Etapas, responsáveis e observações de cada movimentação."
+              >
+                <div className="space-y-2">
+                  {selected.movimentos!.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-black/5 px-3 py-2 text-sm"
+                    >
+                      <p>
+                        <span className="font-medium">
+                          {m.deEtapa
+                            ? PROCESSO_ETAPA_LABEL[m.deEtapa]
+                            : "Início"}
+                        </span>
+                        {" → "}
+                        <span className="font-medium">
+                          {PROCESSO_ETAPA_LABEL[m.paraEtapa]}
+                        </span>
+                        {m.observacao ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {m.observacao}
+                          </span>
+                        ) : null}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {m.autor.name} ·{" "}
+                        {new Date(m.createdAt).toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+            ) : null}
 
             {(selected.retornos?.length ?? 0) > 0 ? (
               <FormSection
@@ -1081,20 +1484,9 @@ function ProcessosPage() {
                         </p>
                       ) : null}
                       {r.arquivoId ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className={cn("mt-3", SOFT_BTN)}
-                          onClick={() => {
-                            void previewArquivo(r.arquivoId!).then((res) =>
-                              window.open(res.url, "_blank"),
-                            );
-                          }}
-                        >
-                          <FileText className="mr-1 h-4 w-4" />
-                          Ver PDF do retorno
-                        </Button>
+                        <div className="mt-3">
+                          <ProcessoArquivoAcoes arquivoId={r.arquivoId} />
+                        </div>
                       ) : null}
                     </div>
                   ))}
@@ -1102,7 +1494,9 @@ function ProcessosPage() {
               </FormSection>
             ) : null}
 
-            {gestor && selected.status === "enviado" ? (
+            {analista &&
+            selected.etapa !== "nova_avaliacao" &&
+            selected.etapa !== "retrabalho" ? (
               <FormSection
                 className={SECTION_WASH}
                 iconClassName={ICON_CYAN}
@@ -1118,10 +1512,10 @@ function ProcessosPage() {
                     onChange={(e) => setRetornoTexto(e.target.value)}
                   />
                   <div className="space-y-1.5">
-                    <Label>PDF opcional</Label>
+                    <Label>Arquivo opcional (PDF ou imagem)</Label>
                     <Input
                       type="file"
-                      accept="application/pdf"
+                      accept=".pdf,image/jpeg,image/png,image/webp,image/gif"
                       onChange={(e) =>
                         setRetornoPdf(e.target.files?.[0] ?? null)
                       }
@@ -1179,6 +1573,101 @@ function ProcessosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FormDialogShell
+        open={pendenciaOpen}
+        onOpenChange={setPendenciaOpen}
+        icon={<Paperclip className="h-5 w-5" />}
+        title="Pendência documentacional"
+        description={
+          pendenciaProcesso
+            ? `Registre o que precisa ser corrigido em ${pendenciaProcesso.nome}. Depois o processo vai para Retrabalho.`
+            : "Registre a correção necessária."
+        }
+        footer={
+          <FormDialogActions hint="Use texto, anexos ou ambos.">
+            <Button
+              type="button"
+              variant="outline"
+              className={SOFT_BTN}
+              onClick={() => setPendenciaOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void onSalvarPendencia()}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-1 h-4 w-4" />
+              )}
+              Solicitar correção
+            </Button>
+          </FormDialogActions>
+        }
+      >
+        <FormDialogBody>
+          <FormSection
+            icon={<ClipboardList className="h-4 w-4" />}
+            title="O que precisa ser corrigido"
+            description="Título, descrição detalhada, anexos e orientações extras."
+          >
+            <div className="space-y-3">
+              <Field label="Título" icon={false}>
+                <Input
+                  value={pendenciaForm.titulo}
+                  onChange={(e) =>
+                    setPendenciaForm({
+                      ...pendenciaForm,
+                      titulo: e.target.value,
+                    })
+                  }
+                  placeholder="Ex.: RG ilegível"
+                />
+              </Field>
+              <Field label="Descrição" icon={false}>
+                <Textarea
+                  rows={4}
+                  value={pendenciaForm.descricao}
+                  onChange={(e) =>
+                    setPendenciaForm({
+                      ...pendenciaForm,
+                      descricao: e.target.value,
+                    })
+                  }
+                  placeholder="Documento ausente, incorreto, desatualizado ou atrasado..."
+                />
+              </Field>
+              <Field label="Anexos" icon={false}>
+                <Input
+                  type="file"
+                  multiple
+                  accept=".pdf,image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) =>
+                    setPendenciaFiles(Array.from(e.target.files ?? []))
+                  }
+                />
+              </Field>
+              <Field label="Texto complementar" icon={false}>
+                <Textarea
+                  rows={3}
+                  value={pendenciaForm.textoComplementar}
+                  onChange={(e) =>
+                    setPendenciaForm({
+                      ...pendenciaForm,
+                      textoComplementar: e.target.value,
+                    })
+                  }
+                  placeholder="Orientações adicionais para a correção"
+                />
+              </Field>
+            </div>
+          </FormSection>
+        </FormDialogBody>
+      </FormDialogShell>
 
       <FormDialogShell
         open={createOpen}

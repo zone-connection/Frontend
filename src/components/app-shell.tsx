@@ -874,6 +874,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       });
       return;
     }
+    if (n.tipo === "processo_pendencia" || n.tipo === "processo_reenvio") {
+      void navigate({ to: "/processos" });
+      return;
+    }
     if (
       n.tipo === "chave_retirada" ||
       n.tipo === "chave_devolucao" ||
