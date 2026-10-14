@@ -24,6 +24,7 @@ import {
   StickyNote,
   Timer,
   TriangleAlert,
+  Upload,
   User,
   UserRound,
   Wallet,
@@ -1176,6 +1177,10 @@ export function LeadDetalheDialog({
                         <FileText className="mr-1.5 h-3.5 w-3.5" />
                         Documentações
                       </TabsTrigger>
+                      <TabsTrigger value="arquivos" className={FICHA_TAB}>
+                        <Upload className="mr-1.5 h-3.5 w-3.5" />
+                        Arquivos
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -1280,6 +1285,16 @@ export function LeadDetalheDialog({
                       categoria="proposta"
                       title="Propostas"
                       allowUpload={false}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="arquivos" className="mt-0 space-y-4 px-4 py-4">
+                    <DocumentosPanel
+                      entityType="lead"
+                      entityId={lead.id}
+                      categoria="outro"
+                      title="Arquivos"
+                      allowUpload
                     />
                   </TabsContent>
 

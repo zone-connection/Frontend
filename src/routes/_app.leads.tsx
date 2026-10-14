@@ -162,7 +162,9 @@ import type { LeadProspeccao } from "@/lib/lead-prospeccao";
 import { compactProspeccao, PROSPECCAO_SIM_NAO } from "@/lib/lead-prospeccao";
 import { toast } from "sonner";
 import { cn, userFacingError } from "@/lib/utils";
+import { ArquivosDialog } from "@/components/arquivos-dialog";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -623,6 +625,7 @@ function LeadsPage() {
     [user?.role],
   );
   const [contratoLead, setContratoLead] = useState<Lead | null>(null);
+  const [arquivosLead, setArquivosLead] = useState<Lead | null>(null);
   const showTeamColumns = !isCorretor && !isPlatformAdmin;
   const leadTableColSpan = showTeamColumns ? 12 : 10;
   /** Só admin/analista filtram entre várias equipes. Gerente não filtra por outras. */
@@ -2654,6 +2657,19 @@ function LeadsPage() {
                   setForm((prev) => ({ ...prev, ...patch }))
                 }
               />
+              {formMode === "edit" && editingId ? (
+                <DocumentosPanel
+                  entityType="lead"
+                  entityId={editingId}
+                  categoria="outro"
+                  title="Arquivos"
+                  allowUpload
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Salve o lead para enviar arquivos.
+                </p>
+              )}
             </FormSection>
             ) : null}
 
@@ -3061,6 +3077,16 @@ function LeadsPage() {
             </Button>
           ) : undefined
         }
+      />
+
+      <ArquivosDialog
+        open={Boolean(arquivosLead)}
+        onOpenChange={(open) => {
+          if (!open) setArquivosLead(null);
+        }}
+        entityType="lead"
+        entityId={arquivosLead?.id ?? null}
+        nome={arquivosLead?.nome}
       />
 
       <LeadAtividadeDialog
@@ -3984,6 +4010,9 @@ function LeadsPage() {
                                 <FileText className="w-4 h-4 mr-2" /> Contrato
                               </DropdownMenuItem>
                             ) : null}
+                            <DropdownMenuItem onClick={() => setArquivosLead(l)}>
+                              <Upload className="w-4 h-4 mr-2" /> Arquivos
+                            </DropdownMenuItem>
                             {isPlatformAdmin ? (
                               <DropdownMenuItem
                                 disabled={

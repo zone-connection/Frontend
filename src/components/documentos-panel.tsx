@@ -176,13 +176,13 @@ export function DocumentosPanel({
   function pickFile(next: File | null) {
     setFile(next);
     if (next && !nome.trim()) {
-      setNome(next.name.replace(/\.pdf$/i, ""));
+      setNome(next.name.replace(/\.[^.]+$/, ""));
     }
   }
 
   async function enviar() {
     if (!file) {
-      toast.error("Selecione um PDF.");
+      toast.error("Selecione um arquivo.");
       return;
     }
     if (tagIds.length === 0) {
@@ -195,7 +195,7 @@ export function DocumentosPanel({
         file,
         entityType,
         entityId,
-        nome: nome.trim() || file.name.replace(/\.pdf$/i, ""),
+        nome: nome.trim() || file.name.replace(/\.[^.]+$/, ""),
         categoria,
         tagIds,
         extraEntityType: extraVinculo?.entityType,
@@ -367,7 +367,7 @@ export function DocumentosPanel({
           {allowUpload ? (
             <Button type="button" size="sm" onClick={() => setOpen(true)}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Enviar PDF
+              Enviar arquivo
             </Button>
           ) : null}
         </div>
@@ -386,10 +386,10 @@ export function DocumentosPanel({
       ) : visible.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] px-4 py-8 text-center">
           <FileText className="h-6 w-6 text-primary/70" />
-          <p className="text-sm font-medium">Nenhum PDF nesta seção</p>
+          <p className="text-sm font-medium">Nenhum arquivo nesta seção</p>
           <p className="text-xs text-muted-foreground">
             {allowUpload
-              ? "Envie o PDF e marque as tags do documento."
+              ? "Envie o arquivo e marque as tags do documento."
               : "Os arquivos cadastrados no processo aparecem aqui."}
           </p>
         </div>
@@ -558,8 +558,8 @@ export function DocumentosPanel({
           }
         }}
         icon={<Upload className="h-5 w-5" />}
-        title="Enviar PDF"
-        description="Arquivo em PDF, até 5 MB. Escolha as tags do documento."
+        title="Enviar arquivo"
+        description="PDF ou imagem (JPG, PNG, WEBP ou GIF), até 5 MB. Escolha as tags do documento."
         footer={
           <FormDialogActions hint="As tags ajudam o gerente a identificar o que falta.">
             <Button
@@ -585,12 +585,12 @@ export function DocumentosPanel({
           <FormSection
             icon={<FileText className="h-4 w-4" />}
             title="Arquivo"
-            description="Somente PDF, no máximo 5 MB."
+            description="PDF ou imagem, no máximo 5 MB."
           >
             <input
               ref={fileRef}
               type="file"
-              accept="application/pdf,.pdf"
+              accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
               className="hidden"
               onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
             />
@@ -612,7 +612,7 @@ export function DocumentosPanel({
               ) : (
                 <>
                   <p className="text-sm font-medium">
-                    Clique para escolher o PDF
+                    Clique para escolher o arquivo
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Ou selecione o arquivo no computador

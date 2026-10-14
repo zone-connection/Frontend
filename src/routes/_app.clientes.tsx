@@ -142,7 +142,9 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import { toast } from "sonner";
+import { ArquivosDialog } from "@/components/arquivos-dialog";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
+import { DocumentosPanel } from "@/components/documentos-panel";
 import { SOFT_BTN } from "@/lib/soft-btn";
 
 export const Route = createFileRoute("/_app/clientes")({
@@ -328,6 +330,7 @@ function Clientes() {
     [user?.role],
   );
   const [contratoCliente, setContratoCliente] = useState<Lead | null>(null);
+  const [arquivosCliente, setArquivosCliente] = useState<Lead | null>(null);
   const isCorretor = !canSeeTeam;
   const isAdmin = user?.role === "admin";
   const isGerente = user?.role === "gerente";
@@ -1200,6 +1203,10 @@ function Clientes() {
                           Contrato
                         </DropdownMenuItem>
                       ) : null}
+                      <DropdownMenuItem onClick={() => setArquivosCliente(l)}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Arquivos
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
@@ -1430,6 +1437,19 @@ function Clientes() {
                   setForm((f) => ({ ...f, ...patch }))
                 }
               />
+              {formMode === "edit" && editingId ? (
+                <DocumentosPanel
+                  entityType="lead"
+                  entityId={editingId}
+                  categoria="outro"
+                  title="Arquivos"
+                  allowUpload
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Salve o cliente para enviar arquivos.
+                </p>
+              )}
             </FormSection>
             ) : null}
 
@@ -1635,6 +1655,16 @@ function Clientes() {
           </FormDialogActions>
         </form>
       </FormDialogShell>
+
+      <ArquivosDialog
+        open={Boolean(arquivosCliente)}
+        onOpenChange={(open) => {
+          if (!open) setArquivosCliente(null);
+        }}
+        entityType="lead"
+        entityId={arquivosCliente?.id ?? null}
+        nome={arquivosCliente?.nome}
+      />
 
       <LeadDetalheDialog
         lead={detail}
