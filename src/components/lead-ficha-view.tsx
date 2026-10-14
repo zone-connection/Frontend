@@ -1,45 +1,50 @@
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
-  Building2,
-  Calendar,
   Check,
   ChevronRight,
+  ClipboardList,
   Clock,
+  Download,
+  Eye,
   FileText,
-  Info,
   Mail,
-  MessageCircle,
   MoreHorizontal,
-  Pencil,
   Phone,
   Send,
-  Star,
+  Share2,
   Trash2,
+  Upload,
   UserRound,
   Users,
+  Wallet,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
+import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
+import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import {
+  HistoryTimeline,
+  MAX_TRIAGEM_TEXTO,
+  formatTriagemWhen,
+} from "@/components/triagem-history-timeline";
+import type { ArquivoHistoricoItem } from "@/lib/arquivos-api";
+import { brl, type Lead } from "@/lib/crm-types";
+import { formatDateTimePt } from "@/lib/lead-monitoramento";
+import { formatPhone } from "@/lib/phone";
+import type { TriagemEvent } from "@/lib/triagem-api";
 import { cn } from "@/lib/utils";
 
-const STAGES = [
-  { name: "Novo", state: "done" as const },
-  { name: "Contato", state: "done" as const },
-  { name: "Qualificado", state: "current" as const, days: "3 dias" },
-  { name: "Visita", state: "next" as const },
-  { name: "Proposta", state: "next" as const },
-  { name: "Fechamento", state: "next" as const },
-];
+type FichaAction = {
+  label: string;
+  onClick: () => void;
+  icon?: LucideIcon;
+  destructive?: boolean;
+  disabled?: boolean;
+};
 
-const HISTORY = [
-  { id: "1", kind: "relato", title: "Ligação realizada", detail: "Cliente pediu retorno no período da tarde.", who: "Carlos Mendes", when: "Hoje às 10:32", tone: "bg-emerald-500" },
-  { id: "2", kind: "envio", title: "Arquivo enviado", detail: "Proposta de compra.pdf", who: "Ana Souza", when: "Hoje às 09:15", tone: "bg-sky-500" },
-  { id: "3", kind: "visualizacao", title: "Arquivo visualizado", detail: "Ficha cadastral.pdf", who: "Carlos Mendes", when: "Ontem às 16:42", tone: "bg-violet-500" },
-  { id: "4", kind: "download", title: "Arquivo baixado", detail: "Documentos pessoais.pdf", who: "Ana Souza", when: "Ontem às 14:20", tone: "bg-cyan-600" },
-  { id: "5", kind: "compartilhamento", title: "Arquivo compartilhado", detail: "Proposta de compra.pdf", who: "Carlos Mendes", when: "Ontem às 11:03", tone: "bg-indigo-500" },
-  { id: "6", kind: "exclusao", title: "Arquivo excluído", detail: "Comprovante de residência.pdf", who: "Ana Souza", when: "10/10/2026 às 17:25", tone: "bg-rose-500" },
-  { id: "7", kind: "relato", title: "Relato da triagem", detail: "Lead demonstrou interesse no imóvel, mas ainda está pesquisando.", who: "Carlos Mendes", when: "10/10/2026 às 15:18", tone: "bg-slate-400" },
-];
+const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Documentações"] as const;
 
 const FILTERS = [
   { id: "todos", label: "Todos" },
@@ -51,268 +56,474 @@ const FILTERS = [
   { id: "exclusao", label: "Exclusões" },
 ];
 
-const TABS = ["Atividade", "Triagem", "WhatsApp", "Dados", "Documentações"];
+type HistoryKind = (typeof FILTERS)[number]["id"];
 
-const ACTIONS = [
-  { label: "Ver triagem", icon: FileText },
-  { label: "Reatribuir lead", icon: Users },
-  { label: "Adicionar atividade", icon: Clock },
-  { label: "Editar lead", icon: Pencil },
-  { label: "Acessar contrato", icon: FileText },
-];
+function fileKind(tipo: string): HistoryKind {
+  if (tipo === "upload") return "envio";
+  if (tipo === "visualizar") return "visualizacao";
+  if (tipo === "download" || tipo === "download_zip") return "download";
+  if (tipo === "excluir") return "exclusao";
+  if (tipo === "compartilhar_email" || tipo.startsWith("share")) return "compartilhamento";
+  return "envio";
+}
 
-export function LeadFichaView({ onBack }: { onBack: () => void }) {
-  const [tab, setTab] = useState("Atividade");
-  const [filter, setFilter] = useState("todos");
-  const [note, setNote] = useState("");
-  const items = HISTORY.filter((item) => filter === "todos" || item.kind === filter);
+function fileMeta(tipo: string): { title: string; icon: LucideIcon; tone: string } {
+  switch (fileKind(tipo)) {
+    case "visualizacao":
+      return { title: "Arquivo visualizado", icon: Eye, tone: "bg-violet-500" };
+    case "download":
+      return { title: "Arquivo baixado", icon: Download, tone: "bg-cyan-600" };
+    case "exclusao":
+      return { title: "Arquivo excluído", icon: Trash2, tone: "bg-rose-500" };
+    case "compartilhamento":
+      return { title: "Arquivo compartilhado", icon: Share2, tone: "bg-indigo-500" };
+    default:
+      return { title: "Arquivo enviado", icon: Upload, tone: "bg-sky-500" };
+  }
+}
+
+function fileDetail(ev: ArquivoHistoricoItem) {
+  if (ev.nomes.length) return ev.nomes.join(", ");
+  if (ev.arquivo) return ev.arquivo;
+  if (ev.email) return ev.email;
+  return "Arquivo";
+}
+
+function initials(nome: string) {
+  return nome
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function daysSince(iso?: string | null) {
+  if (!iso) return null;
+  const time = new Date(iso).getTime();
+  if (!Number.isFinite(time)) return null;
+  return Math.max(0, Math.floor((Date.now() - time) / 86_400_000));
+}
+
+export function LeadFichaView({
+  lead,
+  stages,
+  funnelName,
+  email,
+  temTelefone,
+  showMeuLeadBadge,
+  equipe,
+  onBack,
+  onCall,
+  onWhatsApp,
+  perdaAction,
+  moreActions,
+  primaryAction,
+  triagemTexto,
+  onTriagemTexto,
+  onRegistrarTriagem,
+  triagemSaving,
+  podeTriagem,
+  events,
+  eventsLoading,
+  stageLabel,
+  onEventUpdated,
+  fileEvents,
+  onArquivosActivity,
+  hasWhatsapp,
+}: {
+  lead: Lead;
+  stages: { id: string; name: string; papel?: string | null }[];
+  funnelName?: string | null;
+  email: string;
+  temTelefone: boolean;
+  showMeuLeadBadge?: boolean;
+  equipe?: string | null;
+  onBack: () => void;
+  onCall: () => void;
+  onWhatsApp: () => void;
+  perdaAction?: FichaAction;
+  moreActions: FichaAction[];
+  primaryAction?: ReactNode;
+  triagemTexto: string;
+  onTriagemTexto: (value: string) => void;
+  onRegistrarTriagem: () => void;
+  triagemSaving: boolean;
+  podeTriagem: boolean;
+  events: TriagemEvent[];
+  eventsLoading: boolean;
+  stageLabel: (slug: string | null) => string;
+  onEventUpdated: (event: TriagemEvent) => void;
+  fileEvents: ArquivoHistoricoItem[];
+  onArquivosActivity: () => void;
+  hasWhatsapp: boolean;
+}) {
+  const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
+  const [filter, setFilter] = useState<HistoryKind>("todos");
+  const mon = lead.monitoramento;
+  const principal = mon?.problemas[0];
+  const atrasado = mon?.visual === "vermelho";
+  const prazoProximo = mon?.visual === "laranja";
+  const funnel = stages;
+  const currentIndex = funnel.findIndex((s) => s.id === lead.stage);
+  const days = daysSince(mon?.stageEnteredAt);
+  const created = formatDateTimePt(lead.createdAt);
+
+  const rows = useMemo(() => {
+    const triagem = events.map((event) => ({
+      id: `t-${event.id}`,
+      kind: "relato" as const,
+      title: event.origem === "manual" ? "Relato da triagem" : "Movimentação da triagem",
+      detail: event.texto,
+      who: event.autor?.name ?? "—",
+      when: formatTriagemWhen(event.createdAt),
+      at: event.createdAt,
+      icon: event.origem === "manual" ? ClipboardList : Phone,
+      tone: event.origem === "manual" ? "bg-slate-400" : "bg-emerald-500",
+    }));
+    const files = fileEvents.map((event) => {
+      const meta = fileMeta(event.tipo);
+      return {
+        id: `a-${event.id}`,
+        kind: fileKind(event.tipo),
+        title: meta.title,
+        detail: fileDetail(event),
+        who: event.autor?.name ?? "—",
+        when: formatTriagemWhen(event.createdAt),
+        at: event.createdAt,
+        icon: meta.icon,
+        tone: meta.tone,
+      };
+    });
+    return [...triagem, ...files].sort(
+      (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+    );
+  }, [events, fileEvents]);
+
+  const visible = rows.filter((item) => filter === "todos" || item.kind === filter);
+  const local = [lead.bairro, lead.cidade].filter(Boolean).join(", ");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#F5F7FB] [scrollbar-width:thin]">
       <div className="flex items-center justify-between px-6 py-3">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
-          <ArrowLeft className="h-4 w-4" /> Voltar para a lista de leads
+          <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
-        <span className="text-xs text-slate-400">Criado em: 12/10/2026</span>
+        {created ? <span className="text-xs text-slate-400">Criado em: {created}</span> : null}
       </div>
 
       <div className="mx-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 gap-4">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-lg font-semibold text-white">JS</span>
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-lg font-semibold text-white">
+              {initials(lead.nome) || "?"}
+            </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-900">João da Silva</h1>
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                  <Star className="h-3 w-3" /> Minha carteira
-                </span>
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{lead.nome}</h1>
+                {showMeuLeadBadge ? <MeuLeadBadge /> : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Em atendimento
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {lead.tipo === "cliente" ? "Cliente" : "Lead"}
                 </span>
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">Origem Ads</span>
+                {lead.origem ? <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{lead.origem}</span> : null}
+                <span className={cn(
+                  "rounded-full px-2 py-1 font-medium",
+                  lead.prioridade === "Alta" && "bg-rose-50 text-rose-700",
+                  lead.prioridade === "Média" && "bg-amber-50 text-amber-800",
+                  lead.prioridade === "Baixa" && "bg-sky-50 text-sky-700",
+                )}>
+                  Prioridade {lead.prioridade}
+                </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                <span>Origem: Meta Ads</span>
-                <span>Liberado em: 10/10/2026</span>
-                <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Equipe: Vendas SP</span>
-                <span className="inline-flex items-center gap-1"><UserRound className="h-3.5 w-3.5" /> Corretor: Carlos Mendes</span>
+                {lead.origem ? <span>Origem: {lead.origem}</span> : null}
+                {lead.atrasoLiberadoAt ? <span>Liberado em: {formatDateTimePt(lead.atrasoLiberadoAt)}</span> : null}
+                {equipe || lead.equipe ? (
+                  <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Equipe: {equipe || lead.equipe}</span>
+                ) : null}
+                {lead.corretor ? (
+                  <span className="inline-flex items-center gap-1"><UserRound className="h-3.5 w-3.5" /> Corretor: {lead.corretor}</span>
+                ) : null}
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-2 hidden text-xs text-slate-400 xl:inline">Criado em: 12/10/2026</span>
-            <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white">
+            <button type="button" disabled={!temTelefone} onClick={onCall} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
               <Phone className="h-4 w-4" /> Ligar
             </button>
-            <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white">
+            <button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
               <FaWhatsapp className="h-4 w-4" /> WhatsApp
             </button>
-            <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white">
-              <Trash2 className="h-4 w-4" /> Marcar como perdido
-            </button>
-            <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
+            {perdaAction ? (
+              <button type="button" disabled={perdaAction.disabled} onClick={perdaAction.onClick} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white disabled:opacity-40">
+                <Trash2 className="h-4 w-4" /> {perdaAction.label}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
 
       <div className="mx-6 mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800">Funil de vendas</h2>
-          <div className="mt-4 flex items-center">
-            {STAGES.map((stage, index) => (
-              <div key={stage.name} className="flex min-w-0 flex-1 items-center">
-                <div className="flex flex-col items-center">
-                  <span
-                    className={cn(
+          <h2 className="text-sm font-semibold text-slate-800">{funnelName || "Funil de vendas"}</h2>
+          <div className="mt-4 flex items-center overflow-x-auto">
+            {funnel.map((stage, index) => {
+              const state = currentIndex < 0 ? "next" : index < currentIndex ? "done" : index === currentIndex ? "current" : "next";
+              return (
+                <div key={stage.id} className="flex min-w-[5.5rem] flex-1 items-center">
+                  <div className="flex flex-col items-center">
+                    <span className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs",
-                      stage.state === "done" && "border-emerald-500 bg-emerald-500 text-white",
-                      stage.state === "current" && "border-blue-600 bg-white text-blue-600",
-                      stage.state === "next" && "border-slate-200 bg-white text-slate-300",
-                    )}
-                  >
-                    {stage.state === "done" ? <Check className="h-4 w-4" /> : stage.state === "current" ? <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                  </span>
-                  {stage.days ? <span className="mt-1 text-[10px] font-medium text-blue-600">{stage.days}</span> : <span className="mt-1 h-4" />}
-                  <span className={cn("text-xs", stage.state === "current" ? "font-semibold text-blue-700" : "text-slate-500")}>{stage.name}</span>
+                      state === "done" && "border-emerald-500 bg-emerald-500 text-white",
+                      state === "current" && "border-blue-600 bg-white text-blue-600",
+                      state === "next" && "border-slate-200 bg-white text-slate-300",
+                    )}>
+                      {state === "done" ? <Check className="h-4 w-4" /> : state === "current" ? <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    </span>
+                    {state === "current" && days != null ? <span className="mt-1 text-[10px] font-medium text-blue-600">{days} dias</span> : <span className="mt-1 h-4" />}
+                    <span className={cn("max-w-[6rem] truncate text-xs", state === "current" ? "font-semibold text-blue-700" : "text-slate-500")}>{stage.name}</span>
+                  </div>
+                  {index < funnel.length - 1 ? <span className={cn("mb-5 h-0.5 flex-1", index < currentIndex ? "bg-emerald-500" : "bg-slate-200")} /> : null}
                 </div>
-                {index < STAGES.length - 1 ? (
-                  <span className={cn("mb-5 h-0.5 flex-1", index < 2 ? "bg-emerald-500" : "bg-slate-200")} />
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
-        <aside className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
-          <Clock className="h-5 w-5 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold">Prazo próximo</p>
-            <p className="text-xs">Aguardando retorno do cliente</p>
-            <p className="text-xs font-medium">Prazo em 4 horas</p>
-          </div>
-          <ChevronRight className="ml-auto h-4 w-4" />
-        </aside>
+        {principal ? (
+          <aside className={cn("flex items-center gap-3 rounded-2xl border px-4 py-4", atrasado ? "border-rose-200 bg-rose-50 text-rose-900" : "border-amber-200 bg-amber-50 text-amber-900")}>
+            <Clock className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">{atrasado ? "Atrasado" : prazoProximo ? "Prazo próximo" : principal.titulo}</p>
+              <p className="text-xs">{principal.detalhe || principal.titulo}</p>
+              <p className="text-xs font-medium">{mon?.tempoAtrasoLabel || mon?.tempoRestanteLabel || mon?.permanenciaLabel}</p>
+            </div>
+          </aside>
+        ) : (
+          <aside className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-emerald-900">
+            <Clock className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">Em dia</p>
+              <p className="text-xs">Nenhum prazo em aberto nesta etapa.</p>
+            </div>
+          </aside>
+        )}
       </div>
 
-      <section className="mx-6 mt-3 rounded-2xl border border-slate-200 bg-white px-2 py-3 shadow-sm">
-        <h2 className="px-3 text-sm font-semibold text-slate-800">Dados rápidos do lead</h2>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-          <Quick icon={Phone} label="Telefone" value="(81) 9XXXX-XXXX" />
-          <Quick icon={Mail} label="E-mail" value="joao@email.com" />
-          <Quick icon={Building2} label="Renda" value="R$ 8.500,00" />
-          <Quick icon={Star} label="Prioridade" value="Alta" pill />
-          <Quick icon={MessageCircle} label="Origem" value="Meta Ads" />
-          <Quick icon={Calendar} label="Data de criação" value="12/10/2026" />
-        </div>
-      </section>
+      <div className="mx-6 mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <Fact icon={Phone} label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
+        <Fact icon={Mail} label="E-mail" value={email || "—"} />
+        <Fact icon={Wallet} label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} />
+        <Fact icon={FileText} label="Interesse" value={local || lead.interesse} />
+        <Fact icon={Users} label="Origem" value={lead.origem || "—"} />
+        <Fact icon={Clock} label="Cadastro" value={created || "—"} />
+      </div>
 
-      <div className="mx-6 mt-3 flex flex-wrap gap-2">
+      <div className="mx-6 mt-4 flex flex-wrap gap-2">
         {TABS.map((item) => (
           <button
             key={item}
             type="button"
             onClick={() => setTab(item)}
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm",
-              tab === item ? "bg-[#2563EB] text-white" : "border border-slate-200 bg-white text-slate-600",
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm",
+              tab === item ? "bg-[#2563EB] font-medium text-white" : "bg-white text-slate-600 ring-1 ring-slate-200",
             )}
           >
             {item}
-            {item === "WhatsApp" ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> : null}
+            {item === "WhatsApp" && hasWhatsapp ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> : null}
           </button>
         ))}
       </div>
 
-      <div className="mx-6 mb-6 mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mx-6 mb-8 mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold">Atividade</h2>
-          <div className="mt-3 rounded-xl border border-slate-200 p-3">
-            <textarea
-              value={note}
-              maxLength={500}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Registre uma atividade, ligação, retorno ou observação sobre o lead..."
-              className="h-16 w-full resize-none bg-transparent text-sm outline-none"
-            />
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400">{note.length}/500</span>
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 text-xs font-medium text-white">
-                <Send className="h-3.5 w-3.5" /> Registrar atividade
-              </button>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-            <Clock className="h-4 w-4" />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">Atenção!</p>
-              <p className="text-xs">O lead está atrasado na etapa atual.</p>
-            </div>
-            <div className="text-xs">
-              <p>Motivo: Aguardando retorno do cliente</p>
-              <p className="font-semibold text-orange-700">Tempo: 4 horas</p>
-            </div>
-            <ChevronRight className="h-4 w-4" />
-          </div>
-          <h3 className="mb-2 mt-5 text-sm font-semibold">Histórico de atividades</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setFilter(item.id)}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                  filter === item.id ? "bg-[#2563EB] text-white" : "bg-slate-100 text-slate-600",
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <ul className="mt-3 divide-y">
-            {items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 py-3">
-                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white", item.tone)}>
-                  <FileText className="h-3.5 w-3.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-800">{item.title}</p>
-                  <p className="truncate text-xs text-slate-500">{item.detail}</p>
+          {tab === "Atividade" || tab === "Triagem" ? (
+            <>
+              <h2 className="text-sm font-semibold">{tab === "Triagem" ? "Triagem" : "Atividade"}</h2>
+              {podeTriagem ? (
+                <div className="mt-3 rounded-xl border border-slate-200 p-3">
+                  <textarea
+                    value={triagemTexto}
+                    maxLength={MAX_TRIAGEM_TEXTO}
+                    onChange={(event) => onTriagemTexto(event.target.value)}
+                    placeholder="Registre uma atividade, ligação, retorno ou observação sobre o lead..."
+                    className="h-16 w-full resize-none bg-transparent text-sm outline-none"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">{triagemTexto.length}/{MAX_TRIAGEM_TEXTO}</span>
+                    <button type="button" disabled={triagemSaving} onClick={onRegistrarTriagem} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 text-xs font-medium text-white disabled:opacity-50">
+                      <Send className="h-3.5 w-3.5" /> {triagemSaving ? "Salvando..." : "Registrar atividade"}
+                    </button>
+                  </div>
                 </div>
-                <div className="hidden text-right sm:block">
-                  <p className="text-xs font-medium text-slate-700">{item.who}</p>
-                  <p className="text-[11px] text-slate-400">{item.when}</p>
+              ) : null}
+              {principal ? (
+                <div className={cn("mt-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm", atrasado ? "border-rose-200 bg-rose-50 text-rose-950" : "border-amber-200 bg-amber-50 text-amber-950")}>
+                  <Clock className="h-4 w-4" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">Atenção!</p>
+                    <p className="text-xs">{principal.detalhe || principal.titulo}</p>
+                  </div>
+                  <p className="text-xs font-semibold">{mon?.tempoAtrasoLabel || mon?.tempoRestanteLabel}</p>
                 </div>
-              </li>
-            ))}
-          </ul>
+              ) : null}
+            </>
+          ) : null}
+
+          {tab === "Atividade" ? (
+            <>
+              <h3 className="mb-2 mt-5 text-sm font-semibold">Histórico de atividades</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {FILTERS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setFilter(item.id)}
+                    className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", filter === item.id ? "bg-[#2563EB] text-white" : "bg-slate-100 text-slate-600")}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {eventsLoading && visible.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-400">Carregando histórico...</p>
+              ) : visible.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-400">Nenhuma atividade neste filtro.</p>
+              ) : (
+                <ul className="mt-3 divide-y">
+                  {visible.map((item) => (
+                    <li key={item.id} className="flex items-center gap-3 py-3">
+                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white", item.tone)}>
+                        <item.icon className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                        <p className="truncate text-xs text-slate-500">{item.detail}</p>
+                      </div>
+                      <div className="hidden text-right sm:block">
+                        <p className="text-xs font-medium text-slate-700">{item.who}</p>
+                        <p className="text-[11px] text-slate-400">{item.when}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : null}
+
+          {tab === "Triagem" ? (
+            <div className="mt-4">
+              <HistoryTimeline
+                events={events}
+                contactName={lead.nome}
+                stageLabel={stageLabel}
+                fallbackStage={lead.stage}
+                loading={eventsLoading}
+                leadId={lead.id}
+                onEventUpdated={onEventUpdated}
+              />
+            </div>
+          ) : null}
+
+          {tab === "WhatsApp" ? (
+            hasWhatsapp ? (
+              <LeadWhatsappChat leadId={lead.id} active className="min-h-[420px]" />
+            ) : (
+              <div className="py-10 text-center text-sm text-slate-500">
+                <p>O chat do WhatsApp não está conectado nesta conta.</p>
+                <button type="button" disabled={!temTelefone} onClick={onWhatsApp} className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white disabled:opacity-40">
+                  <FaWhatsapp className="h-4 w-4" /> Abrir conversa
+                </button>
+              </div>
+            )
+          ) : null}
+
+          {tab === "Dados" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Data label="Nome" value={lead.nome} />
+              <Data label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
+              <Data label="E-mail" value={email || "—"} />
+              <Data label="Origem" value={lead.origem || "—"} />
+              <Data label="Prioridade" value={lead.prioridade} />
+              <Data label="Cidade" value={lead.cidade || "—"} />
+              <Data label="Bairro" value={lead.bairro || "—"} />
+              <Data label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} />
+              <Data label="Tipo de renda" value={lead.tipoRenda || "—"} />
+              <Data label="Estado civil" value={lead.estadoCivil || "—"} />
+              <Data label="Orçamento" value={lead.orcamentoMax != null ? brl(lead.orcamentoMax) : "—"} />
+              <Data label="CPF" value={lead.cpf || "—"} />
+              <Data label="Corretor" value={lead.corretor || "—"} />
+              <Data label="Equipe" value={equipe || lead.equipe || "—"} />
+              {lead.empreendimento?.nome ? <Data label="Empreendimento" value={lead.empreendimento.nome} /> : null}
+              {lead.construtora?.nome ? <Data label="Construtora" value={lead.construtora.nome} /> : null}
+            </div>
+          ) : null}
+
+          {tab === "Documentações" ? (
+            <DocumentacoesLeadPanel leadId={lead.id} onActivity={onArquivosActivity} />
+          ) : null}
         </section>
 
         <aside className="space-y-3">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-sm font-semibold">Ações rápidas</h2>
-            <ul className="mt-2">
-              {ACTIONS.map((action) => (
-                <li key={action.label}>
-                  <button type="button" className="flex w-full items-center gap-2 border-b border-slate-100 py-2.5 text-left text-sm text-slate-700 last:border-0">
-                    <action.icon className="h-4 w-4 text-slate-400" />
-                    <span className="flex-1">{action.label}</span>
-                    <ChevronRight className="h-4 w-4 text-slate-300" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {moreActions.length === 0 ? (
+              <p className="mt-3 text-xs text-slate-400">Nenhuma ação disponível.</p>
+            ) : (
+              <ul className="mt-2">
+                {moreActions.map((action) => {
+                  const Icon = action.icon ?? MoreHorizontal;
+                  return (
+                    <li key={action.label}>
+                      <button type="button" disabled={action.disabled} onClick={action.onClick} className="flex w-full items-center gap-2 border-b border-slate-100 py-2.5 text-left text-sm text-slate-700 last:border-0 disabled:opacity-40">
+                        <Icon className="h-4 w-4 text-slate-400" />
+                        <span className="flex-1">{action.label}</span>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-sm font-semibold">Status do monitoramento</h2>
-            <p className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Ativo
+            <p className={cn("mt-3 inline-flex items-center gap-2 text-sm font-medium", atrasado ? "text-rose-700" : prazoProximo ? "text-amber-700" : "text-emerald-700")}>
+              <span className={cn("h-2 w-2 rounded-full", atrasado ? "bg-rose-500" : prazoProximo ? "bg-amber-500" : "bg-emerald-500")} />
+              {atrasado ? "Atrasado" : prazoProximo ? "Prazo próximo" : "Ativo"}
             </p>
-            <p className="mt-1 text-xs text-slate-500">O lead está sendo monitorado pela equipe.</p>
-          </section>
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold">Ação principal da tela de origem</h2>
-            <button type="button" className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] text-sm font-medium text-white">
-              Ver imóveis sugeridos <ChevronRight className="h-4 w-4" />
-            </button>
-            <p className="mt-3 flex gap-2 text-[11px] text-slate-400">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              As ações e informações podem variar de acordo com a tela de origem e as permissões do usuário.
+            <p className="mt-1 text-xs text-slate-500">
+              {principal?.detalhe || "O lead está sendo acompanhado nesta etapa."}
             </p>
           </section>
+          {primaryAction ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-semibold">Ação principal</h2>
+              <div className="mt-3">{primaryAction}</div>
+            </section>
+          ) : null}
         </aside>
       </div>
     </div>
   );
 }
 
-function Quick({
-  icon: Icon,
-  label,
-  value,
-  pill,
-}: {
-  icon: typeof Phone;
-  label: string;
-  value: string;
-  pill?: boolean;
-}) {
+function Fact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div>
-        <p className="text-[11px] text-slate-400">{label}</p>
-        {pill ? (
-          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">{value}</span>
-        ) : (
-          <p className="text-sm font-medium text-slate-800">{value}</p>
-        )}
-      </div>
+    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+      <p className="flex items-center gap-1.5 text-[11px] text-slate-400"><Icon className="h-3.5 w-3.5" /> {label}</p>
+      <p className="mt-1 truncate text-sm font-medium text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+function Data({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+      <p className="text-[11px] text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-slate-800">{value}</p>
     </div>
   );
 }

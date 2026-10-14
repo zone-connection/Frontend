@@ -87,6 +87,7 @@ import {
 } from "@/lib/money-input";
 import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { getSession } from "@/lib/auth";
+import { fetchFunis, type Funil } from "@/lib/funis-api";
 import { canWriteTriagem } from "@/lib/permissions";
 import { createTriagemEvent } from "@/lib/triagem-api";
 import { prependTriagemHistoryCached } from "@/lib/triagem-history-cache";
@@ -576,6 +577,7 @@ export function LeadDetalheDialog({
   const [triagemTexto, setTriagemTexto] = useState("");
   const [triagemSaving, setTriagemSaving] = useState(false);
   const hist = useTriagemHistory(open && lead ? lead.id : null);
+  const [leadFunil, setLeadFunil] = useState<Funil | null>(null);
   const [arquivoHist, setArquivoHist] = useState<ArquivoHistoricoItem[]>([]);
   const [arquivoTick, setArquivoTick] = useState(0);
   const refreshArquivos = useCallback(() => setArquivoTick((n) => n + 1), []);
@@ -599,6 +601,35 @@ export function LeadDetalheDialog({
     setTab("atividade");
     setTriagemTexto("");
   }, [lead?.id]);
+
+  useEffect(() => {
+    if (!open || !lead?.funilId) {
+      setLeadFunil(null);
+      return;
+    }
+    let cancel = false;
+    void fetchFunis()
+      .then((list) => {
+        if (!cancel) setLeadFunil(list.find((item) => item.id === lead.funilId) ?? null);
+      })
+      .catch(() => {
+        if (!cancel) setLeadFunil(null);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [open, lead?.funilId]);
+
+  const stagesDoLead = leadFunil
+    ? [...leadFunil.etapas]
+        .filter((etapa) => etapa.active)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((etapa) => ({
+          id: etapa.slug,
+          name: etapa.label,
+          papel: etapa.papel,
+        }))
+    : funnelStages;
   const stage = funnelStages.find((item) => item.id === lead?.stage);
   const telefoneDigits = lead ? phoneDigits(lead.telefone) : "";
   const temTelefone = telefoneDigits.length >= 10;
@@ -728,7 +759,35 @@ export function LeadDetalheDialog({
             <DialogDescription className="sr-only">
               Detalhes de {lead.nome}
             </DialogDescription>
-            <LeadFichaView onBack={() => onOpenChange(false)} />
+            <LeadFichaView
+              lead={lead}
+              stages={stagesDoLead}
+              funnelName={leadFunil?.name}
+              email={email}
+              temTelefone={temTelefone}
+              showMeuLeadBadge={showMeuLeadBadge}
+              equipe={equipe}
+              onBack={() => onOpenChange(false)}
+              onCall={ligar}
+              onWhatsApp={abrirWhatsApp}
+              perdaAction={perdaAction}
+              moreActions={sidebarActions}
+              primaryAction={primaryAction}
+              triagemTexto={triagemTexto}
+              onTriagemTexto={setTriagemTexto}
+              onRegistrarTriagem={() => void registrarTriagem()}
+              triagemSaving={triagemSaving}
+              podeTriagem={podeTriagem}
+              events={hist.events}
+              eventsLoading={hist.loading}
+              stageLabel={(slug) => funnelStages.find((item) => item.id === slug)?.name ?? slug ?? "—"}
+              onEventUpdated={(event) => {
+                hist.setEvents((cur) => cur.map((item) => (item.id === event.id ? event : item)));
+              }}
+              fileEvents={arquivoHist}
+              onArquivosActivity={refreshArquivos}
+              hasWhatsapp={hasOzapChat}
+            />
           </>
         ) : null}
       </DialogContent>
