@@ -731,11 +731,11 @@ export function LeadDetalheDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        overlayClassName="!top-14 !bottom-0 !left-0 !right-0 md:!left-[var(--app-sidebar,15rem)] bg-background"
         className={cn(
-          "w-[calc(100vw-1.25rem)] gap-0 overflow-hidden rounded-2xl border bg-card p-0 sm:max-w-6xl",
-          "!flex !flex-col",
-          "!top-[max(0.5rem,1.5dvh)] !translate-y-0",
-          "max-h-[calc(100dvh-1rem)]",
+          "!left-0 !right-0 !top-14 !bottom-0 !h-auto !max-h-none !w-auto !max-w-none !translate-x-0 !translate-y-0",
+          "md:!left-[var(--app-sidebar,15rem)]",
+          "!flex !flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 shadow-none",
         )}
       >
         {lead ? (
