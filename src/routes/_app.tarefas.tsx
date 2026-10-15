@@ -73,7 +73,6 @@ import { cn } from "@/lib/utils";
 import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
 import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
-import { DocumentosPanel } from "@/components/documentos-panel";
 
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
