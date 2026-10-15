@@ -37,18 +37,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PropostasDoAlvo } from "@/components/propostas-do-alvo";
-import { DocumentosPanel } from "@/components/documentos-panel";
 
-const TEMAS = [
-  { id: "sistema", cor: "#079ed4" },
-  { id: "azul", cor: "#2563eb" },
-  { id: "verde", cor: "#10b981" },
-  { id: "violeta", cor: "#8b5cf6" },
-  { id: "laranja", cor: "#f59e0b" },
-  { id: "rosa", cor: "#ec4899" },
-] as const;
-
-type TemaId = (typeof TEMAS)[number]["id"];
+const ACCENT = "#079ed4";
 type ModoFicha = "completa" | "atuais";
 
 function hexToRgb(hex: string) {
@@ -136,7 +126,6 @@ export function EmpreendimentoDetalhe({
   const covers = empreendimentoImagens(item);
   const [photo, setPhoto] = useState(0);
   const [modo, setModo] = useState<ModoFicha>("completa");
-  const [tema, setTema] = useState<TemaId>("sistema");
   const [aba, setAba] = useState("sobre");
   const tenant = getSession()?.tenant;
   const imobiliaria = tenant?.name?.trim() || "Imobiliária";
@@ -195,7 +184,7 @@ export function EmpreendimentoDetalhe({
         ? `${item.areaM2} m²`
         : null;
   const prazo = prazoInfo(vitrine?.lancamento, item.previsaoEntrega);
-  const accent = TEMAS.find((t) => t.id === tema)?.cor ?? TEMAS[0].cor;
+  const accent = ACCENT;
 
   const kpis = [
     {
@@ -356,21 +345,6 @@ export function EmpreendimentoDetalhe({
             >
               Só dados atuais
             </button>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2 py-1.5">
-            {TEMAS.map((itemTema) => (
-              <button
-                key={itemTema.id}
-                type="button"
-                title={itemTema.id}
-                onClick={() => setTema(itemTema.id)}
-                className={cn(
-                  "h-4 w-4 rounded-full border border-black/10",
-                  tema === itemTema.id && "ring-2 ring-offset-2 ring-primary",
-                )}
-                style={{ background: itemTema.cor }}
-              />
-            ))}
           </div>
           {isAdmin ? (
             <label className="flex items-center gap-2 rounded-full border border-border/80 bg-card px-3 py-1.5 text-xs font-medium">
@@ -557,7 +531,14 @@ export function EmpreendimentoDetalhe({
             <a
               key={tab.id}
               href={`#${tab.id}`}
-              onClick={() => setAba(tab.id)}
+              onClick={(event) => {
+                event.preventDefault();
+                setAba(tab.id);
+                document.getElementById(tab.id)?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-sm",
                 aba === tab.id
@@ -744,11 +725,6 @@ export function EmpreendimentoDetalhe({
           <PropostasDoAlvo
             empreendimentoId={item.id}
             titulo="Propostas deste empreendimento"
-          />
-          <DocumentosPanel
-            entityType="empreendimento"
-            entityId={item.id}
-            title="Documentos"
           />
 
           {show(modo, Boolean(item.observacao?.trim())) ? (
@@ -1008,7 +984,7 @@ function Panel({
     <section
       id={id}
       className={cn(
-        "rounded-3xl border border-border/70 bg-card shadow-sm",
+        "scroll-mt-24 rounded-3xl border border-border/70 bg-card shadow-sm",
         compact ? "p-5" : "p-6",
       )}
     >

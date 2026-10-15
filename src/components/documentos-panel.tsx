@@ -98,6 +98,7 @@ export function DocumentosPanel({
   allowUpload = true,
   uploadNonce = 0,
   onActivity,
+  embedded = false,
 }: {
   entityType: ArquivoVinculoTipo;
   entityId: string;
@@ -110,6 +111,8 @@ export function DocumentosPanel({
   uploadNonce?: number;
   /** Disparado depois de enviar, baixar, ver, excluir ou compartilhar. */
   onActivity?: () => void;
+  /** Sem o título próprio, para entrar dentro de outro bloco. */
+  embedded?: boolean;
 }) {
   const gestor = canGestor();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -340,12 +343,14 @@ export function DocumentosPanel({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
+        {embedded ? null : (
         <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0B3148] dark:text-[#E7F4FA]">
           <span className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]">
             <FileText className="h-4 w-4" />
           </span>
           {title}
         </h3>
+        )}
         <div className="flex flex-wrap gap-2">
           {gestor ? (
             <>

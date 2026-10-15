@@ -11,6 +11,7 @@ import {
   type Proposta,
 } from "@/lib/propostas-api";
 import { Badge } from "@/components/ui/badge";
+import { DocumentosPanel } from "@/components/documentos-panel";
 
 function gestor() {
   const role = getSession()?.role;
@@ -29,9 +30,12 @@ export function PropostasDoAlvo({
   const [itens, setItens] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
+  const podeVerVinculos = gestor();
+  const entityType = empreendimentoId ? "empreendimento" : imovelId ? "imovel" : null;
+  const entityId = empreendimentoId ?? imovelId ?? "";
 
   useEffect(() => {
-    if (!gestor()) {
+    if (!podeVerVinculos) {
       setLoading(false);
       return;
     }
@@ -45,9 +49,9 @@ export function PropostasDoAlvo({
         setErro(err instanceof ApiError ? err.message : "Não foi possível carregar.");
       })
       .finally(() => setLoading(false));
-  }, [empreendimentoId, imovelId]);
+  }, [empreendimentoId, imovelId, podeVerVinculos]);
 
-  if (!gestor()) return null;
+  if (!podeVerVinculos && !entityType) return null;
 
   return (
     <section className="rounded-3xl border border-border/70 bg-card p-6 shadow-sm">
@@ -56,48 +60,62 @@ export function PropostasDoAlvo({
           <FileText className="h-4 w-4" />
           {titulo}
         </h2>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Interno
-        </span>
+        {podeVerVinculos ? (
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Interno
+          </span>
+        ) : null}
       </div>
-      {loading ? (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando propostas…
-        </p>
-      ) : erro ? (
-        <p className="text-sm text-destructive">{erro}</p>
-      ) : itens.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma proposta vinculada.
-        </p>
-      ) : (
-        <ul className="divide-y">
-          {itens.map((item) => (
-            <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <Link
-                  to="/propostas"
-                  className="font-mono text-xs font-medium text-primary hover:underline"
-                >
-                  {item.codigo}
-                </Link>
-                <p className="text-sm font-medium">{item.clienteNome}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.corretor?.name ?? "Sem corretor"}
-                  {item.autor?.name ? ` · Criada por ${item.autor.name}` : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabular-nums">{brl(item.valor)}</span>
-                <Badge variant="outline" className={propostaStatusClass(item.status)}>
-                  {PROPOSTA_STATUS_LABEL[item.status]}
-                </Badge>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {podeVerVinculos ? (
+        loading ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando propostas…
+          </p>
+        ) : erro ? (
+          <p className="text-sm text-destructive">{erro}</p>
+        ) : itens.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma proposta do sistema vinculada.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {itens.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <Link
+                    to="/propostas"
+                    className="font-mono text-xs font-medium text-primary hover:underline"
+                  >
+                    {item.codigo}
+                  </Link>
+                  <p className="text-sm font-medium">{item.clienteNome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.corretor?.name ?? "Sem corretor"}
+                    {item.autor?.name ? ` · Criada por ${item.autor.name}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold tabular-nums">{brl(item.valor)}</span>
+                  <Badge variant="outline" className={propostaStatusClass(item.status)}>
+                    {PROPOSTA_STATUS_LABEL[item.status]}
+                  </Badge>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+      {entityType ? (
+        <div className={podeVerVinculos ? "mt-5 border-t border-border/70 pt-5" : undefined}>
+          <DocumentosPanel
+            embedded
+            entityType={entityType}
+            entityId={entityId}
+            title="Propostas"
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

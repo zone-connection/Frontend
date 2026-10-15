@@ -644,7 +644,7 @@ export function ImoveisPage({
   const [rendaMaxima, setRendaMaxima] = useState("");
   const [somenteLitoral, setSomenteLitoral] = useState(false);
   const [origemCatalogo, setOrigemCatalogo] = useState<
-    "todos" | "lancamentos" | "captacoes"
+    "todos" | "lancamentos" | "captacoes" | "orulo"
   >("todos");
   const [vista, setVista] = useImoveisVista();
   const [kindPickOpen, setKindPickOpen] = useState(false);
@@ -1518,8 +1518,14 @@ export function ImoveisPage({
 
   const sorted = useMemo(() => {
     if (origemCatalogo === "captacoes") return [];
+    const base =
+      origemCatalogo === "orulo"
+        ? filtered.filter((item) => item.oruloBuildingId != null)
+        : origemCatalogo === "lancamentos"
+          ? filtered.filter((item) => item.oruloBuildingId == null)
+          : filtered;
     return sortByTableOrder(
-      filtered,
+      base,
       sort,
       (item) => item.nome,
       (item) => item.createdAt,
@@ -1551,7 +1557,7 @@ export function ImoveisPage({
   );
 
   const captacaoFiltered = useMemo(() => {
-    if (embedded || origemCatalogo === "lancamentos") return [];
+    if (embedded || origemCatalogo === "lancamentos" || origemCatalogo === "orulo") return [];
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return captacaoImoveis.filter((item) => {
       if (imoveisDeCaptacao.has(item.id)) return false;
@@ -1778,7 +1784,7 @@ export function ImoveisPage({
                 placeholder="Nome ou endereço…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={cn("pl-9", FILTER_CONTROL)}
+                className={cn("rounded-lg! pl-9", FILTER_CONTROL)}
               />
             </div>
           </div>
@@ -1822,7 +1828,7 @@ export function ImoveisPage({
             <Select
               value={origemCatalogo}
               onValueChange={(value) =>
-                setOrigemCatalogo(value as "todos" | "lancamentos" | "captacoes")
+                setOrigemCatalogo(value as "todos" | "lancamentos" | "captacoes" | "orulo")
               }
             >
               <SelectTrigger className={FILTER_CONTROL}>
@@ -1832,6 +1838,7 @@ export function ImoveisPage({
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="lancamentos">Lançamentos</SelectItem>
                 <SelectItem value="captacoes">Captações</SelectItem>
+                <SelectItem value="orulo">Órulo</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1926,7 +1933,7 @@ export function ImoveisPage({
                   setRendaMinima(maskMoneyInput(event.target.value))
                 }
                 placeholder="Ex.: 3.000,00"
-                className={cn("pl-9", FILTER_CONTROL)}
+                className={cn("rounded-lg! pl-9", FILTER_CONTROL)}
               />
             </div>
           </div>
@@ -1946,7 +1953,7 @@ export function ImoveisPage({
                   setRendaMaxima(maskMoneyInput(event.target.value))
                 }
                 placeholder="Ex.: 20.000,00"
-                className={cn("pl-9", FILTER_CONTROL)}
+                className={cn("rounded-lg! pl-9", FILTER_CONTROL)}
               />
             </div>
           </div>
