@@ -22,6 +22,8 @@ import { TarefasPainel } from "@/components/tarefas-painel";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
+import { DocumentosPanel } from "@/components/documentos-panel";
+import { fetchDocumentacoes, type Documentacao } from "@/lib/documentacao-api";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { toDateInput } from "@/components/agenda-board";
 import { Button } from "@/components/ui/button";
@@ -128,6 +130,7 @@ function TarefasPage() {
   const [open, setOpen] = useState(false);
   const [destino, setDestino] = useState<"tarefa" | "agenda">("tarefa");
   const [detalhe, setDetalhe] = useState<Tarefa | null>(null);
+  const [docsDoLead, setDocsDoLead] = useState<Documentacao[]>([]);
   const [editing, setEditing] = useState<Tarefa | null>(null);
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
@@ -157,6 +160,17 @@ function TarefasPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const leadId = detalhe?.leadId;
+    if (!leadId) {
+      setDocsDoLead([]);
+      return;
+    }
+    void fetchDocumentacoes()
+      .then((rows) => setDocsDoLead(rows.filter((row) => row.leadId === leadId)))
+      .catch(() => setDocsDoLead([]));
+  }, [detalhe?.leadId]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -432,9 +446,9 @@ function TarefasPage() {
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={detalhe != null} onOpenChange={(aberto) => { if (!aberto) setDetalhe(null); }}>
-        <DialogContent className="max-w-md gap-0 overflow-hidden p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
+        <DialogContent className="max-h-[90vh] max-w-2xl gap-0 overflow-hidden p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
           {detalhe ? (
-            <>
+            <div className="max-h-[90vh] overflow-y-auto">
               <div className="border-b border-[#E6EDF2] px-5 pb-4 pt-5 pr-12">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[#E7F4FA] px-2 py-0.5 text-[11px] font-medium text-[#05749E]">
@@ -450,7 +464,7 @@ function TarefasPage() {
                   </DialogTitle>
                 </DialogHeader>
               </div>
-              <div className="space-y-2 px-5 py-4">
+              <div className="space-y-4 px-5 py-4">
                 <DetalheLinha icon={CalendarDays} label="Quando" value={formatQuando(detalhe.data, detalhe.horario)} />
                 <DetalheLinha icon={UserRound} label="Responsável" value={detalhe.responsavel.name} />
                 {detalhe.contexto.lead ? (
@@ -463,6 +477,45 @@ function TarefasPage() {
                   <p className="rounded-xl border border-[#E6EDF2] bg-white px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-[#16324A] dark:border-white/10 dark:bg-[#141a22] dark:text-[#f8fafc]">
                     {detalhe.descricao}
                   </p>
+                ) : null}
+                <DocumentosPanel
+                  entityType="tarefa"
+                  entityId={detalhe.id}
+                  title="Desta tarefa"
+                  extraVinculo={
+                    detalhe.leadId
+                      ? { entityType: "lead", entityId: detalhe.leadId }
+                      : undefined
+                  }
+                  related={
+                    detalhe.leadId
+                      ? {
+                          entityType: "lead",
+                          entityId: detalhe.leadId,
+                          label: detalhe.contexto.lead?.nome
+                            ? `o lead ou cliente ${detalhe.contexto.lead.nome}`
+                            : "o lead ou cliente",
+                        }
+                      : undefined
+                  }
+                />
+                {docsDoLead.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#079ED4]">
+                      Documentações do lead ou cliente
+                    </p>
+                    <ul className="divide-y divide-[#E6EDF2] overflow-hidden rounded-2xl border border-[#E2E8EC]">
+                      {docsDoLead.map((doc) => (
+                        <li key={doc.id} className="px-3 py-2.5 text-sm">
+                          <p className="font-medium text-[#0B3148]">{doc.nome}</p>
+                          <p className="text-xs text-[#5C6B76]">
+                            {doc.tipoContato === "cliente" ? "Cliente" : "Lead"}
+                            {doc.status1 ? ` · ${doc.status1}` : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
               </div>
               <div className="flex justify-end gap-2 border-t border-[#E6EDF2] px-5 py-3">
@@ -493,7 +546,7 @@ function TarefasPage() {
                   Editar
                 </Button>
               </div>
-            </>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
