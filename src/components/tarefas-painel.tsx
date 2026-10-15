@@ -339,7 +339,7 @@ export function TarefasPainel({
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             {visao === "lista" || visao === "dia" ? (
-              <p className="text-base font-semibold text-[#1E293B]">Hoje, por horário</p>
+              <p className="text-base font-semibold text-[#16324A]">Tarefa</p>
             ) : <span />}
             {visao === "lista" || visao === "dia" ? (
               <span />

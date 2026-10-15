@@ -5,9 +5,12 @@ import {
   Building2,
   CalendarDays,
   Clock3,
+  Download,
+  FileText,
   Flag,
   Home,
   Mail,
+  Phone,
   Repeat,
   Save,
   Type,
@@ -25,6 +28,7 @@ import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { tarefaMock, tarefasMock } from "@/lib/tarefas-mock";
+import { downloadArquivoFile, fetchArquivos, type ArquivoDocumento } from "@/lib/arquivos-api";
 import { toDateInput } from "@/components/agenda-board";
 import { Button } from "@/components/ui/button";
 import {
@@ -132,6 +136,7 @@ function TarefasPage() {
   const [open, setOpen] = useState(false);
   const [destino, setDestino] = useState<"tarefa" | "agenda">("tarefa");
   const [detalhe, setDetalhe] = useState<Tarefa | null>(null);
+  const [anexos, setAnexos] = useState<ArquivoDocumento[]>([]);
   const [editing, setEditing] = useState<Tarefa | null>(null);
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
@@ -163,6 +168,16 @@ function TarefasPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!detalhe || tarefaMock(detalhe.id)) {
+      setAnexos([]);
+      return;
+    }
+    void fetchArquivos({ entityType: "tarefa", entityId: detalhe.id })
+      .then(setAnexos)
+      .catch(() => setAnexos([]));
+  }, [detalhe]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -448,104 +463,31 @@ function TarefasPage() {
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={detalhe != null} onOpenChange={(aberto) => { if (!aberto) setDetalhe(null); }}>
-        <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-y-auto p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
+        <DialogContent className="max-h-[90vh] max-w-md gap-0 overflow-y-auto p-0 sm:rounded-2xl [&>button]:hidden">
           {detalhe ? (
-            <>
-              <div className="border-b border-[#E6EDF2] px-5 pb-4 pt-5 pr-12">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#E7F4FA] px-2 py-0.5 text-[11px] font-medium text-[#05749E]">
-                    {AGENDAMENTO_TIPO_LABEL[detalhe.tipo ?? "tarefa"]}
-                  </span>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", PRIORIDADE_CHIP[detalhe.prioridade])}>
-                    {PRIORIDADE_LABEL[detalhe.prioridade]}
-                  </span>
-                  <span className="rounded-full bg-[#F4F7F8] px-2 py-0.5 text-[11px] font-medium text-[#5C6B76]">
-                    {STATUS_TAREFA[detalhe.status]}
-                    {detalhe.atrasada ? " · Atrasada" : ""}
-                  </span>
-                </div>
-                <DialogHeader className="mt-2 space-y-0 text-left">
-                  <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
-                    {detalhe.titulo}
-                  </DialogTitle>
-                </DialogHeader>
-              </div>
-              <div className="space-y-2 px-5 py-4">
-                <DetalheLinha icon={CalendarDays} label="Quando" value={formatQuando(detalhe.data, detalhe.horario)} />
-                <DetalheLinha icon={UserRound} label="Responsável" value={detalhe.responsavel.name} />
-                <DetalheLinha icon={Mail} label="Lembrete" value={LEMBRETE_LABEL[detalhe.lembrete] ?? "Sem lembrete"} />
-                <DetalheLinha icon={Repeat} label="Repetição" value={RECORRENCIA_LABEL[detalhe.recorrencia] ?? "Não repete"} />
-                {detalhe.contexto.lead ? (
-                  <DetalheLinha icon={Users} label="Lead ou cliente" value={detalhe.contexto.lead.nome} />
-                ) : null}
-                {detalhe.contexto.imovel ? (
-                  <DetalheLinha icon={Home} label="Imóvel" value={detalhe.contexto.imovel.rotulo} />
-                ) : null}
-                {detalhe.descricao ? (
-                  <p className="rounded-xl border border-[#E6EDF2] bg-white px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-[#16324A] dark:border-white/10 dark:bg-[#141a22] dark:text-[#f8fafc]">
-                    {detalhe.descricao}
-                  </p>
-                ) : null}
-                {detalhe.comentarios.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] font-medium text-[#8B98A3]">Comentários</p>
-                    {detalhe.comentarios.map((item) => (
-                      <p key={item.id} className="rounded-xl bg-[#F8FBFC] px-3 py-2 text-[13px] text-[#16324A]">
-                        <span className="font-medium">{item.autor.name}: </span>
-                        {item.texto}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                <DocumentacoesLeadPanel
-                  entityType="tarefa"
-                  entityId={detalhe.id}
-                  descricao="Arquivos e documentos desta tarefa."
-                  extraVinculo={
-                    detalhe.leadId
-                      ? { entityType: "lead", entityId: detalhe.leadId }
-                      : undefined
-                  }
-                  related={
-                    detalhe.leadId
-                      ? {
-                          entityType: "lead",
-                          entityId: detalhe.leadId,
-                          label: "Lead / cliente",
-                        }
-                      : undefined
-                  }
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t border-[#E6EDF2] px-5 py-3">
-                {detalhe.status === "aberta" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const atual = detalhe;
-                      setDetalhe(null);
-                      void updateTarefa(atual.id, { status: "cancelada" }).then(() => {
-                        setFiltro("canceladas");
-                        void load();
-                      });
-                    }}
-                  >
-                    Cancelar tarefa
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const atual = detalhe;
-                    setDetalhe(null);
-                    abrirEdicao(atual);
-                  }}
-                >
-                  Editar
-                </Button>
-              </div>
-            </>
+            <FichaTarefa
+              tarefa={detalhe}
+              anexos={anexos}
+              onClose={() => setDetalhe(null)}
+              onEdit={() => {
+                const atual = detalhe;
+                setDetalhe(null);
+                abrirEdicao(atual);
+              }}
+              onConcluir={() => {
+                const atual = detalhe;
+                const proximo = atual.status === "concluida" ? "aberta" : "concluida";
+                if (tarefaMock(atual.id)) {
+                  setItems((lista) => lista.map((item) => item.id === atual.id ? { ...item, status: proximo, atrasada: false } : item));
+                  setDetalhe(null);
+                  return;
+                }
+                void updateTarefa(atual.id, { status: proximo }).then(() => {
+                  setDetalhe(null);
+                  void load();
+                });
+              }}
+            />
           ) : null}
         </DialogContent>
       </Dialog>
@@ -585,6 +527,154 @@ const RECORRENCIA_LABEL: Record<string, string> = {
   dias_especificos: "Dias específicos",
   personalizado: "Personalizada",
 };
+
+function FichaTarefa({
+  tarefa,
+  anexos,
+  onClose,
+  onEdit,
+  onConcluir,
+}: {
+  tarefa: Tarefa;
+  anexos: ArquivoDocumento[];
+  onClose: () => void;
+  onEdit: () => void;
+  onConcluir: () => void;
+}) {
+  const icone = tarefa.etiqueta === "ligacao" || tarefa.tipo === "ligacao" ? Phone : tarefa.tipo === "visita" ? Home : FileText;
+  const Icone = icone;
+  const well = tarefa.etiqueta === "ligacao" || tarefa.tipo === "ligacao"
+    ? "bg-[#FFF1E8] text-[#F97316]"
+    : tarefa.etiqueta === "contrato"
+      ? "bg-[#FDECEC] text-[#E11D48]"
+      : "bg-[#E7F4FA] text-[#079ED4]";
+  const quando = tarefa.data === hojeYmd()
+    ? `Hoje${tarefa.horario ? ` · ${tarefa.horario.slice(0, 5)}` : ""}`
+    : formatQuando(tarefa.data, tarefa.horario ?? undefined);
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <DialogTitle className="text-base font-semibold text-[#16324A]">Detalhes da tarefa</DialogTitle>
+        <button type="button" className="text-sm font-medium text-[#079ED4]" onClick={onClose}>Ver todos</button>
+      </div>
+      <div className="mt-4 flex items-start gap-3">
+        <span className={cn("grid size-11 shrink-0 place-items-center rounded-2xl", well)}>
+          <Icone className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[15px] font-semibold text-[#16324A]">{tarefa.titulo}</p>
+            <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold", PRIORIDADE_CHIP[tarefa.prioridade])}>
+              {PRIORIDADE_LABEL[tarefa.prioridade]}
+            </span>
+          </div>
+          {tarefa.descricao ? <p className="mt-0.5 text-[13px] text-[#98A2B3]">{tarefa.descricao}</p> : null}
+        </div>
+      </div>
+      <div className="mt-4 divide-y divide-[#F1F4F7]">
+        {tarefa.contexto.lead ? <FichaLinha icon={Users} label="Cliente" valor={tarefa.contexto.lead.nome} /> : null}
+        {tarefa.contexto.imovel ? <FichaLinha icon={Building2} label="Imóvel" valor={tarefa.contexto.imovel.rotulo} /> : null}
+        <FichaLinha icon={UserRound} label="Responsável" valor={tarefa.responsavel.name} iniciais={iniciaisNome(tarefa.responsavel.name)} />
+        <FichaLinha icon={CalendarDays} label="Data e hora" valor={quando} />
+      </div>
+      <div className="mt-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#16324A]">
+          Notas
+          <span className="grid size-5 place-items-center rounded-full bg-[#E7F4FA] text-[11px] text-[#05749E]">{tarefa.comentarios.length}</span>
+        </div>
+        <ul className="mt-3 space-y-3">
+          {tarefa.comentarios.length === 0 ? <li className="text-sm text-[#98A2B3]">Nenhuma nota ainda.</li> : tarefa.comentarios.map((item) => (
+            <li key={item.id} className="flex gap-3">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#E7F4FA] text-[11px] font-semibold text-[#05749E]">
+                {iniciaisNome(item.autor.name)}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#16324A]">
+                  {item.autor.name}
+                  <span className="ml-2 text-xs font-normal text-[#98A2B3]">
+                    {new Date(item.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </p>
+                <p className="text-sm text-[#5C6B76]">{item.texto}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-4">
+        <p className="text-sm font-semibold text-[#16324A]">Anexos ({anexos.length})</p>
+        <ul className="mt-2 space-y-2">
+          {anexos.length === 0 ? <li className="text-sm text-[#98A2B3]">Nenhum anexo nesta tarefa.</li> : anexos.map((arquivo) => (
+            <li key={arquivo.id} className="flex items-center gap-3 rounded-xl border border-[#E2E8EC] px-3 py-2">
+              <span className="grid size-9 place-items-center rounded-lg bg-[#FDECEC] text-[#E11D48]"><FileText className="size-4" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#16324A]">{arquivo.nomeOriginal || arquivo.nome}</p>
+                <p className="text-xs text-[#98A2B3]">{formatBytes(arquivo.bytes)}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Baixar anexo"
+                className="text-[#5C6B76]"
+                onClick={() => {
+                  void downloadArquivoFile(arquivo.id).then(({ blob, filename }) => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                  }).catch(() => toast.error("Não foi possível baixar o anexo."));
+                }}
+              >
+                <Download className="size-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <Button type="button" variant="outline" className="rounded-xl" onClick={onEdit}>Editar</Button>
+        <Button type="button" className="h-11 flex-1 rounded-xl border border-[#E2E8EC] bg-white text-[#16324A] hover:bg-[#F3FAFD]" onClick={onConcluir}>
+          {tarefa.status === "concluida" ? "Reabrir tarefa" : "Marcar como concluída"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FichaLinha({
+  icon: Icon,
+  label,
+  valor,
+  iniciais,
+}: {
+  icon: typeof UserRound;
+  label: string;
+  valor: string;
+  iniciais?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <span className="grid size-8 place-items-center rounded-full bg-[#F4F7F8] text-[#079ED4]">
+        {iniciais ? <span className="text-[11px] font-semibold text-[#05749E]">{iniciais}</span> : <Icon className="size-4" />}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] text-[#98A2B3]">{label}</p>
+        <p className="truncate text-sm font-medium text-[#16324A]">{valor}</p>
+      </div>
+    </div>
+  );
+}
+
+function iniciaisNome(nome: string) {
+  return nome.split(" ").filter(Boolean).slice(0, 2).map((parte) => parte[0]?.toUpperCase()).join("");
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function formatQuando(data: string, horario?: string) {
   const [ano, mes, dia] = data.split("-").map(Number);

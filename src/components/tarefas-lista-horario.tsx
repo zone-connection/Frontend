@@ -1,25 +1,34 @@
 import { useMemo, useState } from "react";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, UserRound } from "lucide-react";
-import { ETIQUETA_TAREFA, PRIORIDADE_LABEL, type Tarefa } from "@/lib/tarefas-api";
+import { Building2, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, FileText, Home, MoreHorizontal, Phone, UserRound, type LucideIcon } from "lucide-react";
+import { PRIORIDADE_LABEL, type Tarefa, type TarefaEtiqueta } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
-const PAGE = 7;
+const PAGE = 10;
+
+const ICONE: Record<TarefaEtiqueta, { icon: LucideIcon; well: string }> = {
+  ligacao: { icon: Phone, well: "bg-[#FFF1E8] text-[#F97316]" },
+  cliente: { icon: CalendarDays, well: "bg-[#F3E8FF] text-[#7C3AED]" },
+  documentos: { icon: FileText, well: "bg-[#E7F8EE] text-[#16A34A]" },
+  captacao: { icon: Building2, well: "bg-[#FFF6E0] text-[#F59E0B]" },
+  followup: { icon: UserRound, well: "bg-[#E7F8EE] text-[#16A34A]" },
+  interna: { icon: UserRound, well: "bg-[#F3E8FF] text-[#7C3AED]" },
+  contrato: { icon: FileText, well: "bg-[#FDECEC] text-[#E11D48]" },
+};
+
+function iconeDa(tarefa: Tarefa) {
+  if (tarefa.tipo === "visita") return { icon: Home, well: "bg-[#E7F1FF] text-[#3B82F6]" };
+  if (tarefa.tipo === "tarefa" && tarefa.etiqueta === "documentos") {
+    return { icon: ClipboardList, well: "bg-[#E7F1FF] text-[#3B82F6]" };
+  }
+  return ICONE[tarefa.etiqueta] ?? ICONE.documentos;
+}
 
 function horaDe(tarefa: Tarefa) {
   return tarefa.horario?.slice(0, 5) || "99:99";
 }
 
-function quandoCurto(tarefa: Tarefa, dia: string) {
-  const rotulo = tarefa.data === dia ? "Hoje" : `${tarefa.data.slice(8)}/${tarefa.data.slice(5, 7)}`;
-  return `${rotulo} · ${horaDe(tarefa) === "99:99" ? "—" : horaDe(tarefa)}`;
-}
-
-function selo(tarefa: Tarefa) {
-  return ETIQUETA_TAREFA[tarefa.etiqueta] ?? ETIQUETA_TAREFA.documentos;
-}
-
 export function ListaPorHorario({
-  hoje,
+  hoje: _hoje,
   items,
   ordem,
   onOrdem,
@@ -80,56 +89,36 @@ export function ListaPorHorario({
         {fatia.length === 0 ? (
           <li className="px-2 py-10 text-center text-sm text-[#5C6B76]">Nenhuma tarefa neste recorte.</li>
         ) : (
-          fatia.map((tarefa, index) => {
+          fatia.map((tarefa) => {
             const concluida = tarefa.status === "concluida";
             const cancelada = tarefa.status === "cancelada";
             const marcada = concluida || tarefa.id === "mock-1";
-            const pessoa = tarefa.contexto.lead?.nome;
-            const imovel = tarefa.contexto.imovel?.rotulo;
-            const tag = selo(tarefa);
+            const visual = iconeDa(tarefa);
+            const Icone = visual.icon;
             return (
-              <li
-                key={tarefa.id}
-                className={cn(
-                  "grid items-center gap-3 border-b border-[#F1F4F7] py-3.5 grid-cols-[4.2rem_minmax(0,1fr)] xl:grid-cols-[4.2rem_minmax(12rem,1.4fr)_7.5rem_9.5rem_10rem_6.75rem_2rem]",
-                  index === 0 && atual === 1 && "border-l-[3px] border-l-[#079ED4] pl-3",
-                )}
-              >
-                <span className="self-center text-center text-sm tabular-nums text-[#A0AAB4]">{horaDe(tarefa) === "99:99" ? "—" : horaDe(tarefa)}</span>
-                <div className="flex min-w-0 items-center gap-3">
-                  <button
-                    type="button"
-                    aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
-                    className={cn(
-                      "grid size-[18px] shrink-0 place-items-center rounded-[5px] border",
-                      marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#E4E8ED] bg-white",
-                    )}
-                    onClick={() => onComplete(tarefa)}
-                  >
-                    {marcada ? <Check className="size-3" strokeWidth={3} /> : null}
-                  </button>
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                    <p className={cn("truncate text-[15px] font-semibold leading-5 text-[#1E293B]", cancelada && "text-[#8B98A3] line-through")}>
-                      {tarefa.titulo}
-                    </p>
-                    {tarefa.descricao ? <p className="truncate text-[13px] leading-5 text-[#98A2B0]">{tarefa.descricao}</p> : null}
-                    <span className="sr-only">{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
-                  </button>
-                </div>
-                <div className="col-span-2 grid grid-cols-2 items-center justify-items-center gap-2 pl-16 xl:contents">
-                  <span className={cn("justify-self-center rounded-full px-2.5 py-1 text-center text-[12px] font-medium", tag.className)}>{tag.label}</span>
-                  <span className="inline-flex items-center justify-center gap-1.5 text-[13px] text-[#667085]">
-                    {pessoa ? <UserRound className="size-3.5 shrink-0 text-[#98A2B3]" /> : null}
-                    <span className="truncate">{pessoa ?? ""}</span>
-                  </span>
-                  <span className="inline-flex max-w-full items-center justify-center gap-1.5 text-[13px] text-[#667085]">
-                    {imovel ? <Building2 className="size-3.5 shrink-0 text-[#98A2B3]" /> : null}
-                    <span className="truncate">{imovel ?? ""}</span>
-                  </span>
-                  <span className="justify-self-center rounded-full bg-[#E7F4FA] px-2.5 py-1 text-center text-[12px] font-medium text-[#079ED4]">
-                    {quandoCurto(tarefa, hoje)}
-                  </span>
-                  <div className="relative justify-self-center">
+              <li key={tarefa.id} className="flex items-center gap-3 border-b border-[#F1F4F7] py-3">
+                <button
+                  type="button"
+                  aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
+                  className={cn(
+                    "grid size-[18px] shrink-0 place-items-center rounded-[4px] border",
+                    marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#D5DEE7] bg-white",
+                  )}
+                  onClick={() => onComplete(tarefa)}
+                >
+                  {marcada ? <Check className="size-3" strokeWidth={3} /> : null}
+                </button>
+                <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", visual.well)}>
+                  <Icone className="size-[18px]" />
+                </span>
+                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
+                  <p className={cn("truncate text-[15px] font-semibold text-[#16324A]", cancelada && "text-[#8B98A3] line-through")}>
+                    {tarefa.titulo}
+                  </p>
+                  {tarefa.descricao ? <p className="truncate text-[13px] text-[#98A2B3]">{tarefa.descricao}</p> : null}
+                  <span className="sr-only">{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
+                </button>
+                <div className="relative">
                     <button
                       type="button"
                       aria-label="Ações da tarefa"
@@ -149,18 +138,15 @@ export function ListaPorHorario({
                       </div>
                     ) : null}
                   </div>
-                </div>
               </li>
             );
           })
         )}
       </ul>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-4 text-[12px] text-[#98A2B3]">
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#F04438]" /> Alta prioridade</span>
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#F79009]" /> Média prioridade</span>
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#12B76A]" /> Baixa prioridade</span>
-        </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-[#98A2B3]">
+          Mostrando {fatia.length} de {ordenadas.length} tarefas
+        </p>
         <div className="flex items-center gap-1.5">
           <button type="button" className="grid size-8 place-items-center rounded-lg border border-[#E6EBF0] text-[#98A2B3]" onClick={() => setPage(Math.max(1, atual - 1))} aria-label="Página anterior">
             <ChevronLeft className="size-4" />
