@@ -5,20 +5,20 @@ import { cn } from "@/lib/utils";
 
 const PAGE = 10;
 
-const ICONE: Record<TarefaEtiqueta, { icon: LucideIcon; well: string }> = {
-  ligacao: { icon: Phone, well: "bg-[#FFF1E8] text-[#F97316]" },
-  cliente: { icon: CalendarDays, well: "bg-[#F3E8FF] text-[#7C3AED]" },
-  documentos: { icon: FileText, well: "bg-[#E7F8EE] text-[#16A34A]" },
-  captacao: { icon: Building2, well: "bg-[#FFF6E0] text-[#F59E0B]" },
-  followup: { icon: UserRound, well: "bg-[#E7F8EE] text-[#16A34A]" },
-  interna: { icon: UserRound, well: "bg-[#F3E8FF] text-[#7C3AED]" },
-  contrato: { icon: FileText, well: "bg-[#FDECEC] text-[#E11D48]" },
+const ICONE: Record<TarefaEtiqueta, { icon: LucideIcon; well: string; barra: string; card: string }> = {
+  ligacao: { icon: Phone, well: "bg-[#FFF1E8] text-[#F97316]", barra: "bg-[#F97316]", card: "bg-[#FFF8F3]" },
+  cliente: { icon: CalendarDays, well: "bg-[#F3E8FF] text-[#7C3AED]", barra: "bg-[#7C3AED]", card: "bg-[#F8F5FF]" },
+  documentos: { icon: FileText, well: "bg-[#E7F8EE] text-[#16A34A]", barra: "bg-[#16A34A]", card: "bg-[#F3FBF6]" },
+  captacao: { icon: Building2, well: "bg-[#FFF6E0] text-[#D97706]", barra: "bg-[#F59E0B]", card: "bg-[#FFF9EE]" },
+  followup: { icon: UserRound, well: "bg-[#E6F7F7] text-[#0F766E]", barra: "bg-[#14B8A6]", card: "bg-[#F2FBFA]" },
+  interna: { icon: UserRound, well: "bg-[#F3E8FF] text-[#7C3AED]", barra: "bg-[#A855F7]", card: "bg-[#F8F5FF]" },
+  contrato: { icon: FileText, well: "bg-[#FDECEC] text-[#E11D48]", barra: "bg-[#E11D48]", card: "bg-[#FFF5F6]" },
 };
 
 function iconeDa(tarefa: Tarefa) {
-  if (tarefa.tipo === "visita") return { icon: Home, well: "bg-[#E7F1FF] text-[#3B82F6]" };
+  if (tarefa.tipo === "visita") return { icon: Home, well: "bg-[#E7F1FF] text-[#2563EB]", barra: "bg-[#3B82F6]", card: "bg-[#F4F8FF]" };
   if (tarefa.tipo === "tarefa" && tarefa.etiqueta === "documentos") {
-    return { icon: ClipboardList, well: "bg-[#E7F1FF] text-[#3B82F6]" };
+    return { icon: ClipboardList, well: "bg-[#E7F4FA] text-[#05749E]", barra: "bg-[#079ED4]", card: "bg-[#F3FAFD]" };
   }
   return ICONE[tarefa.etiqueta] ?? ICONE.documentos;
 }
@@ -85,9 +85,9 @@ export function ListaPorHorario({
           <ChevronDown className="size-3.5" />
         </label>
       </div>
-      <ul>
+      <ul className="space-y-2">
         {fatia.length === 0 ? (
-          <li className="px-2 py-10 text-center text-sm text-[#5C6B76]">Nenhuma tarefa neste recorte.</li>
+          <li className="rounded-2xl border border-dashed border-[#C9E6F4] bg-[#F3FAFD] px-2 py-10 text-center text-sm text-[#5C6B76]">Nenhuma tarefa neste recorte.</li>
         ) : (
           fatia.map((tarefa) => {
             const concluida = tarefa.status === "concluida";
@@ -95,29 +95,38 @@ export function ListaPorHorario({
             const marcada = concluida || tarefa.id === "mock-1";
             const visual = iconeDa(tarefa);
             const Icone = visual.icon;
+            const pessoa = tarefa.contexto.lead?.nome;
+            const imovel = tarefa.contexto.imovel?.rotulo;
+            const hora = horaDe(tarefa) === "99:99" ? null : horaDe(tarefa);
             return (
-              <li key={tarefa.id} className="flex items-center gap-3 border-b border-[#F1F4F7] py-3">
+              <li key={tarefa.id} className={cn("flex items-center gap-3 rounded-2xl border border-[#E2E8EC] px-3 py-3 shadow-sm transition hover:border-[#079ED4]/40 hover:shadow-md", concluida ? "bg-[#F3FBF6]" : visual.card)}>
+                <span className={cn("h-12 w-1.5 shrink-0 rounded-full", visual.barra)} />
                 <button
                   type="button"
                   aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
                   className={cn(
-                    "grid size-[18px] shrink-0 place-items-center rounded-[4px] border",
-                    marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#D5DEE7] bg-white",
+                    "grid size-[18px] shrink-0 place-items-center rounded-[4px] border bg-white",
+                    marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#D5DEE7]",
                   )}
                   onClick={() => onComplete(tarefa)}
                 >
                   {marcada ? <Check className="size-3" strokeWidth={3} /> : null}
                 </button>
-                <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", visual.well)}>
-                  <Icone className="size-[18px]" />
+                <span className={cn("grid size-11 shrink-0 place-items-center rounded-2xl shadow-sm", visual.well)}>
+                  <Icone className="size-5" />
                 </span>
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                  <p className={cn("truncate text-[15px] font-semibold text-[#16324A]", cancelada && "text-[#8B98A3] line-through")}>
+                  <p className={cn("truncate text-[15px] font-semibold text-[#0B3148]", cancelada && "text-[#8B98A3] line-through")}>
                     {tarefa.titulo}
                   </p>
-                  {tarefa.descricao ? <p className="truncate text-[13px] text-[#98A2B3]">{tarefa.descricao}</p> : null}
+                  {tarefa.descricao ? <p className="truncate text-[13px] text-[#5C6B76]">{tarefa.descricao}</p> : null}
                   <span className="sr-only">{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
                 </button>
+                <div className="hidden items-center gap-2 lg:flex">
+                  {pessoa ? <span className="max-w-36 truncate rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[#16324A]">{pessoa}</span> : null}
+                  {imovel ? <span className="max-w-40 truncate rounded-full bg-white/80 px-2.5 py-1 text-xs text-[#5C6B76]">{imovel}</span> : null}
+                  {hora ? <span className="rounded-full bg-[#079ED4] px-2.5 py-1 text-xs font-semibold text-white">{hora}</span> : null}
+                </div>
                 <div className="relative">
                     <button
                       type="button"
