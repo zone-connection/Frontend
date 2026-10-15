@@ -214,7 +214,7 @@ export function TarefasPainel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-[#F97316]">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-[#079ED4]">
             <ListTodo className="size-4" />
             Tarefas
           </p>
@@ -242,7 +242,7 @@ export function TarefasPainel({
               {verEquipe ? "Minhas tarefas" : "Tarefas dos usuários"}
             </Button>
           ) : null}
-          <Button className="h-10 rounded-full bg-[#F97316] px-4 text-white shadow-md shadow-[#F97316]/30 hover:bg-[#EA580C]" onClick={onCreate}>
+          <Button className="h-10 rounded-full bg-[#079ED4] px-4 text-white shadow-md shadow-[#079ED4]/25 hover:bg-[#05749E]" onClick={onCreate}>
             <Plus className="h-4 w-4" />
             Nova tarefa
           </Button>
@@ -304,8 +304,8 @@ export function TarefasPainel({
                   className={cn(
                     "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
                     ativo
-                      ? "bg-[#F97316] text-white"
-                      : "bg-[#F4F6F8] text-[#667085] hover:bg-[#FFF4ED]",
+                      ? "bg-[#079ED4] text-white"
+                      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
                   )}
                   onClick={() => {
                     onVisao(item.id);
@@ -317,7 +317,7 @@ export function TarefasPainel({
                 >
                   {item.label}
                   {item.id === "lista" ? (
-                    <span className={cn("grid min-w-5 place-items-center rounded-full px-1.5 text-[11px]", ativo ? "bg-white/25" : "bg-white text-[#F97316]")}>
+                    <span className={cn("grid min-w-5 place-items-center rounded-full px-1.5 text-[11px]", ativo ? "bg-white/25" : "bg-white text-[#079ED4]")}>
                       {abertas.filter((item) => item.data === hoje && item.prioridade === "alta").length}
                     </span>
                   ) : null}
@@ -532,7 +532,7 @@ function CartaoResumo({
   onClick: () => void;
 }) {
   const well = {
-    amber: "bg-[#FFF1E8] text-[#F97316]",
+    amber: "bg-[#E7F4FA] text-[#05749E]",
     sky: "bg-[#E8F1FF] text-[#3B82F6]",
     green: "bg-[#E8F8EF] text-[#22C55E]",
     violet: "bg-[#F3E8FF] text-[#8B5CF6]",
@@ -543,7 +543,7 @@ function CartaoResumo({
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
-        ativo ? "border-[#F97316]" : "border-[#EEF2F6]",
+        ativo ? "border-[#079ED4]" : "border-[#EEF2F6]",
       )}
     >
       <span className={cn("grid size-11 place-items-center rounded-2xl", well)}>

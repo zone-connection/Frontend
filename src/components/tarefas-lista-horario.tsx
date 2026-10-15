@@ -92,7 +92,7 @@ export function ListaPorHorario({
                 key={tarefa.id}
                 className={cn(
                   "grid items-center gap-3 border-b border-[#F1F4F7] py-3.5 grid-cols-[4.2rem_minmax(0,1fr)] xl:grid-cols-[4.2rem_minmax(12rem,1.4fr)_7.5rem_9.5rem_10rem_6.75rem_2rem]",
-                  index === 0 && atual === 1 && "border-l-[3px] border-l-[#F97316] pl-3",
+                  index === 0 && atual === 1 && "border-l-[3px] border-l-[#079ED4] pl-3",
                 )}
               >
                 <span className="self-center text-center text-sm tabular-nums text-[#A0AAB4]">{horaDe(tarefa) === "99:99" ? "—" : horaDe(tarefa)}</span>
@@ -102,7 +102,7 @@ export function ListaPorHorario({
                     aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
                     className={cn(
                       "grid size-[18px] shrink-0 place-items-center rounded-[5px] border",
-                      marcada ? "border-[#F97316] bg-[#F97316] text-white" : "border-[#E4E8ED] bg-white",
+                      marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#E4E8ED] bg-white",
                     )}
                     onClick={() => onComplete(tarefa)}
                   >
@@ -126,7 +126,7 @@ export function ListaPorHorario({
                     {imovel ? <Building2 className="size-3.5 shrink-0 text-[#98A2B3]" /> : null}
                     <span className="truncate">{imovel ?? ""}</span>
                   </span>
-                  <span className="justify-self-center rounded-full bg-[#FFF1E8] px-2.5 py-1 text-center text-[12px] font-medium text-[#F97316]">
+                  <span className="justify-self-center rounded-full bg-[#E7F4FA] px-2.5 py-1 text-center text-[12px] font-medium text-[#079ED4]">
                     {quandoCurto(tarefa, hoje)}
                   </span>
                   <div className="relative justify-self-center">
@@ -140,7 +140,7 @@ export function ListaPorHorario({
                     </button>
                     {menu === tarefa.id ? (
                       <div className="absolute right-0 z-10 mt-1 w-36 rounded-xl border border-[#E2E8EC] bg-white p-1 shadow-lg">
-                        <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm hover:bg-[#FFF7F2]" onClick={() => { setMenu(null); onEdit(tarefa); }}>
+                        <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm hover:bg-[#F3FAFD]" onClick={() => { setMenu(null); onEdit(tarefa); }}>
                           Editar
                         </button>
                         <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-[#B42318] hover:bg-[#FEF3F2]" onClick={() => { setMenu(null); onDelete(tarefa); }}>
@@ -171,7 +171,7 @@ export function ListaPorHorario({
               type="button"
               className={cn(
                 "grid size-8 place-items-center rounded-lg text-sm",
-                numero === atual ? "bg-[#F97316] text-white" : "border border-[#E6EBF0] text-[#667085]",
+                numero === atual ? "bg-[#079ED4] text-white" : "border border-[#E6EBF0] text-[#667085]",
               )}
               onClick={() => setPage(numero)}
             >
