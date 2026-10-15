@@ -24,7 +24,6 @@ import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { toDateInput } from "@/components/agenda-board";
-import { tarefasDemonstracao, type TarefaVisivel } from "@/lib/tarefas-mock";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -119,11 +118,11 @@ function TarefasPage() {
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
   const [visao, setVisao] = useState<TarefaVisao>("lista");
   const [anchor, setAnchor] = useState(hojeYmd);
-  const [items, setItems] = useState<TarefaVisivel[]>([]);
-  const [demos, setDemos] = useState<TarefaVisivel[]>(() => tarefasDemonstracao());
+  const [items, setItems] = useState<Tarefa[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [detalhe, setDetalhe] = useState<TarefaVisivel | null>(null);
+  const [destino, setDestino] = useState<"tarefa" | "agenda">("tarefa");
+  const [detalhe, setDetalhe] = useState<Tarefa | null>(null);
   const [editing, setEditing] = useState<Tarefa | null>(null);
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
@@ -191,6 +190,7 @@ function TarefasPage() {
   function abrirNova() {
     setEditing(null);
     setNota("");
+    setDestino("tarefa");
     setForm(emptyForm(session?.id ?? ""));
     setOpen(true);
   }
@@ -251,7 +251,7 @@ function TarefasPage() {
       return;
     }
     try {
-      if (!editing && tipo !== "tarefa") {
+      if (!editing && destino === "agenda" && tipo !== "tarefa") {
         const inicio = form.horario?.trim() || "09:00";
         const fim = extra?.horarioFim || horaSeguinte(inicio);
         await createAgendamento({
@@ -289,6 +289,7 @@ function TarefasPage() {
         };
         if (editing) await updateTarefa(editing.id, payload);
         else await createTarefa(payload);
+        if (!editing && destino === "tarefa") setFiltro("todas");
       }
       setOpen(false);
       await load();
@@ -310,10 +311,9 @@ function TarefasPage() {
     if (role === "admin" || role === "super_admin") return true;
     return usuario.role === "corretor" || usuario.role === "treinee";
   });
-  const reais = verEquipe
+  const painel = verEquipe
     ? items.filter((item) => !usuarioId || item.responsavel.id === usuarioId)
     : items.filter((item) => item.responsavel.id === session?.id);
-  const painel = verEquipe ? reais : [...demos, ...reais];
 
   if (open) {
     return (
@@ -346,7 +346,7 @@ function TarefasPage() {
     <div className="space-y-4">
       {enabled === false ? (
         <p className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
-          Os exemplos abaixo sÃ£o demonstraÃ§Ã£o. Tarefas reais entram a partir do plano Prata.{" "}
+          Tarefas reais entram a partir do plano Prata.{" "}
           <Link to="/configuracoes" className="underline">
             Conhecer recurso
           </Link>
@@ -369,6 +369,7 @@ function TarefasPage() {
           onCreateAt={(day, hour) => {
             setEditing(null);
             setNota("");
+            setDestino("agenda");
             setForm({
               ...emptyForm(session?.id ?? ""),
               data: toDateInput(day),
@@ -378,9 +379,7 @@ function TarefasPage() {
           }}
         />
       ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
-        <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => {
-          if (!tarefa.demonstracao) abrirEdicao(tarefa);
-        }} />
+        <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => abrirEdicao(tarefa)} />
       ) : (
       <TarefasPainel
         modo="lista"
@@ -392,18 +391,8 @@ function TarefasPage() {
         onVisao={setVisao}
         onAnchor={setAnchor}
         onOpen={(tarefa) => setDetalhe(tarefa)}
-        onEdit={(tarefa) => {
-          if (tarefa.demonstracao) {
-            toast.error("Exemplos não podem ser editados.");
-            return;
-          }
-          abrirEdicao(tarefa);
-        }}
+        onEdit={(tarefa) => abrirEdicao(tarefa)}
         onDelete={(tarefa) => {
-          if (tarefa.demonstracao) {
-            setDemos((current) => current.filter((item) => item.id !== tarefa.id));
-            return;
-          }
           void deleteTarefa(tarefa.id)
             .then(() => {
               toast.success("Tarefa excluída.");
@@ -412,20 +401,6 @@ function TarefasPage() {
             .catch((err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível excluir."));
         }}
         onComplete={(tarefa) => {
-          if (tarefa.demonstracao) {
-            setDemos((current) =>
-              current.map((item) =>
-                item.id === tarefa.id
-                  ? {
-                      ...item,
-                      status: item.status === "concluida" ? "aberta" : "concluida",
-                      atrasada: false,
-                    }
-                  : item,
-              ),
-            );
-            return;
-          }
           void updateTarefa(tarefa.id, {
             status: tarefa.status === "concluida" ? "aberta" : "concluida",
           }).then(load);
@@ -444,6 +419,7 @@ function TarefasPage() {
           }
           setEditing(null);
           setNota("");
+          setDestino("tarefa");
           setForm({
             ...emptyForm(session?.id ?? ""),
             data: ymd,
@@ -506,15 +482,6 @@ function TarefasPage() {
                     onClick={() => {
                       const atual = detalhe;
                       setDetalhe(null);
-                      if (atual.demonstracao) {
-                        setDemos((current) =>
-                          current.map((item) =>
-                            item.id === atual.id ? { ...item, status: "cancelada", atrasada: false } : item,
-                          ),
-                        );
-                        setFiltro("canceladas");
-                        return;
-                      }
                       void updateTarefa(atual.id, { status: "cancelada" }).then(() => {
                         setFiltro("canceladas");
                         void load();
@@ -524,18 +491,16 @@ function TarefasPage() {
                     Cancelar tarefa
                   </Button>
                 ) : null}
-                {!detalhe.demonstracao ? (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const atual = detalhe;
-                      setDetalhe(null);
-                      abrirEdicao(atual);
-                    }}
-                  >
-                    Editar
-                  </Button>
-                ) : null}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const atual = detalhe;
+                    setDetalhe(null);
+                    abrirEdicao(atual);
+                  }}
+                >
+                  Editar
+                </Button>
               </div>
             </>
           ) : null}

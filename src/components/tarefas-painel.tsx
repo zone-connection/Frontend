@@ -24,8 +24,7 @@ import {
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { AgendamentoTipoDot } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
-import { PRIORIDADE_LABEL, type TarefaFiltro } from "@/lib/tarefas-api";
-import type { TarefaVisivel } from "@/lib/tarefas-mock";
+import { PRIORIDADE_LABEL, type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
 const FILTROS: { id: TarefaFiltro; label: string }[] = [
@@ -46,7 +45,7 @@ function iniciais(nome: string) {
     .join("");
 }
 
-function contexto(tarefa: TarefaVisivel) {
+function contexto(tarefa: Tarefa) {
   if (tarefa.contexto.lead) return `Lead: ${tarefa.contexto.lead.nome}`;
   if (tarefa.contexto.imovel) return `Imóvel: ${tarefa.contexto.imovel.rotulo}`;
   if (tarefa.contexto.atendimento) {
@@ -55,7 +54,7 @@ function contexto(tarefa: TarefaVisivel) {
   return null;
 }
 
-function quando(tarefa: TarefaVisivel, hoje: string) {
+function quando(tarefa: Tarefa, hoje: string) {
   const dia =
     tarefa.data === hoje
       ? "Hoje"
@@ -119,17 +118,17 @@ export function TarefasPainel({
   onVerEquipe,
   onUsuario,
 }: {
-  items: TarefaVisivel[];
+  items: Tarefa[];
   filtro: TarefaFiltro;
   visao: TarefaVisao;
   anchor: string;
   onFiltro: (filtro: TarefaFiltro) => void;
   onVisao: (visao: TarefaVisao) => void;
   onAnchor: (ymd: string) => void;
-  onOpen: (tarefa: TarefaVisivel) => void;
-  onEdit: (tarefa: TarefaVisivel) => void;
-  onDelete: (tarefa: TarefaVisivel) => void;
-  onComplete: (tarefa: TarefaVisivel) => void;
+  onOpen: (tarefa: Tarefa) => void;
+  onEdit: (tarefa: Tarefa) => void;
+  onDelete: (tarefa: Tarefa) => void;
+  onComplete: (tarefa: Tarefa) => void;
   onCreate: () => void;
   onCreateSlot?: (ymd: string, hour?: number) => void;
   modo?: "geral" | "lista" | "calendario";
@@ -322,7 +321,9 @@ export function TarefasPainel({
             </div>
             )}
             {modo === "lista" || visao === "lista" ? (
-              <p className="text-xs text-muted-foreground">Exemplos para explorar</p>
+              <p className="text-xs text-muted-foreground">
+                {visiveis.length === 0 ? "Nenhuma tarefa neste filtro" : `${visiveis.length} na lista`}
+              </p>
             ) : (
               <div className="flex items-center gap-1 text-sm">
                 <Button size="icon" variant="ghost" onClick={() => onAnchor(visao === "mes" ? shiftMonth(anchor, -1) : addDays(anchor, visao === "dia" ? -1 : -7))}>
@@ -340,7 +341,11 @@ export function TarefasPainel({
 
           <div className="space-y-6 px-5 pb-5">
             {modo !== "calendario" && visao === "lista" ? (
-              grupos.map((grupo) => (
+              grupos.length === 0 ? (
+                <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+                  Nenhuma tarefa aqui. Use Nova tarefa para criar a primeira.
+                </p>
+              ) : grupos.map((grupo) => (
                 <div key={grupo.titulo} className="space-y-2">
                   <p className={cn("text-sm font-medium", grupo.titulo === "Atrasadas" && "text-red-600")}>
                     {grupo.titulo} {grupo.items.length}

@@ -1,5 +1,4 @@
-import { PRIORIDADE_LABEL } from "@/lib/tarefas-api";
-import type { TarefaVisivel } from "@/lib/tarefas-mock";
+import { PRIORIDADE_LABEL, type Tarefa } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
 const TITULO: Record<"leads" | "imoveis" | "atendimentos", string> = {
@@ -14,10 +13,10 @@ export function TarefasVinculos({
   onOpen,
 }: {
   secao: "leads" | "imoveis" | "atendimentos";
-  items: TarefaVisivel[];
-  onOpen: (tarefa: TarefaVisivel) => void;
+  items: Tarefa[];
+  onOpen: (tarefa: Tarefa) => void;
 }) {
-  const grupos = new Map<string, TarefaVisivel[]>();
+  const grupos = new Map<string, Tarefa[]>();
   for (const item of items) {
     const nome =
       secao === "leads"
@@ -54,7 +53,6 @@ export function TarefasVinculos({
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {tarefa.horario ?? "Sem horário"} · {tarefa.data}
-                      {tarefa.demonstracao ? " · Demonstração" : ""}
                     </span>
                   </span>
                   <span className="text-xs text-muted-foreground">
