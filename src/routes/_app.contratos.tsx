@@ -7,7 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { SlidingNav, navItemClass } from "@/components/operacao-ui";
 import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
@@ -39,6 +39,7 @@ import { formatCpfCnpj, formatRg, cn } from "@/lib/utils";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { getSession, type TenantBranding } from "@/lib/auth";
 import { fetchTenantCompany } from "@/lib/tenant-company-api";
+import { PageHeader } from "@/components/app-shell";
 import {
   ArrowRight,
   Ban,
@@ -53,6 +54,7 @@ import {
   Sparkles,
   Trash2,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,55 +100,16 @@ function canUseContratoTemplate(templateId: ContratoTemplateId): boolean {
   return true;
 }
 
-const TEMPLATE_META: Record<
-  ContratoTemplateId,
-  { icon: LucideIcon; accent: string; accentBg: string }
-> = {
-  "carta-cancelamento": {
-    icon: Ban,
-    accent: "text-rose-600 dark:text-rose-400",
-    accentBg: "bg-rose-500/10",
-  },
-  "recibo-pagamento": {
-    icon: Receipt,
-    accent: "text-emerald-600 dark:text-emerald-400",
-    accentBg: "bg-emerald-500/10",
-  },
-  "parentesco-sem-conjuge": {
-    icon: Users,
-    accent: "text-violet-600 dark:text-violet-400",
-    accentBg: "bg-violet-500/10",
-  },
-  "parentesco-com-conjuge": {
-    icon: Users,
-    accent: "text-indigo-600 dark:text-indigo-400",
-    accentBg: "bg-indigo-500/10",
-  },
-  intermediacao: {
-    icon: Handshake,
-    accent: "text-sky-600 dark:text-sky-400",
-    accentBg: "bg-sky-500/10",
-  },
-  "checklist-renda-informal": {
-    icon: ClipboardList,
-    accent: "text-amber-600 dark:text-amber-400",
-    accentBg: "bg-amber-500/10",
-  },
-  "saas-ouro": {
-    icon: Sparkles,
-    accent: "text-amber-600 dark:text-amber-400",
-    accentBg: "bg-amber-500/10",
-  },
-  "saas-prata-admin": {
-    icon: Sparkles,
-    accent: "text-slate-600 dark:text-slate-300",
-    accentBg: "bg-slate-500/10",
-  },
-  "saas-prata-financeiro": {
-    icon: Sparkles,
-    accent: "text-emerald-600 dark:text-emerald-400",
-    accentBg: "bg-emerald-500/10",
-  },
+const TEMPLATE_META: Record<ContratoTemplateId, { icon: LucideIcon }> = {
+  "carta-cancelamento": { icon: Ban },
+  "recibo-pagamento": { icon: Receipt },
+  "parentesco-sem-conjuge": { icon: Users },
+  "parentesco-com-conjuge": { icon: Users },
+  intermediacao: { icon: Handshake },
+  "checklist-renda-informal": { icon: ClipboardList },
+  "saas-ouro": { icon: Sparkles },
+  "saas-prata-admin": { icon: Sparkles },
+  "saas-prata-financeiro": { icon: Sparkles },
 };
 
 const CONTRATO_GROUPS: Array<{
@@ -1102,7 +1065,7 @@ function ContratosPage() {
         </div>
       ) : null}
 
-      <div className="inline-flex max-w-full flex-wrap rounded-full border bg-muted/40 p-1">
+      <SlidingNav>
         {(
           [
             {
@@ -1126,20 +1089,20 @@ function ContratosPage() {
             key={item.id}
             type="button"
             onClick={() => setSecao(item.id)}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              secao === item.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
+            className={navItemClass(secao === item.id)}
           >
             {item.label}
-            <span className="ml-1.5 tabular-nums text-muted-foreground">
+            <span
+              className={cn(
+                "rounded-full px-1.5 text-xs tabular-nums",
+                secao === item.id ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]",
+              )}
+            >
               {item.count}
             </span>
           </button>
         ))}
-      </div>
+      </SlidingNav>
 
       {secao === "catalogo" ? (
         <div className="space-y-5">
@@ -1164,17 +1127,11 @@ function ContratosPage() {
                       onClick={() => openTemplate(template)}
                       className={cn(
                         "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
-                        "hover:border-primary/35 hover:bg-primary/4 hover:shadow-md",
+                        "hover:border-[#079ED4]/40 hover:bg-[#F3FAFD]",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       )}
                     >
-                      <div
-                        className={cn(
-                          "mb-3 flex size-11 items-center justify-center rounded-xl",
-                          meta?.accentBg ?? "bg-primary/10",
-                          meta?.accent ?? "text-primary",
-                        )}
-                      >
+                      <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
                         <Icon className="size-5" />
                       </div>
                       <h3 className="text-[15px] font-semibold leading-snug text-foreground">
@@ -1183,7 +1140,7 @@ function ContratosPage() {
                       <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">
                         {template.descricao}
                       </p>
-                      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition group-hover:gap-2">
+                      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#079ED4] transition group-hover:gap-2">
                         Preencher
                         <ArrowRight className="size-3.5" />
                       </span>

@@ -180,10 +180,10 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { IdSearchSelect } from "@/components/id-search-select";
 
 const DOC_STATUS_CHIP = cn(STATUS_CHIP_CLASS, "justify-start text-left");
@@ -2187,8 +2187,8 @@ function DocumentacaoPage() {
             ) : null}
 
             <div className="flex shrink-0 items-center gap-1.5 pb-px">
-              <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-                <PopoverTrigger asChild>
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
@@ -2205,25 +2205,27 @@ function DocumentacaoPage() {
                       </Badge>
                     ) : null}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  collisionPadding={16}
-                  className="w-[min(92vw,34rem)] max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-1rem))] overflow-y-auto overscroll-contain p-0"
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] p-0 sm:max-w-[400px]"
                 >
-                  <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b bg-popover px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium">Filtros avançados</p>
-                      <p className="text-xs text-muted-foreground">
-                        Situação, imóvel e equipe
-                      </p>
-                    </div>
+                  <div className="border-b border-[#E6EDF2] bg-[#F3FAFD] px-5 py-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#079ED4]">
+                      Documentação
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-[#0B3148]">
+                      Filtros avançados
+                    </p>
+                    <p className="text-sm text-[#5C6B76]">
+                      Situação, imóvel e equipe
+                    </p>
                     {advancedFiltersCount > 0 ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-xs"
+                        className="mt-3 h-8 px-2 text-[#05749E]"
                         onClick={() => {
                           setFilterStatus1("__all__");
                           setFilterStatus2("__all__");
@@ -2235,17 +2237,17 @@ function DocumentacaoPage() {
                           setFilterGerenteId("__all__");
                         }}
                       >
-                        Limpar
+                        Limpar filtros
                       </Button>
                     ) : null}
                   </div>
 
-                  <div className="space-y-5 p-4">
+                  <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
                     <div className="space-y-2.5">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
                         Situação
                       </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">
                             Status 1
@@ -2333,10 +2335,10 @@ function DocumentacaoPage() {
                     </div>
 
                     <div className="space-y-2.5">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
                         Imóvel
                       </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">
                             Construtora
@@ -2387,10 +2389,10 @@ function DocumentacaoPage() {
 
                     {showTeamFilters ? (
                       <div className="space-y-2.5">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
                           Equipe
                         </p>
-                        <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="grid gap-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">
                               Corretor
@@ -2437,8 +2439,8 @@ function DocumentacaoPage() {
                       </div>
                     ) : null}
                   </div>
-                </PopoverContent>
-              </Popover>
+                </SheetContent>
+              </Sheet>
 
               {activeFiltersCount > 0 ? (
                 <Button

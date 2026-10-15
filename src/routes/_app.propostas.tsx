@@ -1710,7 +1710,7 @@ function Page() {
       </PagePanel>
 
       <div className={FILTER_BAR_SHELL}>
-        <div className="relative min-w-50 max-w-sm flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className={FILTER_SEARCH_ICON} />
           <Input
             value={search}
@@ -1719,11 +1719,6 @@ function Page() {
             className={cn("pl-9", FILTER_CONTROL)}
           />
         </div>
-        <TableSortSelect
-          value={sort}
-          onChange={setSort}
-          className={FILTER_CONTROL}
-        />
         <FiltrosPainel
           kicker="Propostas"
           description="Período, status, corretor e equipe."
@@ -1831,6 +1826,16 @@ function Page() {
       </div>
 
       <Card className="overflow-hidden rounded-2xl">
+        <div className="flex items-center justify-end gap-2 border-b border-[#E6EDF2] px-4 py-2.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Ordenar
+          </span>
+          <TableSortSelect
+            value={sort}
+            onChange={setSort}
+            className={cn("w-56", FILTER_CONTROL)}
+          />
+        </div>
         <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
           <TableHeader>
             <TableRow>

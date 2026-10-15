@@ -11,6 +11,11 @@ import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -162,6 +167,7 @@ import {
   StickyNote,
   Palette,
   Search,
+  SlidersHorizontal,
   Users,
   Wallet,
   MessageCircle,
@@ -1822,7 +1828,33 @@ export function ImoveisPage({
             </div>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
+        <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <Label className={FILTER_LABEL}>Filtro</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn("h-9 gap-2", FILTER_CONTROL)}
+                  >
+                    <SlidersHorizontal className="h-4 w-4 text-[#079ED4]" />
+                    Filtro
+                    {hasActiveFilters ? (
+                      <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+                        {Number(origemCatalogo !== "todos") +
+                          Number(Boolean(localidade)) +
+                          Number(Boolean(quartos)) +
+                          Number(Boolean(construtoraId)) +
+                          Number(rendaMinFiltro != null) +
+                          Number(rendaMaxFiltro != null) +
+                          Number(somenteLitoral)}
+                      </span>
+                    ) : null}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-[min(92vw,42rem)] p-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label className={FILTER_LABEL}>Tipo</Label>
             <Select
@@ -1985,6 +2017,10 @@ export function ImoveisPage({
               )}
             </div>
           </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
         </div>
       </div>
 
