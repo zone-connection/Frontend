@@ -531,29 +531,24 @@ function CartaoResumo({
   ativo: boolean;
   onClick: () => void;
 }) {
-  const well = {
-    amber: "bg-[#E7F4FA] text-[#05749E]",
-    sky: "bg-[#E8F1FF] text-[#3B82F6]",
-    green: "bg-[#E8F8EF] text-[#22C55E]",
-    violet: "bg-[#F3E8FF] text-[#8B5CF6]",
-  }[tom];
+  void tom;
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
-        ativo ? "border-[#079ED4]" : "border-[#EEF2F6]",
+        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-[#F3FAFD]",
+        ativo ? "border-[#079ED4] bg-[#F3FAFD]" : "border-[#E2E8EC]",
       )}
     >
-      <span className={cn("grid size-11 place-items-center rounded-2xl", well)}>
+      <span className="grid size-11 place-items-center rounded-2xl bg-[#E7F4FA] text-[#079ED4]">
         <Icon className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[26px] font-semibold leading-none tabular-nums text-[#1E293B]">{valor}</span>
-        <span className="mt-1 block text-sm text-[#98A2B3]">{titulo}</span>
+        <span className="block text-[26px] font-semibold leading-none tabular-nums text-[#0B3148]">{valor}</span>
+        <span className="mt-1 block text-sm text-[#5C6B76]">{titulo}</span>
       </span>
-      <ChevronRight className="size-4 text-[#C5CED6]" />
+      <ChevronRight className="size-4 text-[#079ED4]" />
     </button>
   );
 }
