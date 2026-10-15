@@ -97,7 +97,13 @@ function percentVs(current: number, previous: number) {
 
 const EMPTY_KPI = { hoje: 0, ontem: 0 };
 
-export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
+export function AgendaLuxKpis({
+  kpis,
+  escopo = "dia",
+}: {
+  kpis: AgendaKpis | null;
+  escopo?: "dia" | "mes";
+}) {
   const data = kpis ?? {
     compromissos: EMPTY_KPI,
     atendimentos: EMPTY_KPI,
@@ -107,7 +113,7 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
   };
   const cards = [
     {
-      label: "Compromissos hoje",
+      label: escopo === "mes" ? "Compromissos no mês" : "Compromissos hoje",
       icon: CalendarDays,
       current: data.compromissos.hoje,
       previous: data.compromissos.ontem,
@@ -197,7 +203,7 @@ export function AgendaLuxKpis({ kpis }: { kpis: AgendaKpis | null }) {
                   )}
                 >
                   {delta >= 0 ? "+" : ""}
-                  {delta}% vs. ontem
+                  {delta}% {escopo === "mes" ? "vs. mês anterior" : "vs. ontem"}
                 </p>
               </div>
             </div>

@@ -22,18 +22,16 @@ import {
   type TarefaVisao,
 } from "@/components/tarefas-calendario";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
+import { ListaPorHorario } from "@/components/tarefas-lista-horario";
 import { AgendamentoTipoDot } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
 import { PRIORIDADE_LABEL, type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
-const FILTROS: { id: TarefaFiltro; label: string }[] = [
-  { id: "todas", label: "Todas" },
-  { id: "hoje", label: "Hoje" },
-  { id: "proximas", label: "Próximas" },
-  { id: "atrasadas", label: "Atrasadas" },
-  { id: "concluidas", label: "Concluídas" },
-  { id: "canceladas", label: "Canceladas" },
+const PERIODOS: { id: TarefaVisao; label: string }[] = [
+  { id: "lista", label: "Hoje" },
+  { id: "semana", label: "Semana" },
+  { id: "mes", label: "Mês" },
 ];
 
 function iniciais(nome: string) {
@@ -255,7 +253,7 @@ export function TarefasPainel({
         </div>
       ) : null}
 
-      {modo === "calendario" ? null : (
+      {visao === "semana" ? (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Resumo tone="sky" icon={List} valor={hojeCount} titulo="Tarefas para hoje" detalhe="Seu foco para o dia" />
         <Resumo tone="violet" icon={CalendarDays} valor={proximas} titulo="Próximas tarefas" detalhe="O que vem pela frente" />
@@ -267,8 +265,8 @@ export function TarefasPainel({
       <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
         <section className="min-w-0 rounded-2xl border bg-card">
           <div className="flex gap-1 overflow-x-auto border-b px-3 py-3">
-            {FILTROS.map((item) => {
-              const ativo = filtro === item.id;
+            {PERIODOS.map((item) => {
+              const ativo = visao === item.id || (item.id === "lista" && visao === "dia");
               return (
                 <button
                   key={item.id}
@@ -279,50 +277,22 @@ export function TarefasPainel({
                       ? "bg-[#079ED4] text-white"
                       : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
                   )}
-                  onClick={() => onFiltro(item.id)}
+                  onClick={() => {
+                    onVisao(item.id);
+                    if (item.id === "lista") onAnchor(hoje);
+                  }}
                 >
                   {item.label}
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 text-xs tabular-nums",
-                      ativo ? "bg-white/20 text-white" : "bg-[#E7F4FA] text-[#0B3148]",
-                    )}
-                  >
-                    {counts[item.id]}
-                  </span>
                 </button>
               );
             })}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-            {modo === "lista" ? <p className="text-sm text-muted-foreground">Pendências da rotina</p> : (
-            <div className="flex rounded-xl bg-muted/60 p-1">
-              {(
-                [
-                  ["lista", "Lista"],
-                  ["dia", "Dia"],
-                  ["semana", "Semana"],
-                  ["mes", "Mês"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm text-muted-foreground",
-                    visao === id && "bg-background font-medium text-foreground shadow-sm",
-                  )}
-                  onClick={() => onVisao(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            )}
-            {modo === "lista" || visao === "lista" ? (
+            {visao === "lista" || visao === "dia" ? <p className="text-sm text-muted-foreground">Hoje, por horário</p> : <span />}
+            {visao === "lista" || visao === "dia" ? (
               <p className="text-xs text-muted-foreground">
-                {visiveis.length === 0 ? "Nenhuma tarefa neste filtro" : `${visiveis.length} na lista`}
+                {hojeCount === 0 ? "Nada para hoje" : `${hojeCount} para hoje`}
               </p>
             ) : (
               <div className="flex items-center gap-1 text-sm">
@@ -340,96 +310,28 @@ export function TarefasPainel({
           </div>
 
           <div className="space-y-6 px-5 pb-5">
-            {modo !== "calendario" && visao === "lista" ? (
-              grupos.length === 0 ? (
-                <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-                  Nenhuma tarefa aqui. Use Nova tarefa para criar a primeira.
-                </p>
-              ) : grupos.map((grupo) => (
-                <div key={grupo.titulo} className="space-y-2">
-                  <p className={cn("text-sm font-medium", grupo.titulo === "Atrasadas" && "text-red-600")}>
-                    {grupo.titulo} {grupo.items.length}
-                  </p>
-                  {grupo.items.map((tarefa) => {
-                    const atrasada =
-                      tarefa.status === "aberta" && (tarefa.atrasada || tarefa.data < hoje);
-                    return (
-                      <article
-                        key={tarefa.id}
-                        className={cn(
-                          "group flex items-center gap-3 rounded-2xl border bg-background px-4 py-3.5 transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                          atrasada && "border-rose-200 bg-rose-50/80 dark:border-rose-900/60 dark:bg-rose-950/30",
-                          tarefa.status === "concluida" && "opacity-80",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          aria-label="Concluir tarefa"
-                          className={cn(
-                            "h-5 w-5 shrink-0 rounded-full border-2 border-muted-foreground/40 transition hover:scale-110 hover:border-emerald-500",
-                            tarefa.status === "concluida" && "border-emerald-500 bg-emerald-500",
-                          )}
-                          onClick={() => onComplete(tarefa)}
-                        />
-                        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                          <p className={cn("flex items-center gap-2 truncate font-medium", tarefa.status === "concluida" && "line-through opacity-60")}>
-                            <AgendamentoTipoDot tipo={tarefa.tipo ?? "tarefa"} />
-                            <span className="truncate">{tarefa.titulo}</span>
-                            <span className="hidden text-xs font-normal text-muted-foreground sm:inline">
-                              {AGENDAMENTO_TIPO_LABEL[tarefa.tipo ?? "tarefa"]}
-                            </span>
-                          </p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {quando(tarefa, hoje)}
-                            {contexto(tarefa) ? `  ·  ${contexto(tarefa)}` : ""}
-                          </p>
-                        </button>
-                        <span
-                          className={cn(
-                            "hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
-                            tarefa.prioridade === "alta" && "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200",
-                            tarefa.prioridade === "media" && "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-                            tarefa.prioridade === "baixa" && "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-                          )}
-                        >
-                          {PRIORIDADE_LABEL[tarefa.prioridade]}
-                        </span>
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[11px] font-semibold text-white shadow-sm">
-                          {iniciais(tarefa.responsavel.name)}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Editar tarefa"
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#079ED4]"
-                          onClick={() => onEdit(tarefa)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Excluir tarefa"
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#5C6B76] hover:bg-[#F8ECEC] hover:text-[#A33B3B]"
-                          onClick={() => onDelete(tarefa)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </article>
-                    );
-                  })}
-                </div>
-              ))
-            ) : (
+            {visao === "semana" || visao === "mes" ? (
               <TarefasAgendaPainel
                 compacto
-                visaoInicial={visao === "dia" || visao === "semana" ? visao : "mes"}
+                visaoInicial={visao === "mes" ? "mes" : "semana"}
                 anchorYmd={anchor}
                 onAnchorYmd={onAnchor}
                 onCreateAt={(day, hour) => {
                   const y = day.getFullYear();
                   const m = String(day.getMonth() + 1).padStart(2, "0");
                   const d = String(day.getDate()).padStart(2, "0");
-                  onCreateSlot?.(`${y}-${m}-${d}`, hour);
+                  onCreateSlot?.([y, m, d].join("-"), hour);
                 }}
+              />
+            ) : (
+              <ListaPorHorario
+                hoje={hoje}
+                items={items.filter((item) => item.data === hoje)}
+                onOpen={onOpen}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onComplete={onComplete}
+                onCreateSlot={onCreateSlot}
               />
             )}
           </div>

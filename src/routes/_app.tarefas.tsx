@@ -76,7 +76,12 @@ import { DocumentosPanel } from "@/components/documentos-panel";
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
-    aba: search.aba === "agenda" ? ("agenda" as const) : undefined,
+    aba:
+      search.aba === "mes"
+        ? ("mes" as const)
+        : search.aba === "agenda" || search.aba === "semana"
+          ? ("semana" as const)
+          : undefined,
   }),
   component: TarefasPage,
 });
@@ -114,9 +119,9 @@ function TarefasPage() {
       ? true
       : (session?.tenant?.tarefasEnabled ?? null),
   );
-  const [secao, setSecao] = useState<TarefaSecao>(aba === "agenda" ? "calendario" : "tarefas");
+  const [secao, setSecao] = useState<TarefaSecao>("tarefas");
   const [filtro, setFiltro] = useState<TarefaFiltro>("hoje");
-  const [visao, setVisao] = useState<TarefaVisao>("lista");
+  const [visao, setVisao] = useState<TarefaVisao>(aba === "mes" ? "mes" : aba === "semana" ? "semana" : "lista");
   const [anchor, setAnchor] = useState(hojeYmd);
   const [items, setItems] = useState<Tarefa[]>([]);
   const [loading, setLoading] = useState(false);
@@ -289,7 +294,7 @@ function TarefasPage() {
         };
         if (editing) await updateTarefa(editing.id, payload);
         else await createTarefa(payload);
-        if (!editing && destino === "tarefa") setFiltro("todas");
+        if (!editing && destino === "tarefa") setVisao("lista");
       }
       setOpen(false);
       await load();
@@ -355,30 +360,9 @@ function TarefasPage() {
       <TarefasModuloNav
         secao={secao}
         abertas={painel.filter((item) => item.status === "aberta").length}
-        onChange={(next) => {
-          setSecao(next);
-          void navigate({
-            to: "/tarefas",
-            search: { aba: next === "calendario" ? "agenda" : undefined },
-            replace: true,
-          });
-        }}
+        onChange={setSecao}
       />
-      {secao === "calendario" ? (
-        <TarefasAgendaPainel
-          onCreateAt={(day, hour) => {
-            setEditing(null);
-            setNota("");
-            setDestino("agenda");
-            setForm({
-              ...emptyForm(session?.id ?? ""),
-              data: toDateInput(day),
-              horario: hour != null ? `${String(hour).padStart(2, "0")}:00` : "",
-            });
-            setOpen(true);
-          }}
-        />
-      ) : secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
+      {secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => abrirEdicao(tarefa)} />
       ) : (
       <TarefasPainel
@@ -388,7 +372,14 @@ function TarefasPage() {
         visao={visao}
         anchor={anchor}
         onFiltro={setFiltro}
-        onVisao={setVisao}
+        onVisao={(next) => {
+          setVisao(next);
+          void navigate({
+            to: "/tarefas",
+            search: { aba: next === "semana" ? "semana" : next === "mes" ? "mes" : undefined },
+            replace: true,
+          });
+        }}
         onAnchor={setAnchor}
         onOpen={(tarefa) => setDetalhe(tarefa)}
         onEdit={(tarefa) => abrirEdicao(tarefa)}

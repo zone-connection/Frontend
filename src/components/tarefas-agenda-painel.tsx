@@ -55,6 +55,29 @@ import { canViewTeamData } from "@/lib/permissions";
 import { fetchUsers } from "@/lib/users-api";
 import { cn } from "@/lib/utils";
 
+function kpisDoPeriodo(atual: Agendamento[], anterior: Agendamento[]): AgendaKpis {
+  const contar = (lista: Agendamento[]) => {
+    const ativos = lista.filter((item) => item.status !== "cancelado" && getAgendamentoVisual(item) !== "aniversario");
+    return {
+      compromissos: ativos.length,
+      atendimentos: ativos.filter((item) => item.tipo === "ligacao").length,
+      reunioes: ativos.filter((item) => item.tipo === "reuniao").length,
+      propostas: ativos.filter((item) => item.tipo === "tarefa" || /proposta/i.test(item.titulo)).length,
+      visitas: ativos.filter((item) => item.tipo === "visita").length,
+    };
+  };
+  const agora = contar(atual);
+  const antes = contar(anterior);
+  const card = (chave: keyof typeof agora) => ({ hoje: agora[chave], ontem: antes[chave] });
+  return {
+    compromissos: card("compromissos"),
+    atendimentos: card("atendimentos"),
+    reunioes: card("reunioes"),
+    propostas: card("propostas"),
+    visitas: card("visitas"),
+  };
+}
+
 function shiftAnchor(view: AgendaViewMode, anchor: Date, dir: -1 | 1) {
   const next = new Date(anchor);
   if (view === "dia") next.setDate(next.getDate() + dir);
@@ -84,6 +107,7 @@ export function TarefasAgendaPainel({
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const [items, setItems] = useState<Agendamento[]>([]);
   const [kpis, setKpis] = useState<AgendaKpis | null>(null);
+  const [kpisMes, setKpisMes] = useState<AgendaKpis | null>(null);
   const [loading, setLoading] = useState(true);
   const [tipo, setTipo] = useState("__all__");
   const [status, setStatus] = useState("__all__");
@@ -122,6 +146,21 @@ export function TarefasAgendaPainel({
       setItems(data);
       setSolicitacoes(sols);
       setKpis(kpiData);
+      if (visao === "mes") {
+        const anterior = getVisibleRange("mes", shiftAnchor("mes", anchor, -1));
+        const prev = await fetchAgendamentos({
+          from: anterior.from.toISOString(),
+          to: anterior.to.toISOString(),
+          equipeId: gestor && equipeId !== "__all__" ? equipeId : undefined,
+          corretorId: gestor && corretorId !== "__all__" ? corretorId : undefined,
+          empreendimentoId: empreendimentoId !== "__all__" ? empreendimentoId : undefined,
+          tipo: tipoApi,
+          status: status !== "__all__" ? (status as AgendamentoStatus) : undefined,
+        }).catch(() => []);
+        setKpisMes(kpisDoPeriodo(data, prev));
+      } else {
+        setKpisMes(null);
+      }
     } catch {
       setItems([]);
     } finally {
@@ -188,6 +227,7 @@ export function TarefasAgendaPainel({
       <AgendaLuxKpis kpis={kpis} />
       </>
       )}
+      {visao === "mes" ? <AgendaLuxKpis kpis={kpisMes} escopo="mes" /> : null}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#E6EDF2] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#141a22] lg:flex-row lg:items-center lg:justify-between">

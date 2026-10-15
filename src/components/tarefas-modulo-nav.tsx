@@ -1,7 +1,4 @@
-import {
-  CalendarDays,
-  ListTodo,
-} from "lucide-react";
+import { ListTodo } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItemClass, SlidingNav } from "@/components/operacao-ui";
@@ -16,7 +13,6 @@ export type TarefaSecao =
 
 const WORKSPACE: { id: TarefaSecao; label: string; icon: LucideIcon }[] = [
   { id: "tarefas", label: "Tarefas", icon: ListTodo },
-  { id: "calendario", label: "Agenda", icon: CalendarDays },
 ];
 
 export function TarefasModuloNav({
