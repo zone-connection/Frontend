@@ -854,7 +854,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.tipo === "agenda_lembrete_2h" ||
       n.tipo === "agenda_lembrete_1h"
     ) {
-      void navigate({ to: "/tarefas", search: { aba: "agenda" } });
+      void navigate({ to: "/tarefas", search: { aba: "semana" } });
       return;
     }
     if (n.tipo === "analise_resultado") {
@@ -2134,7 +2134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         informativo={user?.role === "admin"}
         onGoAgenda={() => {
           setLembretesOpen(false);
-          void navigate({ to: "/tarefas", search: { aba: "agenda" } });
+          void navigate({ to: "/tarefas", search: { aba: "semana" } });
         }}
       />
 

@@ -260,7 +260,7 @@ export function TarefasPainel({
         <Resumo tone="rose" icon={Clock3} valor={atrasadas} titulo="Tarefas atrasadas" detalhe="Precisam da sua atenção" pulse={atrasadas > 0} />
         <Resumo tone="emerald" icon={CheckCircle2} valor={concluidas} titulo="Tarefas concluídas" detalhe="Cada conquista conta" />
       </div>
-      )}
+      ) : null}
 
       <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
         <section className="min-w-0 rounded-2xl border bg-card">
