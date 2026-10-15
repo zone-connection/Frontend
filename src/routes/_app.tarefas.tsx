@@ -22,8 +22,7 @@ import { TarefasPainel } from "@/components/tarefas-painel";
 import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
-import { DocumentosPanel } from "@/components/documentos-panel";
-import { fetchDocumentacoes, type Documentacao } from "@/lib/documentacao-api";
+import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
 import { toDateInput } from "@/components/agenda-board";
 import { Button } from "@/components/ui/button";
@@ -129,7 +128,6 @@ function TarefasPage() {
   const [open, setOpen] = useState(false);
   const [destino, setDestino] = useState<"tarefa" | "agenda">("tarefa");
   const [detalhe, setDetalhe] = useState<Tarefa | null>(null);
-  const [docsDoLead, setDocsDoLead] = useState<Documentacao[]>([]);
   const [editing, setEditing] = useState<Tarefa | null>(null);
   const [form, setForm] = useState<TarefaInput>(() =>
     emptyForm(session?.id ?? ""),
@@ -159,17 +157,6 @@ function TarefasPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    const leadId = detalhe?.leadId;
-    if (!leadId) {
-      setDocsDoLead([]);
-      return;
-    }
-    void fetchDocumentacoes()
-      .then((rows) => setDocsDoLead(rows.filter((row) => row.leadId === leadId)))
-      .catch(() => setDocsDoLead([]));
-  }, [detalhe?.leadId]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -445,9 +432,9 @@ function TarefasPage() {
       {loading ? <p className="text-sm text-muted-foreground">Carregando tarefas…</p> : null}
 
       <Dialog open={detalhe != null} onOpenChange={(aberto) => { if (!aberto) setDetalhe(null); }}>
-        <DialogContent className="max-h-[90vh] max-w-2xl gap-0 overflow-hidden p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
+        <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-y-auto p-0 sm:rounded-xl [&>button]:right-3 [&>button]:top-3 [&>button]:rounded-lg [&>button]:text-[#5C6B76] [&>button]:hover:bg-[#F3FAFD]">
           {detalhe ? (
-            <div className="max-h-[90vh] overflow-y-auto">
+            <>
               <div className="border-b border-[#E6EDF2] px-5 pb-4 pt-5 pr-12">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[#E7F4FA] px-2 py-0.5 text-[11px] font-medium text-[#05749E]">
@@ -456,6 +443,10 @@ function TarefasPage() {
                   <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", PRIORIDADE_CHIP[detalhe.prioridade])}>
                     {PRIORIDADE_LABEL[detalhe.prioridade]}
                   </span>
+                  <span className="rounded-full bg-[#F4F7F8] px-2 py-0.5 text-[11px] font-medium text-[#5C6B76]">
+                    {STATUS_TAREFA[detalhe.status]}
+                    {detalhe.atrasada ? " · Atrasada" : ""}
+                  </span>
                 </div>
                 <DialogHeader className="mt-2 space-y-0 text-left">
                   <DialogTitle className="text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
@@ -463,11 +454,13 @@ function TarefasPage() {
                   </DialogTitle>
                 </DialogHeader>
               </div>
-              <div className="space-y-4 px-5 py-4">
+              <div className="space-y-2 px-5 py-4">
                 <DetalheLinha icon={CalendarDays} label="Quando" value={formatQuando(detalhe.data, detalhe.horario)} />
                 <DetalheLinha icon={UserRound} label="Responsável" value={detalhe.responsavel.name} />
+                <DetalheLinha icon={Mail} label="Lembrete" value={LEMBRETE_LABEL[detalhe.lembrete] ?? "Sem lembrete"} />
+                <DetalheLinha icon={Repeat} label="Repetição" value={RECORRENCIA_LABEL[detalhe.recorrencia] ?? "Não repete"} />
                 {detalhe.contexto.lead ? (
-                  <DetalheLinha icon={Users} label="Lead" value={detalhe.contexto.lead.nome} />
+                  <DetalheLinha icon={Users} label="Lead ou cliente" value={detalhe.contexto.lead.nome} />
                 ) : null}
                 {detalhe.contexto.imovel ? (
                   <DetalheLinha icon={Home} label="Imóvel" value={detalhe.contexto.imovel.rotulo} />
@@ -477,10 +470,21 @@ function TarefasPage() {
                     {detalhe.descricao}
                   </p>
                 ) : null}
-                <DocumentosPanel
+                {detalhe.comentarios.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-medium text-[#8B98A3]">Comentários</p>
+                    {detalhe.comentarios.map((item) => (
+                      <p key={item.id} className="rounded-xl bg-[#F8FBFC] px-3 py-2 text-[13px] text-[#16324A]">
+                        <span className="font-medium">{item.autor.name}: </span>
+                        {item.texto}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                <DocumentacoesLeadPanel
                   entityType="tarefa"
                   entityId={detalhe.id}
-                  title="Desta tarefa"
+                  descricao="Arquivos e documentos desta tarefa."
                   extraVinculo={
                     detalhe.leadId
                       ? { entityType: "lead", entityId: detalhe.leadId }
@@ -491,31 +495,11 @@ function TarefasPage() {
                       ? {
                           entityType: "lead",
                           entityId: detalhe.leadId,
-                          label: detalhe.contexto.lead?.nome
-                            ? `o lead ou cliente ${detalhe.contexto.lead.nome}`
-                            : "o lead ou cliente",
+                          label: "Lead / cliente",
                         }
                       : undefined
                   }
                 />
-                {docsDoLead.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#079ED4]">
-                      Documentações do lead ou cliente
-                    </p>
-                    <ul className="divide-y divide-[#E6EDF2] overflow-hidden rounded-2xl border border-[#E2E8EC]">
-                      {docsDoLead.map((doc) => (
-                        <li key={doc.id} className="px-3 py-2.5 text-sm">
-                          <p className="font-medium text-[#0B3148]">{doc.nome}</p>
-                          <p className="text-xs text-[#5C6B76]">
-                            {doc.tipoContato === "cliente" ? "Cliente" : "Lead"}
-                            {doc.status1 ? ` · ${doc.status1}` : ""}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
               </div>
               <div className="flex justify-end gap-2 border-t border-[#E6EDF2] px-5 py-3">
                 {detalhe.status === "aberta" ? (
@@ -545,7 +529,7 @@ function TarefasPage() {
                   Editar
                 </Button>
               </div>
-            </div>
+            </>
           ) : null}
         </DialogContent>
       </Dialog>
@@ -558,6 +542,32 @@ const PRIORIDADE_CHIP: Record<TarefaPrioridade, string> = {
   alta: "bg-[#FFD6DE] text-[#C01048]",
   media: "bg-[#FFE4C4] text-[#B54708]",
   baixa: "bg-[#C9F4EC] text-[#0B6E62]",
+};
+
+const STATUS_TAREFA = {
+  aberta: "Aberta",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+} as const;
+
+const LEMBRETE_LABEL: Record<string, string> = {
+  nenhum: "Sem lembrete",
+  no_horario: "No horário",
+  min_5: "5 minutos antes",
+  min_15: "15 minutos antes",
+  min_30: "30 minutos antes",
+  hora_1: "1 hora antes",
+  dia_1: "1 dia antes",
+  personalizado: "Personalizado",
+};
+
+const RECORRENCIA_LABEL: Record<string, string> = {
+  nenhuma: "Não repete",
+  diaria: "Todo dia",
+  semanal: "Toda semana",
+  mensal: "Todo mês",
+  dias_especificos: "Dias específicos",
+  personalizado: "Personalizada",
 };
 
 function formatQuando(data: string, horario?: string) {
@@ -998,9 +1008,10 @@ function CriarCompromisso({
         ) : null}
 
         {editing && tarefaId ? (
-          <DocumentosPanel
+          <DocumentacoesLeadPanel
             entityType="tarefa"
             entityId={tarefaId}
+            descricao="Arquivos e documentos desta tarefa."
             extraVinculo={
               form.leadId
                 ? { entityType: "lead", entityId: form.leadId }
@@ -1011,11 +1022,10 @@ function CriarCompromisso({
                 ? {
                     entityType: "lead",
                     entityId: form.leadId,
-                    label: "lead/cliente",
+                    label: "Lead / cliente",
                   }
                 : undefined
             }
-            title="Documentos desta tarefa"
           />
         ) : null}
 

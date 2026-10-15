@@ -53,8 +53,17 @@ import {
   shareArquivos,
   type ArquivoCategoria,
   type ArquivoDocumento,
+  type ArquivoVinculoTipo,
 } from "@/lib/arquivos-api";
 import { cn } from "@/lib/utils";
+import { SOFT_BTN } from "@/lib/soft-btn";
+import {
+  FILTER_CONTROL,
+  FILTER_SEARCH_ICON,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+} from "@/lib/filter-bar";
 
 const PAGE_SIZE = 9;
 
@@ -101,15 +110,28 @@ function fileKind(item: ArquivoDocumento) {
   return { label: "ARQ", className: "bg-[#F1F5F9] text-[#475569]" };
 }
 
+type DocRow = ArquivoDocumento & { escopo: "proprio" | "relacionado" };
+
 export function DocumentacoesLeadPanel({
   leadId,
+  entityType = "lead",
+  entityId,
+  extraVinculo,
+  related,
+  descricao = "Arquivos e documentos vinculados a este lead.",
   onActivity,
 }: {
-  leadId: string;
+  leadId?: string;
+  entityType?: ArquivoVinculoTipo;
+  entityId?: string;
+  extraVinculo?: { entityType: ArquivoVinculoTipo; entityId: string };
+  related?: { entityType: ArquivoVinculoTipo; entityId: string; label: string };
+  descricao?: string;
   onActivity?: () => void;
 }) {
+  const alvoId = entityId ?? leadId ?? "";
   const gestor = canGestor();
-  const [items, setItems] = useState<ArquivoDocumento[]>([]);
+  const [items, setItems] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<"todas" | ArquivoCategoria>("todas");
@@ -124,7 +146,20 @@ export function DocumentacoesLeadPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setItems(await fetchArquivos({ entityType: "lead", entityId: leadId }));
+      const proprios = await fetchArquivos({ entityType, entityId: alvoId });
+      const base = proprios.map((item) => ({ ...item, escopo: "proprio" as const }));
+      if (related?.entityId) {
+        const extras = await fetchArquivos({
+          entityType: related.entityType,
+          entityId: related.entityId,
+        });
+        const relacionados = extras
+          .filter((item) => !proprios.some((own) => own.id === item.id))
+          .map((item) => ({ ...item, escopo: "relacionado" as const }));
+        setItems([...base, ...relacionados]);
+      } else {
+        setItems(base);
+      }
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível carregar os documentos.",
@@ -132,7 +167,7 @@ export function DocumentacoesLeadPanel({
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
+  }, [entityType, alvoId, related?.entityId, related?.entityType]);
 
   useEffect(() => {
     void load();
@@ -193,13 +228,13 @@ export function DocumentacoesLeadPanel({
     }
   }
 
-  async function excluir(id: string) {
+  async function excluir(arquivoId: string) {
     try {
-      await deleteArquivo(id, "lead", leadId);
+      await deleteArquivo(arquivoId, entityType, alvoId);
       toast.success("Arquivo removido.");
       setSelected((cur) => {
         const next = new Set(cur);
-        next.delete(id);
+        next.delete(arquivoId);
         return next;
       });
       onActivity?.();
@@ -214,8 +249,8 @@ export function DocumentacoesLeadPanel({
     setBusy(true);
     try {
       const { blob, filename } = await downloadArquivosZip({
-        entityType: "lead",
-        entityId: leadId,
+        entityType,
+        entityId: alvoId,
         ids: [...selected],
       });
       saveBlob(blob, filename);
@@ -235,8 +270,8 @@ export function DocumentacoesLeadPanel({
     setBusy(true);
     try {
       await shareArquivos({
-        entityType: "lead",
-        entityId: leadId,
+        entityType,
+        entityId: alvoId,
         email: email.trim(),
         ids: selected.size ? [...selected] : undefined,
         all: selected.size === 0,
@@ -265,27 +300,27 @@ export function DocumentacoesLeadPanel({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[#0B3148] dark:text-[#E7F4FA]">
-            <FileText className="h-5 w-5 text-[#2563EB]" />
+            <FileText className="h-5 w-5 text-[#079ED4]" />
             Documentações
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Arquivos e documentos vinculados a este lead.
+            {descricao}
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[14rem] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className={FILTER_SEARCH_ICON} />
           <Input
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
             placeholder="Buscar por nome do documento..."
-            className="h-10 pl-9"
+            className={cn("pl-9", FILTER_CONTROL)}
           />
         </div>
         <Select value={categoria} onValueChange={(value) => setCategoria(value as typeof categoria)}>
-          <SelectTrigger className="h-10 w-[190px]">
+          <SelectTrigger className={cn("w-[190px]", FILTER_CONTROL)}>
             <SelectValue placeholder="Todas as categorias" />
           </SelectTrigger>
           <SelectContent>
@@ -297,7 +332,7 @@ export function DocumentacoesLeadPanel({
         </Select>
         <Button
           type="button"
-          className="h-10 bg-[#2563EB] px-3 text-white hover:bg-[#1D4ED8]"
+          className="h-9 rounded-lg bg-[#079ED4] px-3 text-white hover:bg-[#05749E]"
           onClick={() => setUploadNonce((n) => n + 1)}
         >
           <Plus className="mr-1.5 h-4 w-4" />
@@ -306,12 +341,13 @@ export function DocumentacoesLeadPanel({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex rounded-lg border bg-card p-0.5">
+        <div className={FILTER_VISTA_WRAP}>
           <button
             type="button"
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium",
-              vista === "lista" ? "bg-[#E7F1FF] text-[#2563EB]" : "text-muted-foreground",
+              "inline-flex items-center gap-1.5",
+              FILTER_VISTA_BTN,
+              vista === "lista" && FILTER_VISTA_BTN_ACTIVE,
             )}
             onClick={() => setVista("lista")}
           >
@@ -320,23 +356,26 @@ export function DocumentacoesLeadPanel({
           <button
             type="button"
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium",
-              vista === "categorias" ? "bg-[#E7F1FF] text-[#2563EB]" : "text-muted-foreground",
+              "inline-flex items-center gap-1.5",
+              FILTER_VISTA_BTN,
+              vista === "categorias" && FILTER_VISTA_BTN_ACTIVE,
             )}
             onClick={() => setVista("categorias")}
           >
             <LayoutGrid className="h-3.5 w-3.5" /> Categorias
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{selected.size} selecionados</span>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[#5C6B76]">
+          <span className="rounded-full bg-[#E7F4FA] px-2.5 py-1 text-xs font-medium text-[#05749E]">
+            {selected.size} selecionados
+          </span>
           {gestor ? (
             <>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8"
+                className={SOFT_BTN}
                 disabled={busy || selected.size === 0}
                 onClick={() => void baixarSelecionados()}
               >
@@ -347,7 +386,7 @@ export function DocumentacoesLeadPanel({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8"
+                className={SOFT_BTN}
                 disabled={items.length === 0}
                 onClick={() => setShareOpen(true)}
               >
@@ -445,11 +484,12 @@ export function DocumentacoesLeadPanel({
 
       <div className="hidden">
         <DocumentosPanel
-          entityType="lead"
-          entityId={leadId}
+          entityType={entityType}
+          entityId={alvoId}
           categoria="outro"
           title="Arquivos"
           allowUpload
+          extraVinculo={extraVinculo}
           uploadNonce={uploadNonce}
           onActivity={() => {
             onActivity?.();
@@ -503,7 +543,7 @@ function Tabela({
   onView,
   onDelete,
 }: {
-  rows: ArquivoDocumento[];
+  rows: DocRow[];
   selected: Set<string>;
   allChecked: boolean;
   onToggle: (id: string) => void;
@@ -556,6 +596,11 @@ function Tabela({
                       {kind.label}
                     </span>
                     <span className="truncate font-medium">{item.nome}</span>
+                    {item.escopo === "relacionado" ? (
+                      <span className="rounded-full bg-[#E7F4FA] px-1.5 py-0.5 text-[10px] font-medium text-[#05749E]">
+                        Lead / cliente
+                      </span>
+                    ) : null}
                     <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {kind.label}
                     </span>
@@ -575,7 +620,7 @@ function Tabela({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 text-[#2563EB]"
+                      className="h-8 w-8 text-[#079ED4]"
                       aria-label={`Baixar ${item.nome}`}
                       onClick={() => onDownload(item.id)}
                     >
@@ -594,7 +639,7 @@ function Tabela({
                         <DropdownMenuItem onClick={() => onDownload(item.id)}>
                           <Download className="mr-2 h-4 w-4" /> Baixar
                         </DropdownMenuItem>
-                        {item.categoria === "outro" ? (
+                        {item.categoria === "outro" && item.escopo === "proprio" ? (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => onDelete(item.id)}
