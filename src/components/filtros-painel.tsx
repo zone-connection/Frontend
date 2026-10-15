@@ -1,5 +1,5 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { FILTER_NATIVE } from "@/lib/filter-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ export function FiltrosPainel({
   description = "Escolha o recorte da lista.",
   confirmLabel = "Ver resultados",
   onConfirm,
+  resultCount,
 }: {
   activeCount: number;
   onClear: () => void;
@@ -42,6 +43,7 @@ export function FiltrosPainel({
   description?: string;
   confirmLabel?: string;
   onConfirm?: () => void;
+  resultCount?: number;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -85,18 +87,32 @@ export function FiltrosPainel({
               <span className="sr-only">Fechar</span>
             </SheetClose>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+              <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                <SlidersHorizontal className="size-5" />
+              </span>
+              <div>
+                <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                  {resultCount ?? activeCount}
+                </p>
+                <p className="mt-1 text-xs">
+                  {resultCount != null ? "resultados encontrados" : "filtros aplicados"}
+                </p>
+              </div>
+            </div>
             <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4 dark:border-white/10 dark:bg-[#141a22] [&_button]:w-full [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76] dark:[&_label]:text-[#94a3b8]">
               {children}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 border-t border-[#E6EDF2] bg-white px-4 py-3 dark:border-white/10 dark:bg-[#141a22]">
+          <div className="space-y-2 border-t border-[#E6EDF2] bg-white px-4 py-3 dark:border-white/10 dark:bg-[#141a22]">
             <button
               type="button"
-              className="text-sm font-medium text-[#05749E] hover:text-[#079ED4]"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
               onClick={onClear}
             >
-              Limpar
+              <RotateCcw className="size-4" />
+              Limpar todos
             </button>
             <Button
               type="button"

@@ -52,18 +52,29 @@ type Draft = {
   itens: ListaDocumentoItemDraft[];
 };
 
-const LISTA_CARD: Record<string, { descricao: string }> = {
+const LISTA_TONES = [
+  { well: "bg-[#E7F4FA] text-[#05749E]", bar: "bg-[#079ED4]", action: "text-[#05749E]", hover: "hover:border-[#079ED4]/45 hover:bg-[#F3FAFD]" },
+  { well: "bg-[#CCFBF1] text-[#0F766E]", bar: "bg-[#0D9488]", action: "text-[#0F766E]", hover: "hover:border-[#0D9488]/45 hover:bg-[#F0FDFA]" },
+  { well: "bg-[#FEF3C7] text-[#B45309]", bar: "bg-[#D97706]", action: "text-[#B45309]", hover: "hover:border-[#D97706]/45 hover:bg-[#FFFBEB]" },
+  { well: "bg-[#E0E7FF] text-[#4338CA]", bar: "bg-[#4F46E5]", action: "text-[#4338CA]", hover: "hover:border-[#4F46E5]/40 hover:bg-[#EEF2FF]" },
+] as const;
+
+const LISTA_CARD: Record<string, { descricao: string; tone: number }> = {
   clt: {
     descricao: "Documentos de renda CLT para a análise de crédito.",
+    tone: 0,
   },
   autonomo: {
     descricao: "Documentos de autônomo ou profissional liberal para a análise de crédito.",
+    tone: 1,
   },
   pensionista: {
     descricao: "Documentos de pensionista ou aposentado para a análise de crédito.",
+    tone: 2,
   },
   servidor: {
     descricao: "Documentos de servidor público para a análise de crédito.",
+    tone: 3,
   },
 };
 
@@ -71,6 +82,7 @@ function listaCardMeta(lista: ListaDocumento) {
   return (
     LISTA_CARD[lista.chave ?? ""] ?? {
       descricao: "Lista de documentos para enviar ao cliente.",
+      tone: 0,
     }
   );
 }
@@ -246,18 +258,20 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {listas.map((lista) => {
               const meta = listaCardMeta(lista);
+              const tone = LISTA_TONES[meta.tone] ?? LISTA_TONES[0];
               return (
                 <button
                   key={lista.id}
                   type="button"
                   onClick={() => setPreview(lista)}
                   className={cn(
-                    "group flex h-full cursor-pointer flex-col rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
-                    "hover:border-[#079ED4]/40 hover:bg-[#F3FAFD]",
+                    "group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-black/5 bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)] transition",
+                    tone.hover,
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   )}
                 >
-                  <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                  <span className={cn("absolute inset-x-0 top-0 h-1.5", tone.bar)} />
+                  <div className={cn("mb-3 mt-1 flex size-11 items-center justify-center rounded-xl", tone.well)}>
                     <ClipboardList className="size-5" />
                   </div>
                   <h3 className="text-[15px] font-semibold leading-snug text-foreground">
@@ -266,7 +280,7 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
                   <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">
                     {meta.descricao}
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#079ED4] transition group-hover:gap-2">
+                  <span className={cn("mt-4 inline-flex items-center gap-1.5 text-xs font-semibold transition group-hover:gap-2", tone.action)}>
                     Gerar PDF
                     <ArrowRight className="size-3.5" />
                   </span>

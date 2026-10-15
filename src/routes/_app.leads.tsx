@@ -3468,6 +3468,7 @@ function LeadsPage() {
           kicker="Leads"
           description="Escolha o recorte do funil."
           confirmLabel={`Ver ${filteredLeads.length} lead${filteredLeads.length === 1 ? "" : "s"}`}
+          resultCount={filteredLeads.length}
           activeCount={
             [
               stageFilter !== "all",

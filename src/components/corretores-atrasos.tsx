@@ -217,12 +217,7 @@ function CorretorAtrasoCard({
     <div className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm">
       <div className="flex items-center gap-3 border-b border-black/5 px-4 py-3">
         <Avatar className="h-10 w-10">
-          <AvatarFallback
-            className={cn(
-              "text-xs font-semibold text-white",
-              lostLeadAvatarClass(row.name),
-            )}
-          >
+          <AvatarFallback className="bg-[#079ED4] text-xs font-semibold text-white">
             {initials(row.name)}
           </AvatarFallback>
         </Avatar>
@@ -255,93 +250,53 @@ function CorretorAtrasoCard({
             />
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-900/50">
+        <span className="shrink-0 rounded-full bg-[#E7F4FA] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#05749E]">
           {row.totalAtrasos} {row.totalAtrasos === 1 ? "atraso" : "atrasos"}
         </span>
       </div>
 
       {row.leads.length > 0 ? (
-        <ul className="space-y-2 bg-muted/20 p-3">
+        <ul className="bg-white">
           {leads.map((lead) => {
             const tipo = problemaPrincipal(lead);
             const principal = PROBLEMA_STYLE[tipo];
             const tarefas = lead.tarefasAtrasadas ?? [];
             const color = stageColor(lead.stage);
-            const tipos = new Set(
-              lead.problemas.map((p) => p.tipo as ProblemaTipo),
-            );
-            if (tarefas.length > 0) tipos.add("tarefa_atrasada");
             return (
               <li key={lead.id}>
                 <Link
                   to="/funil"
                   search={{ lead: lead.id }}
                   preload={false}
-                  className={cn(
-                    "group flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:brightness-[0.98]",
-                    principal.wash,
-                  )}
+                  className="group flex cursor-pointer items-center gap-3 border-b border-[#E6EDF2] px-4 py-3 transition-colors last:border-b-0 hover:bg-[#F3FAFD]"
                 >
-                  <Avatar className="mt-0.5 h-9 w-9 shrink-0">
-                    <AvatarFallback
-                      className={cn(
-                        "text-[11px] font-semibold text-white",
-                        lostLeadAvatarClass(lead.nome),
-                      )}
-                    >
+                  <Avatar className="h-9 w-9 shrink-0">
+                    <AvatarFallback className="bg-[#E7F4FA] text-[11px] font-semibold text-[#05749E]">
                       {initials(lead.nome)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-sm font-semibold">
-                        {lead.nome}
-                      </p>
-                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[10px] font-medium",
-                          catalogColorBadgeClass(color),
-                        )}
-                        style={catalogColorBadgeStyle(color)}
-                      >
-                        {stageName(lead.stage)}
-                      </span>
-                      {[...tipos].map((item) => {
-                        const estilo = PROBLEMA_STYLE[item];
-                        const Icon = estilo.icon;
-                        return (
-                          <span
-                            key={item}
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                              estilo.pill,
-                            )}
-                          >
-                            <Icon className="h-3 w-3" />
-                            {estilo.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    {tarefas.length > 0 ? (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-red-700 dark:text-red-300">
-                        <ListChecks className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">
-                          {tarefas[0].titulo} · prazo {tarefas[0].prazo}
-                          {tarefas.length > 1
-                            ? ` · +${tarefas.length - 1}`
-                            : ""}
-                        </span>
-                      </p>
-                    ) : lead.problemas[0]?.detalhe ? (
-                      <p className="mt-1.5 truncate text-[11px] text-muted-foreground">
-                        {lead.problemas[0].detalhe}
-                      </p>
-                    ) : null}
+                    <p className="truncate text-sm font-semibold text-[#0B3148]">{lead.nome}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-[#5C6B76]">
+                      {tarefas.length > 0
+                        ? `${tarefas[0].titulo} · prazo ${tarefas[0].prazo}${tarefas.length > 1 ? ` · +${tarefas.length - 1}` : ""}`
+                        : lead.problemas[0]?.detalhe ?? principal.label}
+                    </p>
                   </div>
+                  <span
+                    className={cn(
+                      "hidden max-w-36 truncate rounded-full px-2 py-0.5 text-[10px] font-medium sm:inline-flex",
+                      catalogColorBadgeClass(color),
+                    )}
+                    style={catalogColorBadgeStyle(color)}
+                  >
+                    {stageName(lead.stage)}
+                  </span>
+                  <span className="hidden items-center gap-1 rounded-full bg-[#F4F7F8] px-2 py-0.5 text-[10px] font-medium text-[#5C6B76] md:inline-flex">
+                    <principal.icon className="h-3 w-3 text-[#079ED4]" />
+                    {principal.label}
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[#8B98A3] transition group-hover:text-[#079ED4]" />
                 </Link>
               </li>
             );
@@ -392,7 +347,7 @@ export function CorretoresAtrasosGrid({
   );
 
   return (
-    <div className={cn("grid gap-3 xl:grid-cols-2", className)}>
+    <div className={cn("grid gap-4", className)}>
       {ordenados.map((row) => (
         <CorretorAtrasoCard
           key={row.id}

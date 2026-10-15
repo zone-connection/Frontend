@@ -1210,6 +1210,7 @@ export function ComercialFunilBoard({
                 kicker={isClientesFunil ? "Clientes" : "Funil"}
                 description="Escolha equipe, corretor e prazo."
                 confirmLabel="Ver funil"
+                resultCount={leads.length}
                 activeCount={
                   [
                     showTeamFilters && isAdmin && filterEquipeId !== "__all__",

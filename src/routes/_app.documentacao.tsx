@@ -162,6 +162,8 @@ import {
   LockOpen,
   UserRound,
   Users,
+  ClipboardList,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -2220,31 +2222,38 @@ function DocumentacaoPage() {
                     <p className="text-sm text-[#5C6B76]">
                       Situação, imóvel e equipe
                     </p>
-                    {advancedFiltersCount > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="mt-3 h-8 px-2 text-[#05749E]"
-                        onClick={() => {
-                          setFilterStatus1("__all__");
-                          setFilterStatus2("__all__");
-                          setFilterFonte("__all__");
-                          setFilterTipo("__all__");
-                          setFilterConstrutoraId("__all__");
-                          setFilterEmpreendimentoId("__all__");
-                          setFilterCorretorId("__all__");
-                          setFilterGerenteId("__all__");
-                        }}
-                      >
-                        Limpar filtros
-                      </Button>
-                    ) : null}
                   </div>
 
-                  <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+                  <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+                    <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+                      <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                        <ClipboardList className="size-5" />
+                      </span>
+                      <div>
+                        <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                          {filteredItems.length}
+                        </p>
+                        <p className="mt-1 text-xs">resultados encontrados</p>
+                      </div>
+                    </div>
+                    {activeFilterChips.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {activeFilterChips.map((chip) => (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#079ED4]/25 bg-[#E7F4FA] py-1 pl-2.5 pr-1.5 text-xs text-[#05749E]"
+                            onClick={chip.onClear}
+                          >
+                            {chip.label}
+                            <X className="size-3.5" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="space-y-2.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                        <ClipboardList className="size-3.5" />
                         Situação
                       </p>
                       <div className="grid gap-3">
@@ -2335,7 +2344,8 @@ function DocumentacaoPage() {
                     </div>
 
                     <div className="space-y-2.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                        <Building2 className="size-3.5" />
                         Imóvel
                       </p>
                       <div className="grid gap-3">
@@ -2389,7 +2399,8 @@ function DocumentacaoPage() {
 
                     {showTeamFilters ? (
                       <div className="space-y-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                          <UserRound className="size-3.5" />
                           Equipe
                         </p>
                         <div className="grid gap-3">
@@ -2438,6 +2449,16 @@ function DocumentacaoPage() {
                         </div>
                       </div>
                     ) : null}
+                  </div>
+                  <div className="border-t border-[#E6EDF2] bg-white px-5 py-3">
+                    <button
+                      type="button"
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
+                      onClick={clearAllFilters}
+                    >
+                      <RotateCcw className="size-4" />
+                      Limpar todos
+                    </button>
                   </div>
                 </SheetContent>
               </Sheet>

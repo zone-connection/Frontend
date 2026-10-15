@@ -798,6 +798,7 @@ function VendasDocumentacaoPage() {
         kicker="Vendas"
         description="Busca, equipe, origem e período."
         confirmLabel="Aplicar filtros"
+        resultCount={filtered.length}
         onConfirm={applyFilters}
         onClear={clearFilters}
         activeCount={

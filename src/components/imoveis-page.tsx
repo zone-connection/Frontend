@@ -1853,7 +1853,18 @@ export function ImoveisPage({
                     ) : null}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-[min(92vw,42rem)] p-4">
+                <PopoverContent align="end" className="w-[min(92vw,42rem)] space-y-4 p-4">
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+                    <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                      <SlidersHorizontal className="size-5" />
+                    </span>
+                    <div>
+                      <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                        {filtered.length}
+                      </p>
+                      <p className="mt-1 text-xs">resultados encontrados</p>
+                    </div>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label className={FILTER_LABEL}>Tipo</Label>
@@ -2012,7 +2023,7 @@ export function ImoveisPage({
                   className={cn("h-9 px-3", FILTER_CLEAR_BTN)}
                   onClick={clearFilters}
                 >
-                  Limpar
+                  Limpar todos
                 </Button>
               )}
             </div>

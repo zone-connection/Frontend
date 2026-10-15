@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -225,6 +225,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/propostas")({
   head: () => ({ meta: [{ title: "Propostas — Zone Connection" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    id: typeof search.id === "string" && search.id.trim() ? search.id : undefined,
+  }),
   component: Page,
 });
 
@@ -896,6 +899,8 @@ function PropostaActionMenus({
 }
 
 function Page() {
+  const navigate = useNavigate();
+  const { id: abrirId } = Route.useSearch();
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
   const isGerente = user?.role === "gerente";
@@ -1007,6 +1012,12 @@ function Page() {
       .then(setQrCodeUrl)
       .catch(() => setQrCodeUrl(""));
   }, [qrTarget]);
+
+  useEffect(() => {
+    if (!abrirId) return;
+    const found = items.find((item) => item.id === abrirId);
+    if (found) setSelected(found);
+  }, [abrirId, items]);
 
   useEffect(() => {
     if (!selected) {
@@ -1710,6 +1721,16 @@ function Page() {
       </PagePanel>
 
       <div className={FILTER_BAR_SHELL}>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Ordenar
+          </span>
+          <TableSortSelect
+            value={sort}
+            onChange={setSort}
+            className={cn("w-56", FILTER_CONTROL)}
+          />
+        </div>
         <div className="relative min-w-0 flex-1">
           <Search className={FILTER_SEARCH_ICON} />
           <Input
@@ -1723,6 +1744,7 @@ function Page() {
           kicker="Propostas"
           description="Período, status, corretor e equipe."
           confirmLabel="Ver propostas"
+          resultCount={rows.length}
           activeCount={
             [
               periodo !== "tudo",
@@ -1826,16 +1848,6 @@ function Page() {
       </div>
 
       <Card className="overflow-hidden rounded-2xl">
-        <div className="flex items-center justify-end gap-2 border-b border-[#E6EDF2] px-4 py-2.5">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Ordenar
-          </span>
-          <TableSortSelect
-            value={sort}
-            onChange={setSort}
-            className={cn("w-56", FILTER_CONTROL)}
-          />
-        </div>
         <Table className="[&_th]:px-4 [&_td]:px-4 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
           <TableHeader>
             <TableRow>
@@ -2010,7 +2022,13 @@ function Page() {
 
       <FormDialogShell
         open={Boolean(selected)}
-        onOpenChange={(openDialog) => !openDialog && setSelected(null)}
+        onOpenChange={(openDialog) => {
+          if (openDialog) return;
+          setSelected(null);
+          if (abrirId) {
+            void navigate({ to: "/propostas", search: {}, replace: true });
+          }
+        }}
         icon={<FileText className="size-5" />}
         title={selected?.codigo ?? "Proposta"}
         description={

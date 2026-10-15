@@ -81,26 +81,29 @@ export function PropostasDoAlvo({
         ) : (
           <ul className="divide-y">
             {itens.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <Link
-                    to="/propostas"
-                    className="font-mono text-xs font-medium text-primary hover:underline"
-                  >
-                    {item.codigo}
-                  </Link>
-                  <p className="text-sm font-medium">{item.clienteNome}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.corretor?.name ?? "Sem corretor"}
-                    {item.autor?.name ? ` · Criada por ${item.autor.name}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums">{brl(item.valor)}</span>
-                  <Badge variant="outline" className={propostaStatusClass(item.status)}>
-                    {PROPOSTA_STATUS_LABEL[item.status]}
-                  </Badge>
-                </div>
+              <li key={item.id}>
+                <Link
+                  to="/propostas"
+                  search={{ id: item.id }}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl py-3 transition hover:bg-[#F3FAFD]"
+                >
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-medium text-[#079ED4]">
+                      {item.codigo}
+                    </p>
+                    <p className="text-sm font-medium">{item.clienteNome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.corretor?.name ?? "Sem corretor"}
+                      {item.autor?.name ? ` · Criada por ${item.autor.name}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold tabular-nums">{brl(item.valor)}</span>
+                    <Badge variant="outline" className={propostaStatusClass(item.status)}>
+                      {PROPOSTA_STATUS_LABEL[item.status]}
+                    </Badge>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

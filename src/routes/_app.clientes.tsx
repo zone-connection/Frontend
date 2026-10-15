@@ -973,6 +973,7 @@ function Clientes() {
           kicker="Clientes"
           description="Escolha o recorte da carteira."
           confirmLabel={`Ver ${clientesFiltrados.length} cliente${clientesFiltrados.length === 1 ? "" : "s"}`}
+          resultCount={clientesFiltrados.length}
           activeCount={
             [
               busca.trim() !== "",
