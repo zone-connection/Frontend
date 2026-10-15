@@ -361,17 +361,19 @@ function LoginPage() {
             </Link>
           </div>
 
-          <div className="w-full rounded-3xl border border-white/15 bg-white/95 p-6 shadow-[0_20px_50px_-24px_rgba(2,25,35,0.55)] backdrop-blur-sm sm:p-8 lg:border-border lg:bg-white lg:shadow-sm lg:backdrop-blur-none">
-            <div className="mb-6 space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-brand-accent">
-                Acesso
-              </span>
-              <h2 className="text-2xl font-semibold text-brand-dark sm:text-3xl">
-                Entrar na plataforma
-              </h2>
-              <p className="text-sm leading-relaxed text-text-muted sm:text-base">
-                Use suas credenciais para continuar na Zone Connection.
-              </p>
+          <div className="w-full overflow-hidden rounded-3xl border border-[#E2E8EC] bg-white shadow-[0_24px_60px_-28px_rgba(5,54,71,0.45)]">
+            <div className="h-1.5 bg-gradient-to-r from-[#079ED4] via-[#0D9488] to-[#079ED4]" />
+            <div className="p-6 sm:p-8">
+            <div className="mb-6 space-y-3">
+              <LoginBrandLogo size="md" />
+              <div className="space-y-1">
+                <h2 className="text-2xl font-semibold text-[#0B3148]">
+                  Entrar na plataforma
+                </h2>
+                <p className="text-sm leading-relaxed text-[#5C6B76]">
+                  Use suas credenciais para continuar na Zone Connection.
+                </p>
+              </div>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
@@ -437,39 +439,42 @@ function LoginPage() {
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-text-muted">
-              Proprietário de imóvel?{" "}
-              <Link
-                to="/portal/login"
-                search={email.trim() ? { email: email.trim() } : undefined}
-                className="font-medium text-brand-accent transition-colors hover:text-brand-dark"
-              >
-                Acessar o portal
-              </Link>
-            </p>
-            <p className="mt-2 text-center text-sm text-text-muted">
-              Corretor parceiro?{" "}
-              <Link
-                to="/parceiros/login"
-                search={email.trim() ? { email: email.trim() } : undefined}
-                className="font-medium text-brand-accent transition-colors hover:text-brand-dark"
-              >
-                Acessar o portal
-              </Link>
-            </p>
-            <p className="mt-2 text-center text-sm text-text-muted">
-              Ainda não tem conta?{" "}
-              <a
-                href={getWhatsAppUrl(
-                  "Olá! Vim pela tela de login da Zone Connection e gostaria de saber mais.",
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-brand-accent transition-colors hover:text-brand-dark"
-              >
-                Fale conosco
-              </a>
-            </p>
+            <div className="mt-6 divide-y divide-[#E6EDF2] rounded-2xl border border-[#E2E8EC] bg-[#F8FBFC] text-sm">
+              <p className="px-4 py-3 text-[#5C6B76]">
+                Proprietário de imóvel?{" "}
+                <Link
+                  to="/portal/login"
+                  search={email.trim() ? { email: email.trim() } : undefined}
+                  className="font-semibold text-[#079ED4] hover:text-[#05749E]"
+                >
+                  Acessar o portal
+                </Link>
+              </p>
+              <p className="px-4 py-3 text-[#5C6B76]">
+                Corretor parceiro?{" "}
+                <Link
+                  to="/parceiros/login"
+                  search={email.trim() ? { email: email.trim() } : undefined}
+                  className="font-semibold text-[#079ED4] hover:text-[#05749E]"
+                >
+                  Acessar o portal
+                </Link>
+              </p>
+              <p className="px-4 py-3 text-[#5C6B76]">
+                Ainda não tem conta?{" "}
+                <a
+                  href={getWhatsAppUrl(
+                    "Olá! Vim pela tela de login da Zone Connection e gostaria de saber mais.",
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[#079ED4] hover:text-[#05749E]"
+                >
+                  Fale conosco
+                </a>
+              </p>
+            </div>
+            </div>
           </div>
         </div>
       </main>
