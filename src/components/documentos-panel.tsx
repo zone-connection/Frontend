@@ -341,11 +341,11 @@ export function DocumentosPanel({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {embedded ? null : (
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0B3148] dark:text-[#E7F4FA]">
-          <span className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]">
+    <div className="space-y-4 rounded-2xl border border-[#E2E8EC] bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {embedded ? <div /> : (
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0B3148]">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
             <FileText className="h-4 w-4" />
           </span>
           {title}
@@ -379,7 +379,7 @@ export function DocumentosPanel({
             </>
           ) : null}
           {allowUpload ? (
-            <Button type="button" size="sm" onClick={() => setOpen(true)}>
+            <Button type="button" size="sm" className="bg-[#079ED4] text-white hover:bg-[#05749E]" onClick={() => setOpen(true)}>
               <Plus className="mr-1 h-3.5 w-3.5" />
               Enviar arquivo
             </Button>
@@ -390,84 +390,76 @@ export function DocumentosPanel({
         placeholder="Filtrar por tag"
         value={filterTag}
         onChange={(e) => setFilterTag(e.target.value)}
-        className="h-9 max-w-xs"
+        className="h-9 rounded-lg! border-[#E2E8EC] shadow-none focus-visible:border-[#079ED4] focus-visible:ring-[#D3EBF5]"
       />
       {loading ? (
-        <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <p className="flex items-center gap-2 py-6 text-sm text-[#5C6B76]">
+          <Loader2 className="h-4 w-4 animate-spin text-[#079ED4]" />
           Carregando documentos…
         </p>
       ) : visible.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] px-4 py-8 text-center">
-          <FileText className="h-6 w-6 text-primary/70" />
-          <p className="text-sm font-medium">Nenhum arquivo nesta seção</p>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#079ED4]/30 bg-[#F3FAFD] px-4 py-10 text-center">
+          <span className="mb-1 grid size-11 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+            <FileText className="h-5 w-5" />
+          </span>
+          <p className="text-sm font-medium text-[#0B3148]">Nenhum arquivo nesta seção</p>
+          <p className="text-xs text-[#5C6B76]">
             {allowUpload
               ? "Envie o arquivo e marque as tags do documento."
               : "Os arquivos cadastrados no processo aparecem aqui."}
           </p>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-[#E6EDF2] overflow-hidden rounded-2xl border border-[#E2E8EC]">
           {visible.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-2xl border border-primary/10 bg-gradient-to-br from-card to-primary/[0.04] px-3 py-3"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0 space-y-1.5">
-                  <label className="flex items-center gap-2 text-sm font-medium">
-                    {gestor ? (
-                      <input
-                        type="checkbox"
-                        className="accent-[#079ED4]"
-                        checked={selected.has(item.id)}
-                        onChange={() => {
-                          setSelected((cur) => {
-                            const next = new Set(cur);
-                            if (next.has(item.id)) next.delete(item.id);
-                            else next.add(item.id);
-                            return next;
-                          });
-                        }}
-                      />
+            <li key={item.id} className="bg-white px-3 py-3 transition hover:bg-[#F3FAFD]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  {gestor ? (
+                    <input
+                      type="checkbox"
+                      className="mt-3 accent-[#079ED4]"
+                      checked={selected.has(item.id)}
+                      onChange={() => {
+                        setSelected((cur) => {
+                          const next = new Set(cur);
+                          if (next.has(item.id)) next.delete(item.id);
+                          else next.add(item.id);
+                          return next;
+                        });
+                      }}
+                    />
+                  ) : null}
+                  <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                    <FileText className="size-4" />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate text-sm font-semibold text-[#0B3148]">{item.nome}</p>
+                    <p className="text-xs text-[#5C6B76]">
+                      {formatWhen(item.createdAt)}
+                      {item.uploadedBy ? ` · ${item.uploadedBy.name}` : ""}
+                      {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
+                    </p>
+                    {item.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="rounded-full bg-[#E7F4FA] px-2 py-0.5 text-[10px] font-medium text-[#05749E]"
+                          >
+                            {tag.nome}
+                          </span>
+                        ))}
+                      </div>
                     ) : null}
-                    {item.nome}
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {formatWhen(item.createdAt)}
-                    {item.uploadedBy ? ` · ${item.uploadedBy.name}` : ""}
-                    {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {item.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="rounded-full border border-[#079ED4]/30 bg-[#E7F4FA] px-2 py-0.5 text-[10px] font-medium text-[#0B3148] dark:border-[#079ED4]/40 dark:bg-[#079ED4]/15 dark:text-[#E7F4FA]"
-                      >
-                        {tag.nome}
-                      </span>
-                    ))}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className={SOFT_BTN}
-                    onClick={() => void ver(item.id)}
-                  >
+                  <Button type="button" size="sm" variant="outline" className={SOFT_BTN} onClick={() => void ver(item.id)}>
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     Ver
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className={SOFT_BTN}
-                    onClick={() => void baixar(item.id)}
-                  >
+                  <Button type="button" size="sm" variant="outline" className={SOFT_BTN} onClick={() => void baixar(item.id)}>
                     <Download className="mr-1 h-3.5 w-3.5" />
                     Baixar
                   </Button>
@@ -476,28 +468,20 @@ export function DocumentosPanel({
                     size="sm"
                     variant="outline"
                     className={editId === item.id ? SOFT_BTN_ACTIVE : SOFT_BTN}
-                    onClick={() =>
-                      setEditId((cur) => (cur === item.id ? null : item.id))
-                    }
+                    onClick={() => setEditId((cur) => (cur === item.id ? null : item.id))}
                   >
                     <Tags className="mr-1 h-3.5 w-3.5" />
                     Tags
                   </Button>
                   {allowUpload ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive"
-                      onClick={() => void excluir(item.id)}
-                    >
+                    <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => void excluir(item.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   ) : null}
                 </div>
               </div>
               {editId === item.id ? (
-                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-primary/10 pt-3">
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#E6EDF2] pt-3">
                   {tags.map((tag) => {
                     const on = item.tags.some((t) => t.id === tag.id);
                     return (
@@ -506,9 +490,7 @@ export function DocumentosPanel({
                         active={on}
                         onClick={() => {
                           const next = on
-                            ? item.tags
-                                .filter((t) => t.id !== tag.id)
-                                .map((t) => t.id)
+                            ? item.tags.filter((t) => t.id !== tag.id).map((t) => t.id)
                             : [...item.tags.map((t) => t.id), tag.id];
                           void salvarTags(item.id, next);
                         }}

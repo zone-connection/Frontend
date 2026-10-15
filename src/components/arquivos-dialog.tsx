@@ -31,6 +31,7 @@ export function ArquivosDialog({
     >
       {open && entityId ? (
         <DocumentosPanel
+          embedded
           entityType={entityType}
           entityId={entityId}
           categoria="outro"
