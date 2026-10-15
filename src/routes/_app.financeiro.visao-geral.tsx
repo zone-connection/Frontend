@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import { PagePanel, PanelLink } from "@/components/page-panel";
 import {
   DetailField,
@@ -49,22 +50,9 @@ import {
   Plus,
   Rows3,
   TrendingUp,
-  X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  FILTER_BAR_SHELL,
-  FILTER_CLEAR_BTN,
-  FILTER_CONTROL,
-} from "@/lib/filter-bar";
 import { toast } from "sonner";
 import {
   Bar,
@@ -176,11 +164,6 @@ const MESES_FILTRO = [
   { value: 11, label: "Novembro", curto: "Nov" },
   { value: 12, label: "Dezembro", curto: "Dez" },
 ] as const;
-
-function anosFiltro() {
-  const atual = new Date().getFullYear();
-  return [atual + 1, atual, atual - 1, atual - 2, atual - 3];
-}
 
 function ymFromVencimento(value: string | null | undefined) {
   return String(value ?? "").match(/(\d{4}-\d{2})/)?.[1] ?? "";
@@ -501,56 +484,19 @@ function Page() {
         }
       />
 
-      <div className={FILTER_BAR_SHELL}>
-        <Select
-          value={String(ano)}
-          onValueChange={(value) => setAno(Number(value))}
-        >
-          <SelectTrigger className={cn("w-full sm:w-35", FILTER_CONTROL)}>
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            {anosFiltro().map((item) => (
-              <SelectItem key={item} value={String(item)}>
-                {item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={mes === "todos" ? "todos" : String(mes)}
-          onValueChange={(value) =>
-            setMes(value === "todos" ? "todos" : Number(value))
-          }
-        >
-          <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
-            <SelectValue placeholder="Mês" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os meses</SelectItem>
-            {MESES_FILTRO.map((item) => (
-              <SelectItem key={item.value} value={String(item.value)}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {!periodoPadrao ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className={FILTER_CLEAR_BTN}
-            onClick={() => {
-              const hoje = new Date();
-              setAno(hoje.getFullYear());
-              setMes(hoje.getMonth() + 1);
-            }}
-          >
-            <X className="mr-1 h-4 w-4" />
-            Mês atual
-          </Button>
-        ) : null}
-      </div>
+      <FinanceiroFiltrosBar
+        kicker="Visão geral"
+        ano={ano}
+        onAnoChange={setAno}
+        mes={mes}
+        onMesChange={setMes}
+        hasActive={!periodoPadrao}
+        onClear={() => {
+          const hoje = new Date();
+          setAno(hoje.getFullYear());
+          setMes(hoje.getMonth() + 1);
+        }}
+      />
 
       {loading ? (
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">

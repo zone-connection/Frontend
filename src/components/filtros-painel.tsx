@@ -1,5 +1,5 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { ChevronDown, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { FILTER_NATIVE } from "@/lib/filter-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,9 +32,10 @@ export function FiltrosPainel({
   children,
   kicker = "Filtros",
   description = "Escolha o recorte da lista.",
-  confirmLabel = "Ver resultados",
+  confirmLabel = "Aplicar filtros",
   onConfirm,
   resultCount,
+  chips = [],
 }: {
   activeCount: number;
   onClear: () => void;
@@ -44,6 +45,7 @@ export function FiltrosPainel({
   confirmLabel?: string;
   onConfirm?: () => void;
   resultCount?: number;
+  chips?: { id: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -65,66 +67,108 @@ export function FiltrosPainel({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-[#F4F7F8] p-0 shadow-none sm:max-w-[380px] dark:border-white/10 dark:bg-[#0b0f14] [&>button]:hidden"
+          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-white p-0 shadow-none sm:max-w-[920px] dark:border-white/10 dark:bg-[#0b0f14] [&>button]:hidden"
         >
-          <SheetHeader className="relative border-b border-primary/10 bg-gradient-to-r from-primary/10 via-sky-50/50 to-white px-5 py-4 text-left dark:from-[#079ED4]/15 dark:via-[#141a22] dark:to-[#141a22]">
-            <div className="flex items-start gap-3 pr-10">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-[#079ED4] shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
-                <SlidersHorizontal className="size-5" />
-              </div>
-              <div className="min-w-0 space-y-0.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0C7C86] dark:text-[#7DD3FC]">
-                  {kicker}
+          <div className="flex min-h-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <SheetHeader className="border-b border-[#E6EDF2] px-5 py-4 text-left">
+                <div className="flex items-center gap-2 text-[#079ED4]">
+                  <SlidersHorizontal className="size-4" />
+                  <SheetTitle className="text-lg font-semibold text-[#0B3148]">
+                    Filtros avançados
+                  </SheetTitle>
+                </div>
+                <p className="text-sm text-[#5C6B76]">
+                  {kicker} · {description}
                 </p>
-                <SheetTitle className="text-[18px] font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
-                  Filtros
-                </SheetTitle>
-                <p className="text-[13px] text-[#5C6B76] dark:text-[#94a3b8]">{description}</p>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-5 py-5">
+                <div className="grid gap-4 sm:grid-cols-2 [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76]">
+                  {children}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E6EDF2] px-5 py-3">
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium text-[#05749E] hover:bg-[#F3FAFD]"
+                  onClick={onClear}
+                >
+                  <RotateCcw className="size-4" />
+                  Limpar filtros
+                </button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className={SOFT_BTN} onClick={() => setOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    className={cn(BRAND_GRADIENT_BTN, "px-4")}
+                    style={BRAND_GRADIENT_STYLE}
+                    onClick={() => {
+                      onConfirm?.();
+                      setOpen(false);
+                    }}
+                  >
+                    <Search className="mr-1.5 size-4" />
+                    {confirmLabel}
+                  </Button>
+                </div>
               </div>
             </div>
-            <SheetClose className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg border border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:bg-[#243044]">
-              <X className="size-4" />
-              <span className="sr-only">Fechar</span>
-            </SheetClose>
-          </SheetHeader>
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-            <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
-              <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
-                <SlidersHorizontal className="size-5" />
-              </span>
-              <div>
-                <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
-                  {resultCount ?? activeCount}
-                </p>
-                <p className="mt-1 text-xs">
-                  {resultCount != null ? "resultados encontrados" : "filtros aplicados"}
-                </p>
+            <aside className="hidden w-[280px] shrink-0 flex-col border-l border-[#E6EDF2] bg-[#F8FBFC] sm:flex">
+              <div className="flex items-start justify-between gap-2 border-b border-[#E6EDF2] px-4 py-4">
+                <div>
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-[#0B3148]">
+                    <SlidersHorizontal className="size-4 text-[#079ED4]" />
+                    Resumo dos filtros
+                  </p>
+                  <p className="text-xs text-[#5C6B76]">Filtros aplicados</p>
+                </div>
+                <SheetClose className="grid size-8 place-items-center rounded-lg text-[#5C6B76] hover:bg-white">
+                  <X className="size-4" />
+                  <span className="sr-only">Fechar</span>
+                </SheetClose>
               </div>
-            </div>
-            <div className="space-y-4 rounded-xl border border-[#E6EDF2] bg-white p-4 dark:border-white/10 dark:bg-[#141a22] [&_button]:w-full [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76] dark:[&_label]:text-[#94a3b8]">
-              {children}
-            </div>
-          </div>
-          <div className="space-y-2 border-t border-[#E6EDF2] bg-white px-4 py-3 dark:border-white/10 dark:bg-[#141a22]">
-            <button
-              type="button"
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
-              onClick={onClear}
-            >
-              <RotateCcw className="size-4" />
-              Limpar todos
-            </button>
-            <Button
-              type="button"
-              className={cn(BRAND_GRADIENT_BTN, "px-4")}
-              style={BRAND_GRADIENT_STYLE}
-              onClick={() => {
-                onConfirm?.();
-                setOpen(false);
-              }}
-            >
-              {confirmLabel}
-            </Button>
+              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-3 py-3 text-[#05749E]">
+                  <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                    <SlidersHorizontal className="size-5" />
+                  </span>
+                  <div>
+                    <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                      {resultCount ?? activeCount}
+                    </p>
+                    <p className="mt-1 text-xs">
+                      {resultCount != null ? "resultados encontrados" : "filtros aplicados"}
+                    </p>
+                  </div>
+                </div>
+                {chips.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {chips.map((chip) => (
+                      <span
+                        key={chip.id}
+                        className="inline-flex items-center rounded-full border border-[#079ED4]/25 bg-[#E7F4FA] px-2.5 py-1 text-xs text-[#05749E]"
+                      >
+                        {chip.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#5C6B76]">Nenhum filtro aplicado.</p>
+                )}
+              </div>
+              <div className="border-t border-[#E6EDF2] px-4 py-3">
+                <button
+                  type="button"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] bg-white text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
+                  onClick={onClear}
+                >
+                  <RotateCcw className="size-4" />
+                  Limpar todos
+                </button>
+              </div>
+            </aside>
           </div>
         </SheetContent>
       </Sheet>

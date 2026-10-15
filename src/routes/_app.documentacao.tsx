@@ -2073,121 +2073,6 @@ function DocumentacaoPage() {
               </div>
             </div>
 
-            <div className="min-w-[9.5rem] flex-1">
-              <Label className={FILTER_LABEL}>
-                Ordenar
-              </Label>
-              <TableSortSelect
-                value={sort}
-                onChange={setSort}
-                className={cn(FILTER_CONTROL, "w-full")}
-              />
-            </div>
-
-            <div className="min-w-[9.5rem] flex-1">
-              <Label className={FILTER_LABEL}>
-                Data por
-              </Label>
-              <Select
-                value={filterCampoData}
-                onValueChange={(v) => setFilterCampoData(v as DocCampoData)}
-              >
-                <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CAMPO_DATA_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="min-w-[9.5rem] flex-1">
-              <Label className={FILTER_LABEL}>
-                Período
-              </Label>
-              <Select
-                value={filterPeriodo}
-                onValueChange={(v) => {
-                  const next = v as DocPeriodo;
-                  setFilterPeriodo(next);
-                  if (isRecortePeriodo(next)) {
-                    setFilterMes(
-                      snapYearMonth(filterMes || currentYearMonth(), next),
-                    );
-                  }
-                  if (next !== "custom") {
-                    setFilterDataDe("");
-                    setFilterDataAte("");
-                  }
-                }}
-              >
-                <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIODO_DOC_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isRecortePeriodo(filterPeriodo) ? (
-              <div className="min-w-[9.5rem] flex-1">
-                <Label className={FILTER_LABEL}>
-                  {PERIODO_RECORTE_LABEL[filterPeriodo] ?? "Recorte"}
-                </Label>
-                <Select
-                  value={snapYearMonth(filterMes, filterPeriodo)}
-                  onValueChange={setFilterMes}
-                >
-                  <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {recorteOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-
-            {filterPeriodo === "custom" ? (
-              <>
-                <div className="min-w-[9.5rem] flex-1">
-                  <Label className={FILTER_LABEL}>
-                    De
-                  </Label>
-                  <Input
-                    type="date"
-                    value={filterDataDe}
-                    onChange={(e) => setFilterDataDe(e.target.value)}
-                    className={FILTER_CONTROL}
-                  />
-                </div>
-                <div className="min-w-[9.5rem] flex-1">
-                  <Label className={FILTER_LABEL}>
-                    Até
-                  </Label>
-                  <Input
-                    type="date"
-                    value={filterDataAte}
-                    onChange={(e) => setFilterDataAte(e.target.value)}
-                    className={FILTER_CONTROL}
-                  />
-                </div>
-              </>
-            ) : null}
-
             <div className="flex shrink-0 items-center gap-1.5 pb-px">
               <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
                 <SheetTrigger asChild>
@@ -2210,9 +2095,10 @@ function DocumentacaoPage() {
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] p-0 sm:max-w-[400px]"
+                  className="flex w-full flex-row gap-0 border-l border-[#E2E8EC] p-0 sm:max-w-[920px]"
                 >
-                  <div className="border-b border-[#E6EDF2] bg-[#F3FAFD] px-5 py-5">
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <div className="border-b border-[#E6EDF2] bg-white px-5 py-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#079ED4]">
                       Documentação
                     </p>
@@ -2220,12 +2106,12 @@ function DocumentacaoPage() {
                       Filtros avançados
                     </p>
                     <p className="text-sm text-[#5C6B76]">
-                      Situação, imóvel e equipe
+                      Período, situação, imóvel e equipe
                     </p>
                   </div>
 
-                  <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-                    <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+                  <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 [&_.grid]:sm:grid-cols-2">
+                    <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E] sm:hidden">
                       <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
                         <ClipboardList className="size-5" />
                       </span>
@@ -2251,6 +2137,114 @@ function DocumentacaoPage() {
                         ))}
                       </div>
                     ) : null}
+                    <div className="space-y-2.5">
+                      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+                        <Clock3 className="size-3.5" />
+                        Período
+                      </p>
+                      <div className="grid gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Ordenar</Label>
+                          <TableSortSelect
+                            value={sort}
+                            onChange={setSort}
+                            className={cn(FILTER_CONTROL, "w-full")}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Data por</Label>
+                          <Select
+                            value={filterCampoData}
+                            onValueChange={(v) => setFilterCampoData(v as DocCampoData)}
+                          >
+                            <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CAMPO_DATA_OPTIONS.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Período</Label>
+                          <Select
+                            value={filterPeriodo}
+                            onValueChange={(v) => {
+                              const next = v as DocPeriodo;
+                              setFilterPeriodo(next);
+                              if (isRecortePeriodo(next)) {
+                                setFilterMes(
+                                  snapYearMonth(filterMes || currentYearMonth(), next),
+                                );
+                              }
+                              if (next !== "custom") {
+                                setFilterDataDe("");
+                                setFilterDataAte("");
+                              }
+                            }}
+                          >
+                            <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PERIODO_DOC_OPTIONS.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {isRecortePeriodo(filterPeriodo) ? (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">
+                              {PERIODO_RECORTE_LABEL[filterPeriodo] ?? "Recorte"}
+                            </Label>
+                            <Select
+                              value={snapYearMonth(filterMes, filterPeriodo)}
+                              onValueChange={setFilterMes}
+                            >
+                              <SelectTrigger className={cn(FILTER_CONTROL, "w-full")}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-72">
+                                {recorteOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : null}
+                        {filterPeriodo === "custom" ? (
+                          <>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">De</Label>
+                              <Input
+                                type="date"
+                                value={filterDataDe}
+                                onChange={(e) => setFilterDataDe(e.target.value)}
+                                className={FILTER_CONTROL}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">Até</Label>
+                              <Input
+                                type="date"
+                                value={filterDataAte}
+                                onChange={(e) => setFilterDataAte(e.target.value)}
+                                className={FILTER_CONTROL}
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
                     <div className="space-y-2.5">
                       <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
                         <ClipboardList className="size-3.5" />
@@ -2460,6 +2454,56 @@ function DocumentacaoPage() {
                       Limpar todos
                     </button>
                   </div>
+                </div>
+                <aside className="hidden w-[280px] shrink-0 flex-col border-l border-[#E6EDF2] bg-[#F8FBFC] sm:flex">
+                  <div className="border-b border-[#E6EDF2] px-4 py-4">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-[#0B3148]">
+                      <Filter className="size-4 text-[#079ED4]" />
+                      Resumo dos filtros
+                    </p>
+                    <p className="text-xs text-[#5C6B76]">Filtros aplicados</p>
+                  </div>
+                  <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-3 py-3 text-[#05749E]">
+                      <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                        <ClipboardList className="size-5" />
+                      </span>
+                      <div>
+                        <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                          {filteredItems.length}
+                        </p>
+                        <p className="mt-1 text-xs">resultados encontrados</p>
+                      </div>
+                    </div>
+                    {activeFilterChips.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {activeFilterChips.map((chip) => (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#079ED4]/25 bg-[#E7F4FA] py-1 pl-2.5 pr-1.5 text-xs text-[#05749E]"
+                            onClick={chip.onClear}
+                          >
+                            {chip.label}
+                            <X className="size-3.5" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#5C6B76]">Nenhum filtro aplicado.</p>
+                    )}
+                  </div>
+                  <div className="border-t border-[#E6EDF2] px-4 py-3">
+                    <button
+                      type="button"
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] bg-white text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
+                      onClick={clearAllFilters}
+                    >
+                      <RotateCcw className="size-4" />
+                      Limpar todos
+                    </button>
+                  </div>
+                </aside>
                 </SheetContent>
               </Sheet>
 

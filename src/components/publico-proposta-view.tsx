@@ -11,7 +11,7 @@ import {
   Ruler,
   UserRound,
 } from "lucide-react";
-import marcaZone from "@/assets/marca-zone.png";
+import logoZone from "@/assets/logo-zone-icone.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +59,21 @@ export function PublicoPropostaView({ item }: { item: PropostaPublicaResumo }) {
     clienteTelefone: "",
     clienteEmail: "",
     clienteCpf: "",
+    clienteRg: "",
+    clienteRgOrgaoEmissor: "",
+    clienteDataNascimento: "",
+    clienteNacionalidade: "",
+    clienteEstadoCivil: "",
+    clienteRegimeBens: "",
+    clienteNomePai: "",
+    clienteNomeMae: "",
+    clienteTelefoneFixo: "",
+    clienteEnderecoResidencial: "",
+    clienteBairroResidencial: "",
+    clienteCidadeResidencial: "",
+    clienteUfResidencial: "",
+    clienteCepResidencial: "",
+    clienteProfissao: "",
     valor: "",
     entrada: "",
     apartado: "",
@@ -123,6 +138,21 @@ export function PublicoPropostaView({ item }: { item: PropostaPublicaResumo }) {
         clienteTelefone: form.clienteTelefone.trim() || null,
         clienteEmail: form.clienteEmail.trim() || null,
         clienteCpf: form.clienteCpf.trim() || null,
+        clienteRg: form.clienteRg.trim() || null,
+        clienteRgOrgaoEmissor: form.clienteRgOrgaoEmissor.trim() || null,
+        clienteDataNascimento: form.clienteDataNascimento || null,
+        clienteNacionalidade: form.clienteNacionalidade.trim() || null,
+        clienteEstadoCivil: form.clienteEstadoCivil.trim() || null,
+        clienteRegimeBens: form.clienteRegimeBens.trim() || null,
+        clienteNomePai: form.clienteNomePai.trim() || null,
+        clienteNomeMae: form.clienteNomeMae.trim() || null,
+        clienteTelefoneFixo: form.clienteTelefoneFixo.trim() || null,
+        clienteEnderecoResidencial: form.clienteEnderecoResidencial.trim() || null,
+        clienteBairroResidencial: form.clienteBairroResidencial.trim() || null,
+        clienteCidadeResidencial: form.clienteCidadeResidencial.trim() || null,
+        clienteUfResidencial: form.clienteUfResidencial.trim() || null,
+        clienteCepResidencial: form.clienteCepResidencial.trim() || null,
+        clienteProfissao: form.clienteProfissao.trim() || null,
         valor,
         entrada: form.entrada ? toInt(form.entrada) : null,
         apartado: form.apartado ? toInt(form.apartado) : null,
@@ -166,7 +196,7 @@ export function PublicoPropostaView({ item }: { item: PropostaPublicaResumo }) {
       <header className="border-b border-[#E2E8EC] bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-2.5">
-            <img src={marcaZone} alt="" className="h-9 w-9 object-contain" />
+            <img src={logoZone} alt="" className="h-10 w-10 object-contain" />
             <div>
               <p className="text-sm font-semibold leading-tight">
                 Zone <span className="text-[#079ED4]">Connection</span>
@@ -294,6 +324,112 @@ export function PublicoPropostaView({ item }: { item: PropostaPublicaResumo }) {
                 className={campo}
                 value={form.clienteCpf}
                 onChange={(e) => set("clienteCpf", e.target.value)}
+              />
+            </Field>
+            <Field label="RG">
+              <Input
+                className={campo}
+                value={form.clienteRg}
+                onChange={(e) => set("clienteRg", e.target.value)}
+              />
+            </Field>
+            <Field label="Órgão emissor">
+              <Input
+                className={campo}
+                value={form.clienteRgOrgaoEmissor}
+                onChange={(e) => set("clienteRgOrgaoEmissor", e.target.value)}
+              />
+            </Field>
+            <Field label="Nascimento">
+              <Input
+                className={campo}
+                type="date"
+                value={form.clienteDataNascimento}
+                onChange={(e) => set("clienteDataNascimento", e.target.value)}
+              />
+            </Field>
+            <Field label="Nacionalidade">
+              <Input
+                className={campo}
+                value={form.clienteNacionalidade}
+                onChange={(e) => set("clienteNacionalidade", e.target.value)}
+              />
+            </Field>
+            <Field label="Estado civil">
+              <Input
+                className={campo}
+                value={form.clienteEstadoCivil}
+                onChange={(e) => set("clienteEstadoCivil", e.target.value)}
+              />
+            </Field>
+            <Field label="Regime de bens">
+              <Input
+                className={campo}
+                value={form.clienteRegimeBens}
+                onChange={(e) => set("clienteRegimeBens", e.target.value)}
+              />
+            </Field>
+            <Field label="Profissão">
+              <Input
+                className={campo}
+                value={form.clienteProfissao}
+                onChange={(e) => set("clienteProfissao", e.target.value)}
+              />
+            </Field>
+            <Field label="Nome do pai">
+              <Input
+                className={campo}
+                value={form.clienteNomePai}
+                onChange={(e) => set("clienteNomePai", e.target.value)}
+              />
+            </Field>
+            <Field label="Nome da mãe">
+              <Input
+                className={campo}
+                value={form.clienteNomeMae}
+                onChange={(e) => set("clienteNomeMae", e.target.value)}
+              />
+            </Field>
+            <Field label="Telefone fixo">
+              <Input
+                className={campo}
+                value={form.clienteTelefoneFixo}
+                onChange={(e) => set("clienteTelefoneFixo", e.target.value)}
+              />
+            </Field>
+            <Field label="Endereço">
+              <Input
+                className={campo}
+                value={form.clienteEnderecoResidencial}
+                onChange={(e) => set("clienteEnderecoResidencial", e.target.value)}
+              />
+            </Field>
+            <Field label="Bairro">
+              <Input
+                className={campo}
+                value={form.clienteBairroResidencial}
+                onChange={(e) => set("clienteBairroResidencial", e.target.value)}
+              />
+            </Field>
+            <Field label="Cidade">
+              <Input
+                className={campo}
+                value={form.clienteCidadeResidencial}
+                onChange={(e) => set("clienteCidadeResidencial", e.target.value)}
+              />
+            </Field>
+            <Field label="UF">
+              <Input
+                className={campo}
+                value={form.clienteUfResidencial}
+                onChange={(e) => set("clienteUfResidencial", e.target.value)}
+              />
+            </Field>
+            <Field label="CEP">
+              <Input
+                className={campo}
+                value={form.clienteCepResidencial}
+                onChange={(e) => set("clienteCepResidencial", e.target.value)}
               />
             </Field>
             <Field label="Valor da proposta" required>

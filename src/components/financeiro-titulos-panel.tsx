@@ -20,7 +20,7 @@ import { ComissaoLancamentoDialog } from "@/components/comissao-lancamento-dialo
 import { CategoriaSearchSelect } from "@/components/categoria-search-select";
 import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
-import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
 import {
   FormDialogActions,
   FormDialogBody,
@@ -91,7 +91,10 @@ import {
 import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
 import { canFinanceiroAction } from "@/lib/permissions";
 import {
+  FILTER_BAR_SHELL,
+  FILTER_CONTROL,
   FILTER_LABEL,
+  FILTER_SEARCH_ICON,
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
   FILTER_VISTA_WRAP,
@@ -125,6 +128,8 @@ import {
   type DespesaTipo,
   type NaturezaDespesa,
   type ParceiroFinanceiro,
+  PERIODO_OPTIONS,
+  STATUS_OPTIONS,
   type PeriodoFiltro,
   type StatusTitulo,
   type TipoParceiro,
@@ -151,6 +156,7 @@ import {
   Plus,
   Repeat,
   ScrollText,
+  Search,
   Tags,
   Trash2,
   Wallet,
@@ -1640,17 +1646,6 @@ export function FinanceiroTitulosPanel({
               ? "no total"
               : "neste mês";
 
-  const hasActive = Boolean(
-    search ||
-    periodo !== "mes" ||
-    mes !== new Date().getMonth() + 1 ||
-    ano !== new Date().getFullYear() ||
-    Boolean(dataDe || dataAte) ||
-    status !== "todos" ||
-    categoriaFiltro !== "todos" ||
-    origemFiltro !== "todos",
-  );
-
   return (
     <div>
       <PageHeader
@@ -1738,77 +1733,130 @@ export function FinanceiroTitulosPanel({
       </section>
       </PagePanel>
 
-      <FinanceiroFiltrosBar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Buscar título, parceiro…"
-        periodo={periodo}
-        onPeriodoChange={setPeriodo}
-        ano={ano}
-        onAnoChange={setAno}
-        mes={mes}
-        onMesChange={setMes}
-        dataDe={dataDe}
-        onDataDeChange={setDataDe}
-        dataAte={dataAte}
-        onDataAteChange={setDataAte}
-        status={status}
-        onStatusChange={setStatus}
-        tipo={categoriaFiltro}
-        onTipoChange={setCategoriaFiltro}
-        tipoOptions={categoriaOptions}
-        hasActive={hasActive}
-        onClear={() => {
-          setSearch("");
-          setPeriodo("mes");
-          setAno(new Date().getFullYear());
-          setMes(new Date().getMonth() + 1);
-          setDataDe("");
-          setDataAte("");
-          setStatus("todos");
-          setCategoriaFiltro("todos");
-          setOrigemFiltro("todos");
-        }}
-        extra={
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            <span className={cn(FILTER_LABEL, "mb-0 whitespace-nowrap")}>
-              Tipo:
-            </span>
-            <div
-              className={cn(
-                FILTER_VISTA_WRAP,
-                "grid h-auto flex-1 grid-cols-2 sm:flex sm:w-auto sm:flex-none",
-              )}
+      <div className={FILTER_BAR_SHELL}>
+        <div className="relative min-w-0 flex-1">
+          <Search className={FILTER_SEARCH_ICON} />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar título, parceiro…"
+            className={cn("pl-9", FILTER_CONTROL)}
+          />
+        </div>
+        <FiltrosPainel
+          kicker={tipo === "receber" ? "Contas a receber" : "Contas a pagar"}
+          description="Período, status e categoria."
+          resultCount={rows.length}
+          activeCount={
+            [
+              periodo !== "mes",
+              mes !== new Date().getMonth() + 1,
+              ano !== new Date().getFullYear(),
+              Boolean(dataDe || dataAte),
+              status !== "todos",
+              categoriaFiltro !== "todos",
+              origemFiltro !== "todos",
+            ].filter(Boolean).length
+          }
+          onClear={() => {
+            setSearch("");
+            setPeriodo("mes");
+            setAno(new Date().getFullYear());
+            setMes(new Date().getMonth() + 1);
+            setDataDe("");
+            setDataAte("");
+            setStatus("todos");
+            setCategoriaFiltro("todos");
+            setOrigemFiltro("todos");
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label>Período</Label>
+            <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODO_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ano</Label>
+            <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[1, 0, -1, -2, -3].map((offset) => {
+                  const item = new Date().getFullYear() + offset;
+                  return <SelectItem key={item} value={String(item)}>{item}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Mês</Label>
+            <Select
+              value={mes === "todos" ? "todos" : String(mes)}
+              onValueChange={(v) => setMes(v === "todos" ? "todos" : Number(v))}
             >
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os meses</SelectItem>
+                {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((label, index) => (
+                  <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as StatusTitulo | "todos")}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>De</Label>
+            <Input type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} className={FILTRO_CAMPO} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Até</Label>
+            <Input type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} className={FILTRO_CAMPO} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {categoriaOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Tipo</Label>
+            <div className={cn(FILTER_VISTA_WRAP, "grid h-auto grid-cols-2 sm:flex")}>
               {(
                 [
                   { value: "todos", label: "Todas" },
                   { value: "normal", label: "Normais" },
-                  ...(canUseContrato
-                    ? [{ value: "contrato" as const, label: "Contratos" }]
-                    : []),
-                  ...(!ocultarComissao
-                    ? [{ value: "comissao" as const, label: "Comissão" }]
-                    : []),
+                  ...(canUseContrato ? [{ value: "contrato" as const, label: "Contratos" }] : []),
+                  ...(!ocultarComissao ? [{ value: "comissao" as const, label: "Comissão" }] : []),
                 ] as const
               ).map((option) => (
                 <Button
                   key={option.value}
                   type="button"
                   size="sm"
-                  variant={
-                    origemFiltro === option.value ? "secondary" : "ghost"
-                  }
-                  className="h-7 px-2 text-xs"
-                  aria-pressed={origemFiltro === option.value}
+                  variant={origemFiltro === option.value ? "secondary" : "ghost"}
+                  className="h-8 px-3 text-xs"
                   onClick={() =>
-                    setOrigemFiltro(
-                      option.value as
-                        | "todos"
-                        | "normal"
-                        | "contrato"
-                        | "comissao",
-                    )
+                    setOrigemFiltro(option.value as "todos" | "normal" | "contrato" | "comissao")
                   }
                 >
                   {option.label}
@@ -1816,8 +1864,8 @@ export function FinanceiroTitulosPanel({
               ))}
             </div>
           </div>
-        }
-      />
+        </FiltrosPainel>
+      </div>
 
       <Card className="overflow-hidden rounded-2xl">
         <Table className={TABLE_LUX}>

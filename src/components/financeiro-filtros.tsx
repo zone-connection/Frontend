@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -8,20 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FILTRO_CAMPO, FiltrosPainel } from "@/components/filtros-painel";
 import {
   PERIODO_OPTIONS,
   STATUS_OPTIONS,
   type PeriodoFiltro,
   type StatusTitulo,
 } from "@/lib/financeiro-mock";
-import {
-  FILTER_BAR_SHELL,
-  FILTER_CLEAR_BTN,
-  FILTER_CONTROL,
-  FILTER_SEARCH_ICON,
-} from "@/lib/filter-bar";
+import { FILTER_BAR_SHELL, FILTER_CONTROL, FILTER_SEARCH_ICON } from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 
 const MESES = [
   "Janeiro",
@@ -65,6 +61,8 @@ export function FinanceiroFiltrosBar({
   extra,
   onClear,
   hasActive,
+  resultCount,
+  kicker = "Financeiro",
 }: {
   search?: string;
   onSearchChange?: (v: string) => void;
@@ -87,11 +85,22 @@ export function FinanceiroFiltrosBar({
   extra?: ReactNode;
   onClear?: () => void;
   hasActive?: boolean;
+  resultCount?: number;
+  kicker?: string;
 }) {
+  const counted = [
+    periodo != null && periodo !== "mes" && periodo !== "tudo",
+    mes != null && mes !== "todos" && mes !== new Date().getMonth() + 1,
+    ano != null && ano !== new Date().getFullYear(),
+    Boolean(dataDe || dataAte),
+    status != null && status !== "todos",
+    tipo != null && tipo !== "todos",
+  ].filter(Boolean).length;
+  const activeCount = hasActive ? Math.max(counted, 1) : counted;
   return (
     <div className={FILTER_BAR_SHELL}>
       {onSearchChange != null && (
-        <div className="relative min-w-[200px] flex-1 max-w-sm">
+        <div className="relative min-w-0 flex-1">
           <Search className={FILTER_SEARCH_ICON} />
           <Input
             value={search ?? ""}
@@ -101,128 +110,96 @@ export function FinanceiroFiltrosBar({
           />
         </div>
       )}
-      {onPeriodoChange != null && (
-        <Select
-          value={periodo}
-          onValueChange={(v) => onPeriodoChange(v as PeriodoFiltro)}
-        >
-          <SelectTrigger className={cn("w-full sm:w-[160px]", FILTER_CONTROL)}>
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            {PERIODO_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {onAnoChange != null && (
-        <Select
-          value={String(ano ?? new Date().getFullYear())}
-          onValueChange={(v) => onAnoChange(Number(v))}
-        >
-          <SelectTrigger className={cn("w-full sm:w-[110px]", FILTER_CONTROL)}>
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            {anosFiltro().map((item) => (
-              <SelectItem key={item} value={String(item)}>
-                {item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {onMesChange != null && (
-        <Select
-          value={mes === "todos" || mes == null ? "todos" : String(mes)}
-          onValueChange={(v) =>
-            onMesChange(v === "todos" ? "todos" : Number(v))
-          }
-        >
-          <SelectTrigger className={cn("w-full sm:w-[160px]", FILTER_CONTROL)}>
-            <SelectValue placeholder="Mês" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os meses</SelectItem>
-            {MESES.map((label, index) => (
-              <SelectItem key={label} value={String(index + 1)}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {onDataDeChange != null && (
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          De
-          <Input
-            type="date"
-            value={dataDe ?? ""}
-            onChange={(e) => onDataDeChange(e.target.value)}
-            className={cn("w-[148px]", FILTER_CONTROL)}
-            aria-label="Data inicial"
-          />
-        </label>
-      )}
-      {onDataAteChange != null && (
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          Até
-          <Input
-            type="date"
-            value={dataAte ?? ""}
-            onChange={(e) => onDataAteChange(e.target.value)}
-            className={cn("w-[148px]", FILTER_CONTROL)}
-            aria-label="Data final"
-          />
-        </label>
-      )}
-      {onStatusChange != null && (
-        <Select
-          value={status}
-          onValueChange={(v) => onStatusChange(v as StatusTitulo | "todos")}
-        >
-          <SelectTrigger className={cn("w-full sm:w-[170px]", FILTER_CONTROL)}>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {onTipoChange != null && tipoOptions && (
-        <Select value={tipo} onValueChange={onTipoChange}>
-          <SelectTrigger className={cn("w-full sm:w-[180px]", FILTER_CONTROL)}>
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            {tipoOptions.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {extra}
-      {hasActive && onClear && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={FILTER_CLEAR_BTN}
-          onClick={onClear}
-        >
-          <X className="mr-1 h-4 w-4" />
-          Limpar
-        </Button>
-      )}
+      <FiltrosPainel
+        kicker={kicker}
+        description="Período, mês e demais recortes."
+        resultCount={resultCount}
+        activeCount={activeCount}
+        onClear={onClear ?? (() => undefined)}
+      >
+        {onPeriodoChange != null && (
+          <div className="space-y-1.5">
+            <Label>Período</Label>
+            <Select value={periodo} onValueChange={(v) => onPeriodoChange(v as PeriodoFiltro)}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue placeholder="Período" /></SelectTrigger>
+              <SelectContent>
+                {PERIODO_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {onAnoChange != null && (
+          <div className="space-y-1.5">
+            <Label>Ano</Label>
+            <Select value={String(ano ?? new Date().getFullYear())} onValueChange={(v) => onAnoChange(Number(v))}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue placeholder="Ano" /></SelectTrigger>
+              <SelectContent>
+                {anosFiltro().map((item) => (
+                  <SelectItem key={item} value={String(item)}>{item}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {onMesChange != null && (
+          <div className="space-y-1.5">
+            <Label>Mês</Label>
+            <Select
+              value={mes === "todos" || mes == null ? "todos" : String(mes)}
+              onValueChange={(v) => onMesChange(v === "todos" ? "todos" : Number(v))}
+            >
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue placeholder="Mês" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os meses</SelectItem>
+                {MESES.map((label, index) => (
+                  <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {onDataDeChange != null && (
+          <div className="space-y-1.5">
+            <Label>De</Label>
+            <Input type="date" value={dataDe ?? ""} onChange={(e) => onDataDeChange(e.target.value)} className={FILTRO_CAMPO} />
+          </div>
+        )}
+        {onDataAteChange != null && (
+          <div className="space-y-1.5">
+            <Label>Até</Label>
+            <Input type="date" value={dataAte ?? ""} onChange={(e) => onDataAteChange(e.target.value)} className={FILTRO_CAMPO} />
+          </div>
+        )}
+        {onStatusChange != null && (
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => onStatusChange(v as StatusTitulo | "todos")}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {onTipoChange != null && tipoOptions && (
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select value={tipo} onValueChange={onTipoChange}>
+              <SelectTrigger className={FILTRO_CAMPO}><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                {tipoOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {extra ? <div className="space-y-1.5 sm:col-span-2">{extra}</div> : null}
+      </FiltrosPainel>
     </div>
   );
 }

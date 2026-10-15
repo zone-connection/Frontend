@@ -15,6 +15,8 @@ import { useTablePager } from "@/lib/use-table-pager";
 import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
+import { FILTRO_CAMPO } from "@/components/filtros-painel";
+import { Label } from "@/components/ui/label";
 import {
   DetailField,
   FormDialogActions,
@@ -58,7 +60,6 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
-  FILTER_CONTROL,
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
   FILTER_VISTA_WRAP,
@@ -505,14 +506,18 @@ function Page() {
       ) : null}
 
       <FinanceiroFiltrosBar
+        kicker="Comissão"
+        resultCount={rows.length}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar corretor, cliente, empreendimento…"
         periodo={periodo}
         onPeriodoChange={setPeriodo}
         extra={
+          <div className="space-y-1.5">
+          <Label>Equipe</Label>
           <Select value={equipe} onValueChange={setEquipe}>
-            <SelectTrigger className={cn("w-full sm:w-45", FILTER_CONTROL)}>
+            <SelectTrigger className={FILTRO_CAMPO}>
               <SelectValue placeholder="Equipe" />
             </SelectTrigger>
             <SelectContent>
@@ -523,6 +528,7 @@ function Page() {
               ))}
             </SelectContent>
           </Select>
+          </div>
         }
         hasActive={hasActive}
         onClear={() => {
