@@ -49,6 +49,8 @@ import {
   type TarefaFiltro,
   type TarefaInput,
   type TarefaLembrete,
+  ETIQUETA_TAREFA,
+  type TarefaEtiqueta,
   type TarefaPrioridade,
   type TarefaRecorrencia,
 } from "@/lib/tarefas-api";
@@ -100,6 +102,7 @@ function emptyForm(userId: string): TarefaInput {
     horario: "",
     prioridade: "media",
     tipo: "tarefa",
+    etiqueta: "documentos",
     descricao: "",
     lembrete: "nenhum",
     recorrencia: "nenhuma",
@@ -213,6 +216,7 @@ function TarefasPage() {
       horario: tarefa.horario ?? "",
       prioridade: tarefa.prioridade,
       tipo: tarefa.tipo ?? "tarefa",
+      etiqueta: tarefa.etiqueta ?? "documentos",
       descricao: tarefa.descricao,
       lembrete: tarefa.lembrete,
       lembreteMinutos: tarefa.lembreteMinutos ?? 10,
@@ -805,6 +809,15 @@ function CriarCompromisso({
             ))}
           </select>
         </Section>
+        {tipo === "tarefa" ? (
+          <Section icon={Flag} title="Etiqueta">
+            <select className={selectClass} value={form.etiqueta ?? "documentos"} onChange={(e) => setForm({ ...form, etiqueta: e.target.value as TarefaEtiqueta })}>
+              {Object.entries(ETIQUETA_TAREFA).map(([id, item]) => (
+                <option key={id} value={id}>{item.label}</option>
+              ))}
+            </select>
+          </Section>
+        ) : null}
         {tipo === "tarefa" ? (
           <Section icon={Flag} title="Prioridade">
             <select className={selectClass} value={form.prioridade} onChange={(e) => setForm({ ...form, prioridade: e.target.value as TarefaPrioridade })}>

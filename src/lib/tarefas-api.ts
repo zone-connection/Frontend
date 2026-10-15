@@ -10,6 +10,14 @@ export type TarefaFiltro =
   | "canceladas";
 
 export type TarefaPrioridade = "alta" | "media" | "baixa";
+export type TarefaEtiqueta =
+  | "cliente"
+  | "ligacao"
+  | "documentos"
+  | "captacao"
+  | "interna"
+  | "followup"
+  | "contrato";
 export type TarefaRecorrencia =
   | "nenhuma"
   | "diaria"
@@ -35,6 +43,7 @@ export type Tarefa = {
   horario: string | null;
   prioridade: TarefaPrioridade;
   tipo: AgendamentoTipo;
+  etiqueta: TarefaEtiqueta;
   status: "aberta" | "concluida" | "cancelada";
   atrasada: boolean;
   responsavel: { id: string; name: string };
@@ -68,6 +77,7 @@ export type TarefaInput = {
   horario?: string;
   prioridade?: TarefaPrioridade;
   tipo?: AgendamentoTipo;
+  etiqueta?: TarefaEtiqueta;
   descricao?: string;
   lembrete?: TarefaLembrete;
   lembreteMinutos?: number;
@@ -85,6 +95,16 @@ export const PRIORIDADE_LABEL: Record<TarefaPrioridade, string> = {
   alta: "Alta",
   media: "Média",
   baixa: "Baixa",
+};
+
+export const ETIQUETA_TAREFA: Record<TarefaEtiqueta, { label: string; className: string }> = {
+  cliente: { label: "Cliente", className: "bg-[#EEE8FF] text-[#6D5BD0]" },
+  ligacao: { label: "Ligação", className: "bg-[#E7F0FF] text-[#3B6FD8]" },
+  documentos: { label: "Documentos", className: "bg-[#E5F8EA] text-[#3C9A57]" },
+  captacao: { label: "Captação", className: "bg-[#FFF4D6] text-[#C8890A]" },
+  interna: { label: "Interna", className: "bg-[#F3E8FF] text-[#7E22CE]" },
+  followup: { label: "Follow-up", className: "bg-[#E6F8F8] text-[#0F8A8A]" },
+  contrato: { label: "Contrato", className: "bg-[#FDE8EF] text-[#D4537E]" },
 };
 
 export async function fetchTarefasAcesso() {

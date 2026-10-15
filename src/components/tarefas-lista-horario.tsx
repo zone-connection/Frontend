@@ -1,21 +1,9 @@
 import { useMemo, useState } from "react";
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, UserRound } from "lucide-react";
-import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
-import { SELO_MOCK } from "@/lib/tarefas-mock";
-import { PRIORIDADE_LABEL, type Tarefa } from "@/lib/tarefas-api";
+import { ETIQUETA_TAREFA, PRIORIDADE_LABEL, type Tarefa } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
 const PAGE = 7;
-
-const TIPO_CHIP: Record<string, { label: string; className: string }> = {
-  visita: { label: "Captação", className: "bg-[#FFF4D6] text-[#C8890A]" },
-  ligacao: { label: "Ligação", className: "bg-[#E7F0FF] text-[#3B6FD8]" },
-  reuniao: { label: "Cliente", className: "bg-[#EEE8FF] text-[#6D5BD0]" },
-  tarefa: { label: "Documentos", className: "bg-[#E5F8EA] text-[#3C9A57]" },
-  outro: { label: "Contrato", className: "bg-[#FDE8EF] text-[#D4537E]" },
-  bloqueio: { label: "Interna", className: "bg-[#F3E8FF] text-[#7E22CE]" },
-  retirada_chave: { label: "Follow-up", className: "bg-[#E6F8F8] text-[#0F8A8A]" },
-};
 
 function horaDe(tarefa: Tarefa) {
   return tarefa.horario?.slice(0, 5) || "99:99";
@@ -27,12 +15,7 @@ function quandoCurto(tarefa: Tarefa, dia: string) {
 }
 
 function selo(tarefa: Tarefa) {
-  return (
-    SELO_MOCK[tarefa.id] ?? {
-      label: TIPO_CHIP[tarefa.tipo]?.label ?? AGENDAMENTO_TIPO_LABEL[tarefa.tipo] ?? "Tarefa",
-      className: TIPO_CHIP[tarefa.tipo]?.className ?? "bg-[#F4F6F8] text-[#5C6B76]",
-    }
-  );
+  return ETIQUETA_TAREFA[tarefa.etiqueta] ?? ETIQUETA_TAREFA.documentos;
 }
 
 export function ListaPorHorario({
