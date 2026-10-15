@@ -91,17 +91,17 @@ export function ListaPorHorario({
               <li
                 key={tarefa.id}
                 className={cn(
-                  "grid grid-cols-[4.2rem_minmax(0,1fr)] items-center gap-2 border-b border-[#F1F4F7] py-3.5 lg:grid-cols-[4.2rem_minmax(16rem,1fr)_auto]",
+                  "grid items-center gap-3 border-b border-[#F1F4F7] py-3.5 grid-cols-[4.2rem_minmax(0,1fr)] xl:grid-cols-[4.2rem_minmax(12rem,1.4fr)_7.5rem_9.5rem_10rem_6.75rem_2rem]",
                   index === 0 && atual === 1 && "border-l-[3px] border-l-[#F97316] pl-3",
                 )}
               >
-                <span className="text-sm tabular-nums text-[#A0AAB4]">{horaDe(tarefa) === "99:99" ? "—" : horaDe(tarefa)}</span>
-                <div className="flex min-w-0 items-start gap-3">
+                <span className="self-center text-center text-sm tabular-nums text-[#A0AAB4]">{horaDe(tarefa) === "99:99" ? "—" : horaDe(tarefa)}</span>
+                <div className="flex min-w-0 items-center gap-3">
                   <button
                     type="button"
                     aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
                     className={cn(
-                      "mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border",
+                      "grid size-[18px] shrink-0 place-items-center rounded-[5px] border",
                       marcada ? "border-[#F97316] bg-[#F97316] text-white" : "border-[#E4E8ED] bg-white",
                     )}
                     onClick={() => onComplete(tarefa)}
@@ -109,31 +109,27 @@ export function ListaPorHorario({
                     {marcada ? <Check className="size-3" strokeWidth={3} /> : null}
                   </button>
                   <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                    <p className={cn("truncate text-[15px] font-semibold text-[#1E293B]", cancelada && "text-[#8B98A3] line-through")}>
+                    <p className={cn("truncate text-[15px] font-semibold leading-5 text-[#1E293B]", cancelada && "text-[#8B98A3] line-through")}>
                       {tarefa.titulo}
                     </p>
-                    {tarefa.descricao ? <p className="truncate text-[13px] text-[#98A2B0]">{tarefa.descricao}</p> : null}
+                    {tarefa.descricao ? <p className="truncate text-[13px] leading-5 text-[#98A2B0]">{tarefa.descricao}</p> : null}
                     <span className="sr-only">{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
                   </button>
                 </div>
-                <div className="col-span-2 flex flex-wrap items-center justify-end gap-3 pl-16 lg:col-span-1 lg:pl-0">
-                  <span className={cn("rounded-full px-2.5 py-1 text-[12px] font-medium", tag.className)}>{tag.label}</span>
-                  {pessoa ? (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] text-[#667085]">
-                      <UserRound className="size-3.5 text-[#98A2B3]" />
-                      {pessoa}
-                    </span>
-                  ) : null}
-                  {imovel ? (
-                    <span className="inline-flex max-w-44 items-center gap-1.5 text-[13px] text-[#667085]">
-                      <Building2 className="size-3.5 shrink-0 text-[#98A2B3]" />
-                      <span className="truncate">{imovel}</span>
-                    </span>
-                  ) : null}
-                  <span className="rounded-full bg-[#FFF1E8] px-2.5 py-1 text-[12px] font-medium text-[#F97316]">
+                <div className="col-span-2 grid grid-cols-2 items-center justify-items-center gap-2 pl-16 xl:contents">
+                  <span className={cn("justify-self-center rounded-full px-2.5 py-1 text-center text-[12px] font-medium", tag.className)}>{tag.label}</span>
+                  <span className="inline-flex items-center justify-center gap-1.5 text-[13px] text-[#667085]">
+                    {pessoa ? <UserRound className="size-3.5 shrink-0 text-[#98A2B3]" /> : null}
+                    <span className="truncate">{pessoa ?? ""}</span>
+                  </span>
+                  <span className="inline-flex max-w-full items-center justify-center gap-1.5 text-[13px] text-[#667085]">
+                    {imovel ? <Building2 className="size-3.5 shrink-0 text-[#98A2B3]" /> : null}
+                    <span className="truncate">{imovel ?? ""}</span>
+                  </span>
+                  <span className="justify-self-center rounded-full bg-[#FFF1E8] px-2.5 py-1 text-center text-[12px] font-medium text-[#F97316]">
                     {quandoCurto(tarefa, hoje)}
                   </span>
-                  <div className="relative">
+                  <div className="relative justify-self-center">
                     <button
                       type="button"
                       aria-label="Ações da tarefa"
