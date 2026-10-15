@@ -24,6 +24,7 @@ import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
+import { tarefaMock, tarefasMock } from "@/lib/tarefas-mock";
 import { toDateInput } from "@/components/agenda-board";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,7 +147,9 @@ function TarefasPage() {
       const acesso = await fetchTarefasAcesso();
       setEnabled(acesso.enabled);
       if (!acesso.enabled) return;
-      setItems(await fetchTarefas({ filtro: "todas" }));
+      const reais = await fetchTarefas({ filtro: "todas" });
+      const responsavel = { id: session?.id ?? "mock-user", name: session?.name ?? "Você" };
+      setItems([...reais, ...tarefasMock(hojeYmd(), responsavel)]);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha ao carregar tarefas.");
     } finally {
@@ -379,6 +382,10 @@ function TarefasPage() {
         onOpen={(tarefa) => setDetalhe(tarefa)}
         onEdit={(tarefa) => abrirEdicao(tarefa)}
         onDelete={(tarefa) => {
+          if (tarefaMock(tarefa.id)) {
+            setItems((atual) => atual.filter((item) => item.id !== tarefa.id));
+            return;
+          }
           void deleteTarefa(tarefa.id)
             .then(() => {
               toast.success("Tarefa excluída.");
@@ -387,6 +394,16 @@ function TarefasPage() {
             .catch((err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível excluir."));
         }}
         onComplete={(tarefa) => {
+          if (tarefaMock(tarefa.id)) {
+            setItems((atual) =>
+              atual.map((item) =>
+                item.id === tarefa.id
+                  ? { ...item, status: item.status === "concluida" ? "aberta" : "concluida", atrasada: false }
+                  : item,
+              ),
+            );
+            return;
+          }
           void updateTarefa(tarefa.id, {
             status: tarefa.status === "concluida" ? "aberta" : "concluida",
           }).then(load);
