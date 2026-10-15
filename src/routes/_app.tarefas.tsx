@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPOS, AGENDAMENTO_TIPO_LABEL, type AgendamentoTipo } from "@/lib/agenda-api";
 import { TarefasPainel } from "@/components/tarefas-painel";
-import { TarefasModuloNav, type TarefaSecao } from "@/components/tarefas-modulo-nav";
+import { type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
@@ -357,11 +357,6 @@ function TarefasPage() {
           </Link>
         </p>
       ) : null}
-      <TarefasModuloNav
-        secao={secao}
-        abertas={painel.filter((item) => item.status === "aberta").length}
-        onChange={setSecao}
-      />
       {secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => abrirEdicao(tarefa)} />
       ) : (

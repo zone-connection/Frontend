@@ -1,13 +1,13 @@
+import { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Clock3,
   List,
-  Pencil,
   Plus,
-  Trash2,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,7 @@ import {
 } from "@/components/tarefas-calendario";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { ListaPorHorario } from "@/components/tarefas-lista-horario";
-import { AgendamentoTipoDot } from "@/components/agenda-tipo-option";
-import { AGENDAMENTO_TIPO_LABEL } from "@/lib/agenda-api";
-import { PRIORIDADE_LABEL, type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
+import { type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
 const PERIODOS: { id: TarefaVisao; label: string }[] = [
@@ -62,6 +60,12 @@ function quando(tarefa: Tarefa, hoje: string) {
           ? "Amanhã"
           : tarefa.data.slice(8) + "/" + tarefa.data.slice(5, 7);
   return `${dia}${tarefa.horario ? ` · ${tarefa.horario}` : ""}`;
+}
+
+function rotuloDia(ymd: string, hoje: string) {
+  const date = new Date(`${ymd}T12:00:00`);
+  const data = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return ymd === hoje ? `Hoje, ${data}` : data;
 }
 
 function saudacao() {
@@ -138,10 +142,21 @@ export function TarefasPainel({
   onUsuario?: (id: string) => void;
 }) {
   const hoje = hojeYmd();
+  const [recorte, setRecorte] = useState<"dia" | "pendentes" | "andamento" | "concluidas" | "atrasadas">("dia");
+  const dia = anchor || hoje;
   const abertas = items.filter((item) => item.status === "aberta");
   const hojeCount = abertas.filter((item) => item.data === hoje).length;
   const proximas = abertas.filter((item) => item.data > hoje).length;
   const atrasadas = abertas.filter((item) => item.atrasada || item.data < hoje).length;
+  const andamento = abertas.filter((item) => item.data === dia && !(item.atrasada || item.data < hoje)).length;
+  const concluidasHoje = items.filter((item) => item.status === "concluida" && item.data === hoje).length;
+  const listaDia = items.filter((item) => {
+    if (recorte === "pendentes") return item.status === "aberta" && item.data > hoje;
+    if (recorte === "andamento") return item.status === "aberta" && item.data === dia;
+    if (recorte === "concluidas") return item.status === "concluida" && item.data === hoje;
+    if (recorte === "atrasadas") return item.status === "aberta" && (item.atrasada || item.data < hoje);
+    return item.data === dia && item.status !== "cancelada";
+  });
   const concluidas = items.filter((item) => item.status === "concluida").length;
   const canceladas = items.filter((item) => item.status === "cancelada").length;
   const counts: Record<TarefaFiltro, number> = {
@@ -208,10 +223,13 @@ export function TarefasPainel({
           <h1 className="mt-0.5 text-3xl font-semibold tracking-tight">
             {modo === "calendario" ? "Calendário" : modo === "lista" ? "Minhas tarefas" : "Visão geral"}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-[#5C6B76]">
+            Organize seu dia e mantenha o foco no que realmente importa.
+          </p>
+          <p className="mt-1 text-sm text-[#8B98A3]">
             {atrasadas > 0
               ? `${atrasadas} pendência${atrasadas === 1 ? "" : "s"} pedindo atenção. O resto do dia está no seu ritmo.`
-              : "Um passo de cada vez. Tudo sob controle."}
+              : "Nenhuma pendência atrasada. O resto do dia está no seu ritmo."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -225,7 +243,7 @@ export function TarefasPainel({
               {verEquipe ? "Minhas tarefas" : "Tarefas dos usuários"}
             </Button>
           ) : null}
-          <Button className="shadow-md shadow-primary/20" onClick={onCreate}>
+          <Button className="h-10 rounded-full bg-[#079ED4] px-4 text-white shadow-md shadow-[#079ED4]/25 hover:bg-[#05749E]" onClick={onCreate}>
             <Plus className="h-4 w-4" />
             Nova tarefa
           </Button>
@@ -253,6 +271,15 @@ export function TarefasPainel({
         </div>
       ) : null}
 
+      {visao === "lista" || visao === "dia" ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <CartaoResumo ativo={recorte === "pendentes"} icon={ClipboardList} tom="amber" valor={proximas} titulo="Pendentes" onClick={() => setRecorte(recorte === "pendentes" ? "dia" : "pendentes")} />
+          <CartaoResumo ativo={recorte === "andamento"} icon={Clock3} tom="sky" valor={andamento} titulo="Em andamento" onClick={() => setRecorte(recorte === "andamento" ? "dia" : "andamento")} />
+          <CartaoResumo ativo={recorte === "concluidas"} icon={CheckCircle2} tom="green" valor={concluidasHoje} titulo="Concluídas hoje" onClick={() => setRecorte(recorte === "concluidas" ? "dia" : "concluidas")} />
+          <CartaoResumo ativo={recorte === "atrasadas"} icon={CalendarDays} tom="violet" valor={atrasadas} titulo="Atrasadas" onClick={() => setRecorte(recorte === "atrasadas" ? "dia" : "atrasadas")} />
+        </div>
+      ) : null}
+
       {visao === "semana" ? (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Resumo tone="sky" icon={List} valor={hojeCount} titulo="Tarefas para hoje" detalhe="Seu foco para o dia" />
@@ -264,7 +291,8 @@ export function TarefasPainel({
 
       <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
         <section className="min-w-0 rounded-2xl border bg-card">
-          <div className="flex gap-1 overflow-x-auto border-b px-3 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-3">
+            <div className="flex gap-1 overflow-x-auto">
             {PERIODOS.map((item) => {
               const ativo = visao === item.id || (item.id === "lista" && visao === "dia");
               return (
@@ -272,27 +300,52 @@ export function TarefasPainel({
                   key={item.id}
                   type="button"
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
                     ativo
                       ? "bg-[#079ED4] text-white"
                       : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
                   )}
                   onClick={() => {
                     onVisao(item.id);
-                    if (item.id === "lista") onAnchor(hoje);
+                    if (item.id === "lista") {
+                      onAnchor(hoje);
+                      setRecorte("dia");
+                    }
                   }}
                 >
                   {item.label}
+                  {item.id === "lista" ? (
+                    <span className={cn("rounded-full px-1.5 text-[11px]", ativo ? "bg-white/25" : "bg-[#E7F4FA] text-[#05749E]")}>
+                      {hojeCount}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
+            </div>
+            {visao === "lista" || visao === "dia" ? (
+              <div className="flex items-center gap-1 text-sm text-[#16324A]">
+                <Button size="icon" variant="ghost" onClick={() => onAnchor(addDays(dia, -1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8EC] px-3 py-1.5 text-sm">
+                  <CalendarDays className="size-4 text-[#079ED4]" />
+                  {rotuloDia(dia, hoje)}
+                </span>
+                <Button size="icon" variant="ghost" onClick={() => onAnchor(addDays(dia, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-            {visao === "lista" || visao === "dia" ? <p className="text-sm text-muted-foreground">Hoje, por horário</p> : <span />}
             {visao === "lista" || visao === "dia" ? (
-              <p className="text-xs text-muted-foreground">
-                {hojeCount === 0 ? "Nada para hoje" : `${hojeCount} para hoje`}
+              <p className="text-base font-semibold text-[#0B3148]">Hoje, por horário</p>
+            ) : <span />}
+            {visao === "lista" || visao === "dia" ? (
+              <p className="text-sm text-[#5C6B76]">
+                {listaDia.length} {listaDia.length === 1 ? "tarefa" : "tarefas"} · Ordenar por: Mais próximas
               </p>
             ) : (
               <div className="flex items-center gap-1 text-sm">
@@ -325,13 +378,12 @@ export function TarefasPainel({
               />
             ) : (
               <ListaPorHorario
-                hoje={hoje}
-                items={items.filter((item) => item.data === hoje)}
+                hoje={dia}
+                items={listaDia}
                 onOpen={onOpen}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onComplete={onComplete}
-                onCreateSlot={onCreateSlot}
               />
             )}
           </div>
@@ -463,6 +515,48 @@ function MiniMes({
         })}
       </div>
     </div>
+  );
+}
+
+function CartaoResumo({
+  icon: Icon,
+  valor,
+  titulo,
+  tom,
+  ativo,
+  onClick,
+}: {
+  icon: typeof List;
+  valor: number;
+  titulo: string;
+  tom: "amber" | "sky" | "green" | "violet";
+  ativo: boolean;
+  onClick: () => void;
+}) {
+  const well = {
+    amber: "bg-[#FFF4ED] text-[#C4320A]",
+    sky: "bg-[#E7F4FA] text-[#05749E]",
+    green: "bg-[#D1FAE5] text-[#047857]",
+    violet: "bg-[#EDE9FE] text-[#6D28D9]",
+  }[tom];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 text-left shadow-sm transition hover:border-[#079ED4]/40",
+        ativo ? "border-[#079ED4]" : "border-[#E2E8EC]",
+      )}
+    >
+      <span className={cn("grid size-11 place-items-center rounded-2xl", well)}>
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-2xl font-semibold tabular-nums text-[#0B3148]">{valor}</span>
+        <span className="block text-sm text-[#5C6B76]">{titulo}</span>
+      </span>
+      <ChevronRight className="size-4 text-[#8B98A3]" />
+    </button>
   );
 }
 
