@@ -172,8 +172,8 @@ function UsadosVisaoGeralPage() {
                 icon={FileText}
                 format="number"
                 detail="Prévia"
-                href="/imoveis-usados/propostas"
-                search={{ fila: "todas" }}
+                href="/propostas"
+                search={{ origem: "usado" }}
               />
               <FinanceKpiCard
                 label="Em negociação"
@@ -182,8 +182,8 @@ function UsadosVisaoGeralPage() {
                 icon={FileText}
                 format="number"
                 detail="Prévia"
-                href="/imoveis-usados/propostas"
-                search={{ fila: "em_analise" }}
+                href="/propostas"
+                search={{ origem: "usado" }}
               />
               <FinanceKpiCard
                 label="Propostas aceitas"
@@ -192,8 +192,8 @@ function UsadosVisaoGeralPage() {
                 icon={FileText}
                 format="number"
                 detail="Prévia"
-                href="/imoveis-usados/propostas"
-                search={{ fila: "aceita" }}
+                href="/propostas"
+                search={{ origem: "usado" }}
               />
             </div>
           </OperationSection>

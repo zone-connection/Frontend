@@ -272,7 +272,6 @@ const OPERACOES: {
       { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
       { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
       { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
-      { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
       { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
       {
         id: "parcerias",
@@ -448,7 +447,6 @@ const NAV_SECTIONS: {
           { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
           { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
           { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
-          { to: "/imoveis-usados/propostas", label: "Propostas", icon: FileText },
           { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
         ],
       },

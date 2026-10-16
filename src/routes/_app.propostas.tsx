@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -128,8 +128,19 @@ import {
   type Imovel,
 } from "@/lib/captacao-api";
 import {
+  addNegociacaoMovimento,
+  createPropostaUsado,
+  fetchInteressadosUsado,
+  fetchTodasPropostasUsado,
+  fetchUsadosResponsaveis,
   fetchVendasUsado,
+  PROPOSTA_STATUS_LABEL as USADO_PROPOSTA_STATUS_LABEL,
+  updatePropostaUsado,
   VENDA_STATUS_LABEL,
+  type InteressadoUsado,
+  type NegociacaoOrigem,
+  type PropostaUsado,
+  type PropostaUsadoStatus,
   type VendaUsado,
 } from "@/lib/imoveis-usados-api";
 import {
@@ -225,9 +236,20 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/propostas")({
   head: () => ({ meta: [{ title: "Propostas — Zone Connection" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    id: typeof search.id === "string" && search.id.trim() ? search.id : undefined,
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { id?: string; origem?: "lancamento" | "usado" } => {
+    const id =
+      typeof search.id === "string" && search.id.trim() ? search.id : undefined;
+    const origem =
+      search.origem === "lancamento" || search.origem === "usado"
+        ? search.origem
+        : undefined;
+    return {
+      ...(id ? { id } : {}),
+      ...(origem ? { origem } : {}),
+    };
+  },
   component: Page,
 });
 
@@ -239,6 +261,53 @@ function initialsNome(nome: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+type OrigemProposta = "todos" | "lancamento" | "usado";
+
+type PropostaUsadoLista = PropostaUsado & {
+  vendaUsado?: {
+    id: string;
+    imovel: {
+      titulo?: string;
+      cidade?: string;
+      fotoUrl?: string | null;
+      tipo?: string;
+      id?: string;
+    };
+  };
+};
+
+type LinhaLista =
+  | {
+      kind: "lancamento";
+      id: string;
+      nome: string;
+      createdAt: string;
+      proposta: Proposta;
+    }
+  | {
+      kind: "usado";
+      id: string;
+      nome: string;
+      createdAt: string;
+      proposta: PropostaUsadoLista;
+    };
+
+function usadoCombinaStatus(
+  status: PropostaUsadoStatus,
+  filtro: PropostaStatus | "todos",
+) {
+  if (filtro === "todos") return true;
+  if (filtro === "negociacao") return status === "em_analise";
+  if (filtro === "expirada") return false;
+  return status === filtro;
+}
+
+function classeStatusUsado(status: PropostaUsadoStatus) {
+  if (status === "em_analise") return propostaStatusClass("negociacao");
+  if (status === "cancelada") return propostaStatusClass("expirada");
+  return propostaStatusClass(status);
 }
 
 const STATUS_OPTIONS: { value: PropostaStatus | "todos"; label: string }[] = [
@@ -900,7 +969,8 @@ function PropostaActionMenus({
 
 function Page() {
   const navigate = useNavigate();
-  const { id: abrirId } = Route.useSearch();
+  const { id: abrirId, origem: origemSearch } = Route.useSearch();
+  const origem: OrigemProposta = origemSearch ?? "todos";
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
   const isGerente = user?.role === "gerente";
@@ -935,6 +1005,34 @@ function Page() {
   const { leads, assignees } = useLeads();
 
   const [items, setItems] = useState<Proposta[]>([]);
+  const [usadosPropostas, setUsadosPropostas] = useState<PropostaUsadoLista[]>(
+    [],
+  );
+  const [usadoAberto, setUsadoAberto] = useState<PropostaUsadoLista | null>(
+    null,
+  );
+  const [usadoCreateOpen, setUsadoCreateOpen] = useState(false);
+  const [usadoSaving, setUsadoSaving] = useState(false);
+  const [interessadosUsado, setInteressadosUsado] = useState<
+    InteressadoUsado[]
+  >([]);
+  const [responsaveisUsado, setResponsaveisUsado] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [usadoForm, setUsadoForm] = useState({
+    vendaId: "",
+    interessadoId: "",
+    responsavelId: "",
+    valor: "",
+    entrada: "",
+    financiamento: "",
+    observacoes: "",
+  });
+  const [contraForm, setContraForm] = useState({
+    valor: "",
+    origem: "corretor" as NegociacaoOrigem,
+    observacoes: "",
+  });
   const [historico, setHistorico] = useState<PropostaHistoricoEvento[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
@@ -1032,7 +1130,8 @@ function Page() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [propostas, cons, emps, eqs, docs, caps, usados] = await Promise.all([
+      const [propostas, cons, emps, eqs, docs, caps, usados, propostasUsado] =
+        await Promise.all([
         fetchPropostas(),
         fetchConstrutoras().catch(() => [] as Construtora[]),
         fetchEmpreendimentos().catch(() => [] as Empreendimento[]),
@@ -1042,8 +1141,10 @@ function Page() {
         fetchDocumentacoes().catch(() => []),
         fetchCaptacoes().catch(() => [] as Captacao[]),
         fetchVendasUsado().catch(() => [] as VendaUsado[]),
+        fetchTodasPropostasUsado().catch(() => [] as PropostaUsadoLista[]),
       ]);
       setItems(propostas);
+      setUsadosPropostas(propostasUsado);
       setDocumentacoes(docs);
       setAprovadosPorDoc(
         new Set(
@@ -1216,59 +1317,121 @@ function Page() {
     );
   }, [form.leadId, visibleLeads, leads]);
 
-  const rows = useMemo(() => {
+  const linhas = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter((p) => {
-      if (!matchesPeriodoFiltro(p.createdAt, periodo)) return false;
-      if (status !== "todos" && p.status !== status) return false;
-      if (corretorId !== "todos" && p.corretorId !== corretorId) return false;
-      if (equipeId !== "todos") {
-        const eq = p.lead?.equipe?.id;
-        if (eq !== equipeId) return false;
-      }
-      if (!q) return true;
-      const hay = [
-        p.codigo,
-        p.clienteNome,
-        p.clienteTelefone,
-        p.empreendimento?.nome,
-        p.construtora?.nome,
-        p.unidade,
-        p.corretor?.name,
-        p.lead?.equipe?.name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, search, periodo, status, corretorId, equipeId]);
+    const lancamentos: LinhaLista[] =
+      origem === "usado"
+        ? []
+        : items
+            .filter((p) => {
+              if (!matchesPeriodoFiltro(p.createdAt, periodo)) return false;
+              if (status !== "todos" && p.status !== status) return false;
+              if (corretorId !== "todos" && p.corretorId !== corretorId)
+                return false;
+              if (equipeId !== "todos" && p.lead?.equipe?.id !== equipeId)
+                return false;
+              if (!q) return true;
+              const hay = [
+                p.codigo,
+                p.clienteNome,
+                p.clienteTelefone,
+                p.empreendimento?.nome,
+                p.construtora?.nome,
+                p.unidade,
+                p.corretor?.name,
+                p.lead?.equipe?.name,
+                "lançamento",
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+              return hay.includes(q);
+            })
+            .map((proposta) => ({
+              kind: "lancamento" as const,
+              id: proposta.id,
+              nome: proposta.clienteNome,
+              createdAt: proposta.createdAt,
+              proposta,
+            }));
+    const usados: LinhaLista[] =
+      origem === "lancamento"
+        ? []
+        : usadosPropostas
+            .filter((p) => {
+              if (!matchesPeriodoFiltro(p.createdAt, periodo)) return false;
+              if (!usadoCombinaStatus(p.status, status)) return false;
+              if (corretorId !== "todos" && p.responsavel.id !== corretorId)
+                return false;
+              if (equipeId !== "todos") return false;
+              if (!q) return true;
+              const imovel = p.vendaUsado?.imovel;
+              const hay = [
+                p.interessado.nome,
+                p.responsavel.name,
+                imovel?.titulo,
+                imovel?.cidade,
+                "usado",
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+              return hay.includes(q);
+            })
+            .map((proposta) => ({
+              kind: "usado" as const,
+              id: `usado-${proposta.id}`,
+              nome: proposta.interessado.nome,
+              createdAt: proposta.createdAt,
+              proposta,
+            }));
+    return [...lancamentos, ...usados];
+  }, [
+    items,
+    usadosPropostas,
+    search,
+    periodo,
+    status,
+    corretorId,
+    equipeId,
+    origem,
+  ]);
 
   const sortedRows = useMemo(
     () =>
       sortByTableOrder(
-        rows,
+        linhas,
         sort,
-        (p) => p.clienteNome,
+        (p) => p.nome,
         (p) => p.createdAt,
       ),
-    [rows, sort],
+    [linhas, sort],
   );
   const pager = useTablePager(
     sortedRows,
-    `${search}|${periodo}|${status}|${corretorId}|${equipeId}|${sort}`,
+    `${search}|${periodo}|${status}|${corretorId}|${equipeId}|${sort}|${origem}`,
   );
 
   const kpis = useMemo(() => {
-    const total = rows.length;
-    const valor = rows.reduce((s, r) => s + r.valor, 0);
-    const aceitas = rows.filter((r) => r.status === "aceita");
-    const emAberto = rows.filter((r) =>
-      ["enviada", "negociacao", "rascunho"].includes(r.status),
+    const total = linhas.length;
+    const valorDe = (linha: LinhaLista) =>
+      linha.kind === "lancamento"
+        ? linha.proposta.valor
+        : (linha.proposta.valorAtual ?? linha.proposta.valor);
+    const valor = linhas.reduce((s, r) => s + valorDe(r), 0);
+    const aceitas = linhas.filter((r) => r.proposta.status === "aceita");
+    const emAberto = linhas.filter((r) =>
+      r.kind === "lancamento"
+        ? ["enviada", "negociacao", "rascunho"].includes(r.proposta.status)
+        : ["enviada", "em_analise", "rascunho"].includes(r.proposta.status),
     );
-    const recusadas = rows.filter((r) => r.status === "recusada").length;
-    const decididas = rows.filter((r) =>
-      ["aceita", "recusada", "expirada"].includes(r.status),
+    const recusadas = linhas.filter(
+      (r) => r.proposta.status === "recusada",
+    ).length;
+    const decididas = linhas.filter((r) =>
+      r.kind === "lancamento"
+        ? ["aceita", "recusada", "expirada"].includes(r.proposta.status)
+        : ["aceita", "recusada", "cancelada"].includes(r.proposta.status),
     ).length;
     const taxaAceite =
       total > 0 ? (aceitas.length / Math.max(decididas, 1)) * 100 : 0;
@@ -1276,12 +1439,12 @@ function Page() {
       total,
       valor,
       aceitas: aceitas.length,
-      valorAceitas: aceitas.reduce((s, r) => s + r.valor, 0),
+      valorAceitas: aceitas.reduce((s, r) => s + valorDe(r), 0),
       emAberto: emAberto.length,
       recusadas,
       taxaAceite,
     };
-  }, [rows]);
+  }, [linhas]);
 
   const formTotal = useMemo(() => formComposicaoTotal(form), [form]);
   const formValorLiquido = useMemo(
@@ -1401,6 +1564,125 @@ function Page() {
     });
     setFormSection("usuario");
     setOpen(true);
+  }
+
+  function setOrigem(next: OrigemProposta) {
+    void navigate({
+      to: "/propostas",
+      search: {
+        ...(abrirId ? { id: abrirId } : {}),
+        ...(next === "todos" ? {} : { origem: next }),
+      },
+    });
+  }
+
+  async function openUsadoCreate() {
+    setUsadoForm({
+      vendaId: "",
+      interessadoId: "",
+      responsavelId: user?.id ?? "",
+      valor: "",
+      entrada: "",
+      financiamento: "",
+      observacoes: "",
+    });
+    setUsadoCreateOpen(true);
+    const [interessados, responsaveis] = await Promise.all([
+      fetchInteressadosUsado().catch(() => [] as InteressadoUsado[]),
+      fetchUsadosResponsaveis().catch(() => [] as Array<{ id: string; name: string }>),
+    ]);
+    setInteressadosUsado(interessados);
+    setResponsaveisUsado(responsaveis);
+  }
+
+  async function salvarPropostaUsado(e: FormEvent) {
+    e.preventDefault();
+    const valor = parseOptionalMoneyInput(usadoForm.valor);
+    if (!usadoForm.vendaId || !usadoForm.interessadoId || !usadoForm.responsavelId) {
+      toast.error("Selecione o imóvel, o interessado e o responsável.");
+      return;
+    }
+    if (valor == null || valor <= 0) {
+      toast.error("Informe o valor da proposta.");
+      return;
+    }
+    setUsadoSaving(true);
+    try {
+      await createPropostaUsado(usadoForm.vendaId, {
+        interessadoId: usadoForm.interessadoId,
+        responsavelId: usadoForm.responsavelId,
+        valor,
+        entrada: parseOptionalMoneyInput(usadoForm.entrada) ?? undefined,
+        valorFinanciamento:
+          parseOptionalMoneyInput(usadoForm.financiamento) ?? undefined,
+        observacoes: usadoForm.observacoes,
+      });
+      toast.success("Proposta de usado criada.");
+      setUsadoCreateOpen(false);
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível criar a proposta.",
+      );
+    } finally {
+      setUsadoSaving(false);
+    }
+  }
+
+  async function alterarStatusUsado(statusProposta: PropostaUsadoStatus) {
+    if (!usadoAberto?.vendaUsado?.id) return;
+    try {
+      const updated = await updatePropostaUsado(
+        usadoAberto.vendaUsado.id,
+        usadoAberto.id,
+        { status: statusProposta },
+      );
+      const next = { ...usadoAberto, ...updated, vendaUsado: usadoAberto.vendaUsado };
+      setUsadoAberto(next);
+      setUsadosPropostas((prev) =>
+        prev.map((item) => (item.id === next.id ? next : item)),
+      );
+      toast.success("Status atualizado.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível atualizar.",
+      );
+    }
+  }
+
+  async function registrarContraproposta(e: FormEvent) {
+    e.preventDefault();
+    if (!usadoAberto?.vendaUsado?.id) return;
+    const valor = parseOptionalMoneyInput(contraForm.valor);
+    if (valor == null || valor <= 0) {
+      toast.error("Informe o valor da contraproposta.");
+      return;
+    }
+    setUsadoSaving(true);
+    try {
+      const updated = await addNegociacaoMovimento(
+        usadoAberto.vendaUsado.id,
+        usadoAberto.id,
+        {
+          valor,
+          origem: contraForm.origem,
+          observacoes: contraForm.observacoes,
+        },
+      );
+      const next = { ...usadoAberto, ...updated, vendaUsado: usadoAberto.vendaUsado };
+      setUsadoAberto(next);
+      setUsadosPropostas((prev) =>
+        prev.map((item) => (item.id === next.id ? next : item)),
+      );
+      setContraForm({ valor: "", origem: "corretor", observacoes: "" });
+      toast.success("Contraproposta registrada.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível registrar.",
+      );
+    } finally {
+      setUsadoSaving(false);
+    }
   }
 
   function openEdit(p: Proposta) {
@@ -1668,12 +1950,24 @@ function Page() {
       <PageHeader
         eyebrow="Propostas"
         title="Propostas"
-        description="Propostas comerciais enviadas aos clientes"
+        description="Lançamentos e vendas de usados no mesmo pipeline"
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />
-            Nova proposta
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-1" />
+                Nova proposta
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={openCreate}>
+                Lançamento
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void openUsadoCreate()}>
+                Usado
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
 
@@ -1742,11 +2036,12 @@ function Page() {
         </div>
         <FiltrosPainel
           kicker="Propostas"
-          description="Período, status, corretor e equipe."
+          description="Origem, período, status, corretor e equipe."
           confirmLabel="Ver propostas"
-          resultCount={rows.length}
+          resultCount={linhas.length}
           activeCount={
             [
+              origem !== "todos",
               periodo !== "tudo",
               status !== "todos",
               isManager && !propostaSoMinha && corretorId !== "todos",
@@ -1754,12 +2049,32 @@ function Page() {
             ].filter(Boolean).length
           }
           onClear={() => {
+            setOrigem("todos");
             setPeriodo("tudo");
             setStatus("todos");
             setCorretorId("todos");
             setEquipeId("todos");
           }}
         >
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Building2 className="size-3.5 text-[#079ED4]" />
+              Origem
+            </Label>
+            <Select
+              value={origem}
+              onValueChange={(v) => setOrigem(v as OrigemProposta)}
+            >
+              <SelectTrigger className={FILTRO_CAMPO}>
+                <SelectValue placeholder="Origem" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Lançamentos e usados</SelectItem>
+                <SelectItem value="lancamento">Lançamentos</SelectItem>
+                <SelectItem value="usado">Usados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <CalendarDays className="size-3.5 text-[#079ED4]" />
@@ -1884,7 +2199,84 @@ function Page() {
                 </TableCell>
               </TableRow>
             ) : (
-              pager.pageItems.map((p) => (
+              pager.pageItems.map((linha) => {
+                if (linha.kind === "usado") {
+                  const p = linha.proposta;
+                  const titulo =
+                    p.vendaUsado?.imovel.titulo || "Imóvel usado";
+                  return (
+                    <TableRow
+                      key={linha.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => {
+                        setUsadoAberto(p);
+                        setContraForm({
+                          valor: "",
+                          origem: "corretor",
+                          observacoes: "",
+                        });
+                      }}
+                    >
+                      <TableCell className="font-mono text-xs font-medium">
+                        USADO
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">
+                          {p.interessado.nome}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Comprador de usado
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{titulo}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {p.vendaUsado?.imovel.cidade || "Usado"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Usado</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {p.responsavel.name}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">
+                        {brl(p.valorAtual ?? p.valor)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={classeStatusUsado(p.status)}
+                        >
+                          {USADO_PROPOSTA_STATUS_LABEL[p.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {p.vendaUsado?.id ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link
+                              to="/imoveis-usados/vendas/$id"
+                              params={{ id: p.vendaUsado.id }}
+                            >
+                              Venda
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                const p = linha.proposta;
+                return (
                 <TableRow
                   key={p.id}
                   className="cursor-pointer hover:bg-muted/40"
@@ -2005,7 +2397,8 @@ function Page() {
                     />
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -2017,7 +2410,7 @@ function Page() {
         />
       </Card>
       <p className="text-xs text-muted-foreground mt-2">
-        {rows.length} de {items.length} propostas
+        {linhas.length} de {items.length + usadosPropostas.length} propostas
       </p>
 
       <FormDialogShell
@@ -3681,6 +4074,243 @@ function Page() {
           </FormDialogActions>
         </form>
       </FormDialogShell>
+
+      <Dialog open={usadoCreateOpen} onOpenChange={setUsadoCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova proposta de usado</DialogTitle>
+            <DialogDescription>
+              A proposta fica ligada ao imóvel em venda e ao interessado.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-3" onSubmit={(e) => void salvarPropostaUsado(e)}>
+            <div className="space-y-1.5">
+              <Label>Imóvel</Label>
+              <Select
+                value={usadoForm.vendaId}
+                onValueChange={(vendaId) =>
+                  setUsadoForm((f) => ({ ...f, vendaId }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a venda" />
+                </SelectTrigger>
+                <SelectContent>
+                  {usadosCatalogo.map((venda) => (
+                    <SelectItem key={venda.id} value={venda.id}>
+                      {rotuloImovelForm(venda.imovel)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Interessado</Label>
+              <Select
+                value={usadoForm.interessadoId}
+                onValueChange={(interessadoId) =>
+                  setUsadoForm((f) => ({ ...f, interessadoId }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {interessadosUsado.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Responsável</Label>
+              <Select
+                value={usadoForm.responsavelId}
+                onValueChange={(responsavelId) =>
+                  setUsadoForm((f) => ({ ...f, responsavelId }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {responsaveisUsado.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor</Label>
+              <Input
+                inputMode="numeric"
+                value={usadoForm.valor}
+                onChange={(e) =>
+                  setUsadoForm((f) => ({
+                    ...f,
+                    valor: maskMoneyInput(e.target.value),
+                  }))
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Entrada</Label>
+                <Input
+                  inputMode="numeric"
+                  value={usadoForm.entrada}
+                  onChange={(e) =>
+                    setUsadoForm((f) => ({
+                      ...f,
+                      entrada: maskMoneyInput(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Financiamento</Label>
+                <Input
+                  inputMode="numeric"
+                  value={usadoForm.financiamento}
+                  onChange={(e) =>
+                    setUsadoForm((f) => ({
+                      ...f,
+                      financiamento: maskMoneyInput(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observações</Label>
+              <Textarea
+                value={usadoForm.observacoes}
+                onChange={(e) =>
+                  setUsadoForm((f) => ({ ...f, observacoes: e.target.value }))
+                }
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={usadoSaving}>
+                {usadoSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                Criar proposta
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(usadoAberto)}
+        onOpenChange={(openDialog) => {
+          if (!openDialog) setUsadoAberto(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {usadoAberto?.interessado.nome ?? "Proposta de usado"}
+            </DialogTitle>
+            <DialogDescription>
+              {usadoAberto?.vendaUsado?.imovel.titulo ?? "Imóvel usado"} ·{" "}
+              {usadoAberto
+                ? brl(usadoAberto.valorAtual ?? usadoAberto.valor)
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {usadoAberto ? (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select
+                  value={usadoAberto.status}
+                  onValueChange={(value) =>
+                    void alterarStatusUsado(value as PropostaUsadoStatus)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(
+                      Object.keys(USADO_PROPOSTA_STATUS_LABEL) as PropostaUsadoStatus[]
+                    ).map((statusItem) => (
+                      <SelectItem key={statusItem} value={statusItem}>
+                        {USADO_PROPOSTA_STATUS_LABEL[statusItem]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 text-sm">
+                {(usadoAberto.negociacao?.movimentos ?? []).map((movimento) => (
+                  <div key={movimento.id} className="flex justify-between gap-2">
+                    <span>{brl(movimento.valor)}</span>
+                    <span className="text-muted-foreground">
+                      {movimento.observacoes || movimento.origem}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <form
+                className="grid gap-2"
+                onSubmit={(e) => void registrarContraproposta(e)}
+              >
+                <Label>Contraproposta</Label>
+                <Input
+                  inputMode="numeric"
+                  placeholder="Valor"
+                  value={contraForm.valor}
+                  onChange={(e) =>
+                    setContraForm((f) => ({
+                      ...f,
+                      valor: maskMoneyInput(e.target.value),
+                    }))
+                  }
+                />
+                <Select
+                  value={contraForm.origem}
+                  onValueChange={(origemMovimento) =>
+                    setContraForm((f) => ({
+                      ...f,
+                      origem: origemMovimento as NegociacaoOrigem,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="corretor">Corretor</SelectItem>
+                    <SelectItem value="interessado">Interessado</SelectItem>
+                    <SelectItem value="proprietario">Proprietário</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DialogFooter>
+                  {usadoAberto.vendaUsado?.id ? (
+                    <Button type="button" variant="outline" asChild>
+                      <Link
+                        to="/imoveis-usados/vendas/$id"
+                        params={{ id: usadoAberto.vendaUsado.id }}
+                      >
+                        Abrir venda
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <Button type="submit" disabled={usadoSaving}>
+                    Registrar
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={!!deleteId}
