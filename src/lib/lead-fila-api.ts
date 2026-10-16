@@ -50,39 +50,39 @@ export function fetchFilaPainel(de?: string, ate?: string) {
   if (de) qs.set("de", de);
   if (ate) qs.set("ate", ate);
   const suffix = qs.toString() ? `?${qs}` : "";
-  return apiFetch<FilaPainel>(`/leads/fila${suffix}`);
+  return apiFetch<FilaPainel>(`/leads/distribuir/fila${suffix}`);
 }
 
 export function fetchFilaHistorico() {
-  return apiFetch<FilaEvento[]>("/leads/fila/historico");
+  return apiFetch<FilaEvento[]>("/leads/distribuir/fila/historico");
 }
 
 export function fetchFilaElegiveis() {
-  return apiFetch<FilaElegivel[]>("/leads/fila/elegiveis");
+  return apiFetch<FilaElegivel[]>("/leads/distribuir/fila/elegiveis");
 }
 
 export function setFilaAtiva(ativa: boolean) {
-  return apiFetch<{ ativa: boolean }>("/leads/fila", {
+  return apiFetch<{ ativa: boolean }>("/leads/distribuir/fila", {
     method: "PATCH",
     body: { ativa },
   });
 }
 
 export function addFilaMembro(userId: string) {
-  return apiFetch("/leads/fila/membros", { method: "POST", body: { userId } });
+  return apiFetch("/leads/distribuir/fila/membros", { method: "POST", body: { userId } });
 }
 
 export function setFilaMembroAtivo(id: string, ativo: boolean) {
-  return apiFetch(`/leads/fila/membros/${id}`, {
+  return apiFetch(`/leads/distribuir/fila/membros/${id}`, {
     method: "PATCH",
     body: { ativo },
   });
 }
 
 export function removeFilaMembro(id: string) {
-  return apiFetch(`/leads/fila/membros/${id}`, { method: "DELETE" });
+  return apiFetch(`/leads/distribuir/fila/membros/${id}`, { method: "DELETE" });
 }
 
 export function reordenarFila(ids: string[]) {
-  return apiFetch("/leads/fila/ordem", { method: "PUT", body: { ids } });
+  return apiFetch("/leads/distribuir/fila/ordem", { method: "PUT", body: { ids } });
 }

@@ -25,8 +25,200 @@ import {
   fetchDistribuirResumo,
   type DistribuirResumo,
 } from "@/lib/leads-api";
-import { Loader2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import {
+  addFilaMembro,
+  fetchFilaElegiveis,
+  fetchFilaPainel,
+  removeFilaMembro,
+  reordenarFila,
+  setFilaAtiva,
+  setFilaMembroAtivo,
+  type FilaElegivel,
+  type FilaPainel,
+} from "@/lib/lead-fila-api";
+
+const CARGO: Record<string, string> = {
+  corretor: "Corretor",
+  gerente: "Gerente",
+  treinee: "Trainee",
+};
+
+function FilaDistribuicaoPainel() {
+  const [painel, setPainel] = useState<FilaPainel | null>(null);
+  const [elegiveis, setElegiveis] = useState<FilaElegivel[]>([]);
+  const [userId, setUserId] = useState("");
+  const [busy, setBusy] = useState(true);
+
+  const load = useCallback(async () => {
+    const [next, livres] = await Promise.all([
+      fetchFilaPainel(),
+      fetchFilaElegiveis(),
+    ]);
+    setPainel(next);
+    setElegiveis(livres);
+  }, []);
+
+  useEffect(() => {
+    void load()
+      .catch((err) =>
+        toast.error(
+          err instanceof ApiError ? err.message : "Não foi possível carregar a fila.",
+        ),
+      )
+      .finally(() => setBusy(false));
+  }, [load]);
+
+  async function run(action: () => Promise<unknown>) {
+    setBusy(true);
+    try {
+      await action();
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível atualizar a fila.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!painel) {
+    return (
+      <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Carregando fila…
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+        <div>
+          <p className="text-sm font-medium">Distribuição automática</p>
+          <p className="text-xs text-muted-foreground">
+            {painel.ativa
+              ? "Leads novos seguem a ordem. Quem recebe vai para o fim."
+              : "Pausada. Novos leads não entram na fila."}
+          </p>
+        </div>
+        <Switch
+          checked={painel.ativa}
+          disabled={busy}
+          onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}
+          aria-label="Ativar fila automática"
+        />
+      </div>
+      <div className="flex gap-2">
+        <select
+          className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+        >
+          <option value="">Adicionar integrante</option>
+          {elegiveis.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name} · {CARGO[u.role] ?? u.role}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!userId || busy}
+          onClick={() =>
+            void run(async () => {
+              await addFilaMembro(userId);
+              setUserId("");
+            })
+          }
+        >
+          Adicionar
+        </Button>
+      </div>
+      <ul className="space-y-2">
+        {painel.membros.length === 0 ? (
+          <li className="text-sm text-muted-foreground">Nenhum integrante na fila.</li>
+        ) : (
+          painel.membros.map((membro, index) => (
+            <li
+              key={membro.id}
+              className="flex items-center gap-2 rounded-md border px-2 py-2"
+            >
+              <span className="w-5 text-center text-xs font-semibold text-primary">
+                {membro.ordem}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {membro.nome}
+                  {membro.proximo ? " · próximo" : ""}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {CARGO[membro.role] ?? membro.role}
+                  {membro.ativoNaFila ? "" : " · inativo"}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-8"
+                disabled={busy || index === 0}
+                onClick={() => {
+                  const ids = painel.membros.map((m) => m.id);
+                  const [item] = ids.splice(index, 1);
+                  ids.splice(index - 1, 0, item);
+                  void run(() => reordenarFila(ids));
+                }}
+                aria-label="Subir"
+              >
+                <ArrowUp className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-8"
+                disabled={busy || index === painel.membros.length - 1}
+                onClick={() => {
+                  const ids = painel.membros.map((m) => m.id);
+                  const [item] = ids.splice(index, 1);
+                  ids.splice(index + 1, 0, item);
+                  void run(() => reordenarFila(ids));
+                }}
+                aria-label="Descer"
+              >
+                <ArrowDown className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  void run(() => setFilaMembroAtivo(membro.id, !membro.ativoNaFila))
+                }
+              >
+                {membro.ativoNaFila ? "Pausar" : "Ativar"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void run(() => removeFilaMembro(membro.id))}
+              >
+                Tirar
+              </Button>
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
+}
 
 function splitEvenly(total: number, parts: number): number[] {
   if (parts <= 0) return [];
@@ -35,7 +227,7 @@ function splitEvenly(total: number, parts: number): number[] {
   return Array.from({ length: parts }, (_, i) => base + (i < rem ? 1 : 0));
 }
 
-type Destino = "equipes" | "corretores";
+type Destino = "equipes" | "corretores" | "fila";
 
 export function LeadsDistribuirDialog({
   open,
@@ -361,7 +553,7 @@ export function LeadsDistribuirDialog({
               value={destino}
               onValueChange={(v) => setDestino(v as Destino)}
             >
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger
                   value="equipes"
                   disabled={resumo.equipes.length === 0}
@@ -374,8 +566,10 @@ export function LeadsDistribuirDialog({
                 >
                   Por corretores
                 </TabsTrigger>
+                <TabsTrigger value="fila">Fila</TabsTrigger>
               </TabsList>
 
+              {destino === "fila" ? null : (
               <div className="mt-3 flex justify-end">
                 <Button
                   type="button"
@@ -394,6 +588,7 @@ export function LeadsDistribuirDialog({
                   Dividir automaticamente
                 </Button>
               </div>
+              )}
 
               <TabsContent value="equipes" className="mt-3 space-y-2">
                 {resumo.equipes.length === 0 ? (
@@ -479,6 +674,10 @@ export function LeadsDistribuirDialog({
                   Soma: {somaCorretores} / {resumo.disponiveis}
                 </p>
               </TabsContent>
+
+              <TabsContent value="fila" className="mt-3">
+                <FilaDistribuicaoPainel />
+              </TabsContent>
             </Tabs>
           </div>
         )}
@@ -494,7 +693,8 @@ export function LeadsDistribuirDialog({
           </Button>
           <Button
             type="button"
-            disabled={saving || loading || !podeConfirmar}
+            disabled={saving || loading || !podeConfirmar || destino === "fila"}
+            className={destino === "fila" ? "hidden" : undefined}
             onClick={() => void handleConfirm()}
           >
             {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
