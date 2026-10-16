@@ -452,6 +452,7 @@ export type FetchAgendamentosParams = {
   to?: string;
   empreendimentoId?: string;
   imovelId?: string;
+  comercial?: boolean;
 };
 
 export async function fetchAgendamentos(
@@ -466,6 +467,7 @@ export async function fetchAgendamentos(
   if (params.to) qs.set("to", params.to);
   if (params.empreendimentoId) qs.set("empreendimentoId", params.empreendimentoId);
   if (params.imovelId) qs.set("imovelId", params.imovelId);
+  if (params.comercial) qs.set("comercial", "true");
   const query = qs.toString();
   return apiFetch<Agendamento[]>(`/agenda${query ? `?${query}` : ""}`);
 }

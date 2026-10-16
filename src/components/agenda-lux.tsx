@@ -80,7 +80,7 @@ export function AgendaLuxHeader({
           {help}
         </div>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Organize seu tempo, atenda mais e realize mais sonhos!
+          Visitas, reuniões, ligações, tarefas da operação, captação e chaves.
         </p>
       </div>
       <div className="flex flex-col items-stretch gap-3 sm:items-end">
@@ -226,9 +226,8 @@ export function AgendaLuxTypeChips({
     "ligacao",
     "reuniao",
     "tarefa",
+    "retirada_chave",
     "outro",
-    "bloqueio",
-    "aniversario",
   ] as const;
 
   return (
@@ -250,7 +249,7 @@ export function AgendaLuxTypeChips({
             )}
           >
             <Icon className="h-3 w-3" />
-            {AGENDAMENTO_VISUAL_LABEL[visual]}
+            {visual === "outro" ? "Captação" : AGENDAMENTO_VISUAL_LABEL[visual]}
           </button>
         );
       })}

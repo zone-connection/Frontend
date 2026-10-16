@@ -666,6 +666,7 @@ function AgendaPage() {
     try {
       const [data, sols, kpiData] = await Promise.all([
         fetchAgendamentos({
+          comercial: true,
           from: visibleRange.from.toISOString(),
           to: visibleRange.to.toISOString(),
           equipeId:
@@ -805,6 +806,17 @@ function AgendaPage() {
   }
 
   function openEdit(item: Agendamento) {
+    if (
+      item.id.startsWith("usado-visita:") ||
+      item.id.startsWith("captacao-prazo:") ||
+      item.id.startsWith("mural-retirada:") ||
+      item.id.startsWith("mural-devolucao:")
+    ) {
+      toast.message("Compromisso comercial", {
+        description: "Este horário vem de outro módulo e é só leitura na agenda.",
+      });
+      return;
+    }
     if (isAgendamentoAniversario(item)) {
       toast.message("Aniversário", {
         description: "Evento automático — somente leitura na agenda.",
