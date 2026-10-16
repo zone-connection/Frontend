@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Building2, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, FileText, Home, MoreHorizontal, Phone, UserRound, type LucideIcon } from "lucide-react";
+import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, FileText, Home, MoreHorizontal, Phone, UserRound, type LucideIcon } from "lucide-react";
 import { PRIORIDADE_LABEL, type Tarefa, type TarefaEtiqueta } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,10 @@ function iconeDa(tarefa: Tarefa) {
     return { icon: ClipboardList, well: "bg-[#E7F4FA] text-[#05749E]", barra: "bg-[#079ED4]", card: "bg-[#F3FAFD]" };
   }
   return ICONE[tarefa.etiqueta] ?? ICONE.documentos;
+}
+
+function iniciais(nome: string) {
+  return nome.split(" ").filter(Boolean).slice(0, 2).map((parte) => parte[0]?.toUpperCase()).join("");
 }
 
 function horaDe(tarefa: Tarefa) {
@@ -66,93 +70,122 @@ export function ListaPorHorario({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-end gap-3 text-sm text-[#8B98A3]">
-        <span>{fatia.length} tarefas</span>
-        <label className="inline-flex items-center gap-1 rounded-xl border border-[#EEF1F4] bg-white px-3 py-1.5 text-[#5C6B76]">
-          Ordenar por:
-          <select
-            className="bg-transparent font-medium text-[#16324A] outline-none"
-            value={ordem}
-            onChange={(event) => {
-              setPage(1);
-              onOrdem(event.target.value as "proximas" | "distantes" | "prioridade");
-            }}
-          >
-            <option value="proximas">Mais próximas</option>
-            <option value="distantes">Mais distantes</option>
-            <option value="prioridade">Prioridade</option>
-          </select>
-          <ChevronDown className="size-3.5" />
-        </label>
-      </div>
-      <ul className="space-y-2">
-        {fatia.length === 0 ? (
-          <li className="rounded-2xl border border-dashed border-[#C9E6F4] bg-[#F3FAFD] px-2 py-10 text-center text-sm text-[#5C6B76]">Nenhuma tarefa neste recorte.</li>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] text-left text-sm">
+          <thead className="text-xs text-[#98A2B3]">
+            <tr className="border-b border-[#F2F4F7]">
+              <th className="w-10 px-3 py-3" />
+              {["Tarefa", "Cliente / Lead", "Imóvel / Empreendimento", "Responsável", "Horário", "Prioridade", "Status", "Ações"].map((coluna) => (
+                <th key={coluna} className="px-3 py-3 font-medium">{coluna}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+      {fatia.length === 0 ? (
+          <tr>
+            <td colSpan={9} className="px-3 py-10 text-center text-sm text-[#5C6B76]">Nenhuma tarefa neste recorte.</td>
+          </tr>
         ) : (
           fatia.map((tarefa) => {
             const concluida = tarefa.status === "concluida";
             const cancelada = tarefa.status === "cancelada";
-            const marcada = concluida || tarefa.id === "mock-1";
+            const atrasada = tarefa.status === "aberta" && (tarefa.atrasada || tarefa.data < _hoje);
+            const andamento = tarefa.status === "aberta" && tarefa.data === _hoje && !atrasada;
             const visual = iconeDa(tarefa);
             const Icone = visual.icon;
             const pessoa = tarefa.contexto.lead?.nome;
             const imovel = tarefa.contexto.imovel?.rotulo;
             const hora = horaDe(tarefa) === "99:99" ? null : horaDe(tarefa);
+            const status = concluida
+              ? { label: "Concluída", className: "bg-[#E7F8EF] text-[#067647]" }
+              : cancelada
+                ? { label: "Cancelada", className: "bg-[#F2F4F7] text-[#667085]" }
+                : atrasada
+                  ? { label: "Atrasada", className: "bg-[#FDECEC] text-[#B42318]" }
+                  : andamento
+                    ? { label: "Em andamento", className: "bg-[#FFF6E8] text-[#B54708]" }
+                    : { label: "Pendente", className: "bg-[#E8F1FF] text-[#175CD3]" };
+            const prioridade = {
+              alta: "bg-[#FDECEC] text-[#D92D20]",
+              media: "bg-[#FFF4E5] text-[#F79009]",
+              baixa: "bg-[#E7F8EF] text-[#12B76A]",
+            }[tarefa.prioridade];
             return (
-              <li key={tarefa.id} className={cn("flex items-center gap-3 rounded-2xl border border-[#E2E8EC] px-3 py-3 shadow-sm transition hover:border-[#079ED4]/40 hover:shadow-md", concluida ? "bg-[#F3FBF6]" : visual.card)}>
-                <span className={cn("h-12 w-1.5 shrink-0 rounded-full", visual.barra)} />
-                <button
-                  type="button"
-                  aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
-                  className={cn(
-                    "grid size-[18px] shrink-0 place-items-center rounded-[4px] border bg-white",
-                    marcada ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#D5DEE7]",
-                  )}
-                  onClick={() => onComplete(tarefa)}
-                >
-                  {marcada ? <Check className="size-3" strokeWidth={3} /> : null}
-                </button>
-                <span className={cn("grid size-11 shrink-0 place-items-center rounded-2xl shadow-sm", visual.well)}>
-                  <Icone className="size-5" />
-                </span>
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(tarefa)}>
-                  <p className={cn("truncate text-[15px] font-semibold text-[#0B3148]", cancelada && "text-[#8B98A3] line-through")}>
-                    {tarefa.titulo}
-                  </p>
-                  {tarefa.descricao ? <p className="truncate text-[13px] text-[#5C6B76]">{tarefa.descricao}</p> : null}
-                  <span className="sr-only">{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
-                </button>
-                <div className="hidden items-center gap-2 lg:flex">
-                  {pessoa ? <span className="max-w-36 truncate rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-[#16324A]">{pessoa}</span> : null}
-                  {imovel ? <span className="max-w-40 truncate rounded-full bg-white/80 px-2.5 py-1 text-xs text-[#5C6B76]">{imovel}</span> : null}
-                  {hora ? <span className="rounded-full bg-[#079ED4] px-2.5 py-1 text-xs font-semibold text-white">{hora}</span> : null}
-                </div>
-                <div className="relative">
-                    <button
-                      type="button"
-                      aria-label="Ações da tarefa"
-                      className="grid size-8 place-items-center rounded-lg text-[#98A2B3] hover:bg-[#F8FAFC]"
-                      onClick={() => setMenu(menu === tarefa.id ? null : tarefa.id)}
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </button>
-                    {menu === tarefa.id ? (
-                      <div className="absolute right-0 z-10 mt-1 w-36 rounded-xl border border-[#E2E8EC] bg-white p-1 shadow-lg">
-                        <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm hover:bg-[#F3FAFD]" onClick={() => { setMenu(null); onEdit(tarefa); }}>
-                          Editar
-                        </button>
-                        <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-[#B42318] hover:bg-[#FEF3F2]" onClick={() => { setMenu(null); onDelete(tarefa); }}>
-                          Excluir
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-              </li>
+              <tr key={tarefa.id} className="border-b border-[#F8FAFC] hover:bg-[#FAFBFC]">
+                <td className="px-3 py-3">
+                  <button
+                    type="button"
+                    aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
+                    className={cn(
+                      "grid size-4 place-items-center rounded border bg-white",
+                      concluida ? "border-[#FF7A1A] bg-[#FF7A1A] text-white" : "border-[#D0D5DD]",
+                    )}
+                    onClick={() => onComplete(tarefa)}
+                  >
+                    {concluida ? <Check className="size-3" strokeWidth={3} /> : null}
+                  </button>
+                </td>
+                <td className="px-3 py-3">
+                  <button type="button" className="flex min-w-[220px] items-start gap-3 text-left" onClick={() => onOpen(tarefa)}>
+                    <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl", visual.well)}>
+                      <Icone className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className={cn("block truncate font-semibold text-[#101828]", cancelada && "line-through text-[#98A2B3]")}>{tarefa.titulo}</span>
+                      {tarefa.descricao ? <span className="block truncate text-xs text-[#98A2B3]">{tarefa.descricao}</span> : null}
+                    </span>
+                  </button>
+                </td>
+                <td className="px-3 py-3">
+                  {pessoa ? (
+                    <span className="flex items-center gap-2">
+                      <span className="grid size-8 place-items-center rounded-full bg-[#EEF2FF] text-[11px] font-semibold text-[#3538CD]">{iniciais(pessoa)}</span>
+                      <span className="truncate text-[#344054]">{pessoa}</span>
+                    </span>
+                  ) : <span className="text-[#98A2B3]">—</span>}
+                </td>
+                <td className="max-w-48 px-3 py-3">
+                  {imovel ? <span className="block truncate text-[#344054]">{imovel}</span> : <span className="text-[#98A2B3]">—</span>}
+                </td>
+                <td className="px-3 py-3">
+                  <span className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-full bg-[#F2F4F7] text-[11px] font-semibold text-[#344054]">{iniciais(tarefa.responsavel.name)}</span>
+                    <span className="truncate text-[#344054]">{tarefa.responsavel.name}</span>
+                  </span>
+                </td>
+                <td className="px-3 py-3">
+                  {hora ? <span className="inline-flex items-center gap-1 rounded-full bg-[#F8F9FB] px-2 py-1 text-xs text-[#667085]">{hora}</span> : <span className="text-[#98A2B3]">—</span>}
+                </td>
+                <td className="px-3 py-3">
+                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", prioridade)}>{PRIORIDADE_LABEL[tarefa.prioridade]}</span>
+                </td>
+                <td className="px-3 py-3">
+                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", status.className)}>{status.label}</span>
+                </td>
+                <td className="relative px-3 py-3">
+                  <button
+                    type="button"
+                    aria-label="Ações da tarefa"
+                    className="grid size-8 place-items-center rounded-lg text-[#98A2B3] hover:bg-[#F8FAFC]"
+                    onClick={() => setMenu(menu === tarefa.id ? null : tarefa.id)}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </button>
+                  {menu === tarefa.id ? (
+                    <div className="absolute right-3 z-10 mt-1 w-36 rounded-xl border border-[#E2E8EC] bg-white p-1 shadow-lg">
+                      <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => { setMenu(null); onEdit(tarefa); }}>Editar</button>
+                      <button type="button" className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-[#B42318] hover:bg-[#FEF3F2]" onClick={() => { setMenu(null); onDelete(tarefa); }}>Excluir</button>
+                    </div>
+                  ) : null}
+                </td>
+              </tr>
             );
           })
         )}
-      </ul>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2">
         <p className="text-[13px] text-[#98A2B3]">
           Mostrando {fatia.length} de {ordenadas.length} tarefas
         </p>

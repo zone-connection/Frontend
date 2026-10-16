@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   Clock3,
   List,
   ListTodo,
@@ -15,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { FiltroSelectNativo } from "@/components/filtros-painel";
 import {
   addDays,
-  dayLabel,
   hojeYmd,
   monthLabel,
   shiftMonth,
@@ -61,12 +59,6 @@ function quando(tarefa: Tarefa, hoje: string) {
           ? "Amanhã"
           : tarefa.data.slice(8) + "/" + tarefa.data.slice(5, 7);
   return `${dia}${tarefa.horario ? ` · ${tarefa.horario}` : ""}`;
-}
-
-function rotuloDia(ymd: string, hoje: string) {
-  const date = new Date(`${ymd}T12:00:00`);
-  const data = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  return ymd === hoje ? `Hoje, ${data}` : data;
 }
 
 const TONS = {
@@ -138,6 +130,9 @@ export function TarefasPainel({
   const hoje = hojeYmd();
   const [recorte, setRecorte] = useState<"dia" | "pendentes" | "andamento" | "concluidas" | "atrasadas">("dia");
   const [ordem, setOrdem] = useState<"proximas" | "distantes" | "prioridade">("proximas");
+  const [busca, setBusca] = useState("");
+  const [prioridade, setPrioridade] = useState("todas");
+  const [responsavelId, setResponsavelId] = useState("");
   const dia = anchor || hoje;
   const abertas = items.filter((item) => item.status === "aberta");
   const hojeCount = abertas.filter((item) => item.data === hoje).length;
@@ -151,7 +146,14 @@ export function TarefasPainel({
     if (recorte === "concluidas") return item.status === "concluida" && item.data === hoje;
     if (recorte === "atrasadas") return item.status === "aberta" && (item.atrasada || item.data < hoje);
     return item.data === dia && item.status !== "cancelada";
+  }).filter((item) => {
+    const texto = `${item.titulo} ${item.descricao} ${item.contexto.lead?.nome ?? ""} ${item.contexto.imovel?.rotulo ?? ""}`.toLocaleLowerCase("pt-BR");
+    if (busca.trim() && !texto.includes(busca.trim().toLocaleLowerCase("pt-BR"))) return false;
+    if (prioridade !== "todas" && item.prioridade !== prioridade) return false;
+    if (responsavelId && item.responsavel.id !== responsavelId) return false;
+    return true;
   });
+  const responsaveis = [...new Map(items.map((item) => [item.responsavel.id, item.responsavel])).values()];
   const concluidas = items.filter((item) => item.status === "concluida").length;
   const canceladas = items.filter((item) => item.status === "cancelada").length;
   const counts: Record<TarefaFiltro, number> = {
@@ -222,7 +224,7 @@ export function TarefasPainel({
             {modo === "calendario" ? "Calendário" : modo === "lista" ? "Minhas tarefas" : "Visão geral"}
           </h1>
           <p className="mt-1 text-sm text-[#5C6B76]">
-            Organize seu dia e mantenha o foco no que realmente importa.
+            Organize seus compromissos e acompanhe suas prioridades.
           </p>
           <p className="mt-1 inline-flex items-center gap-2 text-sm text-[#98A2B3]">
             <span className="size-2 rounded-full bg-[#12B76A]" />
@@ -242,7 +244,7 @@ export function TarefasPainel({
               {verEquipe ? "Minhas tarefas" : "Tarefas dos usuários"}
             </Button>
           ) : null}
-          <Button className="h-10 rounded-full bg-[#079ED4] px-4 text-white shadow-md shadow-[#079ED4]/25 hover:bg-[#05749E]" onClick={onCreate}>
+          <Button className="h-11 rounded-xl bg-[#FF7A1A] px-4 text-white shadow-md shadow-[#FF7A1A]/25 hover:bg-[#F06500]" onClick={onCreate}>
             <Plus className="h-4 w-4" />
             Nova tarefa
           </Button>
@@ -271,14 +273,11 @@ export function TarefasPainel({
       ) : null}
 
       {visao === "lista" || visao === "dia" ? (
-        <div className="grid items-center gap-2 sm:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
-          <CartaoResumo ativo={recorte === "pendentes"} icon={ClipboardList} tom="amber" valor={proximas} titulo="Pendentes" onClick={() => setRecorte(recorte === "pendentes" ? "dia" : "pendentes")} />
-          <ChevronRight className="mx-auto hidden size-4 text-[#C5CED6] xl:block" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <CartaoResumo ativo={recorte === "pendentes"} icon={Clock3} tom="amber" valor={proximas} titulo="Pendentes" onClick={() => setRecorte(recorte === "pendentes" ? "dia" : "pendentes")} />
           <CartaoResumo ativo={recorte === "andamento"} icon={Clock3} tom="sky" valor={andamento} titulo="Em andamento" onClick={() => setRecorte(recorte === "andamento" ? "dia" : "andamento")} />
-          <ChevronRight className="mx-auto hidden size-4 text-[#C5CED6] xl:block" />
           <CartaoResumo ativo={recorte === "concluidas"} icon={CheckCircle2} tom="green" valor={concluidasHoje} titulo="Concluídas hoje" onClick={() => setRecorte(recorte === "concluidas" ? "dia" : "concluidas")} />
-          <ChevronRight className="mx-auto hidden size-4 text-[#C5CED6] xl:block" />
-          <CartaoResumo ativo={recorte === "atrasadas"} icon={CalendarDays} tom="violet" valor={atrasadas} titulo="Atrasadas" onClick={() => setRecorte(recorte === "atrasadas" ? "dia" : "atrasadas")} />
+          <CartaoResumo ativo={recorte === "atrasadas"} icon={CalendarDays} tom="rose" valor={atrasadas} titulo="Atrasadas" onClick={() => setRecorte(recorte === "atrasadas" ? "dia" : "atrasadas")} />
         </div>
       ) : null}
 
@@ -292,9 +291,9 @@ export function TarefasPainel({
       ) : null}
 
       <div className={cn("grid items-start gap-5", modo !== "lista" && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
-        <section className="min-w-0 rounded-2xl border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-3">
-            <div className="flex gap-1 overflow-x-auto">
+        <section className="min-w-0 rounded-2xl border border-[#EEF2F6] bg-white shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F4F7] px-3 py-3">
+            <div className="flex gap-1">
             {PERIODOS.map((item) => {
               const ativo = visao === item.id || (item.id === "lista" && visao === "dia");
               return (
@@ -302,10 +301,10 @@ export function TarefasPainel({
                   key={item.id}
                   type="button"
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    "inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
                     ativo
-                      ? "bg-[#079ED4] text-white"
-                      : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148]",
+                      ? "bg-[#FF7A1A] text-white shadow-sm"
+                      : "bg-[#F4F6F8] text-[#667085] hover:bg-[#EEF1F4]",
                   )}
                   onClick={() => {
                     onVisao(item.id);
@@ -316,47 +315,74 @@ export function TarefasPainel({
                   }}
                 >
                   {item.label}
-                  {item.id === "lista" ? (
-                    <span className={cn("grid min-w-5 place-items-center rounded-full px-1.5 text-[11px]", ativo ? "bg-white/25" : "bg-white text-[#079ED4]")}>
-                      {abertas.filter((item) => item.data === hoje && item.prioridade === "alta").length}
-                    </span>
-                  ) : null}
                 </button>
               );
             })}
             </div>
             {visao === "lista" || visao === "dia" ? (
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-xl border border-[#E6EBF0] bg-white px-3 py-2 text-sm text-[#344054] shadow-sm"
-                onClick={() => onAnchor(dia === hoje ? addDays(dia, 1) : hoje)}
-              >
+              <label className="inline-flex items-center gap-2 rounded-lg border border-[#E6EBF0] bg-white px-3 py-2 text-sm text-[#344054]">
                 <CalendarDays className="size-4 text-[#98A2B3]" />
-                {rotuloDia(dia, hoje)}
-              </button>
+                <input
+                  type="date"
+                  className="bg-transparent outline-none"
+                  value={dia}
+                  onChange={(event) => event.target.value && onAnchor(event.target.value)}
+                  aria-label="Data das tarefas"
+                />
+              </label>
+            ) : null}
+            {visao === "lista" || visao === "dia" ? (
+              <>
+                <input
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar tarefa..."
+                  className="h-10 min-w-40 flex-1 rounded-lg border border-[#E6EBF0] px-3 text-sm outline-none"
+                />
+                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={recorte} onChange={(event) => setRecorte(event.target.value as typeof recorte)} aria-label="Status">
+                  <option value="dia">Status</option>
+                  <option value="pendentes">Pendentes</option>
+                  <option value="andamento">Em andamento</option>
+                  <option value="concluidas">Concluídas hoje</option>
+                  <option value="atrasadas">Atrasadas</option>
+                </select>
+                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={prioridade} onChange={(event) => setPrioridade(event.target.value)} aria-label="Prioridade">
+                  <option value="todas">Prioridade</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} aria-label="Responsável">
+                  <option value="">Responsável</option>
+                  {responsaveis.map((pessoa) => (
+                    <option key={pessoa.id} value={pessoa.id}>{pessoa.name}</option>
+                  ))}
+                </select>
+                <label className="inline-flex items-center gap-1 text-sm text-[#667085]">
+                  Ordenar por:
+                  <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 font-medium text-[#16324A]" value={ordem} onChange={(event) => setOrdem(event.target.value as typeof ordem)}>
+                    <option value="proximas">Mais próximas</option>
+                    <option value="distantes">Mais distantes</option>
+                    <option value="prioridade">Prioridade</option>
+                  </select>
+                </label>
+              </>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-            {visao === "lista" || visao === "dia" ? (
-              <p className="text-base font-semibold text-[#16324A]">Tarefa</p>
-            ) : <span />}
-            {visao === "lista" || visao === "dia" ? (
-              <span />
-            ) : (
-              <div className="flex items-center gap-1 text-sm">
-                <Button size="icon" variant="ghost" onClick={() => onAnchor(visao === "mes" ? shiftMonth(anchor, -1) : addDays(anchor, visao === "dia" ? -1 : -7))}>
+          {visao === "lista" || visao === "dia" ? null : (
+          <div className="flex items-center justify-end gap-1 px-5 py-4 text-sm">
+                <Button size="icon" variant="ghost" onClick={() => onAnchor(visao === "mes" ? shiftMonth(anchor, -1) : addDays(anchor, -7))}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="min-w-36 text-center font-medium">
-                  {visao === "dia" ? dayLabel(anchor) : monthLabel(anchor)}
+                  {monthLabel(anchor)}
                 </span>
-                <Button size="icon" variant="ghost" onClick={() => onAnchor(visao === "mes" ? shiftMonth(anchor, 1) : addDays(anchor, visao === "dia" ? 1 : 7))}>
+                <Button size="icon" variant="ghost" onClick={() => onAnchor(visao === "mes" ? shiftMonth(anchor, 1) : addDays(anchor, 7))}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-              </div>
-            )}
           </div>
+          )}
 
           <div className="space-y-6 px-5 pb-5">
             {visao === "semana" || visao === "mes" ? (
@@ -527,28 +553,33 @@ function CartaoResumo({
   icon: typeof List;
   valor: number;
   titulo: string;
-  tom: "amber" | "sky" | "green" | "violet";
+  tom: "amber" | "sky" | "green" | "rose";
   ativo: boolean;
   onClick: () => void;
 }) {
-  void tom;
+  const tons = {
+    amber: "bg-[#FFF1E6] text-[#FF7A1A]",
+    sky: "bg-[#E8F1FF] text-[#3B82F6]",
+    green: "bg-[#E7F8EF] text-[#12B76A]",
+    rose: "bg-[#FDECEC] text-[#F04438]",
+  };
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-[#F3FAFD]",
-        ativo ? "border-[#079ED4] bg-[#F3FAFD]" : "border-[#E2E8EC]",
+        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-[#FFD7BE]",
+        ativo ? "border-[#FF7A1A]" : "border-[#EEF2F6]",
       )}
     >
-      <span className="grid size-11 place-items-center rounded-2xl bg-[#E7F4FA] text-[#079ED4]">
+      <span className={cn("grid size-11 place-items-center rounded-full", tons[tom])}>
         <Icon className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[26px] font-semibold leading-none tabular-nums text-[#0B3148]">{valor}</span>
         <span className="mt-1 block text-sm text-[#5C6B76]">{titulo}</span>
       </span>
-      <ChevronRight className="size-4 text-[#079ED4]" />
+      <ChevronRight className="size-4 text-[#98A2B3]" />
     </button>
   );
 }
