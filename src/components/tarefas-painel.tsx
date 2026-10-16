@@ -22,6 +22,7 @@ import {
 } from "@/components/tarefas-calendario";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { ListaPorHorario } from "@/components/tarefas-lista-horario";
+import { BRAND_GRADIENT_BTN } from "@/lib/brand-gradient";
 import { type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 
@@ -216,11 +217,11 @@ export function TarefasPainel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-[#079ED4]">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-accent">
             <ListTodo className="size-4" />
             Tarefas
           </p>
-          <h1 className="mt-1 text-[32px] font-semibold tracking-tight text-[#1E293B]">
+          <h1 className="mt-1 text-[32px] font-semibold tracking-tight text-foreground">
             {modo === "calendario" ? "Calendário" : modo === "lista" ? "Minhas tarefas" : "Visão geral"}
           </h1>
           <p className="mt-1 text-sm text-[#5C6B76]">
@@ -244,7 +245,7 @@ export function TarefasPainel({
               {verEquipe ? "Minhas tarefas" : "Tarefas dos usuários"}
             </Button>
           ) : null}
-          <Button className="h-11 rounded-xl bg-[#FF7A1A] px-4 text-white shadow-md shadow-[#FF7A1A]/25 hover:bg-[#F06500]" onClick={onCreate}>
+          <Button className={cn("h-11 rounded-xl px-4", BRAND_GRADIENT_BTN)} onClick={onCreate}>
             <Plus className="h-4 w-4" />
             Nova tarefa
           </Button>
@@ -303,8 +304,8 @@ export function TarefasPainel({
                   className={cn(
                     "inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
                     ativo
-                      ? "bg-[#FF7A1A] text-white shadow-sm"
-                      : "bg-[#F4F6F8] text-[#667085] hover:bg-[#EEF1F4]",
+                      ? "bg-[#079ED4] text-white shadow-sm"
+                      : "bg-secondary text-muted-foreground hover:bg-accent",
                   )}
                   onClick={() => {
                     onVisao(item.id);
@@ -558,25 +559,25 @@ function CartaoResumo({
   onClick: () => void;
 }) {
   const tons = {
-    amber: "bg-[#FFF1E6] text-[#FF7A1A]",
-    sky: "bg-[#E8F1FF] text-[#3B82F6]",
-    green: "bg-[#E7F8EF] text-[#12B76A]",
-    rose: "bg-[#FDECEC] text-[#F04438]",
+    amber: "bg-accent text-brand-accent",
+    sky: "bg-[#E8F6FC] text-[#027DC2]",
+    green: "bg-[#E7F8EF] text-[#059669]",
+    rose: "bg-[#FDECEC] text-[#DC2626]",
   };
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border bg-white px-4 py-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-[#FFD7BE]",
-        ativo ? "border-[#FF7A1A]" : "border-[#EEF2F6]",
+        "flex items-center gap-3 rounded-2xl border bg-card px-4 py-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-brand-accent/40",
+        ativo ? "border-brand-accent ring-1 ring-brand-accent/30" : "border-border",
       )}
     >
       <span className={cn("grid size-11 place-items-center rounded-full", tons[tom])}>
         <Icon className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[26px] font-semibold leading-none tabular-nums text-[#0B3148]">{valor}</span>
+        <span className="block text-[26px] font-semibold leading-none tabular-nums text-foreground">{valor}</span>
         <span className="mt-1 block text-sm text-[#5C6B76]">{titulo}</span>
       </span>
       <ChevronRight className="size-4 text-[#98A2B3]" />

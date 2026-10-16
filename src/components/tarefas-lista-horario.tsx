@@ -118,7 +118,7 @@ export function ListaPorHorario({
                     aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
                     className={cn(
                       "grid size-4 place-items-center rounded border bg-white",
-                      concluida ? "border-[#FF7A1A] bg-[#FF7A1A] text-white" : "border-[#D0D5DD]",
+                      concluida ? "border-[#079ED4] bg-[#079ED4] text-white" : "border-[#D0D5DD]",
                     )}
                     onClick={() => onComplete(tarefa)}
                   >
