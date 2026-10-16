@@ -103,6 +103,9 @@ export function TarefasAgendaPainel({
   const gestor = canViewTeamData(session?.role);
   const gerente = session?.role === "gerente" || session?.role === "admin" || session?.role === "super_admin";
   const [visao, setVisao] = useState<AgendaViewMode>(visaoInicial ?? "semana");
+  useEffect(() => {
+    if (visaoInicial) setVisao(visaoInicial);
+  }, [visaoInicial]);
   const [anchor, setAnchor] = useState(() => (anchorYmd ? new Date(`${anchorYmd}T12:00:00`) : new Date()));
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const [items, setItems] = useState<Agendamento[]>([]);
@@ -267,6 +270,7 @@ export function TarefasAgendaPainel({
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {compacto ? null : (
               <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-white p-0.5 dark:border-white/15 dark:bg-[#0b0f14]">
                 {(
                   [
@@ -290,6 +294,7 @@ export function TarefasAgendaPainel({
                   </button>
                 ))}
               </div>
+              )}
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-9 w-40">
                   <SelectValue placeholder="Status" />
