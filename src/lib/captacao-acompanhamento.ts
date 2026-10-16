@@ -46,6 +46,7 @@ export type AcompanhamentoItem = {
   banheiros: number | null;
   vagas: number | null;
   imovelId: string | null;
+  responsavelId: string;
   proprietario: AcompanhamentoPessoa;
   segundaPessoa: AcompanhamentoPessoa;
   historicos: AcompanhamentoEvento[];
@@ -105,7 +106,7 @@ export function motivosDaCaptacao(item: AcompanhamentoItem): AcompanhamentoMotiv
   return motivos;
 }
 
-function defaultTasks(item: AcompanhamentoItem): AcompanhamentoTarefa[] {
+export function passosPadrao(item: AcompanhamentoItem): AcompanhamentoTarefa[] {
   const gap = gapPretendido(item);
   const titulos = [
     `Entrar em contato com ${item.proprietario.nome.split(" ")[0]}`,
@@ -133,7 +134,7 @@ function writeStore<T>(key: string, value: Record<string, T>) {
 
 export function loadTarefas(item: AcompanhamentoItem): AcompanhamentoTarefa[] {
   const all = readStore<AcompanhamentoTarefa[]>(TASKS_KEY);
-  return all[item.id]?.length ? all[item.id] : defaultTasks(item);
+  return all[item.id]?.length ? all[item.id] : passosPadrao(item);
 }
 
 export function saveTarefas(id: string, tarefas: AcompanhamentoTarefa[]) {
@@ -197,6 +198,7 @@ export function captacaoToAcompanhamento(c: Captacao): AcompanhamentoItem {
     banheiros: c.imovel.banheiros,
     vagas: c.imovel.vagas,
     imovelId: c.imovel.id,
+    responsavelId: c.responsavel.id,
     proprietario: {
       nome: c.proprietario.nome,
       papel: "Proprietário",
@@ -243,6 +245,7 @@ export function paradaToAcompanhamento(p: CaptacaoParada): AcompanhamentoItem {
     banheiros: extras?.banheiros ?? null,
     vagas: extras?.vagas ?? null,
     imovelId: null,
+    responsavelId: "",
     proprietario: {
       nome: p.proprietario,
       papel: "Proprietário",

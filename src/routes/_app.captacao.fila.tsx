@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { CaptacaoProximosPassos } from "@/components/captacao-proximos-passos";
@@ -14,12 +14,18 @@ import {
 } from "@/lib/captacao-api";
 import {
   captacaoToAcompanhamento,
+  passosPadrao,
   gapPretendido,
-  loadTarefas,
-  saveTarefas,
   type AcompanhamentoItem,
   type AcompanhamentoTarefa,
 } from "@/lib/captacao-acompanhamento";
+import {
+  createTarefa,
+  deleteTarefa,
+  fetchTarefas,
+  updateTarefa,
+  type Tarefa,
+} from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
 import { ArrowRight, MapPin } from "lucide-react";
 
@@ -27,29 +33,75 @@ type Aba = "paradas" | "portal" | "exclusividade";
 type FiltroStatus = "todos" | "paradas" | "critico" | "atencao";
 
 export const Route = createFileRoute("/_app/captacao/fila")({
-  validateSearch: (search: Record<string, unknown>): { aba?: Aba } => {
-    const aba = search.aba;
-    if (aba === "paradas" || aba === "portal" || aba === "exclusividade") {
-      return { aba };
-    }
-    return {};
+  beforeLoad: () => {
+    throw redirect({ to: "/tarefas", search: { origem: "captacao" } });
   },
-  component: FilaCaptacaoPage,
 });
 
-function FilaCaptacaoPage() {
-  const { aba: abaSearch } = Route.useSearch();
-  const navigate = useNavigate();
-  const aba: Aba = abaSearch ?? "paradas";
+const SEED_KEY = "zone.captacao.passos.seed.v1";
+
+function hojeYmd() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}
+
+function seededIds() {
+  try {
+    const raw = localStorage.getItem(SEED_KEY);
+    return new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function marcarSeed(id: string) {
+  const ids = seededIds();
+  ids.add(id);
+  localStorage.setItem(SEED_KEY, JSON.stringify([...ids]));
+}
+
+export function TarefasCaptacaoPainel() {
+  const [aba, setAba] = useState<Aba>("paradas");
   const [contatoItem, setContatoItem] = useState<AcompanhamentoItem | null>(null);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
   const [captacoes, setCaptacoes] = useState<Captacao[]>([]);
+  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
 
   useEffect(() => {
     let alive = true;
-    fetchCaptacoes()
-      .then((list) => {
-        if (alive) setCaptacoes(list);
+    Promise.all([
+      fetchCaptacoes(),
+      fetchTarefas({ filtro: "todas" }).catch(() => [] as Tarefa[]),
+    ])
+      .then(async ([list, existentes]) => {
+        if (!alive) return;
+        const captacaoTarefas = existentes.filter((item) => item.etiqueta === "captacao");
+        const seeds = seededIds();
+        const criadas: Tarefa[] = [];
+        for (const captacao of list) {
+          if (captacao.funilEtapa.papel === "perdido" || seeds.has(captacao.id)) continue;
+          const item = captacaoToAcompanhamento(captacao);
+          if (!item.imovelId || !item.responsavelId) continue;
+          const jaTem = captacaoTarefas.some((tarefa) => tarefa.imovelId === item.imovelId);
+          marcarSeed(captacao.id);
+          if (jaTem) continue;
+          for (const passo of passosPadrao(item)) {
+            criadas.push(
+              await createTarefa({
+                titulo: passo.titulo,
+                data: hojeYmd(),
+                responsavelId: item.responsavelId,
+                etiqueta: "captacao",
+                imovelId: item.imovelId,
+                tipo: "tarefa",
+                prioridade: "media",
+              }),
+            );
+          }
+        }
+        if (alive) {
+          setCaptacoes(list);
+          setTarefas([...captacaoTarefas, ...criadas]);
+        }
       })
       .catch(() => {
         if (alive) setCaptacoes([]);
@@ -97,12 +149,7 @@ function FilaCaptacaoPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <PillTabs
           value={aba}
-          onChange={(id) => {
-            void navigate({
-              to: "/captacao/fila",
-              search: { aba: id as Aba },
-            });
-          }}
+          onChange={(id) => setAba(id as Aba)}
           items={[
             { id: "paradas", label: `Captações (${todos.length})` },
             { id: "portal", label: `Portal (${portalItens.length})` },
@@ -133,6 +180,8 @@ function FilaCaptacaoPage() {
               <li key={item.id}>
                 <CaptacaoCard
                   item={item}
+                  tarefas={tarefas.filter((tarefa) => tarefa.imovelId === item.imovelId)}
+                  onTarefas={setTarefas}
                   onContato={() => setContatoItem(item)}
                 />
               </li>
@@ -181,6 +230,8 @@ function FilaCaptacaoPage() {
               <li key={item.id}>
                 <CaptacaoCard
                   item={item}
+                  tarefas={tarefas.filter((tarefa) => tarefa.imovelId === item.imovelId)}
+                  onTarefas={setTarefas}
                   chip={<StatusChip tone="violet">Exclusividade</StatusChip>}
                   onContato={() => setContatoItem(item)}
                 />
@@ -202,23 +253,61 @@ function FilaCaptacaoPage() {
 
 function CaptacaoCard({
   item,
+  tarefas: doImovel,
+  onTarefas,
   onContato,
   chip,
 }: {
   item: AcompanhamentoItem;
+  tarefas: Tarefa[];
+  onTarefas: (next: Tarefa[] | ((prev: Tarefa[]) => Tarefa[])) => void;
   onContato: () => void;
   chip?: ReactNode;
 }) {
   const gap = gapPretendido(item);
-  const [tarefas, setTarefas] = useState<AcompanhamentoTarefa[]>(() => loadTarefas(item));
+  const passos = doImovel.map((tarefa) => ({
+    id: tarefa.id,
+    titulo: tarefa.titulo,
+    feita: tarefa.status === "concluida",
+  }));
 
-  useEffect(() => {
-    setTarefas(loadTarefas(item));
-  }, [item]);
-
-  function persist(next: AcompanhamentoTarefa[]) {
-    setTarefas(next);
-    saveTarefas(item.id, next);
+  async function persist(next: AcompanhamentoTarefa[]) {
+    if (!item.imovelId || !item.responsavelId) return;
+    let atual = [...doImovel];
+    for (const passo of next) {
+      const antes = atual.find((tarefa) => tarefa.id === passo.id);
+      if (!antes) {
+        const criada = await createTarefa({
+          titulo: passo.titulo,
+          data: hojeYmd(),
+          responsavelId: item.responsavelId,
+          etiqueta: "captacao",
+          imovelId: item.imovelId,
+          tipo: "tarefa",
+          prioridade: "media",
+        });
+        const gravada = passo.feita
+          ? await updateTarefa(criada.id, { status: "concluida" })
+          : criada;
+        atual = [...atual, gravada];
+        continue;
+      }
+      if (antes.titulo === passo.titulo && (antes.status === "concluida") === passo.feita) continue;
+      const atualizada = await updateTarefa(antes.id, {
+        titulo: passo.titulo,
+        status: passo.feita ? "concluida" : "aberta",
+      });
+      atual = atual.map((tarefa) => (tarefa.id === antes.id ? atualizada : tarefa));
+    }
+    for (const antes of doImovel) {
+      if (next.some((passo) => passo.id === antes.id)) continue;
+      await deleteTarefa(antes.id);
+      atual = atual.filter((tarefa) => tarefa.id !== antes.id);
+    }
+    onTarefas((prev) => [
+      ...prev.filter((tarefa) => tarefa.imovelId !== item.imovelId),
+      ...atual,
+    ]);
   }
 
   return (
@@ -296,7 +385,7 @@ function CaptacaoCard({
                   : `${item.diasSemMovimento} dias`}
             </StatusChip>
           </div>
-          <CaptacaoProximosPassos compact tarefas={tarefas} onChange={persist} />
+          <CaptacaoProximosPassos compact tarefas={passos} onChange={(next) => void persist(next)} />
         </div>
       </div>
     </article>

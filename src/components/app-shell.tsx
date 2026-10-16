@@ -48,7 +48,6 @@ import {
   ClipboardCheck,
   KeyRound,
   Key,
-  Timer,
   FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -257,7 +256,6 @@ const OPERACOES: {
       { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
       { to: "/captacao/funil", label: "Funil", icon: Funnel },
       { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-      { to: "/captacao/fila", label: "Acompanhamento", icon: Timer },
       { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
     ],
   },
@@ -434,7 +432,6 @@ const NAV_SECTIONS: {
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/captacao/funil", label: "Funil", icon: Funnel },
           { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-          { to: "/captacao/fila", label: "Acompanhamento", icon: Timer },
           { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
         ],
       },

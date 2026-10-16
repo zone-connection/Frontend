@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPOS, AGENDAMENTO_TIPO_LABEL, type AgendamentoTipo } from "@/lib/agenda-api";
+import { TarefasCaptacaoPainel } from "@/routes/_app.captacao.fila";
 import { TarefasPainel } from "@/components/tarefas-painel";
 import { type TarefaSecao } from "@/components/tarefas-modulo-nav";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
@@ -82,14 +83,21 @@ import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
 
 export const Route = createFileRoute("/_app/tarefas")({
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    aba:
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { aba?: "mes" | "semana"; origem?: "captacao" } => {
+    const aba =
       search.aba === "mes"
         ? ("mes" as const)
         : search.aba === "agenda" || search.aba === "semana"
           ? ("semana" as const)
-          : undefined,
-  }),
+          : undefined;
+    const origem = search.origem === "captacao" ? ("captacao" as const) : undefined;
+    return {
+      ...(aba ? { aba } : {}),
+      ...(origem ? { origem } : {}),
+    };
+  },
   component: TarefasPage,
 });
 
@@ -119,7 +127,7 @@ function emptyForm(userId: string): TarefaInput {
 function TarefasPage() {
   const session = getSession();
   const navigate = useNavigate();
-  const { aba } = Route.useSearch();
+  const { aba, origem } = Route.useSearch();
   const [enabled, setEnabled] = useState<boolean | null>(
     session?.tenant?.plano === "prata" ||
       session?.tenant?.plano === "ouro" ||
@@ -381,6 +389,21 @@ function TarefasPage() {
       ) : null}
       {secao === "leads" || secao === "imoveis" || secao === "atendimentos" ? (
         <TarefasVinculos secao={secao} items={painel} onOpen={(tarefa) => abrirEdicao(tarefa)} />
+      ) : origem === "captacao" ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void navigate({ to: "/tarefas", search: aba ? { aba } : {} });
+              }}
+            >
+              Voltar às tarefas
+            </Button>
+          </div>
+          <TarefasCaptacaoPainel />
+        </div>
       ) : (
       <TarefasPainel
         modo="lista"
