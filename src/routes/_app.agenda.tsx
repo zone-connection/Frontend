@@ -2166,21 +2166,27 @@ function AgendaPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">—</SelectItem>
-                        {chaveOptions
-                          .filter(
-                            (chave) =>
-                              chave.status !== "em_uso" ||
-                              chave.id === form.muralChaveId,
-                          )
-                          .map((chave) => (
-                            <SelectItem key={chave.id} value={chave.id}>
+                        {chaveOptions.map((chave) => {
+                          const retirada = chave.status === "em_uso";
+                          const travada = retirada && chave.id !== form.muralChaveId;
+                          return (
+                            <SelectItem
+                              key={chave.id}
+                              value={chave.id}
+                              disabled={travada}
+                              className={cn(travada && "text-rose-600")}
+                            >
                               {chave.identificador}
                               {chave.empreendimento
                                 ? ` · ${chave.empreendimento.nome}`
                                 : ""}
                               {chave.imovel ? ` · ${chave.imovel.label}` : ""}
+                              {retirada
+                                ? ` · Retirada por ${chave.retiradoPor?.name || "outra pessoa"}`
+                                : ""}
                             </SelectItem>
-                          ))}
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground">

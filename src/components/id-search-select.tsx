@@ -23,6 +23,8 @@ export type IdSearchOption = {
   keywords?: string;
   /** Linha secundária visível na lista, como o telefone. */
   hint?: string;
+  disabled?: boolean;
+  hintClassName?: string;
 };
 
 export function IdSearchSelect({
@@ -98,11 +100,14 @@ export function IdSearchSelect({
               {options.map((opt) => (
                 <CommandItem
                   key={opt.id}
-                  value={`${opt.label} ${opt.keywords ?? ""} ${opt.id}`}
+                  value={`${opt.label} ${opt.keywords ?? ""} ${opt.hint ?? ""} ${opt.id}`}
+                  disabled={opt.disabled}
                   onSelect={() => {
+                    if (opt.disabled) return;
                     onChange(opt.id);
                     setOpen(false);
                   }}
+                  className={cn(opt.disabled && "text-rose-600 opacity-100 data-[disabled=true]:opacity-100")}
                 >
                   <Check
                     className={cn(
@@ -113,7 +118,7 @@ export function IdSearchSelect({
                   <span className="min-w-0">
                     <span className="block truncate">{opt.label}</span>
                     {opt.hint ? (
-                      <span className="block truncate text-xs text-muted-foreground">{opt.hint}</span>
+                      <span className={cn("block truncate text-xs text-muted-foreground", opt.hintClassName)}>{opt.hint}</span>
                     ) : null}
                   </span>
                 </CommandItem>

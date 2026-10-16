@@ -215,7 +215,7 @@ function papelCurto(chave: MuralChave) {
   const faixa = faixaDaChave(chave);
   if (faixa === "proprietario") return "Proprietário";
   if (faixa === "outro") return chave.localDescricao || "Outro local";
-  if (faixa === "em_uso") return "Corretor";
+  if (faixa === "em_uso") return "Retirou a chave";
   return "Imobiliária";
 }
 
@@ -1021,14 +1021,21 @@ export function MuralChavesPage() {
                         <tr
                           key={chave.id}
                           className={cn(
-                            "cursor-pointer border-b last:border-0 transition hover:bg-orange-50/50",
-                            ativa && "bg-sky-50 shadow-[inset_3px_0_0_0_#0284c7]",
+                            "cursor-pointer border-b last:border-0 transition",
+                            usada
+                              ? "bg-rose-50 text-rose-700 hover:bg-rose-100/80"
+                              : "hover:bg-orange-50/50",
+                            ativa && !usada && "bg-sky-50 shadow-[inset_3px_0_0_0_#0284c7]",
+                            ativa && usada && "shadow-[inset_3px_0_0_0_#e11d48]",
                           )}
                           onClick={() => escolher(chave)}
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                              <span className={cn(
+                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                usada ? "bg-rose-100 text-rose-600" : "bg-orange-50 text-orange-500",
+                              )}>
                                 <KeyRound className="h-4 w-4" />
                               </span>
                               <span className="font-semibold">{chave.identificador}</span>

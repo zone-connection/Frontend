@@ -792,6 +792,26 @@ function CriarCompromisso({
   const comLugar = tipo === "visita" || tipo === "retirada_chave";
   const chaveId = chaveLivre(chaves, form.imovelId, form.empreendimentoId);
   const chave = chaves.find((item) => item.id === chaveId);
+  const opcoesLugar = imoveis.map((item) => {
+    if (tipo !== "retirada_chave") return item;
+    const imovelId = item.id.startsWith("imovel:") ? item.id.slice(7) : undefined;
+    const empreendimentoId = item.id.startsWith("emp:") ? item.id.slice(4) : undefined;
+    const vinculadas = chaves.filter((atual) =>
+      imovelId
+        ? atual.imovel?.id === imovelId
+        : atual.empreendimento?.id === empreendimentoId,
+    );
+    const retiradas = vinculadas.filter((atual) => atual.status === "em_uso");
+    const temLivre = vinculadas.some((atual) => atual.status !== "em_uso");
+    if (retiradas.length === 0 || temLivre) return item;
+    const nome = retiradas[0]?.retiradoPor?.name || "outra pessoa";
+    return {
+      ...item,
+      disabled: true,
+      hint: `Retirada por ${nome}`,
+      hintClassName: "font-medium text-rose-600",
+    };
+  });
 
   useEffect(() => {
     if (!comLugar) return;
@@ -1029,7 +1049,14 @@ function CriarCompromisso({
           <Section icon={Building2} title="Imóvel ou lançamento">
             <IdSearchSelect
               value={form.imovelId ? `imovel:${form.imovelId}` : form.empreendimentoId ? `emp:${form.empreendimentoId}` : ""}
-              options={imoveis.map((item) => ({ id: item.id, label: item.label, hint: item.hint, keywords: item.hint }))}
+              options={opcoesLugar.map((item) => ({
+                id: item.id,
+                label: item.label,
+                hint: item.hint,
+                keywords: item.hint,
+                disabled: "disabled" in item ? item.disabled : undefined,
+                hintClassName: "hintClassName" in item ? item.hintClassName : undefined,
+              }))}
               onChange={(id) => {
                 if (!id) {
                   setForm({ ...form, imovelId: undefined, empreendimentoId: undefined });
