@@ -22,6 +22,7 @@ import {
 } from "@/components/tarefas-calendario";
 import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { ListaPorHorario } from "@/components/tarefas-lista-horario";
+import { dashCardTone, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { BRAND_GRADIENT_BTN } from "@/lib/brand-gradient";
 import { type Tarefa, type TarefaFiltro } from "@/lib/tarefas-api";
 import { cn } from "@/lib/utils";
@@ -275,9 +276,9 @@ export function TarefasPainel({
 
       {visao === "lista" || visao === "dia" ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <CartaoResumo ativo={recorte === "pendentes"} icon={Clock3} tom="amber" valor={proximas} titulo="Pendentes" onClick={() => setRecorte(recorte === "pendentes" ? "dia" : "pendentes")} />
-          <CartaoResumo ativo={recorte === "andamento"} icon={Clock3} tom="sky" valor={andamento} titulo="Em andamento" onClick={() => setRecorte(recorte === "andamento" ? "dia" : "andamento")} />
-          <CartaoResumo ativo={recorte === "concluidas"} icon={CheckCircle2} tom="green" valor={concluidasHoje} titulo="Concluídas hoje" onClick={() => setRecorte(recorte === "concluidas" ? "dia" : "concluidas")} />
+          <CartaoResumo ativo={recorte === "pendentes"} icon={Clock3} tom="blue" valor={proximas} titulo="Pendentes" onClick={() => setRecorte(recorte === "pendentes" ? "dia" : "pendentes")} />
+          <CartaoResumo ativo={recorte === "andamento"} icon={Clock3} tom="teal" valor={andamento} titulo="Em andamento" onClick={() => setRecorte(recorte === "andamento" ? "dia" : "andamento")} />
+          <CartaoResumo ativo={recorte === "concluidas"} icon={CheckCircle2} tom="emerald" valor={concluidasHoje} titulo="Concluídas hoje" onClick={() => setRecorte(recorte === "concluidas" ? "dia" : "concluidas")} />
           <CartaoResumo ativo={recorte === "atrasadas"} icon={CalendarDays} tom="rose" valor={atrasadas} titulo="Atrasadas" onClick={() => setRecorte(recorte === "atrasadas" ? "dia" : "atrasadas")} />
         </div>
       ) : null}
@@ -554,33 +555,30 @@ function CartaoResumo({
   icon: typeof List;
   valor: number;
   titulo: string;
-  tom: "amber" | "sky" | "green" | "rose";
+  tom: FinanceKpiTone;
   ativo: boolean;
   onClick: () => void;
 }) {
-  const tons = {
-    amber: "bg-accent text-brand-accent",
-    sky: "bg-[#E8F6FC] text-[#027DC2]",
-    green: "bg-[#E7F8EF] text-[#059669]",
-    rose: "bg-[#FDECEC] text-[#DC2626]",
-  };
+  const paint = dashCardTone(tom);
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border bg-card px-4 py-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-brand-accent/40",
-        ativo ? "border-brand-accent ring-1 ring-brand-accent/30" : "border-border",
+        "flex min-w-0 cursor-pointer flex-col rounded-xl border px-3.5 py-3 text-left",
+        paint.card,
+        ativo && "ring-2 ring-[#079ED4]/45",
       )}
     >
-      <span className={cn("grid size-11 place-items-center rounded-full", tons[tom])}>
-        <Icon className="size-5" />
+      <span className="flex items-center gap-2">
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
+          <Icon className="size-4" />
+        </span>
+        <span className={cn("text-[13px]", paint.label)}>{titulo}</span>
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[26px] font-semibold leading-none tabular-nums text-foreground">{valor}</span>
-        <span className="mt-1 block text-sm text-[#5C6B76]">{titulo}</span>
+      <span className={cn("mt-2 text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
+        {valor.toLocaleString("pt-BR")}
       </span>
-      <ChevronRight className="size-4 text-[#98A2B3]" />
     </button>
   );
 }
