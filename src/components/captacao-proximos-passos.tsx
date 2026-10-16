@@ -91,6 +91,11 @@ export function CaptacaoProximosPassos({
                     )}
                   >
                     {passo.titulo}
+                    {passo.data ? (
+                      <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                        {passo.data.slice(8, 10)}/{passo.data.slice(5, 7)}
+                      </span>
+                    ) : null}
                   </span>
                   <button
                     type="button"

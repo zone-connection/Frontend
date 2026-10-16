@@ -20,6 +20,7 @@ export type AcompanhamentoTarefa = {
   id: string;
   titulo: string;
   feita: boolean;
+  data?: string;
 };
 
 export type AcompanhamentoMotivo = {
@@ -47,6 +48,7 @@ export type AcompanhamentoItem = {
   vagas: number | null;
   imovelId: string | null;
   responsavelId: string;
+  exclusividade: boolean;
   proprietario: AcompanhamentoPessoa;
   segundaPessoa: AcompanhamentoPessoa;
   historicos: AcompanhamentoEvento[];
@@ -199,6 +201,7 @@ export function captacaoToAcompanhamento(c: Captacao): AcompanhamentoItem {
     vagas: c.imovel.vagas,
     imovelId: c.imovel.id,
     responsavelId: c.responsavel.id,
+    exclusividade: c.exclusividade,
     proprietario: {
       nome: c.proprietario.nome,
       papel: "Proprietário",
@@ -246,6 +249,7 @@ export function paradaToAcompanhamento(p: CaptacaoParada): AcompanhamentoItem {
     vagas: extras?.vagas ?? null,
     imovelId: null,
     responsavelId: "",
+    exclusividade: false,
     proprietario: {
       nome: p.proprietario,
       papel: "Proprietário",
