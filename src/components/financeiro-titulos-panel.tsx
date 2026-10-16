@@ -17,6 +17,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { useTablePager } from "@/lib/use-table-pager";
 import { ComissaoLancamentoDialog } from "@/components/comissao-lancamento-dialog";
+import {
+  ComprovantesLista,
+  GuardarComprovanteDialog,
+} from "@/components/guardar-comprovante-dialog";
 import { CategoriaSearchSelect } from "@/components/categoria-search-select";
 import { PagePanel } from "@/components/page-panel";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -572,6 +576,11 @@ export function FinanceiroTitulosPanel({
     descricao: string;
     n: number;
     pagas: number;
+  } | null>(null);
+  const [comprovanteAlvo, setComprovanteAlvo] = useState<{
+    entityType: "financeiro_titulo";
+    entityId: string;
+    descricao: string;
   } | null>(null);
   const [baixarTarget, setBaixarTarget] = useState<TituloFinanceiro | null>(
     null,
@@ -1534,12 +1543,19 @@ export function FinanceiroTitulosPanel({
         ...(tipo === "pagar" ? { natureza: form.natureza } : {}),
       };
       if (formMode === "create") {
-        await createTitulo(payload);
+        const created = await createTitulo(payload);
         toast.success(
           form.status === "pago"
             ? "Título criado e baixado no fluxo de caixa."
             : "Título criado.",
         );
+        if (form.status === "pago") {
+          setComprovanteAlvo({
+            entityType: "financeiro_titulo",
+            entityId: created.id,
+            descricao: created.descricao,
+          });
+        }
       } else if (editingId) {
         await updateTitulo(editingId, {
           ...payload,
@@ -1572,6 +1588,11 @@ export function FinanceiroTitulosPanel({
           ? "Recebimento registrado."
           : "Pagamento registrado.",
       );
+      setComprovanteAlvo({
+        entityType: "financeiro_titulo",
+        entityId: baixarTarget.id,
+        descricao: baixarTarget.descricao,
+      });
       setBaixarTarget(null);
       await load();
       if (grupoOpen && grupoId) {
@@ -3454,6 +3475,11 @@ export function FinanceiroTitulosPanel({
         </FormDialogBody>
       </FormDialogShell>
 
+      <GuardarComprovanteDialog
+        alvo={comprovanteAlvo}
+        onClose={() => setComprovanteAlvo(null)}
+      />
+
       <FormDialogShell
         open={!!detalhesTarget}
         onOpenChange={(open) => !open && setDetalhesTarget(null)}
@@ -3529,6 +3555,11 @@ export function FinanceiroTitulosPanel({
                   </p>
                 ) : null}
               </div>
+
+              <ComprovantesLista
+                entityType="financeiro_titulo"
+                entityId={detalhesTarget.id}
+              />
 
               <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 <DetailItem

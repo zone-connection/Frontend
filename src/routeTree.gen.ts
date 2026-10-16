@@ -103,6 +103,7 @@ import { Route as AppImoveisUsadosVendasRouteImport } from './routes/_app.imovei
 import { Route as AppImoveisUsadosVisaoGeralRouteImport } from './routes/_app.imoveis-usados.visao-geral'
 import { Route as AppImoveisUsadosVisitasRouteImport } from './routes/_app.imoveis-usados.visitas'
 import { Route as AppImoveisIdRouteImport } from './routes/_app.imoveis_.$id'
+import { Route as AppLeadsFilaRouteImport } from './routes/_app.leads_.fila'
 import { Route as AppParceriasIdRouteImport } from './routes/_app.parcerias.$id'
 import { Route as AppParceriasImoveisRouteImport } from './routes/_app.parcerias.imoveis'
 import { Route as AppParceriasVisaoGeralRouteImport } from './routes/_app.parcerias.visao-geral'
@@ -603,6 +604,11 @@ const AppImoveisIdRoute = AppImoveisIdRouteImport.update({
   path: '/imoveis/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLeadsFilaRoute = AppLeadsFilaRouteImport.update({
+  id: '/leads_/fila',
+  path: '/leads/fila',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppParceriasIdRoute = AppParceriasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -795,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/imoveis-usados/visitas': typeof AppImoveisUsadosVisitasRoute
   '/imoveis/$id': typeof AppImoveisIdRoute
+  '/leads/fila': typeof AppLeadsFilaRoute
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
@@ -901,6 +908,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/imoveis-usados/visitas': typeof AppImoveisUsadosVisitasRoute
   '/imoveis/$id': typeof AppImoveisIdRoute
+  '/leads/fila': typeof AppLeadsFilaRoute
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
@@ -1016,6 +1024,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/_app/imoveis-usados/visitas': typeof AppImoveisUsadosVisitasRoute
   '/_app/imoveis_/$id': typeof AppImoveisIdRoute
+  '/_app/leads_/fila': typeof AppLeadsFilaRoute
   '/_app/parcerias/$id': typeof AppParceriasIdRoute
   '/_app/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/_app/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
@@ -1131,6 +1140,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/visao-geral'
     | '/imoveis-usados/visitas'
     | '/imoveis/$id'
+    | '/leads/fila'
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
@@ -1237,6 +1247,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/visao-geral'
     | '/imoveis-usados/visitas'
     | '/imoveis/$id'
+    | '/leads/fila'
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
@@ -1351,6 +1362,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados/visao-geral'
     | '/_app/imoveis-usados/visitas'
     | '/_app/imoveis_/$id'
+    | '/_app/leads_/fila'
     | '/_app/parcerias/$id'
     | '/_app/parcerias/imoveis'
     | '/_app/parcerias/visao-geral'
@@ -2049,6 +2061,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImoveisIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/leads_/fila': {
+      id: '/_app/leads_/fila'
+      path: '/leads/fila'
+      fullPath: '/leads/fila'
+      preLoaderRoute: typeof AppLeadsFilaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/parcerias/$id': {
       id: '/_app/parcerias/$id'
       path: '/$id'
@@ -2380,6 +2399,7 @@ interface AppRouteChildren {
   AppVendasRoute: typeof AppVendasRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
   AppImoveisIdRoute: typeof AppImoveisIdRoute
+  AppLeadsFilaRoute: typeof AppLeadsFilaRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -2426,6 +2446,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVendasRoute: AppVendasRoute,
   AppWhatsappRoute: AppWhatsappRoute,
   AppImoveisIdRoute: AppImoveisIdRoute,
+  AppLeadsFilaRoute: AppLeadsFilaRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

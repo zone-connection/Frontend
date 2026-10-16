@@ -9,7 +9,9 @@ export type ArquivoVinculoTipo =
   | "documentacao"
   | "tarefa"
   | "proposta"
-  | "processo";
+  | "processo"
+  | "financeiro_titulo"
+  | "financeiro_comissao";
 
 export type ArquivoCategoria = "ficha" | "proposta" | "outro";
 

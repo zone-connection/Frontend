@@ -755,12 +755,12 @@ export function LeadDetalheDialog({
       >
         {lead ? (
           <>
-            <DialogTitle className="sr-only">{lead.nome}</DialogTitle>
-            <DialogDescription className="sr-only">
-              Detalhes de {lead.nome}
-            </DialogDescription>
+              <DialogTitle className="sr-only">{lead.nome}</DialogTitle>
+              <DialogDescription className="sr-only">
+                Detalhes de {lead.nome}
+              </DialogDescription>
             <LeadFichaView
-              lead={lead}
+                      lead={lead}
               stages={stagesDoLead}
               funnelName={leadFunil?.name}
               email={email}
@@ -778,7 +778,7 @@ export function LeadDetalheDialog({
               onRegistrarTriagem={() => void registrarTriagem()}
               triagemSaving={triagemSaving}
               podeTriagem={podeTriagem}
-              events={hist.events}
+                    events={hist.events}
               eventsLoading={hist.loading}
               stageLabel={(slug) => funnelStages.find((item) => item.id === slug)?.name ?? slug ?? "—"}
               onEventUpdated={(event) => {

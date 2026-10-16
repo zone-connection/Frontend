@@ -338,6 +338,18 @@ export async function uploadEmpreendimentoImagem(
   });
 }
 
+export async function uploadEmpreendimentoBook(
+  id: string,
+  file: File,
+): Promise<{ url: string }> {
+  const data = new FormData();
+  data.append("file", file);
+  return apiFetch<{ url: string }>(`/empreendimentos/${id}/book`, {
+    method: "POST",
+    body: data,
+  });
+}
+
 export async function uploadEmpreendimentoPlanta(
   id: string,
   file: File,

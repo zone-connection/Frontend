@@ -86,6 +86,7 @@ import {
   fetchEmpreendimentoMatches,
   fetchEmpreendimentos,
   updateEmpreendimento,
+  uploadEmpreendimentoBook,
   uploadEmpreendimentoImagem,
   uploadEmpreendimentoPlanta,
   type Empreendimento,
@@ -674,6 +675,7 @@ export function ImoveisPage({
   const [form, setForm] = useState<EmpreendimentoForm>(emptyEmpreendimentoForm);
   const [quickImages, setQuickImages] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingBook, setPendingBook] = useState<File | null>(null);
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [imageBusy, setImageBusy] = useState(false);
   const [quickSaving, setQuickSaving] = useState(false);
@@ -878,6 +880,7 @@ export function ImoveisPage({
     setForm(formFromEmpreendimento(item));
     setFormTab("identidade");
     resetImageState(empreendimentoImagens(item));
+    setPendingBook(null);
     setQuickOpen(true);
     await loadCatalogos();
   }
@@ -890,6 +893,7 @@ export function ImoveisPage({
 
   function resetImageState(images: string[] = []) {
     clearPendingImages();
+    setPendingBook(null);
     setQuickImages(images);
     setImageBusy(false);
   }
@@ -1051,6 +1055,12 @@ export function ImoveisPage({
         },
       };
 
+      async function attachBook(id: string) {
+        if (!pendingBook) return;
+        const uploaded = await uploadEmpreendimentoBook(id, pendingBook);
+        payload.vitrine.bookUrl = uploaded.url;
+      }
+
       async function attachPlantas(id: string) {
         const next: EmpreendimentoTipologia[] = [];
         for (let i = 0; i < rawTipologias.length; i++) {
@@ -1078,6 +1088,7 @@ export function ImoveisPage({
         if (rawTipologias.some((row) => row.plantaFile)) {
           await attachPlantas(editingId);
         }
+        await attachBook(editingId);
         await updateEmpreendimento(editingId, payload);
         toast.success("Empreendimento atualizado.");
       } else {
@@ -1106,8 +1117,9 @@ export function ImoveisPage({
           vitrine: payload.vitrine,
         });
         try {
-          if (rawTipologias.some((row) => row.plantaFile)) {
+          if (rawTipologias.some((row) => row.plantaFile) || pendingBook) {
             await attachPlantas(created.id);
+            await attachBook(created.id);
             await updateEmpreendimento(created.id, { vitrine: payload.vitrine });
           }
           for (const file of pendingFiles) {
@@ -1117,7 +1129,9 @@ export function ImoveisPage({
           toast.error(
             uploadErr instanceof ApiError
               ? uploadErr.message
-              : "Empreendimento cadastrado, mas a foto não foi enviada.",
+              : pendingBook
+                ? "Empreendimento cadastrado, mas o book não foi enviado."
+                : "Empreendimento cadastrado, mas a foto não foi enviada.",
           );
           setQuickOpen(false);
           setEditingId(null);
@@ -4277,7 +4291,7 @@ export function ImoveisPage({
             <FormField
               label="Book do empreendimento"
               htmlFor="imovel-book"
-              hint="PDF, Drive ou página do book comercial."
+              hint="Envie o PDF do book ou cole um link externo."
             >
               <div className="space-y-1.5">
                 {/^https?:\/\//i.test(form.vitrineBook.trim()) ? (
@@ -4287,8 +4301,28 @@ export function ImoveisPage({
                     rel="noreferrer"
                     className="text-xs text-primary underline"
                   >
-                    Testar book
+                    Abrir book atual
                   </a>
+                ) : null}
+                <input
+                  id="imovel-book-pdf"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (file && file.type && file.type !== "application/pdf") {
+                      toast.error("O book precisa ser um PDF.");
+                      event.target.value = "";
+                      return;
+                    }
+                    setPendingBook(file);
+                  }}
+                />
+                {pendingBook ? (
+                  <p className="text-xs text-muted-foreground">
+                    PDF selecionado: {pendingBook.name}. Ele é enviado ao salvar.
+                  </p>
                 ) : null}
                 <Input
                   id="imovel-book"
@@ -4296,7 +4330,7 @@ export function ImoveisPage({
                   inputMode="url"
                   value={form.vitrineBook}
                   onChange={(event) => setField("vitrineBook", event.target.value)}
-                  placeholder="https://drive.google.com/..."
+                  placeholder="Ou cole um link: https://drive.google.com/..."
                 />
               </div>
             </FormField>

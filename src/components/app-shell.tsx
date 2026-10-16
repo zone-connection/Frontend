@@ -236,6 +236,7 @@ const OPERACOES: {
     ],
     items: [
       { to: "/leads", label: "Leads", icon: Users },
+      { to: "/leads/fila", label: "Fila de leads", icon: Users },
       { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
@@ -412,6 +413,7 @@ const NAV_SECTIONS: {
     icon: Briefcase,
     items: [
       { to: "/leads", label: "Leads", icon: Users },
+      { to: "/leads/fila", label: "Fila de leads", icon: Users },
       { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
       { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
       { to: "/triagem", label: "Triagem", icon: ClipboardList },
@@ -1032,6 +1034,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return null;
               }
               if (
+                item.to === "/leads/fila" &&
+                user.role !== "admin" &&
+                user.role !== "gerente"
+              ) {
+                return null;
+              }
+              if (
                 hideClientesFromSidebar &&
                 (item.to === "/clientes" || item.to === "/funil-clientes")
               ) {
@@ -1064,6 +1073,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return children.length ? { ...item, children } : null;
           }
           if (item.to === "/caca-lead" && hideCacaLeadNav) return null;
+          if (
+            item.to === "/leads/fila" &&
+            user.role !== "admin" &&
+            user.role !== "gerente"
+          ) {
+            return null;
+          }
           if (
             hideClientesFromSidebar &&
             (item.to === "/clientes" || item.to === "/funil-clientes")

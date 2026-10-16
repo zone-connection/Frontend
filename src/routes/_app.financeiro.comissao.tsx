@@ -26,6 +26,10 @@ import {
 } from "@/components/form-dialog";
 import { ComissaoLancamentoDialog, numberValue, relationName } from "@/components/comissao-lancamento-dialog";
 import {
+  ComprovantesLista,
+  GuardarComprovanteDialog,
+} from "@/components/guardar-comprovante-dialog";
+import {
   ComissaoCalendario,
   filterComissoesCalendario,
   type ComissaoVista,
@@ -158,6 +162,11 @@ function Page() {
   const [deleteTarget, setDeleteTarget] = useState<Comissao | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [detail, setDetail] = useState<Comissao | null>(null);
+  const [comprovanteAlvo, setComprovanteAlvo] = useState<{
+    entityType: "financeiro_comissao";
+    entityId: string;
+    descricao: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -300,6 +309,13 @@ function Page() {
           ? "Comissão paga — títulos baixados e registrados no fluxo de caixa."
           : `Status alterado para ${statusLabel(nextStatus)}.`,
       );
+      if (nextStatus === "paga" && item.status !== "paga") {
+        setComprovanteAlvo({
+          entityType: "financeiro_comissao",
+          entityId: item.id,
+          descricao: relationName(item.cliente),
+        });
+      }
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -741,14 +757,28 @@ function Page() {
         </p>
       )}
 
+      <GuardarComprovanteDialog
+        alvo={comprovanteAlvo}
+        onClose={() => setComprovanteAlvo(null)}
+      />
+
       <ComissaoLancamentoDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         mode={mode}
         editing={editingItem}
         onSaved={(item, { created }) => {
+          const jaEstavaPaga =
+            editingItem?.id === item.id && editingItem.status === "paga";
           upsert(item);
           setLista(item.status === "rascunho" ? "rascunhos" : "lancadas");
+          if (item.status === "paga" && !jaEstavaPaga) {
+            setComprovanteAlvo({
+              entityType: "financeiro_comissao",
+              entityId: item.id,
+              descricao: relationName(item.cliente),
+            });
+          }
           if (created) {
             setPeriodo("tudo");
             setRecebimento("todos");
@@ -845,6 +875,11 @@ function Page() {
                 />
               </div>
             </FormSection>
+
+            <ComprovantesLista
+              entityType="financeiro_comissao"
+              entityId={detail.id}
+            />
 
             {isCorretorViewer ? (
               <>
