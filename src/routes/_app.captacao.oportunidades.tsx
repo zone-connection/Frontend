@@ -673,11 +673,23 @@ function OportunidadeFichaDialog({
               </p>
             </div>
           </section>
-          <div className="mb-4 grid gap-2 sm:grid-cols-3">
+          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              ["Pretendido", formatBrl(row.valorPretendido)],
+              ["Localização", row.localizacao],
+              ["Proprietário", row.proprietarioNome],
+              ["Telefone", row.telefone || "—"],
+              ["Tipo", CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]],
+              ["Valor pretendido", formatBrl(row.valorPretendido)],
               ["Origem", row.origem || "—"],
               ["Responsável", row.responsavel.name],
+              ["Próxima ação", row.proximaAcao || "—"],
+              [
+                "Quando",
+                row.proximaAcaoEm
+                  ? `${row.proximaAcaoEm.slice(8, 10)}/${row.proximaAcaoEm.slice(5, 7)}/${row.proximaAcaoEm.slice(0, 4)}`
+                  : "—",
+              ],
+              ["Status", STATUS_LABEL[row.status]],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-[#E2E8EC] bg-white px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
                 <p className="text-[11px] text-[#5C6B76]">{label}</p>
