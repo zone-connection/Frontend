@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { ImoveisPage } from "@/components/imoveis-page";
+import { CatalogUnidadeImoveis } from "@/components/catalog-unidade-imoveis";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -34,23 +27,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
-import { getSession } from "@/lib/auth";
 import { useCatalog } from "@/lib/catalog-store";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
-  CAPTACAO_ORIGENS_PADRAO,
-  createCaptacao,
   deleteCaptacao,
-  fetchCaptacaoImoveis,
-  fetchCaptacaoResponsaveis,
   fetchCaptacoes,
-  fetchProprietarios,
   formatBrl,
   imovelCapaUrl,
   type Captacao,
-  type CaptacaoResponsavel,
-  type Imovel,
-  type Proprietario,
 } from "@/lib/captacao-api";
 import {
   catalogColorBadgeClass,
@@ -70,7 +54,6 @@ import {
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { ImovelFotoThumb } from "@/components/imovel-foto-thumb";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
-import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -80,7 +63,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   Ruler,
   Search,
   Trash2,
@@ -116,18 +98,12 @@ function initials(name: string) {
 
 function CaptacoesPage() {
   const navigate = useNavigate();
-  const { origens, colorByLabel } = useCatalog();
-  const origemOpcoes = origens.length ? origens : [...CAPTACAO_ORIGENS_PADRAO];
+  const { colorByLabel } = useCatalog();
   const [items, setItems] = useState<Captacao[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [cadastroImovel, setCadastroImovel] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [cadastroTick, setCadastroTick] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<Captacao | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
-  const [imoveis, setImoveis] = useState<Imovel[]>([]);
-  const [responsaveis, setResponsaveis] = useState<CaptacaoResponsavel[]>([]);
   const [search, setSearch] = useState("");
   const [vista, setVistaState] = useState<Vista>(() => getVista());
   const [filtros, setFiltros] = useState({
@@ -135,22 +111,6 @@ function CaptacoesPage() {
     exclusividade: "",
     cidade: "",
   });
-  const me = getSession();
-  const [form, setForm] = useState({
-    proprietarioId: "",
-    imovelId: "",
-    responsavelId: me?.id ?? "",
-    origem: "",
-    exclusividade: false,
-    valorPretendido: "",
-    valorAvaliacao: "",
-  });
-
-  const imoveisDoDono = useMemo(
-    () => imoveis.filter((i) => i.proprietarioId === form.proprietarioId),
-    [imoveis, form.proprietarioId],
-  );
-
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
@@ -207,52 +167,6 @@ function CaptacoesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function openCreate() {
-    const [props, ims, users] = await Promise.all([
-      fetchProprietarios(),
-      fetchCaptacaoImoveis(),
-      fetchCaptacaoResponsaveis(),
-    ]);
-    setProprietarios(props);
-    setImoveis(ims);
-    setResponsaveis(users);
-    setForm({
-      proprietarioId: "",
-      imovelId: "",
-      responsavelId: me?.id ?? users[0]?.id ?? "",
-      origem: origemOpcoes[0] ?? "",
-      exclusividade: false,
-      valorPretendido: "",
-      valorAvaliacao: "",
-    });
-    setOpen(true);
-  }
-
-  async function handleSave(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await createCaptacao({
-        proprietarioId: form.proprietarioId,
-        imovelId: form.imovelId,
-        responsavelId: form.responsavelId,
-        origem: form.origem,
-        exclusividade: form.exclusividade,
-        valorPretendido: parseOptionalMoneyInput(form.valorPretendido) ?? undefined,
-        valorAvaliacao: parseOptionalMoneyInput(form.valorAvaliacao) ?? undefined,
-      });
-      toast.success("Captação criada.");
-      setOpen(false);
-      await load();
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Não foi possível criar.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
@@ -276,26 +190,15 @@ function CaptacoesPage() {
         title="Captações"
         description="Processos no funil de Captação. A etapa inicial vem do funil ativo."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCadastroImovel(true)}
-              className="h-8 rounded-full"
-            >
-              <Building2 className="mr-1 h-4 w-4" />
-              Cadastrar imóvel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => void openCreate()}
-              className={cn("h-8 rounded-full", BRAND_GRADIENT_BTN)}
-              style={BRAND_GRADIENT_STYLE}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Nova captação
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            onClick={() => setCadastroTick((tick) => tick + 1)}
+            className={cn("h-8 rounded-full", BRAND_GRADIENT_BTN)}
+            style={BRAND_GRADIENT_STYLE}
+          >
+            <Building2 className="mr-1 h-4 w-4" />
+            Cadastrar imóvel
+          </Button>
         }
       />
 
@@ -413,7 +316,7 @@ function CaptacoesPage() {
             <Building2 className="h-8 w-8 opacity-40" />
             <p className="max-w-sm text-center">
               {items.length === 0
-                ? "Nenhuma captação cadastrada. Use “Nova captação” para começar."
+                ? "Nenhuma captação cadastrada. Use “Cadastrar imóvel” para começar."
                 : "Nenhuma captação encontrada para a busca ou os filtros."}
             </p>
           </CardContent>
@@ -786,128 +689,12 @@ function CaptacoesPage() {
         </>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <form onSubmit={handleSave}>
-            <DialogHeader>
-              <DialogTitle>Nova captação</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 py-3">
-              <div>
-                <Label>Proprietário</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  value={form.proprietarioId}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      proprietarioId: e.target.value,
-                      imovelId: "",
-                    })
-                  }
-                >
-                  <option value="">Selecione</option>
-                  {proprietarios.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Imóvel</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  value={form.imovelId}
-                  onChange={(e) => setForm({ ...form, imovelId: e.target.value })}
-                >
-                  <option value="">Selecione</option>
-                  {imoveisDoDono.map((imovel) => (
-                    <option key={imovel.id} value={imovel.id}>
-                      {imovel.titulo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Responsável</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  value={form.responsavelId}
-                  onChange={(e) =>
-                    setForm({ ...form, responsavelId: e.target.value })
-                  }
-                >
-                  {responsaveis.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Origem</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  value={form.origem}
-                  onChange={(e) => setForm({ ...form, origem: e.target.value })}
-                >
-                  {origemOpcoes.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.exclusividade}
-                  onChange={(e) =>
-                    setForm({ ...form, exclusividade: e.target.checked })
-                  }
-                />
-                Exclusividade
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Valor pretendido</Label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="0,00"
-                    value={form.valorPretendido}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        valorPretendido: maskMoneyInput(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Valor de avaliação</Label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="0,00"
-                    value={form.valorAvaliacao}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        valorAvaliacao: maskMoneyInput(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Criando…" : "Criar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CatalogUnidadeImoveis
+        hideList
+        createTick={cadastroTick}
+        iniciarCaptacao
+        onChanged={() => void load()}
+      />
       <ConfirmDeleteDialog
         open={pendingDelete != null}
         onOpenChange={(next) => {
@@ -922,13 +709,6 @@ function CaptacoesPage() {
         loading={deleting}
         onConfirm={() => void handleDelete()}
       />
-      {cadastroImovel ? (
-        <ImoveisPage
-          somenteDialogo
-          ocultarPrazoEntrega
-          onDialogoFechado={() => setCadastroImovel(false)}
-        />
-      ) : null}
     </>
   );
 }

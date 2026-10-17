@@ -17,6 +17,7 @@ import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
+  CAPTACAO_ORIGENS_PADRAO,
   createCaptacao,
   createCaptacaoImovel,
   createProprietario,
@@ -43,6 +44,7 @@ import {
   type VendaUsado,
   type VendaUsadoStatus,
 } from "@/lib/imoveis-usados-api";
+import { useCatalog } from "@/lib/catalog-store";
 import { fetchFunis, type Funil } from "@/lib/funis-api";
 import {
   formatMoneyInput,
@@ -93,6 +95,7 @@ export function CatalogUnidadeImoveis({
   deleteRequest,
   hideList = false,
   onChanged,
+  iniciarCaptacao = false,
 }: {
   search?: string;
   vista?: "cards" | "tabela";
@@ -102,7 +105,11 @@ export function CatalogUnidadeImoveis({
   deleteRequest?: { id: string; tick: number } | null;
   hideList?: boolean;
   onChanged?: () => void;
+  /** Cadastro do imóvel já abre a captação na primeira etapa do funil. */
+  iniciarCaptacao?: boolean;
 }) {
+  const { origens } = useCatalog();
+  const origemOpcoes = origens.length ? origens : [...CAPTACAO_ORIGENS_PADRAO];
   const me = getSession();
   const [items, setItems] = useState<Imovel[]>([]);
   const [vendas, setVendas] = useState<VendaUsado[]>([]);
@@ -119,6 +126,11 @@ export function CatalogUnidadeImoveis({
   const [donoRapido, setDonoRapido] = useState(false);
   const [donoNome, setDonoNome] = useState("");
   const [donoTelefone, setDonoTelefone] = useState("");
+  const [responsavelCaptacaoId, setResponsavelCaptacaoId] = useState("");
+  const [origemCaptacao, setOrigemCaptacao] = useState("");
+  const [exclusividadeCaptacao, setExclusividadeCaptacao] = useState(false);
+  const [valorPretendido, setValorPretendido] = useState("");
+  const [valorAvaliacao, setValorAvaliacao] = useState("");
   const [precoUsados, setPrecoUsados] = useState("");
   const [statusUsados, setStatusUsados] = useState<VendaUsadoStatus>("disponivel");
   const [funilUsadosId, setFunilUsadosId] = useState("");
@@ -201,7 +213,12 @@ export function CatalogUnidadeImoveis({
       setDonoRapido(false);
       setDonoNome("");
       setDonoTelefone("");
-      setListarUsados(true);
+      setResponsavelCaptacaoId(me?.id ?? "");
+      setOrigemCaptacao(origemOpcoes[0] ?? "");
+      setExclusividadeCaptacao(false);
+      setValorPretendido("");
+      setValorAvaliacao("");
+      setListarUsados(!iniciarCaptacao);
       setPrecoUsados("");
       setStatusUsados("disponivel");
       setOpen(true);
@@ -308,25 +325,37 @@ export function CatalogUnidadeImoveis({
         for (const file of pendingFotos) {
           saved = await uploadCaptacaoImovelFoto(saved.id, file);
         }
-        const funisCaptacao = await fetchFunis("captacao");
-        const funilCaptacao =
-          funisCaptacao.find((funil) => funil.ativo) ?? funisCaptacao[0];
-        const etapaCaptada = funilCaptacao?.etapas.find(
-          (etapa) => etapa.active && etapa.papel === "captado",
-        );
-        await createCaptacao({
-          proprietarioId,
-          imovelId: saved.id,
-          responsavelId: me.id,
-          origem: "Cadastro direto",
-          funilId: funilCaptacao?.id,
-          funilEtapaId: etapaCaptada?.id,
-          valorPretendido: parseOptionalMoneyInput(precoUsados),
-        });
+        if (iniciarCaptacao) {
+          await createCaptacao({
+            proprietarioId,
+            imovelId: saved.id,
+            responsavelId: responsavelCaptacaoId || me.id,
+            origem: origemCaptacao,
+            exclusividade: exclusividadeCaptacao,
+            valorPretendido: parseOptionalMoneyInput(valorPretendido),
+            valorAvaliacao: parseOptionalMoneyInput(valorAvaliacao),
+          });
+        } else {
+          const funisCaptacao = await fetchFunis("captacao");
+          const funilCaptacao =
+            funisCaptacao.find((funil) => funil.ativo) ?? funisCaptacao[0];
+          const etapaCaptada = funilCaptacao?.etapas.find(
+            (etapa) => etapa.active && etapa.papel === "captado",
+          );
+          await createCaptacao({
+            proprietarioId,
+            imovelId: saved.id,
+            responsavelId: me.id,
+            origem: "Cadastro direto",
+            funilId: funilCaptacao?.id,
+            funilEtapaId: etapaCaptada?.id,
+            valorPretendido: parseOptionalMoneyInput(precoUsados),
+          });
+        }
       }
 
       const venda = vendaByImovel.get(saved.id);
-      const entraNoEstoque = !editing || listarUsados;
+      const entraNoEstoque = !iniciarCaptacao && (!editing || listarUsados);
       if (entraNoEstoque) {
         const payload = {
           imovelId: saved.id,
@@ -352,7 +381,9 @@ export function CatalogUnidadeImoveis({
       toast.success(
         editing
           ? "Imóvel atualizado."
-          : "Imóvel na captação e no estoque de usados.",
+          : iniciarCaptacao
+            ? "Captação criada."
+            : "Imóvel na captação e no estoque de usados.",
       );
       await load();
       onChanged?.();
@@ -572,10 +603,26 @@ export function CatalogUnidadeImoveis({
         onOpenChange={setOpen}
         className="max-w-4xl"
         icon={<Building2 className="h-5 w-5" />}
-        title={editing ? "Editar imóvel" : "Novo imóvel de captação"}
-        description="Cada dado uma vez: dono, endereço, unidade, itens e anúncio."
+        title={
+          editing
+            ? "Editar imóvel"
+            : iniciarCaptacao
+              ? "Nova captação"
+              : "Novo imóvel de captação"
+        }
+        description={
+          iniciarCaptacao && !editing
+            ? "Cadastre o imóvel e abra o processo na primeira etapa do funil."
+            : "Cada dado uma vez: dono, endereço, unidade, itens e anúncio."
+        }
         footer={
-          <FormDialogActions hint="O cadastro novo entra na captação, já captado, e no estoque de usados.">
+          <FormDialogActions
+            hint={
+              iniciarCaptacao && !editing
+                ? "Cria o imóvel e a captação na etapa inicial do funil."
+                : "O cadastro novo entra na captação, já captado, e no estoque de usados."
+            }
+          >
             <Button
               type="button"
               variant="outline"
@@ -746,6 +793,67 @@ export function CatalogUnidadeImoveis({
                 },
               }}
             />
+            {iniciarCaptacao && !editing ? (
+              <div className="mt-4 space-y-3 rounded-2xl border border-border/80 bg-background p-4">
+                <p className="text-sm font-medium">Processo da captação</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Responsável</Label>
+                    <select
+                      className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
+                      value={responsavelCaptacaoId}
+                      onChange={(e) => setResponsavelCaptacaoId(e.target.value)}
+                    >
+                      {responsaveis.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Origem</Label>
+                    <select
+                      className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
+                      value={origemCaptacao}
+                      onChange={(e) => setOrigemCaptacao(e.target.value)}
+                    >
+                      {origemOpcoes.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Valor pretendido</Label>
+                    <Input
+                      value={valorPretendido}
+                      onChange={(e) =>
+                        setValorPretendido(maskMoneyInput(e.target.value))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Valor de avaliação</Label>
+                    <Input
+                      value={valorAvaliacao}
+                      onChange={(e) =>
+                        setValorAvaliacao(maskMoneyInput(e.target.value))
+                      }
+                    />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Checkbox
+                    checked={exclusividadeCaptacao}
+                    onCheckedChange={(v) => setExclusividadeCaptacao(v === true)}
+                  />
+                  Exclusividade
+                </label>
+              </div>
+            ) : null}
+            {iniciarCaptacao && !editing ? null : (
             <div className="mt-4 space-y-3 rounded-2xl border border-border/80 bg-background p-4">
               {editing ? (
               <label className="flex items-center gap-2 text-sm font-medium">
@@ -816,6 +924,7 @@ export function CatalogUnidadeImoveis({
                 </div>
               ) : null}
             </div>
+            )}
           </FormDialogBody>
         </form>
       </FormDialogShell>

@@ -32,8 +32,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatMoneyInput, maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { BRAND_GRADIENT_BTN } from "@/lib/brand-gradient";
+import { cn } from "@/lib/utils";
 import { DocumentosPanel } from "@/components/documentos-panel";
-import { ArrowLeft, Clock, ImagePlus, Loader2, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Building2, Clock, ImagePlus, Loader2, MapPin, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/captacoes/$id")({
@@ -57,6 +58,7 @@ function CaptacaoDetalhePage() {
   const [lostMotivoOutro, setLostMotivoOutro] = useState("");
   const [retornoEm, setRetornoEm] = useState("");
   const [fotoBusy, setFotoBusy] = useState(false);
+  const [photo, setPhoto] = useState(0);
 
   async function load() {
     setLoading(true);
@@ -118,49 +120,161 @@ function CaptacaoDetalhePage() {
   }
 
   const fotos = item.imovel.fotos ?? [];
+  const current = fotos[photo] ?? fotos[0];
+  const endereco = [item.imovel.titulo, item.imovel.cidade].filter(Boolean).join(" · ");
 
   return (
     <>
-      <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 text-[#5C6B76]">
-        <Link to="/captacao/captacoes">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Voltar para captações
-        </Link>
-      </Button>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-[#E2E8EC] bg-white px-5 py-4 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
-        <div className="flex min-w-0 gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#079ED4] text-lg font-semibold text-white">
-            {item.proprietario.nome.slice(0, 1).toUpperCase()}
-          </span>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[#079ED4]">Captação</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#0B3148] dark:text-white">
-              {item.proprietario.nome}
-            </h1>
-            <p className="mt-1 text-sm text-[#5C6B76]">{item.imovel.titulo}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-[#F3FAFD] px-2 py-1 font-medium text-[#05749E]">
-                {item.funilEtapa.label}
-              </span>
-              {item.origem ? (
-                <span className="rounded-full bg-[#F4F7F8] px-2 py-1 text-[#5C6B76]">{item.origem}</span>
-              ) : null}
-              {item.exclusividade ? (
-                <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800">Exclusividade</span>
-              ) : null}
-            </div>
-          </div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Button asChild variant="ghost" size="sm" className="-ml-2 rounded-full">
+            <Link to="/captacao/captacoes">
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Captações
+            </Link>
+          </Button>
+          <span>/</span>
+          <span className="font-medium text-foreground">{item.proprietario.nome}</span>
         </div>
         <Button
+          type="button"
           size="sm"
           variant="outline"
-          className="text-destructive hover:text-destructive"
+          className="rounded-full text-destructive hover:text-destructive"
           onClick={() => setConfirmDelete(true)}
         >
-          <Trash2 className="mr-1 h-3.5 w-3.5" />
+          <Trash2 className="mr-1.5 h-4 w-4" />
           Excluir
         </Button>
       </div>
+
+      <section className="mb-6 overflow-hidden rounded-[1.75rem] border border-border/70 bg-card shadow-sm">
+        <div className="relative bg-white px-3 pb-4 pt-3 sm:px-6">
+          <div className="absolute left-4 top-4 z-10 flex gap-2 sm:left-7 sm:right-7">
+            <span className="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-amber-950">
+              {item.funilEtapa.label}
+            </span>
+            <div className="ml-auto flex gap-2">
+              {item.origem ? (
+                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-800 shadow-sm">
+                  {item.origem}
+                </span>
+              ) : null}
+              {item.exclusividade ? (
+                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-800 shadow-sm">
+                  Exclusividade
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {current ? (
+            <div className="relative mx-auto max-w-4xl">
+              <img
+                src={current.url}
+                alt={item.imovel.titulo}
+                className="mx-auto max-h-[28rem] w-auto max-w-full rounded-md object-contain"
+              />
+              <span className="absolute bottom-4 left-4 rounded-full bg-[#6b7a3d]/92 px-5 py-1.5 text-sm font-medium text-white shadow-sm">
+                {photo === 0 ? "Capa" : `Foto ${photo + 1}`}
+              </span>
+            </div>
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-md bg-muted/40">
+              <Building2 className="h-14 w-14 text-primary/35" />
+            </div>
+          )}
+          {fotos.length > 1 ? (
+            <div className="mx-auto mt-4 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+              {fotos.slice(0, 15).map((foto, index) => (
+                <button
+                  key={foto.id}
+                  type="button"
+                  onClick={() => setPhoto(index)}
+                  className={cn(
+                    "aspect-[16/10] overflow-hidden rounded-md",
+                    index === photo
+                      ? "ring-2 ring-primary ring-offset-2"
+                      : "opacity-80 hover:opacity-100",
+                  )}
+                >
+                  <img src={foto.url} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="mx-auto mt-3 flex max-w-4xl justify-end gap-2">
+            {current ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                disabled={fotoBusy}
+                onClick={() => {
+                  setFotoBusy(true);
+                  void deleteCaptacaoImovelFoto(item.imovel.id, current.id)
+                    .then((imovel) => {
+                      setItem({ ...item, imovel: { ...item.imovel, ...imovel } });
+                      setPhoto(0);
+                      toast.success("Foto removida.");
+                    })
+                    .catch((err) => {
+                      toast.error(err instanceof ApiError ? err.message : "Não foi possível remover a foto.");
+                    })
+                    .finally(() => setFotoBusy(false));
+                }}
+              >
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Remover foto
+              </Button>
+            ) : null}
+            <Button asChild size="sm" className="rounded-full" disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}>
+              <label className="cursor-pointer">
+                {fotoBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}
+                Enviar foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!file) return;
+                    setFotoBusy(true);
+                    void uploadCaptacaoImovelFoto(item.imovel.id, file)
+                      .then((imovel) => {
+                        setItem({ ...item, imovel: { ...item.imovel, ...imovel } });
+                        toast.success("Foto enviada.");
+                      })
+                      .catch((err) => {
+                        toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar a foto.");
+                      })
+                      .finally(() => setFotoBusy(false));
+                  }}
+                />
+              </label>
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-border/60 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Captação
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              {item.proprietario.nome}
+            </h1>
+            {endereco ? (
+              <p className="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                {endereco}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
       <div className="mb-4 grid gap-2 sm:grid-cols-3">
         {[
           ["Pretendido", formatBrl(item.valorPretendido)],
@@ -340,75 +454,7 @@ function CaptacaoDetalhePage() {
           </CardContent>
         </Card>
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-[#E2E8EC] shadow-sm dark:border-white/10">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base text-[#0B3148] dark:text-white">Fotos do imóvel</CardTitle>
-            <Button asChild size="sm" className={BRAND_GRADIENT_BTN} disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}>
-              <label className="cursor-pointer">
-                {fotoBusy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="mr-1 h-3.5 w-3.5" />}
-                Enviar foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (!file) return;
-                    setFotoBusy(true);
-                    void uploadCaptacaoImovelFoto(item.imovel.id, file)
-                      .then((imovel) => {
-                        setItem({ ...item, imovel: { ...item.imovel, ...imovel } });
-                        toast.success("Foto enviada.");
-                      })
-                      .catch((err) => {
-                        toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar a foto.");
-                      })
-                      .finally(() => setFotoBusy(false));
-                  }}
-                />
-              </label>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {fotos.length === 0 ? (
-              <p className="text-sm text-[#5C6B76]">Nenhuma foto ainda. A primeira enviada vira a capa.</p>
-            ) : (
-              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {fotos.map((foto, index) => (
-                  <li key={foto.id} className="group relative overflow-hidden rounded-xl border border-[#E2E8EC]">
-                    <img src={foto.url} alt="" className="aspect-[4/3] w-full object-cover" />
-                    {index === 0 ? (
-                      <span className="absolute left-2 top-2 rounded-full bg-[#079ED4] px-2 py-0.5 text-[10px] font-medium text-white">Capa</span>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-destructive"
-                      aria-label="Remover foto"
-                      disabled={fotoBusy}
-                      onClick={() => {
-                        setFotoBusy(true);
-                        void deleteCaptacaoImovelFoto(item.imovel.id, foto.id)
-                          .then((imovel) => {
-                            setItem({ ...item, imovel: { ...item.imovel, ...imovel } });
-                            toast.success("Foto removida.");
-                          })
-                          .catch((err) => {
-                            toast.error(err instanceof ApiError ? err.message : "Não foi possível remover a foto.");
-                          })
-                          .finally(() => setFotoBusy(false));
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+      <div className="mt-4">
         <DocumentosPanel
           entityType="imovel"
           entityId={item.imovel.id}
