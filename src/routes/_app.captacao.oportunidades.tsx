@@ -19,6 +19,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -62,6 +67,7 @@ import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
 import { formatPhone } from "@/lib/phone";
 import {
   FILTER_CONTROL,
+  FILTER_LABEL,
   FILTER_VISTA_BTN,
   FILTER_VISTA_BTN_ACTIVE,
   FILTER_VISTA_WRAP,
@@ -88,6 +94,7 @@ import {
   Plus,
   Maximize2,
   Search,
+  SlidersHorizontal,
   Trash2,
   Users,
 } from "lucide-react";
@@ -385,46 +392,124 @@ function OportunidadesPage() {
               className="h-10 rounded-xl border-[#E2E8EC] bg-white pl-9 dark:border-white/15 dark:bg-[#141a22]"
             />
           </div>
-          <Select value={ordem} onValueChange={setOrdem}>
-            <SelectTrigger className={cn("h-10 rounded-xl lg:w-52", FILTER_CONTROL)}>
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recentes">Mais recentes</SelectItem>
-              <SelectItem value="maior">Maior valor</SelectItem>
-              <SelectItem value="menor">Menor valor</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFiltro || "__all__"}
-            onValueChange={(value) =>
-              setStatusFiltro(value === "__all__" ? "" : value)
-            }
-          >
-            <SelectTrigger className={cn("h-10 rounded-xl lg:w-44", FILTER_CONTROL)}>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todos</SelectItem>
-              <SelectItem value="aberta">Aberta</SelectItem>
-              <SelectItem value="perdida">Perdida</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={tipoFiltro || "__all__"}
-            onValueChange={(value) => setTipoFiltro(value === "__all__" ? "" : value)}
-          >
-            <SelectTrigger className={cn("h-10 rounded-xl lg:w-48", FILTER_CONTROL)}>
-              <SelectValue placeholder="Tipo de imóvel" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIPO_CHIPS.map((item) => (
-                <SelectItem key={item.id || "todos"} value={item.id || "__all__"}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn("h-10 gap-2 rounded-xl", FILTER_CONTROL)}
+              >
+                <SlidersHorizontal className="h-4 w-4 text-[#079ED4]" />
+                Filtro
+                {Number(ordem !== "recentes") +
+                  Number(Boolean(statusFiltro)) +
+                  Number(Boolean(tipoFiltro)) >
+                0 ? (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+                    {Number(ordem !== "recentes") +
+                      Number(Boolean(statusFiltro)) +
+                      Number(Boolean(tipoFiltro))}
+                  </span>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[min(92vw,28rem)] space-y-4 p-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+                <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                  <SlidersHorizontal className="size-5" />
+                </span>
+                <div>
+                  <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                    {visiveis.length}
+                  </p>
+                  <p className="mt-1 text-xs">resultados encontrados</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className={FILTER_LABEL}>Ordenar por</Label>
+                  <Select value={ordem} onValueChange={setOrdem}>
+                    <SelectTrigger className={FILTER_CONTROL}>
+                      <SelectValue placeholder="Ordenar por" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recentes">Mais recentes</SelectItem>
+                      <SelectItem value="maior">Maior valor</SelectItem>
+                      <SelectItem value="menor">Menor valor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Status</Label>
+                  <Select
+                    value={statusFiltro || "__all__"}
+                    onValueChange={(value) =>
+                      setStatusFiltro(value === "__all__" ? "" : value)
+                    }
+                  >
+                    <SelectTrigger className={FILTER_CONTROL}>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      <SelectItem value="aberta">Aberta</SelectItem>
+                      <SelectItem value="perdida">Perdida</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Tipo de imóvel</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TIPO_CHIPS.map((item) => {
+                      const total = item.tipos.length
+                        ? rows.filter((row) => item.tipos.includes(row.tipo)).length
+                        : rows.length;
+                      const active = tipoFiltro === item.id;
+                      return (
+                        <button
+                          key={item.id || "todos"}
+                          type="button"
+                          onClick={() => setTipoFiltro(item.id)}
+                          className={cn(
+                            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+                            active
+                              ? "border-[#079ED4] bg-[#E7F4FA] text-[#05749E] dark:border-[#079ED4]/50 dark:bg-[#102838] dark:text-[#7DD3FC]"
+                              : "border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#141a22] dark:text-[#E7F4FA]",
+                          )}
+                        >
+                          {item.label}
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 text-[11px]",
+                              active
+                                ? "bg-[#079ED4] text-white"
+                                : "bg-[#E7F4FA] text-[#05749E] dark:bg-[#102838]",
+                            )}
+                          >
+                            {total}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {ordem !== "recentes" || statusFiltro || tipoFiltro ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-9 w-full"
+                    onClick={() => {
+                      setOrdem("recentes");
+                      setStatusFiltro("");
+                      setTipoFiltro("");
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                ) : null}
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className={FILTER_VISTA_WRAP}>
             <Button
               type="button"
@@ -455,39 +540,6 @@ function OportunidadesPage() {
               <LayoutList className="size-4" />
             </Button>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {TIPO_CHIPS.map((item) => {
-            const total = item.tipos.length
-              ? rows.filter((row) => item.tipos.includes(row.tipo)).length
-              : rows.length;
-            const active = tipoFiltro === item.id;
-            return (
-              <button
-                key={item.id || "todos"}
-                type="button"
-                onClick={() => setTipoFiltro(item.id)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
-                  active
-                    ? "border-[#079ED4] bg-[#E7F4FA] text-[#05749E] dark:border-[#079ED4]/50 dark:bg-[#102838] dark:text-[#7DD3FC]"
-                    : "border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#141a22] dark:text-[#E7F4FA]",
-                )}
-              >
-                {item.label}
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 text-[11px]",
-                    active
-                      ? "bg-[#079ED4] text-white"
-                      : "bg-[#E7F4FA] text-[#05749E] dark:bg-[#102838]",
-                  )}
-                >
-                  {total}
-                </span>
-              </button>
-            );
-          })}
         </div>
         {visiveis.length === 0 ? (
           <p className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">

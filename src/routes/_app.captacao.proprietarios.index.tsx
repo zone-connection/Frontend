@@ -38,12 +38,13 @@ import {
   ProprietarioPortalCredenciaisDialog,
   ProprietarioPortalFields,
 } from "@/components/proprietario-portal-fields";
-import { FILTER_BAR_SHELL, FILTER_CONTROL, TABLE_LUX } from "@/lib/filter-bar";
+import { FILTER_BAR_STACK, FILTER_CONTROL, FILTER_SEARCH_ICON, TABLE_LUX } from "@/lib/filter-bar";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { TableFrame } from "@/components/operacao-ui";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { RowIconButton, TableRowActions } from "@/components/table-row-actions";
 import { cn, digitsOnly, formatCpfCnpj } from "@/lib/utils";
-import { Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/proprietarios/")({
@@ -220,19 +221,29 @@ function ProprietariosPage() {
           </Button>
         }
       />
-      <div className={FILTER_BAR_SHELL}>
-        <Input
-          className={FILTER_CONTROL}
-          placeholder="Buscar por nome, telefone ou e-mail"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void load();
-          }}
-        />
-        <Button variant="outline" onClick={() => void load()}>
-          Filtrar
-        </Button>
+      <div className={FILTER_BAR_STACK}>
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className={FILTER_SEARCH_ICON} />
+            <Input
+              className={cn("pl-9", FILTER_CONTROL)}
+              placeholder="Buscar por nome, telefone ou e-mail"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void load();
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            className={cn("shrink-0 px-4", BRAND_GRADIENT_BTN)}
+            style={BRAND_GRADIENT_STYLE}
+            onClick={() => void load()}
+          >
+            Filtrar
+          </Button>
+        </div>
       </div>
       {loading ? (
         <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">

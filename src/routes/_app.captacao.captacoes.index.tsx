@@ -12,6 +12,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -70,6 +75,7 @@ import {
   Maximize2,
   Pencil,
   Search,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -117,6 +123,12 @@ function CaptacoesPage() {
   });
   const [ordem, setOrdem] = useState("recentes");
   const [etapa, setEtapa] = useState("");
+  const filtrosAtivos =
+    Number(Boolean(filtros.cidade.trim())) +
+    Number(Boolean(filtros.origem.trim())) +
+    Number(Boolean(filtros.exclusividade)) +
+    Number(ordem !== "recentes") +
+    Number(Boolean(etapa));
   const etapas = useMemo(() => {
     const labels = new Set(items.map((item) => item.funilEtapa.label).filter(Boolean));
     return [...labels];
@@ -166,17 +178,17 @@ function CaptacoesPage() {
     }
   }
 
-  async function load() {
+  async function load(next = filtros) {
     setLoading(true);
     try {
       setItems(
         await fetchCaptacoes({
-          origem: filtros.origem || undefined,
+          origem: next.origem || undefined,
           exclusividade:
-            filtros.exclusividade === ""
+            next.exclusividade === ""
               ? undefined
-              : filtros.exclusividade === "sim",
-          cidade: filtros.cidade || undefined,
+              : next.exclusividade === "sim",
+          cidade: next.cidade || undefined,
         }),
       );
     } catch (err) {
@@ -245,38 +257,6 @@ function CaptacoesPage() {
               />
             </div>
           </div>
-          <div className="sm:w-44">
-            <Label className={FILTER_LABEL}>Ordenar por</Label>
-            <Select value={ordem} onValueChange={setOrdem}>
-              <SelectTrigger className={FILTER_CONTROL}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recentes">Mais recentes</SelectItem>
-                <SelectItem value="maior">Maior valor</SelectItem>
-                <SelectItem value="menor">Menor valor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="sm:w-44">
-            <Label className={FILTER_LABEL}>Status</Label>
-            <Select
-              value={etapa || "__all__"}
-              onValueChange={(value) => setEtapa(value === "__all__" ? "" : value)}
-            >
-              <SelectTrigger className={FILTER_CONTROL}>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todos</SelectItem>
-                {etapas.map((label) => (
-                  <SelectItem key={label} value={label}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <div>
             <Label className={FILTER_LABEL}>Exibir</Label>
             <div className={FILTER_VISTA_WRAP}>
@@ -311,55 +291,136 @@ function CaptacoesPage() {
             </div>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Label className={FILTER_LABEL}>Cidade</Label>
-            <Input
-              className={FILTER_CONTROL}
-              placeholder="Todas"
-              value={filtros.cidade}
-              onChange={(e) => setFiltros({ ...filtros, cidade: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label className={FILTER_LABEL}>Origem</Label>
-            <Input
-              className={FILTER_CONTROL}
-              placeholder="Todas"
-              value={filtros.origem}
-              onChange={(e) => setFiltros({ ...filtros, origem: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label className={FILTER_LABEL}>Exclusividade</Label>
-            <Select
-              value={filtros.exclusividade || "__all__"}
-              onValueChange={(value) =>
-                setFiltros({
-                  ...filtros,
-                  exclusividade: value === "__all__" ? "" : value,
-                })
-              }
-            >
-              <SelectTrigger className={FILTER_CONTROL}>
-                <SelectValue placeholder="Todas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Todas</SelectItem>
-                <SelectItem value="sim">Sim</SelectItem>
-                <SelectItem value="nao">Não</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              className={cn("w-full", FILTER_CONTROL)}
-              onClick={() => void load()}
-            >
-              Filtrar
-            </Button>
-          </div>
+        <div>
+          <Label className={FILTER_LABEL}>Filtro</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn("h-9 gap-2", FILTER_CONTROL)}
+              >
+                <SlidersHorizontal className="h-4 w-4 text-[#079ED4]" />
+                Filtro
+                {filtrosAtivos > 0 ? (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-semibold text-white">
+                    {filtrosAtivos}
+                  </span>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[min(92vw,36rem)] space-y-4 p-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-4 py-3 text-[#05749E]">
+                <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
+                  <SlidersHorizontal className="size-5" />
+                </span>
+                <div>
+                  <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
+                    {visible.length}
+                  </p>
+                  <p className="mt-1 text-xs">resultados encontrados</p>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className={FILTER_LABEL}>Ordenar por</Label>
+                  <Select value={ordem} onValueChange={setOrdem}>
+                    <SelectTrigger className={FILTER_CONTROL}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recentes">Mais recentes</SelectItem>
+                      <SelectItem value="maior">Maior valor</SelectItem>
+                      <SelectItem value="menor">Menor valor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Status</Label>
+                  <Select
+                    value={etapa || "__all__"}
+                    onValueChange={(value) => setEtapa(value === "__all__" ? "" : value)}
+                  >
+                    <SelectTrigger className={FILTER_CONTROL}>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      {etapas.map((label) => (
+                        <SelectItem key={label} value={label}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Cidade</Label>
+                  <Input
+                    className={FILTER_CONTROL}
+                    placeholder="Todas"
+                    value={filtros.cidade}
+                    onChange={(e) => setFiltros({ ...filtros, cidade: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Origem</Label>
+                  <Input
+                    className={FILTER_CONTROL}
+                    placeholder="Todas"
+                    value={filtros.origem}
+                    onChange={(e) => setFiltros({ ...filtros, origem: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label className={FILTER_LABEL}>Exclusividade</Label>
+                  <Select
+                    value={filtros.exclusividade || "__all__"}
+                    onValueChange={(value) =>
+                      setFiltros({
+                        ...filtros,
+                        exclusividade: value === "__all__" ? "" : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger className={FILTER_CONTROL}>
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas</SelectItem>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end gap-2">
+                  {filtrosAtivos > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className={cn("h-9 flex-1", FILTER_CONTROL)}
+                      onClick={() => {
+                        const empty = { origem: "", exclusividade: "", cidade: "" };
+                        setFiltros(empty);
+                        setOrdem("recentes");
+                        setEtapa("");
+                        void load(empty);
+                      }}
+                    >
+                      Limpar
+                    </Button>
+                  ) : null}
+                  <Button
+                    className={cn("h-9 flex-1", BRAND_GRADIENT_BTN)}
+                    style={BRAND_GRADIENT_STYLE}
+                    onClick={() => void load()}
+                  >
+                    Filtrar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
