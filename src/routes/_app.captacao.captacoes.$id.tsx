@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +28,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatMoneyInput, maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
-import { Loader2, Trash2 } from "lucide-react";
+import { BRAND_GRADIENT_BTN } from "@/lib/brand-gradient";
+import { Clock, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/captacoes/$id")({
@@ -114,25 +114,56 @@ function CaptacaoDetalhePage() {
 
   return (
     <>
-      <PageHeader
-        title="Captação"
-        description={`${item.proprietario.nome} · ${item.imovel.titulo}`}
-        actions={
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 className="mr-1 h-3.5 w-3.5" />
-            Excluir
-          </Button>
-        }
-      />
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-[#E2E8EC] bg-white px-5 py-4 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
+        <div className="flex min-w-0 gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#079ED4] text-lg font-semibold text-white">
+            {item.proprietario.nome.slice(0, 1).toUpperCase()}
+          </span>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#079ED4]">Captação</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#0B3148] dark:text-white">
+              {item.proprietario.nome}
+            </h1>
+            <p className="mt-1 text-sm text-[#5C6B76]">{item.imovel.titulo}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-[#F3FAFD] px-2 py-1 font-medium text-[#05749E]">
+                {item.funilEtapa.label}
+              </span>
+              {item.origem ? (
+                <span className="rounded-full bg-[#F4F7F8] px-2 py-1 text-[#5C6B76]">{item.origem}</span>
+              ) : null}
+              {item.exclusividade ? (
+                <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800">Exclusividade</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setConfirmDelete(true)}
+        >
+          <Trash2 className="mr-1 h-3.5 w-3.5" />
+          Excluir
+        </Button>
+      </div>
+      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        {[
+          ["Pretendido", formatBrl(item.valorPretendido)],
+          ["Avaliação", formatBrl(item.valorAvaliacao)],
+          ["Responsável", item.responsavel.name],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-[#E2E8EC] bg-white px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
+            <p className="text-[11px] text-[#5C6B76]">{label}</p>
+            <p className="mt-1 truncate text-sm font-medium text-[#0B3148] dark:text-white">{value}</p>
+          </div>
+        ))}
+      </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <Card>
+        <Card className="rounded-2xl border-[#E2E8EC] shadow-sm dark:border-white/10">
           <CardHeader>
-            <CardTitle className="text-base">Informações</CardTitle>
+            <CardTitle className="text-base text-[#0B3148] dark:text-white">Informações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -140,7 +171,7 @@ function CaptacaoDetalhePage() {
               <Link
                 to="/captacao/proprietarios/$id"
                 params={{ id: item.proprietario.id }}
-                className="hover:underline"
+                className="font-medium text-[#079ED4] hover:underline"
               >
                 {item.proprietario.nome}
               </Link>
@@ -150,7 +181,7 @@ function CaptacaoDetalhePage() {
               <Link
                 to="/captacao/imoveis/$id"
                 params={{ id: item.imovel.id }}
-                className="hover:underline"
+                className="font-medium text-[#079ED4] hover:underline"
               >
                 {item.imovel.titulo}
               </Link>
@@ -222,6 +253,7 @@ function CaptacaoDetalhePage() {
             </div>
             <Button
               size="sm"
+              className={BRAND_GRADIENT_BTN}
               disabled={saving}
               onClick={() =>
                 void patch(
@@ -267,23 +299,30 @@ function CaptacaoDetalhePage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border-[#E2E8EC] shadow-sm dark:border-white/10">
           <CardHeader>
-            <CardTitle className="text-base">Histórico</CardTitle>
+            <CardTitle className="text-base text-[#0B3148] dark:text-white">Histórico</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {(item.historicos ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem eventos.</p>
             ) : (
-              (item.historicos ?? []).map((h) => (
-                <div key={h.id} className="border-b pb-2 text-sm last:border-0">
-                  <p className="whitespace-pre-wrap">{h.texto}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {h.autor?.name ?? "Sistema"} ·{" "}
-                    {new Date(h.createdAt).toLocaleString("pt-BR")}
-                  </p>
-                </div>
-              ))
+              <ul className="divide-y">
+                {(item.historicos ?? []).map((h) => (
+                  <li key={h.id} className="flex items-start gap-3 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#079ED4] text-white">
+                      <Clock className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="whitespace-pre-wrap text-sm text-[#0B3148] dark:text-white">{h.texto}</p>
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-[#5C6B76]">
+                        <UserRound className="h-3 w-3" />
+                        {h.autor?.name ?? "Sistema"} · {new Date(h.createdAt).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>

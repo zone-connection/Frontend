@@ -33,7 +33,7 @@ function RelatoriosPage() {
         title="Relatórios"
         description="Captações, visitas, tempo até concluir e motivos de perda."
       />
-      <div className="rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm dark:border-white/10 dark:bg-[#141a22]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -59,7 +59,7 @@ function RelatoriosPage() {
           </TableBody>
         </Table>
       </div>
-      <div className="mt-6 rounded-xl border">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm dark:border-white/10 dark:bg-[#141a22]">
         <Table>
           <TableHeader>
             <TableRow>

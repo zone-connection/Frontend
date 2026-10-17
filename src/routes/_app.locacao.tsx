@@ -48,7 +48,7 @@ function LocacaoVisaoGeralPage() {
         title="Locação"
         description="Carteira de exemplo. Os registros reais entram quando o módulo de aluguel for ligado."
       />
-      <div className="rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm dark:border-white/10 dark:bg-[#141a22]">
         <Table>
           <TableHeader>
             <TableRow>

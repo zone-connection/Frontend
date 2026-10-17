@@ -36,13 +36,13 @@ function DocumentacaoPage() {
         {rows.map((row) => {
           const prontos = row.itens.filter((item) => item.pronto).length;
           return (
-            <div key={row.id} className="rounded-xl border p-4">
+            <div key={row.id} className="rounded-2xl border border-[#E2E8EC] bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <Link
                     to="/captacao/captacoes/$id"
                     params={{ id: row.id }}
-                    className="font-medium underline"
+                    className="font-medium text-[#079ED4] underline"
                   >
                     {row.proprietario}
                   </Link>

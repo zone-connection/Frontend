@@ -45,7 +45,7 @@ function AvaliacoesPage() {
         title="Avaliações e vistorias"
         description="Captações que ainda não têm valor de avaliação."
       />
-      <div className="rounded-xl border">
+      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm dark:border-white/10 dark:bg-[#141a22]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -82,7 +82,7 @@ function AvaliacoesPage() {
                     <Link
                       to="/captacao/captacoes/$id"
                       params={{ id: row.id }}
-                      className="underline"
+                      className="font-medium text-[#079ED4] underline"
                     >
                       {row.proprietario.nome}
                     </Link>
