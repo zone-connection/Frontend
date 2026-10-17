@@ -17,6 +17,16 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
     status: "aberta",
     motivoPerda: "",
     captacaoId: null,
+    imovel: {
+      id: "mock-imovel-1",
+      fotoUrl:
+        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
+      fotos: [
+        { url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80" },
+        { url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80" },
+        { url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80" },
+      ],
+    },
   },
   {
     id: "mock-op-2",
@@ -33,6 +43,15 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
     status: "aberta",
     motivoPerda: "",
     captacaoId: null,
+    imovel: {
+      id: "mock-imovel-2",
+      fotoUrl:
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+      fotos: [
+        { url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" },
+        { url: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80" },
+      ],
+    },
   },
   {
     id: "mock-op-3",
@@ -49,6 +68,15 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
     status: "perdida",
     motivoPerda: "Preço incompatível",
     captacaoId: null,
+    imovel: {
+      id: "mock-imovel-3",
+      fotoUrl:
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80",
+      fotos: [
+        { url: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80" },
+        { url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80" },
+      ],
+    },
   },
 ];
 

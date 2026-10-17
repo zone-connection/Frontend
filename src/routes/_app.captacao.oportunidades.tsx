@@ -471,10 +471,15 @@ function OportunidadeFichaDialog({
       .catch(() => setImovel(null));
   }, [row]);
 
-  const fotos = imovelFotoItens({
-    fotos: imovel?.fotos,
-    fotoUrl: imovel?.fotoUrl,
-  });
+  const fotos = imovel
+    ? imovelFotoItens({
+        fotos: imovel.fotos,
+        fotoUrl: imovel.fotoUrl,
+      })
+    : (row?.imovel?.fotos ?? []).map((foto) => ({
+        url: foto.url,
+        id: undefined as string | undefined,
+      }));
 
   return (
     <Dialog open={row != null} onOpenChange={(open) => !open && onClose()}>
