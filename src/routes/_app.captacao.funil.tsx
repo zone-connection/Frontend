@@ -356,6 +356,7 @@ function CaptacaoFunilPage() {
       )}
       <CaptacaoDetalheDialog
         captacao={detail}
+        stages={stages}
         open={!!detail}
         onOpenChange={(open) => {
           if (!open) setDetail(null);

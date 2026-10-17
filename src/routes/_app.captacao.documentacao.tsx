@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { ApiError } from "@/lib/api";
 import {
   fetchCaptacaoDocumentacao,
   type ChecklistItem,
 } from "@/lib/captacao-api";
+import { DOCUMENTACAO_MOCK } from "@/lib/modulos-mock";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/documentacao")({
   component: DocumentacaoPage,
@@ -21,10 +20,8 @@ function DocumentacaoPage() {
 
   useEffect(() => {
     void fetchCaptacaoDocumentacao()
-      .then(setRows)
-      .catch((err) => {
-        toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar.");
-      })
+      .then((next) => setRows(next.length ? next : DOCUMENTACAO_MOCK))
+      .catch(() => setRows(DOCUMENTACAO_MOCK))
       .finally(() => setLoading(false));
   }, []);
 

@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { FormDialogActions } from "@/components/form-dialog";
 import {
   FunilScrollControls,
   OperationFunnelBoard,
@@ -298,54 +297,46 @@ function UsadosFunilPage() {
       )}
       <VendaUsadoDetalheDialog
         venda={detail}
+        stages={stages}
         open={!!detail}
         onOpenChange={(open) => {
           if (!open) setDetail(null);
         }}
-        footer={
+        actions={
+          detail
+            ? [
+                {
+                  label: "Abrir ficha",
+                  href: `/imoveis-usados/vendas/${detail.id}`,
+                },
+                ...(proprietarioDe(detail).id
+                  ? [
+                      {
+                        label: "Ver proprietário",
+                        href: `/captacao/proprietarios/${proprietarioDe(detail).id}`,
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+        }
+        stageControl={
           detail ? (
-            <FormDialogActions>
-              <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 sm:[&_button]:w-full">
-                <Button type="button" variant="outline" asChild>
-                  <Link
-                    to="/imoveis-usados/vendas/$id"
-                    params={{ id: detail.id }}
-                  >
-                    Abrir ficha
-                  </Link>
-                </Button>
-                {proprietarioDe(detail).id ? (
-                  <Button type="button" variant="outline" asChild>
-                    <Link
-                      to="/captacao/proprietarios/$id"
-                      params={{ id: proprietarioDe(detail).id! }}
-                    >
-                      Ver proprietário
-                    </Link>
-                  </Button>
-                ) : null}
-                <div className="flex min-w-0 items-center gap-2 sm:col-span-2">
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    Etapa:
-                  </span>
-                  <Select
-                    value={detail.funilEtapaId}
-                    onValueChange={(value) => void moveDetailToStage(value)}
-                  >
-                    <SelectTrigger className="h-9 min-w-0 flex-1">
-                      <SelectValue placeholder="Selecione a etapa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          {stage.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </FormDialogActions>
+            <Select
+              value={detail.funilEtapaId}
+              onValueChange={(value) => void moveDetailToStage(value)}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="Selecione a etapa" />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id}>
+                    {stage.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : null
         }
       />

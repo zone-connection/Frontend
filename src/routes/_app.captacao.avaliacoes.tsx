@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { fetchCaptacoes, type Captacao } from "@/lib/captacao-api";
+import { AVALIACOES_MOCK } from "@/lib/modulos-mock";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/avaliacoes")({
@@ -19,17 +20,18 @@ export const Route = createFileRoute("/_app/captacao/avaliacoes")({
 
 function AvaliacoesPage() {
   const [rows, setRows] = useState<Captacao[]>([]);
+  const [exemplo, setExemplo] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void fetchCaptacoes()
       .then((items) => {
-        setRows(
-          items.filter(
-            (item) =>
-              item.valorAvaliacao == null && item.funilEtapa.papel !== "perdido",
-          ),
+        const pendentes = items.filter(
+          (item) =>
+            item.valorAvaliacao == null && item.funilEtapa.papel !== "perdido",
         );
+        setExemplo(pendentes.length === 0);
+        setRows(pendentes);
       })
       .catch((err) => {
         toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar.");
@@ -58,6 +60,15 @@ function AvaliacoesPage() {
               <TableRow>
                 <TableCell colSpan={4}>Carregando…</TableCell>
               </TableRow>
+            ) : exemplo ? (
+              AVALIACOES_MOCK.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.proprietario}</TableCell>
+                  <TableCell>{row.imovel}</TableCell>
+                  <TableCell>{row.etapa}</TableCell>
+                  <TableCell>{row.responsavel}</TableCell>
+                </TableRow>
+              ))
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-muted-foreground">

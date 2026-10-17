@@ -9,9 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ApiError } from "@/lib/api";
 import { fetchCaptacaoRelatorio, type CaptacaoRelatorio } from "@/lib/captacao-api";
-import { toast } from "sonner";
+import { RELATORIO_MOCK } from "@/lib/modulos-mock";
 
 export const Route = createFileRoute("/_app/captacao/relatorios")({
   component: RelatoriosPage,
@@ -22,10 +21,10 @@ function RelatoriosPage() {
 
   useEffect(() => {
     void fetchCaptacaoRelatorio()
-      .then(setData)
-      .catch((err) => {
-        toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar.");
-      });
+      .then((next) =>
+        setData(next.corretores.length || next.motivos.length ? next : RELATORIO_MOCK),
+      )
+      .catch(() => setData(RELATORIO_MOCK));
   }, []);
 
   return (

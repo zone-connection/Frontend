@@ -42,6 +42,7 @@ import {
   type CaptacaoResponsavel,
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
+import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ const STATUS_LABEL = {
 function OportunidadesPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<OportunidadeCaptacao[]>([]);
+  const [exemplo, setExemplo] = useState(false);
   const [responsaveis, setResponsaveis] = useState<CaptacaoResponsavel[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -78,9 +80,14 @@ function OportunidadesPage() {
 
   function load() {
     setLoading(true);
-    void Promise.all([fetchOportunidades(), fetchCaptacaoResponsaveis()])
+    void Promise.all([
+      fetchOportunidades().catch(() => [] as OportunidadeCaptacao[]),
+      fetchCaptacaoResponsaveis().catch(() => [] as CaptacaoResponsavel[]),
+    ])
       .then(([next, pessoas]) => {
-        setRows(next);
+        const usarExemplo = next.length === 0;
+        setExemplo(usarExemplo);
+        setRows(usarExemplo ? OPORTUNIDADES_MOCK : next);
         setResponsaveis(pessoas);
         setForm((current) => ({
           ...current,
@@ -122,7 +129,11 @@ function OportunidadesPage() {
     <>
       <PageHeader
         title="Banco de oportunidades"
-        description="Imóveis com potencial que ainda não entraram no funil de captação."
+        description={
+          exemplo
+            ? "Exemplos para visualizar o banco. Os registros reais substituem esta lista."
+            : "Imóveis com potencial que ainda não entraram no funil de captação."
+        }
         actions={
           <Button onClick={() => setOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
@@ -173,7 +184,9 @@ function OportunidadesPage() {
                   <TableCell>{row.proximaAcao || "—"}</TableCell>
                   <TableCell>{STATUS_LABEL[row.status]}</TableCell>
                   <TableCell className="space-x-2 text-right">
-                    {row.status === "aberta" ? (
+                    {exemplo ? (
+                      <span className="text-xs text-muted-foreground">Exemplo</span>
+                    ) : row.status === "aberta" ? (
                       <>
                         <Button
                           size="sm"
