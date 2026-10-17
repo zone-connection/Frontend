@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,7 +39,9 @@ import {
   createOportunidade,
   deleteCaptacaoImovelFoto,
   fetchCaptacaoImovel,
+  fetchCaptacaoResumo,
   fetchCaptacaoResponsaveis,
+  fetchCaptacoes,
   fetchOportunidades,
   formatBrl,
   IMOVEL_MAX_FOTOS,
@@ -50,12 +51,19 @@ import {
   updateCaptacaoImovel,
   uploadCaptacaoImovelFoto,
   type CaptacaoImovelTipo,
+  type CaptacaoResumo,
   type CaptacaoResponsavel,
   type Imovel,
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
 import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
 import { formatPhone } from "@/lib/phone";
+import {
+  FILTER_CONTROL,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+} from "@/lib/filter-bar";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { cn } from "@/lib/utils";
 import {
@@ -65,14 +73,21 @@ import {
   Building2,
   CalendarDays,
   Car,
+  ClipboardList,
+  Clock3,
+  Home,
   ImagePlus,
   Images,
+  LayoutGrid,
+  LayoutList,
   Loader2,
   MapPin,
   MoreVertical,
   Plus,
   Maximize2,
+  Search,
   Trash2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -103,6 +118,62 @@ function formatAcaoQuando(value: string | null | undefined) {
   return `${day}/${month}`;
 }
 
+type Vista = "lista" | "cards";
+const VISTA_KEY = "oportunidades.vista";
+
+const STATUS_BADGE = {
+  aberta: "#079ED4",
+  convertida: "#7c3aed",
+  perdida: "#e11d48",
+} as const;
+
+const TIPO_CHIPS: Array<{
+  id: string;
+  label: string;
+  tipos: CaptacaoImovelTipo[];
+}> = [
+  { id: "", label: "Todos", tipos: [] },
+  { id: "apartamento", label: "Apartamentos", tipos: ["apartamento"] },
+  { id: "casa", label: "Casas", tipos: ["casa"] },
+  {
+    id: "comercial",
+    label: "Salas e Comerciais",
+    tipos: ["sala_comercial", "loja", "galpao"],
+  },
+  { id: "terreno", label: "Terrenos", tipos: ["terreno"] },
+  {
+    id: "outros",
+    label: "Outros",
+    tipos: ["fazenda", "chacara", "outro"],
+  },
+];
+
+function getVista(): Vista {
+  try {
+    return localStorage.getItem(VISTA_KEY) === "cards" ? "cards" : "lista";
+  } catch {
+    return "lista";
+  }
+}
+
+function oportunidadeSpecs(row: OportunidadeCaptacao) {
+  const quartos = row.imovel?.quartos;
+  const vagas = row.imovel?.vagas;
+  const area = row.imovel?.areaConstruida ?? row.imovel?.area;
+  return [
+    quartos != null
+      ? {
+          icon: BedDouble,
+          label: `${quartos} ${quartos === 1 ? "quarto" : "quartos"}`,
+        }
+      : null,
+    vagas != null
+      ? { icon: Car, label: `${vagas} ${vagas === 1 ? "vaga" : "vagas"}` }
+      : null,
+    area != null ? { icon: Maximize2, label: `${area} m²` } : null,
+  ].filter(Boolean) as Array<{ icon: typeof BedDouble; label: string }>;
+}
+
 function SpecItem({
   icon: Icon,
   label,
@@ -128,6 +199,13 @@ function OportunidadesPage() {
   const [saving, setSaving] = useState(false);
   const [perderId, setPerderId] = useState<string | null>(null);
   const [ficha, setFicha] = useState<OportunidadeCaptacao | null>(null);
+  const [vista, setVistaState] = useState<Vista>(() => getVista());
+  const [busca, setBusca] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [ordem, setOrdem] = useState("recentes");
+  const [tipoFiltro, setTipoFiltro] = useState("");
+  const [resumo, setResumo] = useState<CaptacaoResumo | null>(null);
+  const [emAvaliacao, setEmAvaliacao] = useState(0);
   const [motivo, setMotivo] = useState<string>(CAPTACAO_MOTIVOS_PERDA[0]);
   const [form, setForm] = useState({
     localizacao: "",
@@ -146,13 +224,22 @@ function OportunidadesPage() {
     void Promise.all([
       fetchOportunidades().catch(() => [] as OportunidadeCaptacao[]),
       fetchCaptacaoResponsaveis().catch(() => [] as CaptacaoResponsavel[]),
+      fetchCaptacaoResumo().catch(() => null),
+      fetchCaptacoes().catch(() => []),
     ])
-      .then(([next, pessoas]) => {
+      .then(([next, pessoas, totais, captacoes]) => {
         const abertas = next.filter((row) => row.status !== "convertida");
         const usarExemplo = abertas.length === 0;
         setExemplo(usarExemplo);
         setRows(usarExemplo ? OPORTUNIDADES_MOCK : abertas);
         setResponsaveis(pessoas);
+        setResumo(totais);
+        setEmAvaliacao(
+          captacoes.filter(
+            (item) =>
+              item.valorAvaliacao == null && item.funilEtapa.papel !== "perdido",
+          ).length,
+        );
         setForm((current) => ({
           ...current,
           responsavelId: current.responsavelId || pessoas[0]?.id || "",
@@ -167,6 +254,43 @@ function OportunidadesPage() {
   useEffect(() => {
     load();
   }, []);
+
+  function setVista(next: Vista) {
+    setVistaState(next);
+    try {
+      localStorage.setItem(VISTA_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const visiveis = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const chip = TIPO_CHIPS.find((item) => item.id === tipoFiltro);
+    const filtered = rows.filter((row) => {
+      if (statusFiltro && row.status !== statusFiltro) return false;
+      if (chip?.tipos.length && !chip.tipos.includes(row.tipo)) return false;
+      if (!q) return true;
+      return [
+        row.proprietarioNome,
+        row.localizacao,
+        row.responsavel.name,
+        row.origem,
+        row.telefone,
+        CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo],
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+    const next = [...filtered];
+    if (ordem === "maior") {
+      next.sort((a, b) => (b.valorPretendido ?? 0) - (a.valorPretendido ?? 0));
+    } else if (ordem === "menor") {
+      next.sort((a, b) => (a.valorPretendido ?? 0) - (b.valorPretendido ?? 0));
+    }
+    return next;
+  }, [rows, busca, statusFiltro, ordem, tipoFiltro]);
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -192,20 +316,50 @@ function OportunidadesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Banco de oportunidades"
-        description={
-          exemplo
-            ? "Exemplos para visualizar o banco. Os registros reais substituem esta lista."
-            : "Imóveis com potencial que ainda não entraram no funil de captação."
-        }
-        actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            Nova oportunidade
-          </Button>
-        }
-      />
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)} className="rounded-full bg-[#079ED4] hover:bg-[#0689b8]">
+          <Plus className="mr-1 h-4 w-4" />
+          Nova oportunidade
+        </Button>
+      </div>
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3148] via-[#0B3148] to-[#05749E] px-6 py-6 text-white shadow-sm sm:px-8">
+        <p className="text-[11px] font-semibold tracking-[0.22em] text-[#7DD3FC]">
+          ZONE CONNECTION
+        </p>
+        <div className="mt-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Banco de oportunidades
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-[#D3EBF5]">
+              {exemplo
+                ? "Exemplos para visualizar o banco. Os registros reais substituem esta lista."
+                : "Aqui você encontra os imóveis para apresentar aos seus clientes."}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { icon: Building2, value: rows.length, label: "Total de oportunidades" },
+              { icon: ClipboardList, value: resumo?.captacoes ?? 0, label: "Captações" },
+              { icon: Users, value: resumo?.proprietarios ?? 0, label: "Proprietários" },
+              { icon: Clock3, value: emAvaliacao, label: "Em avaliação" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex min-w-[8.5rem] items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2"
+              >
+                <item.icon className="size-4 shrink-0 text-[#7DD3FC]" />
+                <div>
+                  <p className="text-lg font-semibold leading-none">{item.value}</p>
+                  <p className="mt-1 text-[10px] leading-tight text-[#D3EBF5]">
+                    {item.label}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : rows.length === 0 ? (
@@ -213,8 +367,256 @@ function OportunidadesPage() {
           Nenhuma oportunidade registrada.
         </p>
       ) : (
+        <>
+        <div className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-card p-3 shadow-sm dark:border-white/10 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3]" />
+            <Input
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              placeholder="Filtrar por nome, endereço, bairro..."
+              className="h-10 rounded-xl border-[#E2E8EC] bg-white pl-9 dark:border-white/15 dark:bg-[#141a22]"
+            />
+          </div>
+          <Select value={ordem} onValueChange={setOrdem}>
+            <SelectTrigger className={cn("h-10 rounded-xl lg:w-52", FILTER_CONTROL)}>
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recentes">Mais recentes</SelectItem>
+              <SelectItem value="maior">Maior valor</SelectItem>
+              <SelectItem value="menor">Menor valor</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={statusFiltro || "__all__"}
+            onValueChange={(value) =>
+              setStatusFiltro(value === "__all__" ? "" : value)
+            }
+          >
+            <SelectTrigger className={cn("h-10 rounded-xl lg:w-44", FILTER_CONTROL)}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              <SelectItem value="aberta">Aberta</SelectItem>
+              <SelectItem value="perdida">Perdida</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={tipoFiltro || "__all__"}
+            onValueChange={(value) => setTipoFiltro(value === "__all__" ? "" : value)}
+          >
+            <SelectTrigger className={cn("h-10 rounded-xl lg:w-48", FILTER_CONTROL)}>
+              <SelectValue placeholder="Tipo de imóvel" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIPO_CHIPS.map((item) => (
+                <SelectItem key={item.id || "todos"} value={item.id || "__all__"}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className={FILTER_VISTA_WRAP}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              title="Ver cards"
+              className={cn(
+                FILTER_VISTA_BTN,
+                "w-9 px-0",
+                vista === "cards" && FILTER_VISTA_BTN_ACTIVE,
+              )}
+              onClick={() => setVista("cards")}
+            >
+              <LayoutGrid className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              title="Ver lista"
+              className={cn(
+                FILTER_VISTA_BTN,
+                "w-9 px-0",
+                vista === "lista" && FILTER_VISTA_BTN_ACTIVE,
+              )}
+              onClick={() => setVista("lista")}
+            >
+              <LayoutList className="size-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {TIPO_CHIPS.map((item) => {
+            const total = item.tipos.length
+              ? rows.filter((row) => item.tipos.includes(row.tipo)).length
+              : rows.length;
+            const active = tipoFiltro === item.id;
+            return (
+              <button
+                key={item.id || "todos"}
+                type="button"
+                onClick={() => setTipoFiltro(item.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+                  active
+                    ? "border-[#0B3148] bg-[#0B3148] text-white"
+                    : "border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#141a22] dark:text-[#E7F4FA]",
+                )}
+              >
+                {item.label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[11px]",
+                    active ? "bg-white/20" : "bg-[#E7F4FA] text-[#05749E] dark:bg-[#102838]",
+                  )}
+                >
+                  {total}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {visiveis.length === 0 ? (
+          <p className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhuma oportunidade neste filtro.
+          </p>
+        ) : vista === "cards" ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {visiveis.map((row) => {
+              const foto = row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl || "";
+              const quando = formatAcaoQuando(row.proximaAcaoEm);
+              const specs = oportunidadeSpecs(row);
+              const acao = row.proximaAcao
+                ? `Próxima ação: ${row.proximaAcao}${quando ? ` · ${quando}` : ""}`
+                : "Sem próxima ação definida";
+              return (
+                <article
+                  key={row.id}
+                  className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_8px_24px_-18px_rgba(11,49,72,0.45)] dark:border-white/10"
+                >
+                  <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
+                    {foto ? (
+                      <img src={foto} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[#05749E]">
+                        <Building2 className="h-10 w-10 opacity-40" />
+                      </div>
+                    )}
+                    <span
+                      className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm"
+                      style={{ backgroundColor: STATUS_BADGE[row.status] }}
+                    >
+                      {STATUS_LABEL[row.status]}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2.5 p-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
+                        {CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}
+                      </h3>
+                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                        <MapPin className="size-3.5 shrink-0 text-[#079ED4]" />
+                        <span>{row.proprietarioNome}</span>
+                        <span>·</span>
+                        <span>{row.localizacao}</span>
+                        {row.origem ? (
+                          <span className="rounded-full bg-[#F4F7F8] px-2 py-0.5 text-[11px] font-medium text-[#5C6B76] dark:bg-[#1c2430] dark:text-[#94a3b8]">
+                            {row.origem}
+                          </span>
+                        ) : null}
+                      </p>
+                    </div>
+                    <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                      {formatBrl(row.valorPretendido)}
+                    </p>
+                    {specs.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]">
+                        {specs.map((item) => (
+                          <SpecItem key={item.label} icon={item.icon} label={item.label} />
+                        ))}
+                      </div>
+                    ) : null}
+                    <p className="mt-auto flex items-center gap-2 rounded-xl bg-[#F3FAFD] px-3 py-2 text-xs font-medium text-[#05749E] dark:bg-[#102838] dark:text-[#7DD3FC]">
+                      <CalendarDays className="size-3.5 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{acao}</span>
+                      <ArrowRight className="size-3.5 shrink-0" />
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 flex-1 rounded-full border-[#D3EBF5] text-[#0B3148] dark:border-white/15 dark:text-[#E7F4FA]"
+                        onClick={() => setFicha(row)}
+                      >
+                        Ver detalhes
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 flex-1 rounded-full bg-[#0B3148] text-white hover:bg-[#05749E]"
+                        onClick={() => setFicha(row)}
+                      >
+                        <Images className="mr-1.5 size-3.5" />
+                        Fotos e ficha
+                      </Button>
+                      {!exemplo && row.status === "aberta" ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 shrink-0 rounded-full"
+                              title="Ações"
+                            >
+                              <MoreVertical className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                void promoverOportunidade(row.id)
+                                  .then((captacao) => {
+                                    toast.success("Captação cadastrada. Saiu do banco.");
+                                    void navigate({
+                                      to: "/captacao/captacoes/$id",
+                                      params: { id: captacao.id },
+                                    });
+                                  })
+                                  .catch((err) => {
+                                    toast.error(
+                                      err instanceof ApiError
+                                        ? err.message
+                                        : "Não foi possível cadastrar.",
+                                    );
+                                  });
+                              }}
+                            >
+                              Cadastrar em captações
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setPerderId(row.id)}
+                            >
+                              Perder
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
         <ul className="space-y-4">
-          {rows.map((row) => {
+          {visiveis.map((row) => {
             const foto = row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl || "";
             const quando = formatAcaoQuando(row.proximaAcaoEm);
             const telefone = formatPhone(row.telefone) || row.telefone;
@@ -441,6 +843,8 @@ function OportunidadesPage() {
             );
           })}
         </ul>
+        )}
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

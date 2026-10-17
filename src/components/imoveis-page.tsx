@@ -51,6 +51,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,8 +150,11 @@ import {
 } from "@/lib/captacao-api";
 import { AmenityChips } from "@/components/imovel-ficha-fields";
 import {
+  ArrowRight,
   Building2,
   Car,
+  Images,
+  MoreVertical,
   LayoutGrid,
   LayoutList,
   Loader2,
@@ -2500,341 +2509,262 @@ export function ImoveisPage({
           />
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {imoveisPager.pageItems.map((item) => (
-            <Card
+        <div className="space-y-4">
+          {imoveisPager.pageItems.map((item) => {
+            const capa = empreendimentoCapa(item);
+            const local = empreendimentoLocalidadeNome(item);
+            const status = empreendimentoStatusLabel(item.status);
+            const tipo = empreendimentoTipoLabel(item.tipo);
+            return (
+            <article
               key={item.id}
-              className={cn(TABLE_SHELL, "group")}
+              className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
             >
-              <Link
-                to="/imoveis/$id"
-                params={{ id: item.id }}
-                className="relative block h-40 overflow-hidden bg-muted/40"
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Building2 className="h-10 w-10 text-muted-foreground/40" />
-                </div>
-                {(() => {
-                  const capa = empreendimentoCapa(item);
-                  if (!capa) return null;
-                  return (
-                    <img
-                      src={capa}
-                      alt=""
-                      width={520}
-                      height={280}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="relative h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none";
-                      }}
-                    />
-                  );
-                })()}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
-                {showCampo("localidade") &&
-                empreendimentoLocalidadeNome(item) ? (
-                  <Badge className="absolute bottom-3 right-3 rounded-full border-white/20 bg-black/45 text-white hover:bg-black/55">
-                    {empreendimentoLocalidadeNome(item)}
-                  </Badge>
-                ) : null}
-              </Link>
-              <CardHeader className="pb-2 pt-4">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-snug">
+              <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
+                <Link
+                  to="/imoveis/$id"
+                  params={{ id: item.id }}
+                  className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]"
+                >
+                  {capa ? (
+                    <img src={capa} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full min-h-[200px] items-center justify-center text-[#05749E]">
+                      <Building2 className="h-10 w-10 opacity-40" />
+                    </div>
+                  )}
+                  <span className="absolute left-3 top-3 rounded-lg bg-[#079ED4] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    {status || "Imóvel"}
+                  </span>
+                </Link>
+                <div className="flex min-w-0 flex-col gap-3 border-black/5 p-4 sm:p-5 lg:border-r dark:border-white/10">
+                  <p className="inline-flex items-center gap-2 rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                    <CalendarClock className="size-4 shrink-0" />
+                    <span className="truncate">
+                      {(item.matchTotal ?? 0) > 0
+                        ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
+                        : item.previsaoEntrega
+                          ? `Previsão de entrega · ${formatPrevisao(item.previsaoEntrega)}`
+                          : "Catálogo de imóveis"}
+                    </span>
+                  </p>
+                  <div>
+                    <h2 className="text-xl font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
+                      <Link to="/imoveis/$id" params={{ id: item.id }} className="hover:underline">
+                        {item.nome}
+                      </Link>
+                    </h2>
+                    <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                      <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                      <span>
+                        {item.construtora?.nome ? `${item.construtora.nome} · ` : ""}
+                        {local || item.endereco || "Sem localidade"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tipo ? (
+                      <span className="rounded-full border border-[#D3EBF5] bg-[#E7F4FA] px-2.5 py-0.5 text-[11px] font-semibold text-[#05749E]">
+                        {tipo}
+                      </span>
+                    ) : null}
+                    {status ? (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                        {status}
+                      </span>
+                    ) : null}
+                    {item.imovelId ? (
+                      <span className="rounded-full border border-[#E2E8EC] bg-[#F4F7F8] px-2.5 py-0.5 text-[11px] font-medium text-[#5C6B76]">
+                        Captação
+                      </span>
+                    ) : null}
+                  </div>
+                  {item.endereco ? (
+                    <p className="flex items-center gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                      <MapPin className="size-3.5 shrink-0 text-[#079ED4]" />
+                      {item.endereco}
+                    </p>
+                  ) : null}
+                  <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
+                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                      <Link to="/imoveis/$id" params={{ id: item.id }}>
+                        <Images className="mr-1.5 size-3.5" />
+                        Fotos e ficha
+                      </Link>
+                    </Button>
                     <Link
                       to="/imoveis/$id"
                       params={{ id: item.id }}
-                      className="hover:underline"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
                     >
-                      {item.nome}
+                      Ver detalhes
+                      <ArrowRight className="size-3.5" />
                     </Link>
-                  </CardTitle>
-                  <div className="flex shrink-0 gap-0.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="relative h-8 gap-1 px-2"
-                      title="Clientes compatíveis"
-                      onClick={() => void openMatches(item)}
-                    >
-                      <Users className="h-4 w-4" />
-                      <span className="text-[11px] font-semibold">
-                        {(item.matchTotal ?? 0) > 0
-                          ? `${item.matchTotal}`
-                          : ""}
-                      </span>
+                  </div>
+                </div>
+                <div className="relative flex flex-col gap-3 p-4 sm:p-5">
+                  <div className="absolute right-3 top-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Ações">
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => void openMatches(item)}>
+                          Clientes compatíveis
+                        </DropdownMenuItem>
+                        {canManage ? (
+                          <DropdownMenuItem onClick={() => void openEdit(item)}>
+                            Editar
+                          </DropdownMenuItem>
+                        ) : null}
+                        {canDelete ? (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteId(item.id)}
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="pr-8">
+                    <p className="text-xl font-semibold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                      {item.valorReferencia != null ? brl(item.valorReferencia) : "—"}
+                    </p>
+                    <p className="mt-1 text-sm text-[#8B98A3]">
+                      {item.construtora?.nome || "A partir de"}
+                    </p>
+                  </div>
+                  <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                      {item.quartos != null ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <BedDouble className="size-3.5 text-[#079ED4]" />
+                          {item.quartos} {item.quartos === 1 ? "quarto" : "quartos"}
+                        </span>
+                      ) : null}
+                      {item.vagas != null ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-[#B7D7E6]">|</span>
+                          <Car className="size-3.5 text-[#079ED4]" />
+                          {item.vagas} {item.vagas === 1 ? "vaga" : "vagas"}
+                        </span>
+                      ) : null}
+                    </div>
+                    {item.areaM2 != null ? (
+                      <div className="mt-2 inline-flex items-center gap-1.5">
+                        <Ruler className="size-3.5 text-[#079ED4]" />
+                        {item.areaM2} m²
+                      </div>
+                    ) : null}
+                  </div>
+                  {isAdmin ? (
+                    <label className="flex items-center gap-2 text-xs text-[#5C6B76]">
+                      <Switch
+                        checked={item.visivelNoSite !== false}
+                        onCheckedChange={(checked) => void toggleVisivelNoSite(item, checked)}
+                      />
+                      Exibir no site
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+            );
+          })}
+          {captacaoFiltered.map((item) => (
+            <article
+              key={`cap-${item.id}`}
+              className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
+            >
+              <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
+                <Link
+                  to="/captacao/imoveis/$id"
+                  params={{ id: item.id }}
+                  className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]"
+                >
+                  {imovelCapaUrl(item) ? (
+                    <img src={imovelCapaUrl(item) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full min-h-[200px] items-center justify-center">
+                      <Building2 className="h-10 w-10 text-[#05749E]/40" />
+                    </div>
+                  )}
+                  <span className="absolute left-3 top-3 rounded-lg bg-[#7c3aed] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    Captação
+                  </span>
+                </Link>
+                <div className="flex min-w-0 flex-col gap-3 p-4 sm:p-5 lg:border-r lg:border-black/5 dark:lg:border-white/10">
+                  <p className="rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                    {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo]}
+                  </p>
+                  <div>
+                    <h2 className="text-xl font-semibold text-[#0B3148] dark:text-[#f8fafc]">
+                      <Link to="/captacao/imoveis/$id" params={{ id: item.id }} className="hover:underline">
+                        {item.titulo}
+                      </Link>
+                    </h2>
+                    <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                      <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                      {item.proprietario?.nome ?? "Sem proprietário"}
+                      {item.cidade ? ` · ${item.cidade}` : ""}
+                    </p>
+                  </div>
+                  <div className="mt-auto flex flex-wrap items-center gap-3">
+                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                      <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
+                        <Images className="mr-1.5 size-3.5" />
+                        Fotos e ficha
+                      </Link>
                     </Button>
-                    {canManage && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Editar"
-                        onClick={() => void openEdit(item)}
-                      >
+                    <Link
+                      to="/captacao/imoveis/$id"
+                      params={{ id: item.id }}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
+                    >
+                      Ver detalhes
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </div>
+                </div>
+                <div className="relative flex flex-col gap-3 p-4 sm:p-5">
+                  <div className="absolute right-3 top-3 flex gap-1">
+                    {canManage ? (
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setUnidadeEditRequest({ id: item.id, tick: Date.now() })}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                    )}
-                    {canDelete && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Excluir"
-                        onClick={() => setDeleteId(item.id)}
-                      >
+                    ) : null}
+                    {canDelete ? (
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Excluir" onClick={() => setUnidadeDeleteRequest({ id: item.id, tick: Date.now() })}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
-                    )}
-                  </div>
-                </div>
-                {showCampo("construtora") && item.construtora ? (
-                  <p className="text-xs text-muted-foreground">
-                    {item.construtora.nome}
-                  </p>
-                ) : null}
-                {isAdmin ? (
-                  <label className="mt-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                    <Switch
-                      checked={item.visivelNoSite !== false}
-                      onCheckedChange={(checked) =>
-                        void toggleVisivelNoSite(item, checked)
-                      }
-                    />
-                    Exibir no site
-                  </label>
-                ) : null}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => void openMatches(item)}
-                  className="flex w-full items-center justify-between rounded-xl border border-black/5 bg-muted/40 px-3 py-2 text-left text-xs hover:bg-muted/70"
-                >
-                  <span className="font-medium text-foreground">
-                    {(item.matchTotal ?? 0) > 0
-                      ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
-                      : "Ver clientes compatíveis"}
-                  </span>
-                  {(item.matchMuitoCompativeis ?? 0) > 0 ? (
-                    <span className="text-muted-foreground">
-                      {item.matchMuitoCompativeis} muito compatíveis
-                    </span>
-                  ) : (
-                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </button>
-                {showCampo("endereco") && item.endereco ? (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.endereco}
-                  </p>
-                ) : null}
-                {showCampo("tipo") ||
-                showCampo("status") ||
-                showCampo("tags") ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {showCampo("tipo") && item.tipo ? (
-                      <Badge
-                        className={cn(
-                          STATUS_CHIP_CLASS,
-                          IMOVEIS_TABLE_CHIP,
-                          colorByLabel("empreendimento_tipo", item.tipo),
-                        )}
-                        title={empreendimentoTipoLabel(item.tipo)}
-                      >
-                        {empreendimentoTipoLabel(item.tipo)}
-                      </Badge>
                     ) : null}
-                    {item.imovelId ? (
-                      <Link
-                        to="/captacao/imoveis/$id"
-                        params={{ id: item.imovelId }}
-                      >
-                        <Badge className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}>
-                          Captação
-                        </Badge>
-                      </Link>
-                    ) : null}
-                    {showCampo("status") && item.status ? (
-                      <Badge
-                        className={cn(
-                          STATUS_CHIP_CLASS,
-                          IMOVEIS_TABLE_CHIP,
-                          colorByLabel(
-                            "empreendimento_status",
-                            item.status,
-                          ),
-                        )}
-                        title={empreendimentoStatusLabel(item.status)}
-                      >
-                        {empreendimentoStatusLabel(item.status)}
-                      </Badge>
-                    ) : null}
-                    {showCampo("tags")
-                      ? (item.tags ?? []).map((tag) => (
-                          <Badge
-                            key={tag}
-                            className={cn(
-                              STATUS_CHIP_CLASS,
-                              IMOVEIS_TABLE_CHIP,
-                              colorByLabel("empreendimento_tag", tag),
-                            )}
-                            title={tag}
-                          >
-                            {tag}
-                          </Badge>
-                        ))
-                      : null}
                   </div>
-                ) : null}
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  {showCampo("previsao") && item.previsaoEntrega ? (
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      {formatPrevisao(item.previsaoEntrega)}
-                    </span>
-                  ) : null}
-                  {showCampo("quartos") && item.quartos != null && (
-                    <span className="inline-flex items-center gap-1">
-                      <BedDouble className="w-3.5 h-3.5" />
-                      {item.quartos}
-                    </span>
-                  )}
-                  {showCampo("banheiros") && item.banheiros != null && (
-                    <span className="inline-flex items-center gap-1">
-                      <Bath className="w-3.5 h-3.5" />
-                      {item.banheiros}
-                    </span>
-                  )}
-                  {showCampo("vagas") && item.vagas != null && (
-                    <span className="inline-flex items-center gap-1">
-                      <Car className="w-3.5 h-3.5" />
-                      {item.vagas}
-                    </span>
-                  )}
-                  {showCampo("metragem") && item.areaM2 != null && (
-                    <span className="inline-flex items-center gap-1">
-                      <Ruler className="w-3.5 h-3.5" />
-                      {item.areaM2} m²
-                    </span>
-                  )}
-                  {showCampo("valor") && item.valorReferencia != null && (
-                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                      A partir de {brl(item.valorReferencia)}
-                    </span>
-                  )}
-                  {showCampo("renda") && item.rendaAPartirDe != null && (
-                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                      <Wallet className="w-3.5 h-3.5" />
-                      Renda a partir de {brl(item.rendaAPartirDe)}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {captacaoFiltered.map((item) => (
-            <Card
-              key={`cap-${item.id}`}
-              className={cn(TABLE_SHELL, "group")}
-            >
-              <Link
-                to="/captacao/imoveis/$id"
-                params={{ id: item.id }}
-                className="relative block h-40 overflow-hidden bg-muted/40"
-              >
-                {imovelCapaUrl(item) ? (
-                  <img
-                    src={imovelCapaUrl(item) ?? ""}
-                    alt=""
-                    width={520}
-                    height={280}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Building2 className="h-10 w-10 text-muted-foreground/40" />
+                  <div className="pr-16">
+                    <p className="text-xl font-semibold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                      {item.valor != null ? formatBrl(item.valor) : "—"}
+                    </p>
+                    <p className="mt-1 text-sm text-[#8B98A3]">Captação</p>
                   </div>
-                )}
-                <Badge className="absolute bottom-3 right-3 rounded-full border-white/20 bg-black/45 text-white hover:bg-black/55">
-                  Captação
-                </Badge>
-              </Link>
-              <CardHeader className="pb-2 pt-4">
-                <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-base leading-snug">
-                  <Link
-                    to="/captacao/imoveis/$id"
-                    params={{ id: item.id }}
-                    className="hover:underline"
-                  >
-                    {item.titulo}
-                  </Link>
-                </CardTitle>
-                  <div className="flex shrink-0 gap-0.5">
-                  {canManage ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Editar"
-                      onClick={() =>
-                        setUnidadeEditRequest({
-                          id: item.id,
-                          tick: Date.now(),
-                        })
-                      }
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  ) : null}
-                  {canDelete ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Excluir"
-                      onClick={() =>
-                        setUnidadeDeleteRequest({
-                          id: item.id,
-                          tick: Date.now(),
-                        })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  ) : null}
+                  <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                      {item.quartos != null ? (
+                        <span className="inline-flex items-center gap-1.5"><BedDouble className="size-3.5 text-[#079ED4]" />{item.quartos} quartos</span>
+                      ) : null}
+                      {item.vagas != null ? (
+                        <span className="inline-flex items-center gap-1.5"><Car className="size-3.5 text-[#079ED4]" />{item.vagas} vagas</span>
+                      ) : null}
+                      {item.area != null ? (
+                        <span className="inline-flex items-center gap-1.5"><Ruler className="size-3.5 text-[#079ED4]" />{item.area} m²</span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {item.proprietario?.nome ?? "Sem proprietário"}
-                  {item.cidade ? ` · ${item.cidade}` : ""}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge className={STATUS_CHIP_CLASS}>
-                    {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo]}
-                  </Badge>
-                </div>
-                {item.valor != null ? (
-                  <p className="text-sm font-medium">
-                    {formatBrl(item.valor)}
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
+              </div>
+            </article>
           ))}
         </div>
       )}
