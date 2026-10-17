@@ -438,6 +438,12 @@ export type OportunidadeCaptacao = {
   status: "aberta" | "convertida" | "perdida";
   motivoPerda: string;
   captacaoId: string | null;
+  imovelId?: string | null;
+  imovel?: {
+    id: string;
+    fotoUrl: string | null;
+    fotos: Array<{ url: string }>;
+  } | null;
 };
 
 export function fetchOportunidades() {

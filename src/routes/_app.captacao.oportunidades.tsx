@@ -28,22 +28,35 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
+import {
+  emptyImovelFicha,
+  fichaToPayload,
+  imovelToFicha,
+} from "@/lib/imovel-ficha";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_IMOVEL_TIPOS,
   CAPTACAO_MOTIVOS_PERDA,
   createOportunidade,
+  deleteCaptacaoImovelFoto,
+  fetchCaptacaoImovel,
   fetchCaptacaoResponsaveis,
   fetchOportunidades,
   formatBrl,
+  IMOVEL_MAX_FOTOS,
+  imovelFotoItens,
   perderOportunidade,
   promoverOportunidade,
+  updateCaptacaoImovel,
+  uploadCaptacaoImovelFoto,
   type CaptacaoImovelTipo,
   type CaptacaoResponsavel,
+  type Imovel,
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
 import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
-import { Loader2, Plus } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/oportunidades")({
@@ -65,6 +78,7 @@ function OportunidadesPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [perderId, setPerderId] = useState<string | null>(null);
+  const [ficha, setFicha] = useState<OportunidadeCaptacao | null>(null);
   const [motivo, setMotivo] = useState<string>(CAPTACAO_MOTIVOS_PERDA[0]);
   const [form, setForm] = useState({
     localizacao: "",
@@ -85,9 +99,10 @@ function OportunidadesPage() {
       fetchCaptacaoResponsaveis().catch(() => [] as CaptacaoResponsavel[]),
     ])
       .then(([next, pessoas]) => {
-        const usarExemplo = next.length === 0;
+        const abertas = next.filter((row) => row.status !== "convertida");
+        const usarExemplo = abertas.length === 0;
         setExemplo(usarExemplo);
-        setRows(usarExemplo ? OPORTUNIDADES_MOCK : next);
+        setRows(usarExemplo ? OPORTUNIDADES_MOCK : abertas);
         setResponsaveis(pessoas);
         setForm((current) => ({
           ...current,
@@ -145,6 +160,7 @@ function OportunidadesPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Foto</TableHead>
               <TableHead>Local</TableHead>
               <TableHead>Proprietário</TableHead>
               <TableHead>Tipo</TableHead>
@@ -159,19 +175,30 @@ function OportunidadesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-muted-foreground">
+                <TableCell colSpan={10} className="text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-muted-foreground">
+                <TableCell colSpan={10} className="text-muted-foreground">
                   Nenhuma oportunidade registrada.
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="cursor-pointer" onClick={() => setFicha(row)}>
+                  <TableCell>
+                    {row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl ? (
+                      <img
+                        src={row.imovel.fotos?.[0]?.url || row.imovel.fotoUrl || ""}
+                        alt=""
+                        className="h-12 w-16 rounded-md object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Sem foto</span>
+                    )}
+                  </TableCell>
                   <TableCell>{row.localizacao}</TableCell>
                   <TableCell>
                     <div>{row.proprietarioNome}</div>
@@ -183,7 +210,7 @@ function OportunidadesPage() {
                   <TableCell>{row.responsavel.name}</TableCell>
                   <TableCell>{row.proximaAcao || "—"}</TableCell>
                   <TableCell>{STATUS_LABEL[row.status]}</TableCell>
-                  <TableCell className="space-x-2 text-right">
+                  <TableCell className="space-x-2 text-right" onClick={(event) => event.stopPropagation()}>
                     {exemplo ? (
                       <span className="text-xs text-muted-foreground">Exemplo</span>
                     ) : row.status === "aberta" ? (
@@ -396,6 +423,177 @@ function OportunidadesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <OportunidadeFichaDialog
+        row={ficha}
+        onClose={() => setFicha(null)}
+        onCaptada={() => {
+          setFicha(null);
+          load();
+        }}
+      />
     </>
+  );
+}
+
+function OportunidadeFichaDialog({
+  row,
+  onClose,
+  onCaptada,
+}: {
+  row: OportunidadeCaptacao | null;
+  onClose: () => void;
+  onCaptada: () => void;
+}) {
+  const [imovel, setImovel] = useState<Imovel | null>(null);
+  const [ficha, setFicha] = useState(emptyImovelFicha());
+  const [fotoBusy, setFotoBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [captando, setCaptando] = useState(false);
+
+  useEffect(() => {
+    if (!row?.imovel?.id && !row?.imovelId) {
+      setImovel(null);
+      return;
+    }
+    const id = row.imovel?.id ?? row.imovelId;
+    if (!id) return;
+    void fetchCaptacaoImovel(id)
+      .then((next) => {
+        setImovel(next);
+        setFicha(imovelToFicha(next));
+      })
+      .catch(() => setImovel(null));
+  }, [row]);
+
+  const fotos = imovelFotoItens({
+    fotos: imovel?.fotos,
+    fotoUrl: imovel?.fotoUrl,
+  });
+
+  return (
+    <Dialog open={row != null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Ficha da oportunidade</DialogTitle>
+        </DialogHeader>
+        {row ? (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {row.proprietarioNome}
+              {row.telefone ? ` · ${row.telefone}` : ""} · {row.localizacao}
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {fotos.map((foto) => (
+                <div key={foto.id ?? foto.url} className="relative">
+                  <img src={foto.url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
+                  {imovel && foto.id ? (
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-destructive"
+                      disabled={fotoBusy}
+                      onClick={() => {
+                        setFotoBusy(true);
+                        void deleteCaptacaoImovelFoto(imovel.id, foto.id!)
+                          .then((next) => {
+                            setImovel(next);
+                            toast.success("Foto removida.");
+                          })
+                          .catch((err) => {
+                            toast.error(err instanceof ApiError ? err.message : "Não foi possível remover.");
+                          })
+                          .finally(() => setFotoBusy(false));
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            {imovel ? (
+              <Button asChild size="sm" variant="outline" disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}>
+                <label className="cursor-pointer">
+                  {fotoBusy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1 h-4 w-4" />}
+                  Cadastrar imagem
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (!file || !imovel) return;
+                      setFotoBusy(true);
+                      void uploadCaptacaoImovelFoto(imovel.id, file)
+                        .then((next) => {
+                          setImovel(next);
+                          toast.success("Foto enviada.");
+                        })
+                        .catch((err) => {
+                          toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar.");
+                        })
+                        .finally(() => setFotoBusy(false));
+                    }}
+                  />
+                </label>
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Esta oportunidade ainda não tem imóvel vinculado para receber fotos.
+              </p>
+            )}
+            {imovel ? (
+              <ImovelFichaFields
+                value={ficha}
+                onChange={setFicha}
+                resetKey={imovel.id}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        <DialogFooter>
+          {imovel ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={() => {
+                setSaving(true);
+                void updateCaptacaoImovel(imovel.id, fichaToPayload(ficha))
+                  .then((next) => {
+                    setImovel(next);
+                    toast.success("Ficha salva.");
+                  })
+                  .catch((err) => {
+                    toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar.");
+                  })
+                  .finally(() => setSaving(false));
+              }}
+            >
+              Salvar ficha
+            </Button>
+          ) : null}
+          {row && row.status === "aberta" && !row.id.startsWith("mock") ? (
+            <Button
+              disabled={captando}
+              onClick={() => {
+                setCaptando(true);
+                void promoverOportunidade(row.id)
+                  .then(() => {
+                    toast.success("Captação cadastrada. A oportunidade saiu do banco.");
+                    onCaptada();
+                  })
+                  .catch((err) => {
+                    toast.error(err instanceof ApiError ? err.message : "Não foi possível cadastrar.");
+                  })
+                  .finally(() => setCaptando(false));
+              }}
+            >
+              Cadastrar em captações
+            </Button>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

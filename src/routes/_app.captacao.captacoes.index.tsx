@@ -197,7 +197,7 @@ function CaptacoesPage() {
             style={BRAND_GRADIENT_STYLE}
           >
             <Building2 className="mr-1 h-4 w-4" />
-            Cadastrar imóvel
+            Cadastrar captação
           </Button>
         }
       />
@@ -316,7 +316,7 @@ function CaptacoesPage() {
             <Building2 className="h-8 w-8 opacity-40" />
             <p className="max-w-sm text-center">
               {items.length === 0
-                ? "Nenhuma captação cadastrada. Use “Cadastrar imóvel” para começar."
+                ? "Nenhuma captação cadastrada. Use “Cadastrar captação” para começar."
                 : "Nenhuma captação encontrada para a busca ou os filtros."}
             </p>
           </CardContent>
