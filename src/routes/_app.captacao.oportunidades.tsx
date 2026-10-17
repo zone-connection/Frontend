@@ -18,14 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
@@ -56,7 +48,9 @@ import {
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
 import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
-import { ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
+import { SOFT_SURFACE } from "@/lib/soft-surface";
+import { cn } from "@/lib/utils";
+import { ArrowRight, ImagePlus, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/oportunidades")({
@@ -157,108 +151,117 @@ function OportunidadesPage() {
           </Button>
         }
       />
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm dark:border-white/10 dark:bg-[#141a22]">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Foto</TableHead>
-              <TableHead>Local</TableHead>
-              <TableHead>Proprietário</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Próxima ação</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-muted-foreground">
-                  Carregando…
-                </TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-muted-foreground">
-                  Nenhuma oportunidade registrada.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row) => (
-                <TableRow key={row.id} className="cursor-pointer" onClick={() => setFicha(row)}>
-                  <TableCell>
-                    {row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl ? (
-                      <img
-                        src={row.imovel.fotos?.[0]?.url || row.imovel.fotoUrl || ""}
-                        alt=""
-                        className="h-12 w-16 rounded-md object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sem foto</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{row.localizacao}</TableCell>
-                  <TableCell>
-                    <div>{row.proprietarioNome}</div>
-                    <div className="text-xs text-muted-foreground">{row.telefone}</div>
-                  </TableCell>
-                  <TableCell>{CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}</TableCell>
-                  <TableCell>{formatBrl(row.valorPretendido)}</TableCell>
-                  <TableCell>{row.origem || "—"}</TableCell>
-                  <TableCell>{row.responsavel.name}</TableCell>
-                  <TableCell>{row.proximaAcao || "—"}</TableCell>
-                  <TableCell>{STATUS_LABEL[row.status]}</TableCell>
-                  <TableCell className="space-x-2 whitespace-nowrap text-right" onClick={(event) => event.stopPropagation()}>
-                    <Button size="sm" variant="outline" onClick={() => setFicha(row)}>
-                      Fotos e ficha
-                    </Button>
-                    {exemplo ? (
-                      <span className="text-xs text-muted-foreground">Exemplo</span>
-                    ) : row.status === "aberta" ? (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            void promoverOportunidade(row.id)
-                              .then((captacao) => {
-                                toast.success("Captação cadastrada. Saiu do banco.");
-                                void navigate({
-                                  to: "/captacao/captacoes/$id",
-                                  params: { id: captacao.id },
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Carregando…</p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+          Nenhuma oportunidade registrada.
+        </p>
+      ) : (
+        <ul className="space-y-4">
+          {rows.map((row) => {
+            const foto = row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl || "";
+            const quando = row.proximaAcaoEm
+              ? ` · ${row.proximaAcaoEm.slice(8, 10)}/${row.proximaAcaoEm.slice(5, 7)}`
+              : "";
+            return (
+              <li key={row.id}>
+                <article className={cn(SOFT_SURFACE, "overflow-hidden")}>
+                  <div className="grid gap-0 lg:grid-cols-[200px_minmax(0,1fr)]">
+                    <div className="relative min-h-[180px] bg-muted">
+                      {foto ? (
+                        <img src={foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full min-h-[180px] items-center justify-center text-xs text-muted-foreground">
+                          Sem foto
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 p-4 sm:p-5">
+                      <p className="mb-3 rounded-xl bg-[#E7F6FB] px-3 py-2 text-sm font-medium text-[#075985] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                        {row.proximaAcao
+                          ? `Próxima ação: ${row.proximaAcao}${quando}`
+                          : "Sem próxima ação definida"}
+                      </p>
+                      <h2 className="text-base font-semibold tracking-tight">
+                        {CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}
+                      </h2>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {row.proprietarioNome} · responsável {row.responsavel.name}
+                      </p>
+                      <p className="mt-3 text-sm tabular-nums">
+                        <span className="font-semibold">{formatBrl(row.valorPretendido)}</span>
+                        <span className="text-muted-foreground"> · {row.origem || "sem origem"}</span>
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          {STATUS_LABEL[row.status]}
+                        </span>
+                        {exemplo ? (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            Exemplo
+                          </span>
+                        ) : null}
+                        {row.telefone ? (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            {row.telefone}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="size-3" />
+                        {row.localizacao}
+                      </p>
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <Button size="sm" variant="outline" onClick={() => setFicha(row)}>
+                          Fotos e ficha
+                        </Button>
+                        {!exemplo && row.status === "aberta" ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              void promoverOportunidade(row.id)
+                                .then((captacao) => {
+                                  toast.success("Captação cadastrada. Saiu do banco.");
+                                  void navigate({
+                                    to: "/captacao/captacoes/$id",
+                                    params: { id: captacao.id },
+                                  });
+                                })
+                                .catch((err) => {
+                                  toast.error(
+                                    err instanceof ApiError
+                                      ? err.message
+                                      : "Não foi possível cadastrar.",
+                                  );
                                 });
-                              })
-                              .catch((err) => {
-                                toast.error(
-                                  err instanceof ApiError
-                                    ? err.message
-                                    : "Não foi possível captar.",
-                                );
-                              });
-                          }}
+                            }}
+                          >
+                            Cadastrar em captações
+                          </Button>
+                        ) : null}
+                        {!exemplo && row.status === "aberta" ? (
+                          <Button size="sm" variant="ghost" onClick={() => setPerderId(row.id)}>
+                            Perder
+                          </Button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                          onClick={() => setFicha(row)}
                         >
-                          Cadastrar em captações
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setPerderId(row.id)}
-                        >
-                          Perder
-                        </Button>
-                      </>
-                    ) : row.motivoPerda ? (
-                      <span className="text-xs text-muted-foreground">{row.motivoPerda}</span>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                          Ver detalhes
+                          <ArrowRight className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
