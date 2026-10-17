@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,17 +56,21 @@ import { ImovelFotoThumb } from "@/components/imovel-foto-thumb";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRight,
+  BedDouble,
   Building2,
+  CalendarDays,
+  Car,
   Eye,
+  Images,
   LayoutGrid,
   LayoutList,
   Loader2,
   MapPin,
+  Maximize2,
   Pencil,
-  Ruler,
   Search,
   Trash2,
-  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,24 +115,46 @@ function CaptacoesPage() {
     exclusividade: "",
     cidade: "",
   });
+  const [ordem, setOrdem] = useState("recentes");
+  const [etapa, setEtapa] = useState("");
+  const etapas = useMemo(() => {
+    const labels = new Set(items.map((item) => item.funilEtapa.label).filter(Boolean));
+    return [...labels];
+  }, [items]);
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => {
+    const filtered = items.filter((item) => {
+      if (etapa && item.funilEtapa.label !== etapa) return false;
+      if (!q) return true;
       const hay = [
         item.proprietario.nome,
         item.imovel.titulo,
         item.imovel.cidade,
         item.imovel.bairro,
+        item.imovel.estado,
         item.responsavel.name,
         item.origem,
         item.funilEtapa.label,
+        CAPTACAO_IMOVEL_TIPO_LABEL[item.imovel.tipo],
       ]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [items, search]);
+    const next = [...filtered];
+    if (ordem === "maior") {
+      next.sort(
+        (a, b) => (b.valorPretendido ?? 0) - (a.valorPretendido ?? 0),
+      );
+    } else if (ordem === "menor") {
+      next.sort(
+        (a, b) => (a.valorPretendido ?? 0) - (b.valorPretendido ?? 0),
+      );
+    } else {
+      next.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    return next;
+  }, [items, search, ordem, etapa]);
   const pager = useTablePager(visible, search);
 
   function setVista(next: Vista) {
@@ -218,6 +244,38 @@ function CaptacoesPage() {
                 className={cn("pl-9", FILTER_CONTROL)}
               />
             </div>
+          </div>
+          <div className="sm:w-44">
+            <Label className={FILTER_LABEL}>Ordenar por</Label>
+            <Select value={ordem} onValueChange={setOrdem}>
+              <SelectTrigger className={FILTER_CONTROL}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recentes">Mais recentes</SelectItem>
+                <SelectItem value="maior">Maior valor</SelectItem>
+                <SelectItem value="menor">Menor valor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="sm:w-44">
+            <Label className={FILTER_LABEL}>Status</Label>
+            <Select
+              value={etapa || "__all__"}
+              onValueChange={(value) => setEtapa(value === "__all__" ? "" : value)}
+            >
+              <SelectTrigger className={FILTER_CONTROL}>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                {etapas.map((label) => (
+                  <SelectItem key={label} value={label}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className={FILTER_LABEL}>Exibir</Label>
@@ -510,175 +568,152 @@ function CaptacoesPage() {
       ) : (
         <>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {pager.pageItems.map((item) => (
-            <Card
-              key={item.id}
-              role="link"
-              tabIndex={0}
-              onClick={() =>
-                void navigate({
-                  to: "/captacao/captacoes/$id",
-                  params: { id: item.id },
-                })
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void navigate({
-                    to: "/captacao/captacoes/$id",
-                    params: { id: item.id },
-                  });
-                }
-              }}
-              className="group cursor-pointer overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md"
-            >
-              <div className="relative h-40 overflow-hidden bg-muted">
-                {imovelCapaUrl(item.imovel) ? (
-                  <img
-                    src={imovelCapaUrl(item.imovel) ?? ""}
-                    alt=""
-                    className="relative h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Building2 className="h-10 w-10 text-muted-foreground/40" />
-                  </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent" />
-                {item.imovel.cidade ? (
-                  <Badge className="absolute bottom-3 right-3 border-white/20 bg-black/45 text-white hover:bg-black/55">
-                    {item.imovel.cidade}
-                  </Badge>
-                ) : null}
-              </div>
-              <CardHeader className="pb-2 pt-4">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-snug">
-                    {item.imovel.titulo}
-                  </CardTitle>
-                  <div className="flex shrink-0 gap-0.5" onClick={(event) => event.stopPropagation()}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Ver detalhes"
-                      asChild
-                    >
-                      <Link
-                        to="/captacao/captacoes/$id"
-                        params={{ id: item.id }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Editar"
-                      asChild
-                    >
-                      <Link
-                        to="/captacao/captacoes/$id"
-                        params={{ id: item.id }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Excluir"
-                      onClick={() => setPendingDelete(item)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {item.proprietario.nome}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge
-                    className={cn(
-                      STATUS_CHIP_CLASS,
-                      TABLE_CHIP,
-                      "rounded-full",
-                      catalogColorBadgeClass(item.funilEtapa.color),
-                    )}
-                    style={catalogColorBadgeStyle(item.funilEtapa.color)}
-                    title={item.funilEtapa.label}
+          {pager.pageItems.map((item) => {
+            const capa = imovelCapaUrl(item.imovel);
+            const local = [
+              item.imovel.bairro,
+              [item.imovel.cidade, item.imovel.estado].filter(Boolean).join("/"),
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            const quartos = item.imovel.quartos;
+            const vagas = item.imovel.vagas;
+            const area = item.imovel.areaConstruida ?? item.imovel.area;
+            const acao =
+              item.monitoramento?.problemas[0]?.titulo ||
+              (item.funilEtapa.label
+                ? `Etapa: ${item.funilEtapa.label}`
+                : "Sem próxima ação");
+            const stageColor = item.funilEtapa.color || "#079ED4";
+            return (
+              <article
+                key={item.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-[0_8px_24px_-18px_rgba(11,49,72,0.45)] dark:border-white/10"
+              >
+                <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
+                  {capa ? (
+                    <img
+                      src={capa}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[#05749E]">
+                      <Building2 className="h-10 w-10 opacity-40" />
+                    </div>
+                  )}
+                  <span
+                    className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm"
+                    style={{ backgroundColor: stageColor }}
                   >
-                    {item.funilEtapa.label}
-                  </Badge>
-                  {item.canceladoPeloProprietario ? (
-                    <Badge className="bg-red-600 text-white hover:bg-red-600">
-                      Cancelado pelo proprietário
-                    </Badge>
-                  ) : null}
-                  {item.sugestaoProprietario ? (
-                    <Badge className="bg-violet-600 text-white hover:bg-violet-600">
-                      Sugestão do proprietário
-                    </Badge>
-                  ) : null}
-                  {item.origem ? (
-                    <Badge
-                      className={cn(
-                        STATUS_CHIP_CLASS,
-                        catalogColorBadgeClass(
-                          colorByLabel("origem", item.origem),
-                        ),
-                      )}
-                      style={catalogColorBadgeStyle(
-                        colorByLabel("origem", item.origem),
-                      )}
-                      title={item.origem}
-                    >
-                      {item.origem}
-                    </Badge>
-                  ) : null}
-                  {item.exclusividade ? (
-                    <Badge className={cn(STATUS_CHIP_CLASS, "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300")}>
-                      Exclusividade
-                    </Badge>
-                  ) : null}
-                  <Badge
-                    className={cn(STATUS_CHIP_CLASS, "bg-sky-500/15 text-sky-700 dark:text-sky-300")}
-                    title={CAPTACAO_IMOVEL_TIPO_LABEL[item.imovel.tipo]}
-                  >
-                    {CAPTACAO_IMOVEL_TIPO_LABEL[item.imovel.tipo]}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" />
-                    {item.responsavel.name.split(" ")[0]}
+                    {item.funilEtapa.label || "Captação"}
                   </span>
-                  {item.imovel.area != null ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Ruler className="h-3.5 w-3.5" />
-                      {item.imovel.area} m²
-                    </span>
-                  ) : null}
-                  {item.imovel.bairro ? (
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {item.imovel.bairro}
-                    </span>
-                  ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title="Excluir"
+                    className="absolute right-2 top-2 h-8 w-8 rounded-full bg-white/90 text-[#5C6B76] hover:bg-white hover:text-destructive dark:bg-[#141a22]/90"
+                    onClick={() => setPendingDelete(item)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <p className="text-sm font-semibold text-primary">
-                  {formatBrl(item.valorPretendido ?? item.valorAvaliacao)}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                <div className="flex flex-1 flex-col gap-2.5 p-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
+                      {item.imovel.titulo ||
+                        CAPTACAO_IMOVEL_TIPO_LABEL[item.imovel.tipo]}
+                    </h3>
+                    {local ? (
+                      <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                        <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                        {local}
+                      </p>
+                    ) : null}
+                  </div>
+                  <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                    {formatBrl(item.valorPretendido ?? item.valorAvaliacao)}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]">
+                    {quartos != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <BedDouble className="size-3.5 text-[#079ED4]" />
+                        {quartos} {quartos === 1 ? "quarto" : "quartos"}
+                      </span>
+                    ) : null}
+                    {vagas != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Car className="size-3.5 text-[#079ED4]" />
+                        {vagas} {vagas === 1 ? "vaga" : "vagas"}
+                      </span>
+                    ) : null}
+                    {area != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Maximize2 className="size-3.5 text-[#079ED4]" />
+                        {area} m²
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-auto flex items-center gap-2 rounded-xl bg-[#F3FAFD] px-3 py-2 text-xs font-medium text-[#05749E] dark:bg-[#102838] dark:text-[#7DD3FC]">
+                    <CalendarDays className="size-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{acao}</span>
+                    <ArrowRight className="size-3.5 shrink-0" />
+                  </p>
+                  {(item.canceladoPeloProprietario ||
+                    item.sugestaoProprietario ||
+                    item.exclusividade) && (
+                    <div className="flex flex-wrap gap-1">
+                      {item.canceladoPeloProprietario ? (
+                        <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Cancelado
+                        </span>
+                      ) : null}
+                      {item.sugestaoProprietario ? (
+                        <span className="rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Sugestão
+                        </span>
+                      ) : null}
+                      {item.exclusividade ? (
+                        <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Exclusividade
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-[#D3EBF5] text-[#0B3148] dark:border-white/15 dark:text-[#E7F4FA]"
+                      asChild
+                    >
+                      <Link to="/captacao/captacoes/$id" params={{ id: item.id }}>
+                        Ver detalhes
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className={cn("rounded-full", BRAND_GRADIENT_BTN)}
+                      style={BRAND_GRADIENT_STYLE}
+                      asChild
+                    >
+                      <Link
+                        to="/captacao/imoveis/$id"
+                        params={{ id: item.imovel.id }}
+                      >
+                        <Images className="mr-1.5 size-3.5" />
+                        Fotos e ficha
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <TablePager
           page={pager.page}
