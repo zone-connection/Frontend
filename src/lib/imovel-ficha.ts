@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CaptacaoImovelTipo, Proprietario } from "@/lib/captacao-api";
 
 export type ImovelFichaValues = {
@@ -110,6 +111,8 @@ export type ImovelCadastroFields = {
   cidade: string;
   estado: string;
   proprietarios: Proprietario[];
+  /** Bloco extra abaixo do select, para criar o dono na hora. */
+  depoisDoProprietario?: ReactNode;
   onChange: (
     patch: Partial<Omit<ImovelCadastroFields, "proprietarios" | "onChange">>,
   ) => void;

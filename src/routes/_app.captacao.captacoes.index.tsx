@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { ImoveisPage } from "@/components/imoveis-page";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { TablePager } from "@/components/table-pager";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -114,11 +115,13 @@ function initials(name: string) {
 }
 
 function CaptacoesPage() {
+  const navigate = useNavigate();
   const { origens, colorByLabel } = useCatalog();
   const origemOpcoes = origens.length ? origens : [...CAPTACAO_ORIGENS_PADRAO];
   const [items, setItems] = useState<Captacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [cadastroImovel, setCadastroImovel] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Captacao | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -273,15 +276,26 @@ function CaptacoesPage() {
         title="Captações"
         description="Processos no funil de Captação. A etapa inicial vem do funil ativo."
         actions={
-          <Button
-            size="sm"
-            onClick={() => void openCreate()}
-            className={cn("h-8 rounded-full", BRAND_GRADIENT_BTN)}
-            style={BRAND_GRADIENT_STYLE}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Nova captação
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCadastroImovel(true)}
+              className="h-8 rounded-full"
+            >
+              <Building2 className="mr-1 h-4 w-4" />
+              Cadastrar imóvel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void openCreate()}
+              className={cn("h-8 rounded-full", BRAND_GRADIENT_BTN)}
+              style={BRAND_GRADIENT_STYLE}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Nova captação
+            </Button>
+          </div>
         }
       />
 
@@ -421,7 +435,16 @@ function CaptacoesPage() {
             </TableHeader>
             <TableBody>
               {pager.pageItems.map((item) => (
-                <TableRow key={item.id} className="hover:bg-muted/40">
+                <TableRow
+                  key={item.id}
+                  className="cursor-pointer hover:bg-muted/40"
+                  onClick={() =>
+                    void navigate({
+                      to: "/captacao/captacoes/$id",
+                      params: { id: item.id },
+                    })
+                  }
+                >
                   <TableCell>
                     <div className="flex min-w-40 items-center gap-3">
                       <Avatar className="h-8 w-8 shrink-0">
@@ -438,6 +461,7 @@ function CaptacoesPage() {
                         to="/captacao/proprietarios/$id"
                         params={{ id: item.proprietario.id }}
                         className="truncate text-sm font-medium hover:underline"
+                        onClick={(event) => event.stopPropagation()}
                       >
                         {item.proprietario.nome}
                       </Link>
@@ -448,6 +472,7 @@ function CaptacoesPage() {
                       to="/captacao/imoveis/$id"
                       params={{ id: item.imovel.id }}
                       className="flex min-w-0 items-center gap-2 hover:underline"
+                      onClick={(event) => event.stopPropagation()}
                     >
                       <ImovelFotoThumb src={imovelCapaUrl(item.imovel)} alt="" />
                       <span className="min-w-0">
@@ -524,7 +549,7 @@ function CaptacoesPage() {
                       {item.funilEtapa.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <Button
                         type="button"
@@ -585,7 +610,23 @@ function CaptacoesPage() {
           {pager.pageItems.map((item) => (
             <Card
               key={item.id}
-              className="group overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md"
+              role="link"
+              tabIndex={0}
+              onClick={() =>
+                void navigate({
+                  to: "/captacao/captacoes/$id",
+                  params: { id: item.id },
+                })
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void navigate({
+                    to: "/captacao/captacoes/$id",
+                    params: { id: item.id },
+                  });
+                }
+              }}
+              className="group cursor-pointer overflow-hidden rounded-2xl border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md"
             >
               <div className="relative h-40 overflow-hidden bg-muted">
                 {imovelCapaUrl(item.imovel) ? (
@@ -612,7 +653,7 @@ function CaptacoesPage() {
                   <CardTitle className="text-base leading-snug">
                     {item.imovel.titulo}
                   </CardTitle>
-                  <div className="flex shrink-0 gap-0.5">
+                  <div className="flex shrink-0 gap-0.5" onClick={(event) => event.stopPropagation()}>
                     <Button
                       type="button"
                       variant="ghost"
@@ -881,6 +922,13 @@ function CaptacoesPage() {
         loading={deleting}
         onConfirm={() => void handleDelete()}
       />
+      {cadastroImovel ? (
+        <ImoveisPage
+          somenteDialogo
+          ocultarPrazoEntrega
+          onDialogoFechado={() => setCadastroImovel(false)}
+        />
+      ) : null}
     </>
   );
 }

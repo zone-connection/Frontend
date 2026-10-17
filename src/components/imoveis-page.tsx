@@ -608,10 +608,17 @@ export function ImoveisPage({
   embedded = false,
   proprietarioId,
   openMatchesId,
+  somenteDialogo = false,
+  ocultarPrazoEntrega = false,
+  onDialogoFechado,
 }: {
   embedded?: boolean;
   proprietarioId?: string;
   openMatchesId?: string;
+  /** Abre só o assistente de cadastro, por cima da tela de captação. */
+  somenteDialogo?: boolean;
+  ocultarPrazoEntrega?: boolean;
+  onDialogoFechado?: () => void;
 } = {}) {
   const user = getSession();
   const isAdmin = user?.role === "admin";
@@ -843,6 +850,13 @@ export function ImoveisPage({
     setQuickOpen(true);
     await loadCatalogos();
   }
+
+  useEffect(() => {
+    if (!somenteDialogo) return;
+    void openQuickCreate();
+    // só na montagem do assistente aberto pela captação
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [somenteDialogo]);
 
   function openUnidadeCreate() {
     setKindPickOpen(false);
@@ -1676,7 +1690,7 @@ export function ImoveisPage({
   );
 
   return (
-    <div>
+    <div className={somenteDialogo ? "hidden" : undefined}>
       {embedded ? (
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -3109,12 +3123,23 @@ export function ImoveisPage({
             setEditingId(null);
             setFormTab("identidade");
             resetImageState();
+            onDialogoFechado?.();
           }
         }}
         className="max-w-4xl"
         icon={<Building2 className="w-5 h-5" />}
-        title={editingId ? "Editar empreendimento" : "Novo empreendimento"}
-        description="Cada dado uma vez: local, unidade, itens e textos da vitrine."
+        title={
+          editingId
+            ? "Editar empreendimento"
+            : ocultarPrazoEntrega
+              ? "Novo imóvel"
+              : "Novo empreendimento"
+        }
+        description={
+          ocultarPrazoEntrega
+            ? "Cadastro do imóvel para a captação. O mesmo formulário do catálogo, sem prazo de entrega."
+            : "Cada dado uma vez: local, unidade, itens e textos da vitrine."
+        }
         footer={
           <FormDialogActions hint="Salva o empreendimento no catálogo. O que estiver vazio não aparece na página pública.">
             <Button
@@ -4055,10 +4080,15 @@ export function ImoveisPage({
             <TabsContent value="prazos" className="mt-4">
           <FormSection
             icon={<CalendarClock className="h-4 w-4" />}
-            title="Prazos e valores"
-            description="Entrega, lançamento, preço e renda sugerida."
+            title={ocultarPrazoEntrega ? "Valores" : "Prazos e valores"}
+            description={
+              ocultarPrazoEntrega
+                ? "Lançamento, preço e renda sugerida."
+                : "Entrega, lançamento, preço e renda sugerida."
+            }
           >
             <div className="grid gap-4 sm:grid-cols-2">
+              {ocultarPrazoEntrega ? null : (
               <div className="space-y-1.5">
                 <Label htmlFor="imovel-previsao">Previsão de entrega</Label>
                 <Input
@@ -4073,6 +4103,7 @@ export function ImoveisPage({
                   Quando as chaves devem ser entregues.
                 </p>
               </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="imovel-lancamento">Lançamento</Label>
                 <Input

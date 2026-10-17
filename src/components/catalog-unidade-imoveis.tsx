@@ -17,7 +17,9 @@ import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
+  createCaptacao,
   createCaptacaoImovel,
+  createProprietario,
   deleteCaptacaoImovel,
   deleteCaptacaoImovelFoto,
   fetchCaptacaoImoveis,
@@ -56,6 +58,7 @@ import {
   fichaToPayload,
   imovelToFicha,
 } from "@/lib/imovel-ficha";
+import { fetchFunis } from "@/lib/funis-api";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { cn } from "@/lib/utils";
 import { Building2, Eye, Loader2, Pencil, Trash2 } from "lucide-react";
@@ -113,7 +116,10 @@ export function CatalogUnidadeImoveis({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Imovel | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [listarUsados, setListarUsados] = useState(false);
+  const [listarUsados, setListarUsados] = useState(true);
+  const [donoRapido, setDonoRapido] = useState(false);
+  const [donoNome, setDonoNome] = useState("");
+  const [donoTelefone, setDonoTelefone] = useState("");
   const [precoUsados, setPrecoUsados] = useState("");
   const [statusUsados, setStatusUsados] = useState<VendaUsadoStatus>("disponivel");
   const [funilUsadosId, setFunilUsadosId] = useState("");
@@ -193,7 +199,10 @@ export function CatalogUnidadeImoveis({
       setEditing(null);
       clearPendingFoto();
       setForm({ ...emptyForm, proprietarioId: proprietarioId ?? "" });
-      setListarUsados(false);
+      setDonoRapido(false);
+      setDonoNome("");
+      setDonoTelefone("");
+      setListarUsados(true);
       setPrecoUsados("");
       setStatusUsados("disponivel");
       setOpen(true);
@@ -251,15 +260,38 @@ export function CatalogUnidadeImoveis({
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
-    if (!form.proprietarioId) {
-      toast.error("Selecione o proprietário.");
+    let proprietarioId = form.proprietarioId;
+    if (!proprietarioId && donoRapido) {
+      const nome = donoNome.trim();
+      if (!nome) {
+        toast.error("Informe o nome do proprietário.");
+        return;
+      }
+    }
+    if (!proprietarioId && !donoRapido) {
+      toast.error("Selecione o proprietário ou cadastre um agora.");
+      return;
+    }
+    if (!me?.id) {
+      toast.error("Sessão sem usuário para registrar a captação.");
       return;
     }
     setSaving(true);
     try {
+      if (!proprietarioId) {
+        const criado = await createProprietario({
+          nome: donoNome.trim(),
+          telefone: donoTelefone.trim() || undefined,
+        });
+        proprietarioId = criado.id;
+        setProprietarios((rows) =>
+          [...rows, criado].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        );
+        setForm((current) => ({ ...current, proprietarioId: criado.id }));
+      }
       const ficha = fichaToPayload(form);
       const body = {
-        proprietarioId: form.proprietarioId,
+        proprietarioId,
         tipo: form.tipo,
         cep: form.cep,
         logradouro: form.logradouro,
@@ -272,17 +304,31 @@ export function CatalogUnidadeImoveis({
       let saved: Imovel;
       if (editing) {
         saved = await updateCaptacaoImovel(editing.id, body);
-        toast.success("Imóvel atualizado.");
       } else {
         saved = await createCaptacaoImovel(body);
         for (const file of pendingFotos) {
           saved = await uploadCaptacaoImovelFoto(saved.id, file);
         }
-        toast.success("Imóvel cadastrado.");
+        const funisCaptacao = await fetchFunis("captacao");
+        const funilCaptacao =
+          funisCaptacao.find((funil) => funil.ativo) ?? funisCaptacao[0];
+        const etapaCaptada = funilCaptacao?.etapas.find(
+          (etapa) => etapa.active && etapa.papel === "captado",
+        );
+        await createCaptacao({
+          proprietarioId,
+          imovelId: saved.id,
+          responsavelId: me.id,
+          origem: "Cadastro direto",
+          funilId: funilCaptacao?.id,
+          funilEtapaId: etapaCaptada?.id,
+          valorPretendido: parseOptionalMoneyInput(precoUsados),
+        });
       }
 
       const venda = vendaByImovel.get(saved.id);
-      if (listarUsados) {
+      const entraNoEstoque = !editing || listarUsados;
+      if (entraNoEstoque) {
         const payload = {
           imovelId: saved.id,
           funilId: funilUsadosId || undefined,
@@ -304,6 +350,11 @@ export function CatalogUnidadeImoveis({
 
       clearPendingFoto();
       setOpen(false);
+      toast.success(
+        editing
+          ? "Imóvel atualizado."
+          : "Imóvel na captação e no estoque de usados.",
+      );
       await load();
       onChanged?.();
     } catch (err) {
@@ -520,13 +571,37 @@ export function CatalogUnidadeImoveis({
       <FormDialogShell
         open={open}
         onOpenChange={setOpen}
-        className="max-w-3xl"
+        className="max-w-4xl"
         icon={<Building2 className="h-5 w-5" />}
         title={editing ? "Editar imóvel" : "Novo imóvel de captação"}
-        description="A mesma ficha vale na captação, no catálogo de empreendimentos, na venda de usados e no portal."
+        description="Cada dado uma vez: dono, endereço, unidade, itens e anúncio."
+        footer={
+          <FormDialogActions hint="O cadastro novo entra na captação, já captado, e no estoque de usados.">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="captacao-usado-form"
+              className="rounded-xl"
+              disabled={saving}
+            >
+              {saving ? "Salvando…" : editing ? "Salvar" : "Cadastrar"}
+            </Button>
+          </FormDialogActions>
+        }
       >
-        <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
-          <FormDialogBody>
+        <form
+          id="captacao-usado-form"
+          onSubmit={handleSave}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <FormDialogBody className="bg-muted/40 [&_input]:h-10 [&_input]:rounded-xl [&_input]:border-border/80 [&_input]:bg-background [&_input]:shadow-sm [&_textarea]:rounded-xl [&_textarea]:border-border/80 [&_textarea]:bg-background [&_textarea]:shadow-sm [&_select]:h-10 [&_select]:rounded-xl [&_select]:border-border/80 [&_select]:bg-background">
             <ImovelFichaFields
               resetKey={`${open}-${editing?.id ?? "new"}`}
               value={form}
@@ -541,7 +616,55 @@ export function CatalogUnidadeImoveis({
                 cidade: form.cidade,
                 estado: form.estado,
                 proprietarios,
-                onChange: (patch) => setForm({ ...form, ...patch }),
+                onChange: (patch) => {
+                  if (patch.proprietarioId) setDonoRapido(false);
+                  setForm({ ...form, ...patch });
+                },
+                depoisDoProprietario: (
+                  <div className="space-y-2 rounded-xl border border-border/80 bg-background p-3">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-primary"
+                      onClick={() => {
+                        setDonoRapido((open) => !open);
+                        if (!donoRapido) {
+                          setForm((current) => ({
+                            ...current,
+                            proprietarioId: "",
+                          }));
+                        }
+                      }}
+                    >
+                      {donoRapido
+                        ? "Usar um proprietário já cadastrado"
+                        : "Criar proprietário rápido"}
+                    </button>
+                    {donoRapido ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label>Nome</Label>
+                          <Input
+                            value={donoNome}
+                            onChange={(e) => setDonoNome(e.target.value)}
+                            placeholder="Nome do dono"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Telefone</Label>
+                          <Input
+                            value={donoTelefone}
+                            onChange={(e) => setDonoTelefone(e.target.value)}
+                            placeholder="(00) 00000-0000"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        O imóvel entra na captação já captado e no estoque de usados.
+                      </p>
+                    )}
+                  </div>
+                ),
               }}
               foto={{
                 items: imovelFotoItens({
@@ -624,7 +747,8 @@ export function CatalogUnidadeImoveis({
                 },
               }}
             />
-            <div className="mt-4 space-y-3 rounded-lg border p-3">
+            <div className="mt-4 space-y-3 rounded-2xl border border-border/80 bg-background p-4">
+              {editing ? (
               <label className="flex items-center gap-2 text-sm font-medium">
                 <Checkbox
                   checked={listarUsados}
@@ -632,7 +756,10 @@ export function CatalogUnidadeImoveis({
                 />
                 Disponibilizar na venda de usados
               </label>
-              {listarUsados ? (
+              ) : (
+                <p className="text-sm font-medium">Estoque de usados</p>
+              )}
+              {!editing || listarUsados ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Preço de venda</Label>
@@ -691,14 +818,6 @@ export function CatalogUnidadeImoveis({
               ) : null}
             </div>
           </FormDialogBody>
-          <FormDialogActions hint="Salva a unidade e, se marcado, cria ou atualiza a listagem de usados.">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Salvando…" : "Salvar"}
-            </Button>
-          </FormDialogActions>
         </form>
       </FormDialogShell>
       <ConfirmDeleteDialog

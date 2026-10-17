@@ -161,6 +161,8 @@ export function ImovelFichaFields({
   cadastro,
   resetKey,
   foto,
+  hideStepFooter,
+  onNavigation,
 }: {
   value: ImovelFichaValues;
   onChange: (next: ImovelFichaValues) => void;
@@ -173,6 +175,9 @@ export function ImovelFichaFields({
     onAdd: (file: File) => void;
     onRemove: (index: number, id?: string) => void;
   };
+  /** O dialog de criação desenha Voltar/Continuar no rodapé, como no lançamento. */
+  hideStepFooter?: boolean;
+  onNavigation?: (nav: ImovelFichaNavigation) => void;
 }) {
   const sections = cadastro ? CADASTRO_SECTIONS : FICHA_SECTIONS;
   const [section, setSection] = useState<ImovelFormSectionId>(sections[0]!.id);
@@ -196,27 +201,72 @@ export function ImovelFichaFields({
   const isFirst = index <= 0;
   const isLast = index >= sections.length - 1;
 
+  function goPrev() {
+    const prev = sections[index - 1];
+    if (prev) setSection(prev.id);
+  }
+  function goNext() {
+    const next = sections[index + 1];
+    if (next) setSection(next.id);
+  }
+
+  useEffect(() => {
+    onNavigation?.({
+      index,
+      total: sections.length,
+      isFirst,
+      isLast,
+      goPrev,
+      goNext,
+    });
+  }, [index, sections.length, isFirst, isLast]);
+
   return (
     <div className="space-y-4">
-      <nav className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
-        {sections.map((item, i) => {
-          const active = item.id === section;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSection(item.id)}
-              className={cn(
-                "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {i + 1}. {item.label}
-            </button>
-          );
-        })}
+      <nav className="space-y-3">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+          {sections.map((item, i) => {
+            const active = item.id === section;
+            const done = i < index;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSection(item.id)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : done
+                      ? "border-primary/30 bg-primary/5 text-foreground"
+                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
+                    active
+                      ? "bg-white/20 text-primary-foreground"
+                      : done
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {i + 1}
+                </span>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="h-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{
+              width: `${((index + 1) / sections.length) * 100}%`,
+            }}
+          />
+        </div>
       </nav>
 
       {section === "identificacao" && cadastro ? (
@@ -241,6 +291,7 @@ export function ImovelFichaFields({
               ))}
             </select>
           </Field>
+          {cadastro.depoisDoProprietario}
           <Field label="Tipo">
             <select
               className={imovelSelectClass}
@@ -536,16 +587,14 @@ export function ImovelFichaFields({
         </FormSection>
       ) : null}
 
+      {hideStepFooter ? null : (
       <div className="flex items-center justify-between gap-2 pt-1">
         <Button
           type="button"
           variant="ghost"
           className="rounded-xl"
           disabled={isFirst}
-          onClick={() => {
-            const prev = sections[index - 1];
-            if (prev) setSection(prev.id);
-          }}
+          onClick={goPrev}
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
           Voltar
@@ -558,18 +607,25 @@ export function ImovelFichaFields({
           variant={isLast ? "outline" : "default"}
           className="rounded-xl"
           disabled={isLast}
-          onClick={() => {
-            const next = sections[index + 1];
-            if (next) setSection(next.id);
-          }}
+          onClick={goNext}
         >
           Continuar
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
+      )}
     </div>
   );
 }
+
+export type ImovelFichaNavigation = {
+  index: number;
+  total: number;
+  isFirst: boolean;
+  isLast: boolean;
+  goPrev: () => void;
+  goNext: () => void;
+};
 
 type ImovelFormSectionId =
   | "identificacao"
