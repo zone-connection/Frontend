@@ -123,15 +123,16 @@ function OportunidadesPage() {
     event.preventDefault();
     setSaving(true);
     try {
-      await createOportunidade({
+      const criada = await createOportunidade({
         ...form,
         valorPretendido: form.valorPretendido
           ? Number(form.valorPretendido)
           : undefined,
         proximaAcaoEm: form.proximaAcaoEm || undefined,
       });
-      toast.success("Oportunidade registrada.");
+      toast.success("Oportunidade registrada. Agora envie as fotos e complete a ficha.");
       setOpen(false);
+      setFicha(criada);
       load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar.");
@@ -210,18 +211,20 @@ function OportunidadesPage() {
                   <TableCell>{row.responsavel.name}</TableCell>
                   <TableCell>{row.proximaAcao || "—"}</TableCell>
                   <TableCell>{STATUS_LABEL[row.status]}</TableCell>
-                  <TableCell className="space-x-2 text-right" onClick={(event) => event.stopPropagation()}>
+                  <TableCell className="space-x-2 whitespace-nowrap text-right" onClick={(event) => event.stopPropagation()}>
+                    <Button size="sm" variant="outline" onClick={() => setFicha(row)}>
+                      Fotos e ficha
+                    </Button>
                     {exemplo ? (
                       <span className="text-xs text-muted-foreground">Exemplo</span>
                     ) : row.status === "aberta" ? (
                       <>
                         <Button
                           size="sm"
-                          variant="outline"
                           onClick={() => {
                             void promoverOportunidade(row.id)
                               .then((captacao) => {
-                                toast.success("Captação aberta no funil.");
+                                toast.success("Captação cadastrada. Saiu do banco.");
                                 void navigate({
                                   to: "/captacao/captacoes/$id",
                                   params: { id: captacao.id },
@@ -236,7 +239,7 @@ function OportunidadesPage() {
                               });
                           }}
                         >
-                          Captar
+                          Cadastrar em captações
                         </Button>
                         <Button
                           size="sm"
