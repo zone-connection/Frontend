@@ -58,7 +58,6 @@ import {
   fichaToPayload,
   imovelToFicha,
 } from "@/lib/imovel-ficha";
-import { fetchFunis } from "@/lib/funis-api";
 import { STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { cn } from "@/lib/utils";
 import { Building2, Eye, Loader2, Pencil, Trash2 } from "lucide-react";
