@@ -415,6 +415,96 @@ export function fetchCaptacaoResponsaveis() {
   return apiFetch<CaptacaoResponsavel[]>("/captacao/responsaveis");
 }
 
+export const CAPTACAO_MOTIVOS_PERDA = [
+  "Proprietário desistiu",
+  "Preço incompatível",
+  "Imóvel já negociado",
+  "Falta de documentação",
+  "Ausência de retorno",
+] as const;
+
+export type OportunidadeCaptacao = {
+  id: string;
+  localizacao: string;
+  proprietarioNome: string;
+  telefone: string;
+  tipo: CaptacaoImovelTipo;
+  valorPretendido: number | null;
+  origem: string;
+  responsavelId: string;
+  responsavel: { id: string; name: string };
+  proximaAcao: string;
+  proximaAcaoEm: string | null;
+  status: "aberta" | "convertida" | "perdida";
+  motivoPerda: string;
+  captacaoId: string | null;
+};
+
+export function fetchOportunidades() {
+  return apiFetch<OportunidadeCaptacao[]>("/captacao/oportunidades");
+}
+
+export function createOportunidade(body: Record<string, unknown>) {
+  return apiFetch<OportunidadeCaptacao>("/captacao/oportunidades", {
+    method: "POST",
+    body,
+  });
+}
+
+export function promoverOportunidade(id: string) {
+  return apiFetch<Captacao>(`/captacao/oportunidades/${id}/promover`, {
+    method: "POST",
+  });
+}
+
+export function perderOportunidade(
+  id: string,
+  body: { motivoPerda: string; retornoEm?: string },
+) {
+  return apiFetch<OportunidadeCaptacao>(`/captacao/oportunidades/${id}/perder`, {
+    method: "POST",
+    body,
+  });
+}
+
+export type ChecklistItem = { chave: string; label: string; pronto: boolean };
+
+export function fetchCaptacaoDocumentacao() {
+  return apiFetch<
+    Array<{ id: string; proprietario: string; etapa: string; itens: ChecklistItem[] }>
+  >("/captacao/documentacao");
+}
+
+export type CaptacaoRelatorio = {
+  corretores: Array<{
+    responsavelId: string;
+    nome: string;
+    abertas: number;
+    concluidas: number;
+    visitas: number;
+    tempoMedioDias: number | null;
+  }>;
+  motivos: Array<{ motivo: string; total: number }>;
+};
+
+export function fetchCaptacaoRelatorio() {
+  return apiFetch<CaptacaoRelatorio>("/captacao/relatorio");
+}
+
+export type LinhaTempoEvento = {
+  id: string;
+  tipo: string;
+  texto: string;
+  quando: string;
+  autor: string | null;
+};
+
+export function fetchLinhaDoTempo(proprietarioId: string) {
+  return apiFetch<LinhaTempoEvento[]>(
+    `/captacao/proprietarios/${proprietarioId}/linha-do-tempo`,
+  );
+}
+
 export function formatBrl(value: number | null | undefined) {
   if (value == null) return "—";
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

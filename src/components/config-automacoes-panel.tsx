@@ -57,7 +57,7 @@ function sortEtapas(etapas: FunilEtapa[]): FunilEtapa[] {
 }
 
 function isEtapaTerminal(etapa: FunilEtapa): boolean {
-  return etapa.papel === "venda" || etapa.papel === "perdido";
+  return etapa.papel === "venda" || etapa.papel === "captado" || etapa.papel === "perdido";
 }
 
 export function ConfigAutomacoesPanel() {

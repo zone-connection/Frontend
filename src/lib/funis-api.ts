@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 
-export type FunilEtapaPapel = "inicial" | "analise" | "venda" | "perdido";
+export type FunilEtapaPapel = "inicial" | "analise" | "venda" | "captado" | "perdido";
 
 export type FunilTipo = "comercial" | "captacao" | "venda_usados";
 

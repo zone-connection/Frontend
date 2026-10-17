@@ -49,6 +49,7 @@ const LEGACY_PAPEL_BY_SLUG: Record<string, FunilEtapaPapel> = {
   "em-analise": "analise",
   venda: "venda",
   "ganho-venda": "venda",
+  "imovel-captado": "captado",
   perdido: "perdido",
 };
 
@@ -66,6 +67,9 @@ function papelPorNome(
 ): FunilEtapaPapel | null {
   const nome = foldEtapaNome(label);
   const id = foldEtapaNome(slug);
+  if (nome.includes("captado") || id === "imovel-captado" || id === "captado") {
+    return "captado";
+  }
   if (
     nome === "venda" ||
     nome === "vendido" ||

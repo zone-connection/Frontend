@@ -82,6 +82,10 @@ import { Route as AppCaptacaoFunilRouteImport } from './routes/_app.captacao.fun
 import { Route as AppCaptacaoImoveisRouteImport } from './routes/_app.captacao.imoveis'
 import { Route as AppCaptacaoProprietariosRouteImport } from './routes/_app.captacao.proprietarios'
 import { Route as AppCaptacaoVisaoGeralRouteImport } from './routes/_app.captacao.visao-geral'
+import { Route as AppCaptacaoOportunidadesRouteImport } from './routes/_app.captacao.oportunidades'
+import { Route as AppCaptacaoAvaliacoesRouteImport } from './routes/_app.captacao.avaliacoes'
+import { Route as AppCaptacaoDocumentacaoRouteImport } from './routes/_app.captacao.documentacao'
+import { Route as AppCaptacaoRelatoriosRouteImport } from './routes/_app.captacao.relatorios'
 import { Route as AppFinanceiroCategoriasRouteImport } from './routes/_app.financeiro.categorias'
 import { Route as AppFinanceiroCentroDespesasRouteImport } from './routes/_app.financeiro.centro-despesas'
 import { Route as AppFinanceiroCentroRecebimentosRouteImport } from './routes/_app.financeiro.centro-recebimentos'
@@ -489,6 +493,26 @@ const AppCaptacaoVisaoGeralRoute = AppCaptacaoVisaoGeralRouteImport.update({
   path: '/visao-geral',
   getParentRoute: () => AppCaptacaoRoute,
 } as any)
+const AppCaptacaoOportunidadesRoute = AppCaptacaoOportunidadesRouteImport.update({
+  id: '/oportunidades',
+  path: '/oportunidades',
+  getParentRoute: () => AppCaptacaoRoute,
+} as any)
+const AppCaptacaoAvaliacoesRoute = AppCaptacaoAvaliacoesRouteImport.update({
+  id: '/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AppCaptacaoRoute,
+} as any)
+const AppCaptacaoDocumentacaoRoute = AppCaptacaoDocumentacaoRouteImport.update({
+  id: '/documentacao',
+  path: '/documentacao',
+  getParentRoute: () => AppCaptacaoRoute,
+} as any)
+const AppCaptacaoRelatoriosRoute = AppCaptacaoRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppCaptacaoRoute,
+} as any)
 const AppFinanceiroCategoriasRoute = AppFinanceiroCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -780,6 +804,10 @@ export interface FileRoutesByFullPath {
   '/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
   '/captacao/visao-geral': typeof AppCaptacaoVisaoGeralRoute
+  '/captacao/oportunidades': typeof AppCaptacaoOportunidadesRoute
+  '/captacao/avaliacoes': typeof AppCaptacaoAvaliacoesRoute
+  '/captacao/documentacao': typeof AppCaptacaoDocumentacaoRoute
+  '/captacao/relatorios': typeof AppCaptacaoRelatoriosRoute
   '/financeiro/categorias': typeof AppFinanceiroCategoriasRoute
   '/financeiro/centro-despesas': typeof AppFinanceiroCentroDespesasRoute
   '/financeiro/centro-recebimentos': typeof AppFinanceiroCentroRecebimentosRoute
@@ -888,6 +916,10 @@ export interface FileRoutesByTo {
   '/captacao/fila': typeof AppCaptacaoFilaRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/visao-geral': typeof AppCaptacaoVisaoGeralRoute
+  '/captacao/oportunidades': typeof AppCaptacaoOportunidadesRoute
+  '/captacao/avaliacoes': typeof AppCaptacaoAvaliacoesRoute
+  '/captacao/documentacao': typeof AppCaptacaoDocumentacaoRoute
+  '/captacao/relatorios': typeof AppCaptacaoRelatoriosRoute
   '/financeiro/categorias': typeof AppFinanceiroCategoriasRoute
   '/financeiro/centro-despesas': typeof AppFinanceiroCentroDespesasRoute
   '/financeiro/centro-recebimentos': typeof AppFinanceiroCentroRecebimentosRoute
@@ -1003,6 +1035,10 @@ export interface FileRoutesById {
   '/_app/captacao/imoveis': typeof AppCaptacaoImoveisRouteWithChildren
   '/_app/captacao/proprietarios': typeof AppCaptacaoProprietariosRouteWithChildren
   '/_app/captacao/visao-geral': typeof AppCaptacaoVisaoGeralRoute
+  '/_app/captacao/oportunidades': typeof AppCaptacaoOportunidadesRoute
+  '/_app/captacao/avaliacoes': typeof AppCaptacaoAvaliacoesRoute
+  '/_app/captacao/documentacao': typeof AppCaptacaoDocumentacaoRoute
+  '/_app/captacao/relatorios': typeof AppCaptacaoRelatoriosRoute
   '/_app/financeiro/categorias': typeof AppFinanceiroCategoriasRoute
   '/_app/financeiro/centro-despesas': typeof AppFinanceiroCentroDespesasRoute
   '/_app/financeiro/centro-recebimentos': typeof AppFinanceiroCentroRecebimentosRoute
@@ -1119,6 +1155,10 @@ export interface FileRouteTypes {
     | '/captacao/imoveis'
     | '/captacao/proprietarios'
     | '/captacao/visao-geral'
+    | '/captacao/oportunidades'
+    | '/captacao/avaliacoes'
+    | '/captacao/documentacao'
+    | '/captacao/relatorios'
     | '/financeiro/categorias'
     | '/financeiro/centro-despesas'
     | '/financeiro/centro-recebimentos'
@@ -1227,6 +1267,10 @@ export interface FileRouteTypes {
     | '/captacao/fila'
     | '/captacao/funil'
     | '/captacao/visao-geral'
+    | '/captacao/oportunidades'
+    | '/captacao/avaliacoes'
+    | '/captacao/documentacao'
+    | '/captacao/relatorios'
     | '/financeiro/categorias'
     | '/financeiro/centro-despesas'
     | '/financeiro/centro-recebimentos'
@@ -1341,6 +1385,10 @@ export interface FileRouteTypes {
     | '/_app/captacao/imoveis'
     | '/_app/captacao/proprietarios'
     | '/_app/captacao/visao-geral'
+    | '/_app/captacao/oportunidades'
+    | '/_app/captacao/avaliacoes'
+    | '/_app/captacao/documentacao'
+    | '/_app/captacao/relatorios'
     | '/_app/financeiro/categorias'
     | '/_app/financeiro/centro-despesas'
     | '/_app/financeiro/centro-recebimentos'
@@ -1914,6 +1962,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCaptacaoVisaoGeralRouteImport
       parentRoute: typeof AppCaptacaoRoute
     }
+    '/_app/captacao/oportunidades': {
+      id: '/_app/captacao/oportunidades'
+      path: '/oportunidades'
+      fullPath: '/captacao/oportunidades'
+      preLoaderRoute: typeof AppCaptacaoOportunidadesRouteImport
+      parentRoute: typeof AppCaptacaoRoute
+    }
+    '/_app/captacao/avaliacoes': {
+      id: '/_app/captacao/avaliacoes'
+      path: '/avaliacoes'
+      fullPath: '/captacao/avaliacoes'
+      preLoaderRoute: typeof AppCaptacaoAvaliacoesRouteImport
+      parentRoute: typeof AppCaptacaoRoute
+    }
+    '/_app/captacao/documentacao': {
+      id: '/_app/captacao/documentacao'
+      path: '/documentacao'
+      fullPath: '/captacao/documentacao'
+      preLoaderRoute: typeof AppCaptacaoDocumentacaoRouteImport
+      parentRoute: typeof AppCaptacaoRoute
+    }
+    '/_app/captacao/relatorios': {
+      id: '/_app/captacao/relatorios'
+      path: '/relatorios'
+      fullPath: '/captacao/relatorios'
+      preLoaderRoute: typeof AppCaptacaoRelatoriosRouteImport
+      parentRoute: typeof AppCaptacaoRoute
+    }
     '/_app/financeiro/categorias': {
       id: '/_app/financeiro/categorias'
       path: '/categorias'
@@ -2246,6 +2322,10 @@ interface AppCaptacaoRouteChildren {
   AppCaptacaoImoveisRoute: typeof AppCaptacaoImoveisRouteWithChildren
   AppCaptacaoProprietariosRoute: typeof AppCaptacaoProprietariosRouteWithChildren
   AppCaptacaoVisaoGeralRoute: typeof AppCaptacaoVisaoGeralRoute
+  AppCaptacaoOportunidadesRoute: typeof AppCaptacaoOportunidadesRoute
+  AppCaptacaoAvaliacoesRoute: typeof AppCaptacaoAvaliacoesRoute
+  AppCaptacaoDocumentacaoRoute: typeof AppCaptacaoDocumentacaoRoute
+  AppCaptacaoRelatoriosRoute: typeof AppCaptacaoRelatoriosRoute
   AppCaptacaoFilaIdRoute: typeof AppCaptacaoFilaIdRoute
 }
 
@@ -2256,6 +2336,10 @@ const AppCaptacaoRouteChildren: AppCaptacaoRouteChildren = {
   AppCaptacaoImoveisRoute: AppCaptacaoImoveisRouteWithChildren,
   AppCaptacaoProprietariosRoute: AppCaptacaoProprietariosRouteWithChildren,
   AppCaptacaoVisaoGeralRoute: AppCaptacaoVisaoGeralRoute,
+  AppCaptacaoOportunidadesRoute: AppCaptacaoOportunidadesRoute,
+  AppCaptacaoAvaliacoesRoute: AppCaptacaoAvaliacoesRoute,
+  AppCaptacaoDocumentacaoRoute: AppCaptacaoDocumentacaoRoute,
+  AppCaptacaoRelatoriosRoute: AppCaptacaoRelatoriosRoute,
   AppCaptacaoFilaIdRoute: AppCaptacaoFilaIdRoute,
 }
 

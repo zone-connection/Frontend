@@ -51,6 +51,7 @@ function CaptacaoDetalhePage() {
   const [lostEtapaId, setLostEtapaId] = useState<string | null>(null);
   const [lostMotivo, setLostMotivo] = useState("");
   const [lostMotivoOutro, setLostMotivoOutro] = useState("");
+  const [retornoEm, setRetornoEm] = useState("");
 
   async function load() {
     setLoading(true);
@@ -310,6 +311,15 @@ function CaptacaoDetalhePage() {
             onChange={setLostMotivo}
             onOutroChange={setLostMotivoOutro}
           />
+          <div className="space-y-1">
+            <Label htmlFor="detalhe-retorno">Tentar de novo em</Label>
+            <Input
+              id="detalhe-retorno"
+              type="date"
+              value={retornoEm}
+              onChange={(e) => setRetornoEm(e.target.value)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
@@ -325,7 +335,7 @@ function CaptacaoDetalhePage() {
                   return;
                 }
                 void patch(
-                  { funilEtapaId: lostEtapaId, motivoPerda: motivo },
+                  { funilEtapaId: lostEtapaId, motivoPerda: motivo, retornoEm: retornoEm || undefined },
                   "Perda registrada.",
                 ).then(() => {
                   setLostEtapaId(null);

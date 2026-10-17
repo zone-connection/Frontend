@@ -15,10 +15,12 @@ import {
 import { ApiError } from "@/lib/api";
 import {
   deleteProprietario,
+  fetchLinhaDoTempo,
   fetchProprietario,
   updateProprietario,
   updateProprietarioPortal,
   type PessoaTipo,
+  type LinhaTempoEvento,
   type Proprietario,
 } from "@/lib/captacao-api";
 import { StatusChip } from "@/components/operacao-ui";
@@ -49,6 +51,7 @@ function ProprietarioDetalhePage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [linha, setLinha] = useState<LinhaTempoEvento[]>([]);
   const [form, setForm] = useState({
     nome: "",
     tipoPessoa: "fisica" as PessoaTipo,
@@ -66,8 +69,14 @@ function ProprietarioDetalhePage() {
 
   useEffect(() => {
     setLoading(true);
-    void fetchProprietario(id)
-      .then(setItem)
+    void Promise.all([
+      fetchProprietario(id),
+      fetchLinhaDoTempo(id).catch(() => [] as LinhaTempoEvento[]),
+    ])
+      .then(([next, eventos]) => {
+        setItem(next);
+        setLinha(eventos);
+      })
       .catch((err) => {
         toast.error(
           err instanceof ApiError ? err.message : "Não foi possível carregar.",
@@ -248,6 +257,28 @@ function ProprietarioDetalhePage() {
           </div>
         }
       />
+      <Card className="mb-4 border-primary/15 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base">Histórico do relacionamento</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {linha.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Conversas, visitas, propostas e mudanças de etapa aparecem aqui.
+            </p>
+          ) : (
+            linha.map((evento) => (
+              <div key={evento.id} className="text-sm">
+                <span className="text-muted-foreground">
+                  {new Date(evento.quando).toLocaleString("pt-BR")}
+                  {evento.autor ? ` · ${evento.autor}` : ""} · {evento.tipo}
+                </span>
+                <p>{evento.texto}</p>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
       <DocumentosPanel
         entityType="proprietario"
         entityId={item.id}

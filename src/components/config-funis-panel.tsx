@@ -98,6 +98,7 @@ const PAPEL_OPTIONS: Array<{
   { value: "inicial", label: "Inicial" },
   { value: "analise", label: "Análise" },
   { value: "venda", label: "Venda" },
+  { value: "captado", label: "Captado" },
   { value: "perdido", label: "Perdido" },
 ];
 
@@ -105,6 +106,7 @@ const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
   inicial: "Inicial",
   analise: "Análise",
   venda: "Venda",
+  captado: "Captado",
   perdido: "Perdido",
 };
 

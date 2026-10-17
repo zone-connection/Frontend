@@ -256,7 +256,11 @@ const OPERACOES: {
       { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
       { to: "/captacao/funil", label: "Funil", icon: Funnel },
       { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
+      { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
       { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+      { to: "/captacao/avaliacoes", label: "Avaliações e vistorias", icon: Goal },
+      { to: "/captacao/documentacao", label: "Documentação e autorizações", icon: FolderOpen },
+      { to: "/captacao/relatorios", label: "Relatórios", icon: Target },
     ],
   },
   {
@@ -432,7 +436,11 @@ const NAV_SECTIONS: {
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/captacao/funil", label: "Funil", icon: Funnel },
           { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
+          { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
           { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+          { to: "/captacao/avaliacoes", label: "Avaliações e vistorias", icon: Goal },
+          { to: "/captacao/documentacao", label: "Documentação e autorizações", icon: FolderOpen },
+          { to: "/captacao/relatorios", label: "Relatórios", icon: Target },
         ],
       },
       {

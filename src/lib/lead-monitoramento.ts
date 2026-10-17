@@ -307,7 +307,7 @@ export type ApplyInatividadeExtras = {
 };
 
 export function isEtapaMonitoramentoTerminal(papel?: string | null) {
-  return papel === "venda" || papel === "perdido";
+  return papel === "venda" || papel === "captado" || papel === "perdido";
 }
 
 /** Recalcula inatividade e prazo da etapa a partir da última movimentação. */

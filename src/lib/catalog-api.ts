@@ -13,7 +13,7 @@ export type CatalogType =
   | "empreendimento_status"
   | "empreendimento_tag";
 
-export type FunilEtapaPapel = "inicial" | "analise" | "venda" | "perdido";
+export type FunilEtapaPapel = "inicial" | "analise" | "venda" | "captado" | "perdido";
 
 export interface CatalogItem {
   id: string;

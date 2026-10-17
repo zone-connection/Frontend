@@ -18,6 +18,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -74,6 +76,7 @@ function CaptacaoFunilPage() {
   } | null>(null);
   const [lostMotivo, setLostMotivo] = useState("");
   const [lostMotivoOutro, setLostMotivoOutro] = useState("");
+  const [retornoEm, setRetornoEm] = useState("");
   const [filterMonitoramento, setFilterMonitoramento] =
     useState<MonitoramentoFiltro>("todos");
   const scrollBoard = useRef<((direction: -1 | 1) => void) | null>(null);
@@ -227,6 +230,7 @@ function CaptacaoFunilPage() {
     }
     const ok = await persistMove(lostTarget.id, lostTarget.etapaId, {
       motivoPerda: motivo,
+      retornoEm: retornoEm || undefined,
     });
     if (ok) {
       toast.success("Perda registrada.");
@@ -439,6 +443,18 @@ function CaptacaoFunilPage() {
               selectId="captacao-lost-motivo"
               outroId="captacao-lost-motivo-outro"
             />
+            <div className="mt-3 space-y-1">
+              <Label htmlFor="captacao-retorno">Tentar de novo em</Label>
+              <Input
+                id="captacao-retorno"
+                type="date"
+                value={retornoEm}
+                onChange={(e) => setRetornoEm(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Sem data, a tarefa de retorno fica para daqui a 30 dias.
+              </p>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
