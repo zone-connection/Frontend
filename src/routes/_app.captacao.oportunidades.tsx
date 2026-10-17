@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { PageHeader } from "@/components/app-shell";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -315,51 +317,56 @@ function OportunidadesPage() {
   }
 
   return (
-    <>
-      <div className="flex justify-end">
-        <Button onClick={() => setOpen(true)} className="rounded-full bg-[#079ED4] hover:bg-[#0689b8]">
-          <Plus className="mr-1 h-4 w-4" />
-          Nova oportunidade
-        </Button>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Captação"
+        title="Banco de oportunidades"
+        description={
+          exemplo
+            ? "Exemplos para visualizar o banco. Os registros reais substituem esta lista."
+            : "Imóveis com potencial que ainda não entraram no funil de captação."
+        }
+        actions={
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Nova oportunidade
+          </Button>
+        }
+      />
+      <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
+        <FinanceKpiCard
+          variant="dash"
+          label="Oportunidades"
+          value={rows.length}
+          icon={Building2}
+          tone="blue"
+          format="number"
+        />
+        <FinanceKpiCard
+          variant="dash"
+          label="Captações"
+          value={resumo?.captacoes ?? 0}
+          icon={ClipboardList}
+          tone="emerald"
+          format="number"
+        />
+        <FinanceKpiCard
+          variant="dash"
+          label="Proprietários"
+          value={resumo?.proprietarios ?? 0}
+          icon={Users}
+          tone="violet"
+          format="number"
+        />
+        <FinanceKpiCard
+          variant="dash"
+          label="Em avaliação"
+          value={emAvaliacao}
+          icon={Clock3}
+          tone="orange"
+          format="number"
+        />
       </div>
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3148] via-[#0B3148] to-[#05749E] px-6 py-6 text-white shadow-sm sm:px-8">
-        <p className="text-[11px] font-semibold tracking-[0.22em] text-[#7DD3FC]">
-          ZONE CONNECTION
-        </p>
-        <div className="mt-2 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Banco de oportunidades
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-[#D3EBF5]">
-              {exemplo
-                ? "Exemplos para visualizar o banco. Os registros reais substituem esta lista."
-                : "Aqui você encontra os imóveis para apresentar aos seus clientes."}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[
-              { icon: Building2, value: rows.length, label: "Total de oportunidades" },
-              { icon: ClipboardList, value: resumo?.captacoes ?? 0, label: "Captações" },
-              { icon: Users, value: resumo?.proprietarios ?? 0, label: "Proprietários" },
-              { icon: Clock3, value: emAvaliacao, label: "Em avaliação" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex min-w-[8.5rem] items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2"
-              >
-                <item.icon className="size-4 shrink-0 text-[#7DD3FC]" />
-                <div>
-                  <p className="text-lg font-semibold leading-none">{item.value}</p>
-                  <p className="mt-1 text-[10px] leading-tight text-[#D3EBF5]">
-                    {item.label}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : rows.length === 0 ? (
@@ -463,7 +470,7 @@ function OportunidadesPage() {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
                   active
-                    ? "border-[#0B3148] bg-[#0B3148] text-white"
+                    ? "border-[#079ED4] bg-[#E7F4FA] text-[#05749E] dark:border-[#079ED4]/50 dark:bg-[#102838] dark:text-[#7DD3FC]"
                     : "border-[#E2E8EC] bg-white text-[#0B3148] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#141a22] dark:text-[#E7F4FA]",
                 )}
               >
@@ -471,7 +478,9 @@ function OportunidadesPage() {
                 <span
                   className={cn(
                     "rounded-full px-1.5 text-[11px]",
-                    active ? "bg-white/20" : "bg-[#E7F4FA] text-[#05749E] dark:bg-[#102838]",
+                    active
+                      ? "bg-[#079ED4] text-white"
+                      : "bg-[#E7F4FA] text-[#05749E] dark:bg-[#102838]",
                   )}
                 >
                   {total}
@@ -1021,7 +1030,7 @@ function OportunidadesPage() {
           load();
         }}
       />
-    </>
+    </div>
   );
 }
 

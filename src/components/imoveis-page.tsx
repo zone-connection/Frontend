@@ -2109,406 +2109,6 @@ export function ImoveisPage({
           </CardContent>
         </Card>
       ) : vista === "tabela" ? (
-        <Card className={TABLE_SHELL}>
-          <Table className={TABLE_LUX}>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <ImoveisTableHead>Empreendimento</ImoveisTableHead>
-                {showCampo("construtora") ? (
-                  <ImoveisTableHead>Construtora</ImoveisTableHead>
-                ) : null}
-                {showCampo("localidade") ? (
-                  <ImoveisTableHead>Localidade</ImoveisTableHead>
-                ) : null}
-                {showCampo("tipo") ||
-                showCampo("status") ||
-                showCampo("tags") ? (
-                  <ImoveisTableHead>
-                    {showCampo("tipo") || showCampo("status")
-                      ? "Status"
-                      : "Tags"}
-                  </ImoveisTableHead>
-                ) : null}
-                {showCampo("previsao") ? (
-                  <ImoveisTableHead>Previsão</ImoveisTableHead>
-                ) : null}
-                {showCampo("quartos") ? (
-                  <ImoveisTableHead className="text-center">
-                    Quartos
-                  </ImoveisTableHead>
-                ) : null}
-                {showCampo("metragem") ? (
-                  <ImoveisTableHead>Metragem</ImoveisTableHead>
-                ) : null}
-                {showCampo("valor") ? (
-                  <ImoveisTableHead className="text-right">
-                    A partir de
-                  </ImoveisTableHead>
-                ) : null}
-                {showCampo("renda") ? (
-                  <ImoveisTableHead className="text-right">
-                    Renda a partir de
-                  </ImoveisTableHead>
-                ) : null}
-                {isAdmin ? (
-                  <ImoveisTableHead className="w-28 text-center">
-                    Site
-                  </ImoveisTableHead>
-                ) : null}
-                <ImoveisTableHead className="w-28 text-right">
-                  Ações
-                </ImoveisTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {imoveisPager.pageItems.map((item) => (
-                  <TableRow
-                    key={item.id}
-                    className="group hover:bg-muted/40"
-                  >
-                    <TableCell>
-                      <div className="flex min-w-40 items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback
-                            className={cn(
-                              "text-xs text-white",
-                              lostLeadAvatarClass(item.nome),
-                            )}
-                          >
-                            {item.nome
-                              .split(" ")
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((part) => part[0]?.toUpperCase() ?? "")
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <Link
-                            to="/imoveis/$id"
-                            params={{ id: item.id }}
-                            className="truncate font-semibold leading-snug tracking-tight hover:underline"
-                          >
-                            {item.nome}
-                          </Link>
-                          {showCampo("endereco") && item.endereco ? (
-                            <p className="mt-0.5 max-w-64 truncate text-xs text-muted-foreground">
-                              {item.endereco}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </TableCell>
-                    {showCampo("construtora") ? (
-                      <TableCell className="text-sm text-muted-foreground">
-                        {item.construtora?.nome ?? "—"}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("localidade") ? (
-                      <TableCell className="text-sm text-muted-foreground">
-                        {empreendimentoLocalidadeNome(item) || "—"}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("tipo") ||
-                    showCampo("status") ||
-                    showCampo("tags") ? (
-                      <TableCell>
-                        <div className="flex max-w-64 flex-wrap gap-1">
-                          {showCampo("tipo") && item.tipo ? (
-                            <Badge
-                              className={cn(
-                                STATUS_CHIP_CLASS,
-                                IMOVEIS_TABLE_CHIP,
-                                colorByLabel("empreendimento_tipo", item.tipo),
-                              )}
-                            >
-                              {empreendimentoTipoLabel(item.tipo)}
-                            </Badge>
-                          ) : null}
-                          {item.imovelId ? (
-                            <Link
-                              to="/captacao/imoveis/$id"
-                              params={{ id: item.imovelId }}
-                            >
-                              <Badge className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}>
-                                Captação
-                              </Badge>
-                            </Link>
-                          ) : null}
-                          {showCampo("status") && item.status ? (
-                            <Badge
-                              className={cn(
-                                STATUS_CHIP_CLASS,
-                                IMOVEIS_TABLE_CHIP,
-                                colorByLabel(
-                                  "empreendimento_status",
-                                  item.status,
-                                ),
-                              )}
-                            >
-                              {empreendimentoStatusLabel(item.status)}
-                            </Badge>
-                          ) : null}
-                          {showCampo("tags")
-                            ? (item.tags ?? []).map((tag) => (
-                                <Badge
-                                  key={tag}
-                                  className={cn(
-                                    STATUS_CHIP_CLASS,
-                                    IMOVEIS_TABLE_CHIP,
-                                    colorByLabel("empreendimento_tag", tag),
-                                  )}
-                                  title={tag}
-                                >
-                                  {tag}
-                                </Badge>
-                              ))
-                            : null}
-                        </div>
-                      </TableCell>
-                    ) : null}
-                    {showCampo("previsao") ? (
-                      <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                        {item.previsaoEntrega
-                          ? formatPrevisao(item.previsaoEntrega)
-                          : "—"}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("quartos") ? (
-                      <TableCell className="text-center tabular-nums text-sm text-muted-foreground">
-                        {item.quartos != null ? item.quartos : "—"}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("metragem") ? (
-                      <TableCell className="whitespace-nowrap tabular-nums text-sm text-muted-foreground">
-                        {item.areaM2 != null ? `${item.areaM2} m²` : "—"}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("valor") ? (
-                      <TableCell className="text-right">
-                        {item.valorReferencia != null ? (
-                          <span className="inline-flex rounded-full bg-muted/70 px-2 py-0.5 font-semibold tabular-nums tracking-tight">
-                            {brl(item.valorReferencia)}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                    ) : null}
-                    {showCampo("renda") ? (
-                      <TableCell className="text-right">
-                        {item.rendaAPartirDe != null ? (
-                          <span className="inline-flex tabular-nums text-sm font-medium">
-                            {brl(item.rendaAPartirDe)}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                    ) : null}
-                    {isAdmin ? (
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={item.visivelNoSite !== false}
-                          onCheckedChange={(checked) =>
-                            void toggleVisivelNoSite(item, checked)
-                          }
-                          aria-label="Exibir no site"
-                        />
-                      </TableCell>
-                    ) : null}
-                    <TableCell className="text-right">
-                      <div className="inline-flex rounded-full border border-black/5 bg-muted/40 p-0.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="relative h-7 gap-1 px-1.5 text-primary hover:bg-primary/10 hover:text-primary"
-                          title="Clientes compatíveis"
-                          onClick={() => void openMatches(item)}
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                          <span className="hidden text-[11px] font-semibold sm:inline">
-                            {(item.matchTotal ?? 0) > 0
-                              ? `${item.matchTotal} clientes`
-                              : "Clientes"}
-                          </span>
-                          {(item.matchTotal ?? 0) > 0 ? (
-                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground sm:hidden">
-                              {item.matchTotal}
-                            </span>
-                          ) : null}
-                        </Button>
-                        {canManage ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 hover:bg-primary/10"
-                            title="Editar"
-                            onClick={() => void openEdit(item)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        ) : null}
-                        {canDelete ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 hover:bg-destructive/10"
-                            title="Excluir"
-                            onClick={() => setDeleteId(item.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-              ))}
-              {captacaoFiltered.map((item) => (
-                <TableRow
-                  key={`cap-${item.id}`}
-                  className="group hover:bg-muted/40"
-                >
-                  <TableCell>
-                    <div className="flex min-w-40 items-center gap-3">
-                      <ImovelFotoThumb src={imovelCapaUrl(item)} alt="" />
-                      <div className="min-w-0">
-                        <Link
-                          to="/captacao/imoveis/$id"
-                          params={{ id: item.id }}
-                          className="truncate font-semibold leading-snug tracking-tight hover:underline"
-                        >
-                          {item.titulo}
-                        </Link>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {item.proprietario?.nome ?? "Captação"}
-                          {item.cidade ? ` · ${item.cidade}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  {showCampo("construtora") ? (
-                    <TableCell>
-                      <Badge className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}>
-                        Captação
-                      </Badge>
-                    </TableCell>
-                  ) : null}
-                  {showCampo("localidade") ? (
-                    <TableCell className="text-sm text-muted-foreground">
-                      {item.cidade || "—"}
-                    </TableCell>
-                  ) : null}
-                  {showCampo("tipo") ||
-                  showCampo("status") ||
-                  showCampo("tags") ? (
-                    <TableCell>
-                      <Badge
-                        className={cn(STATUS_CHIP_CLASS, IMOVEIS_TABLE_CHIP)}
-                      >
-                        {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo]}
-                      </Badge>
-                    </TableCell>
-                  ) : null}
-                  {showCampo("previsao") ? (
-                    <TableCell className="text-sm text-muted-foreground">
-                      —
-                    </TableCell>
-                  ) : null}
-                  {showCampo("quartos") ? (
-                    <TableCell className="text-center tabular-nums text-sm text-muted-foreground">
-                      {item.quartos != null ? item.quartos : "—"}
-                    </TableCell>
-                  ) : null}
-                  {showCampo("metragem") ? (
-                    <TableCell className="whitespace-nowrap tabular-nums text-sm text-muted-foreground">
-                      {item.area != null ? `${item.area} m²` : "—"}
-                    </TableCell>
-                  ) : null}
-                  {showCampo("valor") ? (
-                    <TableCell className="text-right">
-                      {item.valor != null ? (
-                        <span className="inline-flex rounded-full bg-muted/70 px-2 py-0.5 font-semibold tabular-nums tracking-tight">
-                          {formatBrl(item.valor)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  ) : null}
-                  {showCampo("renda") ? (
-                    <TableCell className="text-right text-muted-foreground">
-                      —
-                    </TableCell>
-                  ) : null}
-                  <TableCell className="text-right">
-                    <div className="inline-flex rounded-lg border border-primary/20 bg-linear-to-br from-primary/10 to-cyan-400/10 p-0.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-primary hover:bg-primary/10"
-                        asChild
-                      >
-                        <Link
-                          to="/captacao/imoveis/$id"
-                          params={{ id: item.id }}
-                          title="Ver detalhes"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                      {canManage ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-primary/10"
-                          title="Editar"
-                          onClick={() =>
-                            setUnidadeEditRequest({
-                              id: item.id,
-                              tick: Date.now(),
-                            })
-                          }
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      ) : null}
-                      {canDelete ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-destructive/10"
-                          title="Excluir"
-                          onClick={() =>
-                            setUnidadeDeleteRequest({
-                              id: item.id,
-                              tick: Date.now(),
-                            })
-                          }
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <TablePager
-            page={imoveisPager.page}
-            totalPages={imoveisPager.totalPages}
-            total={imoveisPager.total}
-            onPageChange={imoveisPager.setPage}
-          />
-        </Card>
-      ) : (
         <div className="space-y-4">
           {imoveisPager.pageItems.map((item) => {
             const capa = empreendimentoCapa(item);
@@ -2516,252 +2116,381 @@ export function ImoveisPage({
             const status = empreendimentoStatusLabel(item.status);
             const tipo = empreendimentoTipoLabel(item.tipo);
             return (
-            <article
-              key={item.id}
-              className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
-            >
-              <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
-                <Link
-                  to="/imoveis/$id"
-                  params={{ id: item.id }}
-                  className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]"
-                >
+              <article
+                key={item.id}
+                className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
+              >
+                <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
+                  <Link
+                    to="/imoveis/$id"
+                    params={{ id: item.id }}
+                    className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]"
+                  >
+                    {capa ? (
+                      <img src={capa} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full min-h-[200px] items-center justify-center text-[#05749E]">
+                        <Building2 className="h-10 w-10 opacity-40" />
+                      </div>
+                    )}
+                    <span className="absolute left-3 top-3 rounded-lg bg-[#079ED4] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                      {status || "Imóvel"}
+                    </span>
+                  </Link>
+                  <div className="flex min-w-0 flex-col gap-3 border-black/5 p-4 sm:p-5 lg:border-r dark:border-white/10">
+                    <p className="inline-flex items-center gap-2 rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                      <CalendarClock className="size-4 shrink-0" />
+                      <span className="truncate">
+                        {(item.matchTotal ?? 0) > 0
+                          ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
+                          : item.previsaoEntrega
+                            ? `Previsão de entrega · ${formatPrevisao(item.previsaoEntrega)}`
+                            : "Catálogo de imóveis"}
+                      </span>
+                    </p>
+                    <div>
+                      <h2 className="text-xl font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
+                        {tipo || item.nome}
+                      </h2>
+                      <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                        <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                        <span>
+                          {item.nome}
+                          {item.construtora?.nome ? ` · ${item.construtora.nome}` : ""}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {status ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                          {status}
+                        </span>
+                      ) : null}
+                      {tipo ? (
+                        <span className="rounded-full border border-[#E2E8EC] bg-[#F4F7F8] px-2.5 py-0.5 text-[11px] font-medium text-[#5C6B76]">
+                          {tipo}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="flex items-center gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                      <MapPin className="size-3.5 shrink-0 text-[#079ED4]" />
+                      {item.endereco || local || "Sem localidade"}
+                    </p>
+                    <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
+                      <Button size="sm" variant="outline" className="rounded-full" asChild>
+                        <Link to="/imoveis/$id" params={{ id: item.id }}>
+                          <Images className="mr-1.5 size-3.5" />
+                          Fotos e ficha
+                        </Link>
+                      </Button>
+                      <Link
+                        to="/imoveis/$id"
+                        params={{ id: item.id }}
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
+                      >
+                        Ver detalhes
+                        <ArrowRight className="size-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="relative flex flex-col gap-3 p-4 sm:p-5">
+                    <div className="absolute right-3 top-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Ações">
+                            <MoreVertical className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => void openMatches(item)}>
+                            Clientes compatíveis
+                          </DropdownMenuItem>
+                          {canManage ? (
+                            <DropdownMenuItem onClick={() => void openEdit(item)}>Editar</DropdownMenuItem>
+                          ) : null}
+                          {canDelete ? (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteId(item.id)}
+                            >
+                              Excluir
+                            </DropdownMenuItem>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="pr-8">
+                      <p className="text-xl font-semibold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                        {item.valorReferencia != null ? brl(item.valorReferencia) : "—"}
+                      </p>
+                      <p className="mt-1 text-sm text-[#8B98A3]">
+                        {item.construtora?.nome || "A partir de"}
+                      </p>
+                    </div>
+                    <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        {item.quartos != null ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <BedDouble className="size-3.5 text-[#079ED4]" />
+                            {item.quartos} {item.quartos === 1 ? "quarto" : "quartos"}
+                          </span>
+                        ) : null}
+                        {item.vagas != null ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Car className="size-3.5 text-[#079ED4]" />
+                            {item.vagas} {item.vagas === 1 ? "vaga" : "vagas"}
+                          </span>
+                        ) : null}
+                      </div>
+                      {item.areaM2 != null ? (
+                        <div className="mt-2 inline-flex items-center gap-1.5">
+                          <Ruler className="size-3.5 text-[#079ED4]" />
+                          {item.areaM2} m²
+                        </div>
+                      ) : null}
+                    </div>
+                    {isAdmin ? (
+                      <label className="flex items-center gap-2 text-xs text-[#5C6B76]">
+                        <Switch
+                          checked={item.visivelNoSite !== false}
+                          onCheckedChange={(checked) => void toggleVisivelNoSite(item, checked)}
+                        />
+                        Exibir no site
+                      </label>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+          <TablePager
+            page={imoveisPager.page}
+            totalPages={imoveisPager.totalPages}
+            total={imoveisPager.total}
+            onPageChange={imoveisPager.setPage}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {imoveisPager.pageItems.map((item) => {
+            const capa = empreendimentoCapa(item);
+            const local = empreendimentoLocalidadeNome(item);
+            const status = empreendimentoStatusLabel(item.status);
+            const tipo = empreendimentoTipoLabel(item.tipo);
+            const acao =
+              (item.matchTotal ?? 0) > 0
+                ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
+                : item.previsaoEntrega
+                  ? `Previsão · ${formatPrevisao(item.previsaoEntrega)}`
+                  : "Catálogo de imóveis";
+            return (
+              <article
+                key={item.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
+              >
+                <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
                   {capa ? (
-                    <img src={capa} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={capa} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full min-h-[200px] items-center justify-center text-[#05749E]">
+                    <div className="flex h-full items-center justify-center text-[#05749E]">
                       <Building2 className="h-10 w-10 opacity-40" />
                     </div>
                   )}
-                  <span className="absolute left-3 top-3 rounded-lg bg-[#079ED4] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                  <span className="absolute left-3 top-3 rounded-full bg-[#079ED4] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
                     {status || "Imóvel"}
                   </span>
-                </Link>
-                <div className="flex min-w-0 flex-col gap-3 border-black/5 p-4 sm:p-5 lg:border-r dark:border-white/10">
-                  <p className="inline-flex items-center gap-2 rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
-                    <CalendarClock className="size-4 shrink-0" />
-                    <span className="truncate">
-                      {(item.matchTotal ?? 0) > 0
-                        ? `${item.matchTotal} cliente${item.matchTotal === 1 ? "" : "s"} compatível${item.matchTotal === 1 ? "" : "eis"}`
-                        : item.previsaoEntrega
-                          ? `Previsão de entrega · ${formatPrevisao(item.previsaoEntrega)}`
-                          : "Catálogo de imóveis"}
-                    </span>
-                  </p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Ações"
+                        className="absolute right-2 top-2 h-8 w-8 rounded-full bg-white/90 text-[#5C6B76] hover:bg-white dark:bg-[#141a22]/90"
+                      >
+                        <MoreVertical className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => void openMatches(item)}>
+                        Clientes compatíveis
+                      </DropdownMenuItem>
+                      {canManage ? (
+                        <DropdownMenuItem onClick={() => void openEdit(item)}>
+                          Editar
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canDelete ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteId(item.id)}
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex flex-1 flex-col gap-2.5 p-4">
                   <div>
-                    <h2 className="text-xl font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
-                      <Link to="/imoveis/$id" params={{ id: item.id }} className="hover:underline">
-                        {item.nome}
-                      </Link>
-                    </h2>
+                    <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
+                      {tipo || item.nome}
+                    </h3>
                     <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
                       <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
                       <span>
-                        {item.construtora?.nome ? `${item.construtora.nome} · ` : ""}
-                        {local || item.endereco || "Sem localidade"}
+                        {item.nome}
+                        {local ? ` · ${local}` : ""}
                       </span>
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tipo ? (
-                      <span className="rounded-full border border-[#D3EBF5] bg-[#E7F4FA] px-2.5 py-0.5 text-[11px] font-semibold text-[#05749E]">
-                        {tipo}
+                  <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                    {item.valorReferencia != null ? brl(item.valorReferencia) : "—"}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]">
+                    {item.quartos != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <BedDouble className="size-3.5 text-[#079ED4]" />
+                        {item.quartos} {item.quartos === 1 ? "quarto" : "quartos"}
                       </span>
                     ) : null}
-                    {status ? (
-                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                        {status}
+                    {item.vagas != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Car className="size-3.5 text-[#079ED4]" />
+                        {item.vagas} {item.vagas === 1 ? "vaga" : "vagas"}
                       </span>
                     ) : null}
-                    {item.imovelId ? (
-                      <span className="rounded-full border border-[#E2E8EC] bg-[#F4F7F8] px-2.5 py-0.5 text-[11px] font-medium text-[#5C6B76]">
-                        Captação
+                    {item.areaM2 != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Ruler className="size-3.5 text-[#079ED4]" />
+                        {item.areaM2} m²
                       </span>
                     ) : null}
                   </div>
-                  {item.endereco ? (
-                    <p className="flex items-center gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
-                      <MapPin className="size-3.5 shrink-0 text-[#079ED4]" />
-                      {item.endereco}
-                    </p>
+                  <p className="mt-auto flex items-center gap-2 rounded-xl bg-[#F3FAFD] px-3 py-2 text-xs font-medium text-[#05749E] dark:bg-[#102838] dark:text-[#7DD3FC]">
+                    <CalendarClock className="size-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{acao}</span>
+                    <ArrowRight className="size-3.5 shrink-0" />
+                  </p>
+                  {isAdmin ? (
+                    <label className="flex items-center gap-2 text-xs text-[#5C6B76]">
+                      <Switch
+                        checked={item.visivelNoSite !== false}
+                        onCheckedChange={(checked) =>
+                          void toggleVisivelNoSite(item, checked)
+                        }
+                      />
+                      Exibir no site
+                    </label>
                   ) : null}
-                  <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
-                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      asChild
+                    >
+                      <Link to="/imoveis/$id" params={{ id: item.id }}>
+                        Ver detalhes
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="rounded-full bg-[#079ED4] text-white hover:bg-[#0689b8]"
+                      asChild
+                    >
                       <Link to="/imoveis/$id" params={{ id: item.id }}>
                         <Images className="mr-1.5 size-3.5" />
                         Fotos e ficha
                       </Link>
                     </Button>
-                    <Link
-                      to="/imoveis/$id"
-                      params={{ id: item.id }}
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
-                    >
-                      Ver detalhes
-                      <ArrowRight className="size-3.5" />
-                    </Link>
                   </div>
                 </div>
-                <div className="relative flex flex-col gap-3 p-4 sm:p-5">
-                  <div className="absolute right-3 top-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Ações">
-                          <MoreVertical className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => void openMatches(item)}>
-                          Clientes compatíveis
-                        </DropdownMenuItem>
-                        {canManage ? (
-                          <DropdownMenuItem onClick={() => void openEdit(item)}>
-                            Editar
-                          </DropdownMenuItem>
-                        ) : null}
-                        {canDelete ? (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteId(item.id)}
-                          >
-                            Excluir
-                          </DropdownMenuItem>
-                        ) : null}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="pr-8">
-                    <p className="text-xl font-semibold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
-                      {item.valorReferencia != null ? brl(item.valorReferencia) : "—"}
-                    </p>
-                    <p className="mt-1 text-sm text-[#8B98A3]">
-                      {item.construtora?.nome || "A partir de"}
-                    </p>
-                  </div>
-                  <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      {item.quartos != null ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <BedDouble className="size-3.5 text-[#079ED4]" />
-                          {item.quartos} {item.quartos === 1 ? "quarto" : "quartos"}
-                        </span>
-                      ) : null}
-                      {item.vagas != null ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[#B7D7E6]">|</span>
-                          <Car className="size-3.5 text-[#079ED4]" />
-                          {item.vagas} {item.vagas === 1 ? "vaga" : "vagas"}
-                        </span>
-                      ) : null}
-                    </div>
-                    {item.areaM2 != null ? (
-                      <div className="mt-2 inline-flex items-center gap-1.5">
-                        <Ruler className="size-3.5 text-[#079ED4]" />
-                        {item.areaM2} m²
-                      </div>
-                    ) : null}
-                  </div>
-                  {isAdmin ? (
-                    <label className="flex items-center gap-2 text-xs text-[#5C6B76]">
-                      <Switch
-                        checked={item.visivelNoSite !== false}
-                        onCheckedChange={(checked) => void toggleVisivelNoSite(item, checked)}
-                      />
-                      Exibir no site
-                    </label>
-                  ) : null}
-                </div>
-              </div>
-            </article>
+              </article>
             );
           })}
           {captacaoFiltered.map((item) => (
             <article
               key={`cap-${item.id}`}
-              className="overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
+              className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
             >
-              <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
-                <Link
-                  to="/captacao/imoveis/$id"
-                  params={{ id: item.id }}
-                  className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]"
-                >
-                  {imovelCapaUrl(item) ? (
-                    <img src={imovelCapaUrl(item) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full min-h-[200px] items-center justify-center">
-                      <Building2 className="h-10 w-10 text-[#05749E]/40" />
-                    </div>
-                  )}
-                  <span className="absolute left-3 top-3 rounded-lg bg-[#7c3aed] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-                    Captação
-                  </span>
-                </Link>
-                <div className="flex min-w-0 flex-col gap-3 p-4 sm:p-5 lg:border-r lg:border-black/5 dark:lg:border-white/10">
-                  <p className="rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+              <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
+                {imovelCapaUrl(item) ? (
+                  <img src={imovelCapaUrl(item) ?? ""} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Building2 className="h-10 w-10 text-[#05749E]/40" />
+                  </div>
+                )}
+                <span className="absolute left-3 top-3 rounded-full bg-[#7c3aed] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                  Captação
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col gap-2.5 p-4">
+                <div>
+                  <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
                     {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo]}
+                  </h3>
+                  <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                    <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                    {item.proprietario?.nome ?? "Sem proprietário"}
+                    {item.cidade ? ` · ${item.cidade}` : ""}
                   </p>
-                  <div>
-                    <h2 className="text-xl font-semibold text-[#0B3148] dark:text-[#f8fafc]">
-                      <Link to="/captacao/imoveis/$id" params={{ id: item.id }} className="hover:underline">
-                        {item.titulo}
-                      </Link>
-                    </h2>
-                    <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
-                      <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
-                      {item.proprietario?.nome ?? "Sem proprietário"}
-                      {item.cidade ? ` · ${item.cidade}` : ""}
-                    </p>
-                  </div>
-                  <div className="mt-auto flex flex-wrap items-center gap-3">
-                    <Button size="sm" variant="outline" className="rounded-full" asChild>
-                      <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
-                        <Images className="mr-1.5 size-3.5" />
-                        Fotos e ficha
-                      </Link>
-                    </Button>
-                    <Link
-                      to="/captacao/imoveis/$id"
-                      params={{ id: item.id }}
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
-                    >
-                      Ver detalhes
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-                  </div>
                 </div>
-                <div className="relative flex flex-col gap-3 p-4 sm:p-5">
-                  <div className="absolute right-3 top-3 flex gap-1">
-                    {canManage ? (
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setUnidadeEditRequest({ id: item.id, tick: Date.now() })}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    ) : null}
-                    {canDelete ? (
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Excluir" onClick={() => setUnidadeDeleteRequest({ id: item.id, tick: Date.now() })}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    ) : null}
-                  </div>
-                  <div className="pr-16">
-                    <p className="text-xl font-semibold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
-                      {item.valor != null ? formatBrl(item.valor) : "—"}
-                    </p>
-                    <p className="mt-1 text-sm text-[#8B98A3]">Captação</p>
-                  </div>
-                  <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
-                    <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-                      {item.quartos != null ? (
-                        <span className="inline-flex items-center gap-1.5"><BedDouble className="size-3.5 text-[#079ED4]" />{item.quartos} quartos</span>
-                      ) : null}
-                      {item.vagas != null ? (
-                        <span className="inline-flex items-center gap-1.5"><Car className="size-3.5 text-[#079ED4]" />{item.vagas} vagas</span>
-                      ) : null}
-                      {item.area != null ? (
-                        <span className="inline-flex items-center gap-1.5"><Ruler className="size-3.5 text-[#079ED4]" />{item.area} m²</span>
-                      ) : null}
-                    </div>
-                  </div>
+                <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                  {item.valor != null ? formatBrl(item.valor) : "—"}
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]">
+                  {item.quartos != null ? (
+                    <span className="inline-flex items-center gap-1"><BedDouble className="size-3.5 text-[#079ED4]" />{item.quartos} quartos</span>
+                  ) : null}
+                  {item.vagas != null ? (
+                    <span className="inline-flex items-center gap-1"><Car className="size-3.5 text-[#079ED4]" />{item.vagas} vagas</span>
+                  ) : null}
+                  {item.area != null ? (
+                    <span className="inline-flex items-center gap-1"><Ruler className="size-3.5 text-[#079ED4]" />{item.area} m²</span>
+                  ) : null}
+                </div>
+                <p className="mt-auto flex items-center gap-2 rounded-xl bg-[#F3FAFD] px-3 py-2 text-xs font-medium text-[#05749E] dark:bg-[#102838] dark:text-[#7DD3FC]">
+                  <CalendarClock className="size-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{item.titulo}</span>
+                  <ArrowRight className="size-3.5 shrink-0" />
+                </p>
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 pt-1">
+                  <Button type="button" variant="outline" size="sm" className="rounded-full" asChild>
+                    <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
+                      Ver detalhes
+                    </Link>
+                  </Button>
+                  <Button type="button" size="sm" className="rounded-full bg-[#079ED4] text-white hover:bg-[#0689b8]" asChild>
+                    <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
+                      <Images className="mr-1.5 size-3.5" />
+                      Fotos e ficha
+                    </Link>
+                  </Button>
+                  {canManage || canDelete ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-full" title="Ações">
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {canManage ? (
+                          <DropdownMenuItem onClick={() => setUnidadeEditRequest({ id: item.id, tick: Date.now() })}>
+                            Editar
+                          </DropdownMenuItem>
+                        ) : null}
+                        {canDelete ? (
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setUnidadeDeleteRequest({ id: item.id, tick: Date.now() })}>
+                            Excluir
+                          </DropdownMenuItem>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
                 </div>
               </div>
             </article>
