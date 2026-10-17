@@ -443,6 +443,10 @@ export type OportunidadeCaptacao = {
     id: string;
     fotoUrl: string | null;
     fotos: Array<{ url: string }>;
+    quartos?: number | null;
+    vagas?: number | null;
+    area?: number | null;
+    areaConstruida?: number | null;
   } | null;
 };
 

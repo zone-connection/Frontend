@@ -26,6 +26,9 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
         { url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80" },
         { url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80" },
       ],
+      quartos: 3,
+      vagas: 2,
+      area: 120,
     },
   },
   {
@@ -51,6 +54,9 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
         { url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" },
         { url: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80" },
       ],
+      quartos: null,
+      vagas: 3,
+      area: 86,
     },
   },
   {
@@ -76,6 +82,9 @@ export const OPORTUNIDADES_MOCK: OportunidadeCaptacao[] = [
         { url: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80" },
         { url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80" },
       ],
+      quartos: 4,
+      vagas: 2,
+      area: 240,
     },
   },
 ];

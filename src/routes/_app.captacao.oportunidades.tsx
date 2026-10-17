@@ -12,6 +12,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -49,9 +55,25 @@ import {
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
 import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
+import { formatPhone } from "@/lib/phone";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Building2, ImagePlus, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BedDouble,
+  Building2,
+  CalendarDays,
+  Car,
+  ImagePlus,
+  Images,
+  Loader2,
+  MapPin,
+  MoreVertical,
+  Plus,
+  Maximize2,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/oportunidades")({
@@ -63,6 +85,38 @@ const STATUS_LABEL = {
   convertida: "Virou captação",
   perdida: "Perdida",
 } as const;
+
+const STATUS_PILL = {
+  aberta:
+    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-300",
+  convertida:
+    "border-[#079ED4]/35 bg-[#E7F4FA] text-[#05749E] dark:border-[#079ED4]/40 dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]",
+  perdida:
+    "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-300",
+} as const;
+
+function formatAcaoQuando(value: string | null | undefined) {
+  if (!value) return "";
+  const day = value.slice(8, 10);
+  const month = value.slice(5, 7);
+  if (!day || !month) return "";
+  return `${day}/${month}`;
+}
+
+function SpecItem({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof BedDouble;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className="size-3.5 shrink-0 text-[#079ED4]" />
+      {label}
+    </span>
+  );
+}
 
 function OportunidadesPage() {
   const navigate = useNavigate();
@@ -162,99 +216,224 @@ function OportunidadesPage() {
         <ul className="space-y-4">
           {rows.map((row) => {
             const foto = row.imovel?.fotos?.[0]?.url || row.imovel?.fotoUrl || "";
-            const quando = row.proximaAcaoEm
-              ? ` · ${row.proximaAcaoEm.slice(8, 10)}/${row.proximaAcaoEm.slice(5, 7)}`
-              : "";
+            const quando = formatAcaoQuando(row.proximaAcaoEm);
+            const telefone = formatPhone(row.telefone) || row.telefone;
+            const quartos = row.imovel?.quartos;
+            const vagas = row.imovel?.vagas;
+            const area = row.imovel?.areaConstruida ?? row.imovel?.area;
+            const specs = [
+              quartos != null
+                ? {
+                    icon: BedDouble,
+                    label: `${quartos} ${quartos === 1 ? "quarto" : "quartos"}`,
+                  }
+                : null,
+              vagas != null
+                ? {
+                    icon: Car,
+                    label: `${vagas} ${vagas === 1 ? "vaga" : "vagas"}`,
+                  }
+                : null,
+              area != null
+                ? { icon: Maximize2, label: `${area} m²` }
+                : null,
+            ].filter(Boolean) as Array<{
+              icon: typeof BedDouble;
+              label: string;
+            }>;
+            const canAct = !exemplo && row.status === "aberta";
+
             return (
               <li key={row.id}>
                 <article className={cn(SOFT_SURFACE, "overflow-hidden")}>
-                  <div className="grid gap-0 lg:grid-cols-[200px_minmax(0,1fr)]">
-                    <div className="relative min-h-[180px] bg-muted">
+                  <div className="grid gap-0 lg:grid-cols-[220px_minmax(0,1fr)_minmax(11rem,15rem)]">
+                    <div className="relative min-h-[200px] bg-[#E7F4FA] dark:bg-[#102838]">
                       {foto ? (
-                        <img src={foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        <img
+                          src={foto}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
                       ) : (
-                        <div className="flex h-full min-h-[180px] items-center justify-center text-xs text-muted-foreground">
-                          Sem foto
+                        <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-[#05749E] dark:text-[#7DD3FC]">
+                          <Building2 className="size-8 opacity-50" />
+                          <span className="text-xs">Sem foto</span>
                         </div>
                       )}
+                      <span className="absolute left-3 top-3 rounded-lg bg-[#079ED4] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white shadow-sm">
+                        Captação
+                      </span>
                     </div>
-                    <div className="min-w-0 p-4 sm:p-5">
-                      <p className="mb-3 rounded-xl bg-[#E7F6FB] px-3 py-2 text-sm font-medium text-[#075985] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
-                        {row.proximaAcao
-                          ? `Próxima ação: ${row.proximaAcao}${quando}`
-                          : "Sem próxima ação definida"}
+
+                    <div className="flex min-w-0 flex-col gap-3 border-black/5 p-4 sm:p-5 lg:border-r dark:border-white/10">
+                      <p className="inline-flex items-center gap-2 rounded-xl bg-[#E7F4FA] px-3 py-2 text-sm font-medium text-[#05749E] dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                        <CalendarDays className="size-4 shrink-0" />
+                        <span className="min-w-0 truncate">
+                          {row.proximaAcao
+                            ? `Próxima ação: ${row.proximaAcao}${quando ? ` - ${quando}` : ""}`
+                            : "Sem próxima ação definida"}
+                        </span>
                       </p>
-                      <h2 className="text-base font-semibold tracking-tight">
-                        {CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}
-                      </h2>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {row.proprietarioNome} · responsável {row.responsavel.name}
-                      </p>
-                      <p className="mt-3 text-sm tabular-nums">
-                        <span className="font-semibold">{formatBrl(row.valorPretendido)}</span>
-                        <span className="text-muted-foreground"> · {row.origem || "sem origem"}</span>
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-semibold tracking-tight text-[#0B3148] dark:text-[#f8fafc]">
+                          {CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}
+                        </h2>
+                        <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                          <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
+                          <span>
+                            <span className="font-medium text-[#0B3148] dark:text-[#E7F4FA]">
+                              {row.proprietarioNome}
+                            </span>
+                            {" - responsável "}
+                            {row.responsavel.name}
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        <span
+                          className={cn(
+                            "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                            STATUS_PILL[row.status],
+                          )}
+                        >
                           {STATUS_LABEL[row.status]}
                         </span>
                         {exemplo ? (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          <span className="rounded-full border border-[#E2E8EC] bg-[#F4F7F8] px-2.5 py-0.5 text-[11px] font-medium text-[#5C6B76] dark:border-white/10 dark:bg-[#1c2430] dark:text-[#94a3b8]">
                             Exemplo
                           </span>
                         ) : null}
-                        {row.telefone ? (
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                            {row.telefone}
+                        {telefone ? (
+                          <span className="rounded-full border border-[#D3EBF5] bg-[#E7F4FA] px-2.5 py-0.5 text-[11px] font-medium text-[#05749E] dark:border-[#079ED4]/30 dark:bg-[#079ED4]/15 dark:text-[#7DD3FC]">
+                            {telefone}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="size-3" />
+
+                      <p className="flex items-center gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
+                        <MapPin className="size-3.5 shrink-0 text-[#079ED4]" />
                         {row.localizacao}
                       </p>
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <Button size="sm" variant="outline" onClick={() => setFicha(row)}>
+
+                      <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full border-[#0B3148]/20 text-[#0B3148] hover:bg-[#E7F4FA] dark:border-white/15 dark:text-[#E7F4FA] dark:hover:bg-[#1c2430]"
+                          onClick={() => setFicha(row)}
+                        >
+                          <Images className="mr-1.5 size-3.5" />
                           Fotos e ficha
                         </Button>
-                        {!exemplo && row.status === "aberta" ? (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              void promoverOportunidade(row.id)
-                                .then((captacao) => {
-                                  toast.success("Captação cadastrada. Saiu do banco.");
-                                  void navigate({
-                                    to: "/captacao/captacoes/$id",
-                                    params: { id: captacao.id },
-                                  });
-                                })
-                                .catch((err) => {
-                                  toast.error(
-                                    err instanceof ApiError
-                                      ? err.message
-                                      : "Não foi possível cadastrar.",
-                                  );
-                                });
-                            }}
-                          >
-                            Cadastrar em captações
-                          </Button>
-                        ) : null}
-                        {!exemplo && row.status === "aberta" ? (
-                          <Button size="sm" variant="ghost" onClick={() => setPerderId(row.id)}>
-                            Perder
-                          </Button>
-                        ) : null}
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-[#079ED4] hover:underline"
                           onClick={() => setFicha(row)}
                         >
                           Ver detalhes
                           <ArrowRight className="size-3.5" />
                         </button>
                       </div>
+                    </div>
+
+                    <div className="relative flex flex-col gap-3 p-4 sm:p-5">
+                      <div className="absolute right-3 top-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-[#5C6B76] hover:bg-[#E7F4FA] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430]"
+                              title="Ações"
+                            >
+                              <MoreVertical className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setFicha(row)}>
+                              <Images className="mr-2 size-3.5" />
+                              Fotos e ficha
+                            </DropdownMenuItem>
+                            {canAct ? (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    void promoverOportunidade(row.id)
+                                      .then((captacao) => {
+                                        toast.success(
+                                          "Captação cadastrada. Saiu do banco.",
+                                        );
+                                        void navigate({
+                                          to: "/captacao/captacoes/$id",
+                                          params: { id: captacao.id },
+                                        });
+                                      })
+                                      .catch((err) => {
+                                        toast.error(
+                                          err instanceof ApiError
+                                            ? err.message
+                                            : "Não foi possível cadastrar.",
+                                        );
+                                      });
+                                  }}
+                                >
+                                  Cadastrar em captações
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setPerderId(row.id)}
+                                >
+                                  Perder
+                                </DropdownMenuItem>
+                              </>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="pr-8 pt-1">
+                        <p className="text-xl font-semibold tabular-nums tracking-tight text-[#0B3148] dark:text-[#f8fafc] sm:text-2xl">
+                          {formatBrl(row.valorPretendido)}
+                        </p>
+                        <p className="mt-1 text-sm text-[#8B98A3] dark:text-[#94a3b8]">
+                          {row.origem || "Sem origem"}
+                        </p>
+                      </div>
+
+                      {specs.length > 0 ? (
+                        <div className="mt-auto rounded-xl bg-[#F3FAFD] px-3 py-3 text-xs font-medium text-[#0B3148] dark:bg-[#102838] dark:text-[#E7F4FA]">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                            {specs.slice(0, 2).map((item, index) => (
+                              <span
+                                key={item.label}
+                                className="inline-flex items-center gap-2"
+                              >
+                                {index > 0 ? (
+                                  <span className="text-[#B7D7E6] dark:text-white/20">
+                                    |
+                                  </span>
+                                ) : null}
+                                <SpecItem icon={item.icon} label={item.label} />
+                              </span>
+                            ))}
+                          </div>
+                          {specs[2] ? (
+                            <div className="mt-2">
+                              <SpecItem
+                                icon={specs[2].icon}
+                                label={specs[2].label}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="mt-auto rounded-xl border border-dashed border-[#D3EBF5] px-3 py-3 text-xs text-[#8B98A3] dark:border-[#079ED4]/25 dark:text-[#94a3b8]">
+                          Complete a ficha para exibir quartos, vagas e área.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>
