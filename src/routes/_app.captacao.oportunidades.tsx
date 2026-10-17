@@ -21,6 +21,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
+import { FormDialogBody, FormDialogShell } from "@/components/form-dialog";
 import {
   emptyImovelFicha,
   fichaToPayload,
@@ -50,7 +51,7 @@ import {
 import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
 import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ImagePlus, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, ImagePlus, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/oportunidades")({
@@ -455,6 +456,7 @@ function OportunidadeFichaDialog({
   const [fotoBusy, setFotoBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [captando, setCaptando] = useState(false);
+  const [photo, setPhoto] = useState(0);
 
   useEffect(() => {
     if (!row?.imovel?.id && !row?.imovelId) {
@@ -481,92 +483,24 @@ function OportunidadeFichaDialog({
         id: undefined as string | undefined,
       }));
 
+  const current = fotos[photo] ?? fotos[0];
+
   return (
-    <Dialog open={row != null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Ficha da oportunidade</DialogTitle>
-        </DialogHeader>
-        {row ? (
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              {row.proprietarioNome}
-              {row.telefone ? ` · ${row.telefone}` : ""} · {row.localizacao}
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {fotos.map((foto) => (
-                <div key={foto.id ?? foto.url} className="relative">
-                  <img src={foto.url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
-                  {imovel && foto.id ? (
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-destructive"
-                      disabled={fotoBusy}
-                      onClick={() => {
-                        setFotoBusy(true);
-                        void deleteCaptacaoImovelFoto(imovel.id, foto.id!)
-                          .then((next) => {
-                            setImovel(next);
-                            toast.success("Foto removida.");
-                          })
-                          .catch((err) => {
-                            toast.error(err instanceof ApiError ? err.message : "Não foi possível remover.");
-                          })
-                          .finally(() => setFotoBusy(false));
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            {imovel ? (
-              <Button asChild size="sm" variant="outline" disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}>
-                <label className="cursor-pointer">
-                  {fotoBusy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1 h-4 w-4" />}
-                  Cadastrar imagem
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      if (!file || !imovel) return;
-                      setFotoBusy(true);
-                      void uploadCaptacaoImovelFoto(imovel.id, file)
-                        .then((next) => {
-                          setImovel(next);
-                          toast.success("Foto enviada.");
-                        })
-                        .catch((err) => {
-                          toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar.");
-                        })
-                        .finally(() => setFotoBusy(false));
-                    }}
-                  />
-                </label>
-              </Button>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Esta oportunidade ainda não tem imóvel vinculado para receber fotos.
-              </p>
-            )}
-            {imovel ? (
-              <ImovelFichaFields
-                value={ficha}
-                onChange={setFicha}
-                resetKey={imovel.id}
-              />
-            ) : null}
-          </div>
-        ) : null}
-        <DialogFooter>
+    <FormDialogShell
+      open={row != null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      icon={<Building2 className="h-5 w-5" />}
+      title={row?.proprietarioNome ?? "Oportunidade"}
+      description={row?.localizacao}
+      footer={
+        <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t px-4 py-3 sm:px-6">
           {imovel ? (
             <Button
               type="button"
               variant="outline"
+              className="rounded-full"
               disabled={saving}
               onClick={() => {
                 setSaving(true);
@@ -586,6 +520,7 @@ function OportunidadeFichaDialog({
           ) : null}
           {row && row.status === "aberta" && !row.id.startsWith("mock") ? (
             <Button
+              className="rounded-full"
               disabled={captando}
               onClick={() => {
                 setCaptando(true);
@@ -603,8 +538,158 @@ function OportunidadeFichaDialog({
               Cadastrar em captações
             </Button>
           ) : null}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    >
+      {row ? (
+        <FormDialogBody>
+          <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+            <Button type="button" variant="ghost" size="sm" className="-ml-2 rounded-full" onClick={onClose}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Oportunidades
+            </Button>
+            <span>/</span>
+            <span className="font-medium text-foreground">{row.proprietarioNome}</span>
+          </div>
+          <section className="mb-6 overflow-hidden rounded-[1.75rem] border border-border/70 bg-card shadow-sm">
+            <div className="relative bg-white px-3 pb-4 pt-3 sm:px-6">
+              <div className="absolute left-4 top-4 z-10 flex gap-2 sm:left-7 sm:right-7">
+                <span className="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-amber-950">
+                  {STATUS_LABEL[row.status]}
+                </span>
+                <div className="ml-auto flex gap-2">
+                  {row.origem ? (
+                    <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-800 shadow-sm">
+                      {row.origem}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-800 shadow-sm">
+                    {CAPTACAO_IMOVEL_TIPO_LABEL[row.tipo]}
+                  </span>
+                </div>
+              </div>
+              {current ? (
+                <div className="relative mx-auto max-w-4xl">
+                  <img
+                    src={current.url}
+                    alt=""
+                    className="mx-auto max-h-[28rem] w-auto max-w-full rounded-md object-contain"
+                  />
+                  <span className="absolute bottom-4 left-4 rounded-full bg-[#6b7a3d]/92 px-5 py-1.5 text-sm font-medium text-white shadow-sm">
+                    {photo === 0 ? "Capa" : `Foto ${photo + 1}`}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex h-64 items-center justify-center rounded-md bg-muted/40">
+                  <Building2 className="h-14 w-14 text-primary/35" />
+                </div>
+              )}
+              {fotos.length > 1 ? (
+                <div className="mx-auto mt-4 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                  {fotos.slice(0, 15).map((foto, index) => (
+                    <button
+                      key={foto.url}
+                      type="button"
+                      onClick={() => setPhoto(index)}
+                      className={cn(
+                        "aspect-[16/10] overflow-hidden rounded-md",
+                        index === photo
+                          ? "ring-2 ring-primary ring-offset-2"
+                          : "opacity-80 hover:opacity-100",
+                      )}
+                    >
+                      <img src={foto.url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {imovel ? (
+                <div className="mx-auto mt-3 flex max-w-4xl justify-end gap-2">
+                  {current?.id ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      disabled={fotoBusy}
+                      onClick={() => {
+                        setFotoBusy(true);
+                        void deleteCaptacaoImovelFoto(imovel.id, current.id!)
+                          .then((next) => {
+                            setImovel(next);
+                            setPhoto(0);
+                            toast.success("Foto removida.");
+                          })
+                          .catch((err) => {
+                            toast.error(err instanceof ApiError ? err.message : "Não foi possível remover.");
+                          })
+                          .finally(() => setFotoBusy(false));
+                      }}
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" />
+                      Remover foto
+                    </Button>
+                  ) : null}
+                  <Button asChild size="sm" className="rounded-full" disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}>
+                    <label className="cursor-pointer">
+                      {fotoBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}
+                      Enviar foto
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={fotoBusy || fotos.length >= IMOVEL_MAX_FOTOS}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (!file) return;
+                          setFotoBusy(true);
+                          void uploadCaptacaoImovelFoto(imovel.id, file)
+                            .then((next) => {
+                              setImovel(next);
+                              toast.success("Foto enviada.");
+                            })
+                            .catch((err) => {
+                              toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar.");
+                            })
+                            .finally(() => setFotoBusy(false));
+                        }}
+                      />
+                    </label>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+            <div className="border-t border-border/60 px-5 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Oportunidade
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {row.proprietarioNome}
+              </h2>
+              <p className="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                {row.localizacao}
+              </p>
+            </div>
+          </section>
+          <div className="mb-4 grid gap-2 sm:grid-cols-3">
+            {[
+              ["Pretendido", formatBrl(row.valorPretendido)],
+              ["Origem", row.origem || "—"],
+              ["Responsável", row.responsavel.name],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-[#E2E8EC] bg-white px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-[#141a22]">
+                <p className="text-[11px] text-[#5C6B76]">{label}</p>
+                <p className="mt-1 truncate text-sm font-medium text-[#0B3148] dark:text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+          {imovel ? (
+            <ImovelFichaFields value={ficha} onChange={setFicha} resetKey={imovel.id} />
+          ) : null}
+        </FormDialogBody>
+      ) : null}
+    </FormDialogShell>
   );
 }
