@@ -58,10 +58,13 @@ export function HeroSection() {
             </p>
 
             <ul className="mt-7 grid gap-2.5 sm:grid-cols-2">
-              {HIGHLIGHTS.map((item) => (
-                <li
+              {HIGHLIGHTS.map((item, index) => (
+                <motion.li
                   key={item}
                   className="flex items-start gap-2 text-sm leading-snug text-brand-dark"
+                  initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.08, duration: 0.4 }}
                 >
                   <span
                     className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-accent/20 text-brand-accent"
@@ -70,7 +73,7 @@ export function HeroSection() {
                     <Check size={12} strokeWidth={3} />
                   </span>
                   {item}
-                </li>
+                </motion.li>
               ))}
             </ul>
 

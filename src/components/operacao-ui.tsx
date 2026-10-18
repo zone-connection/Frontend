@@ -1,4 +1,5 @@
-import { type ReactNode } from "react";
+import { createContext, useContext, useId, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { NovoBadge } from "@/components/novo-badge";
@@ -8,6 +9,19 @@ import { cn } from "@/lib/utils";
 const NAV_SHELL =
   "mb-5 shrink-0 overflow-x-auto overflow-y-hidden rounded-xl border border-[#E2E8EC] bg-white p-1 dark:border-white/10 dark:bg-[#141a22]";
 
+const NavPillContext = createContext("nav-pill");
+
+export function NavActivePill() {
+  const id = useContext(NavPillContext);
+  return (
+    <motion.span
+      layoutId={id}
+      className="absolute inset-0 -z-10 rounded-lg bg-[#079ED4]"
+      transition={{ type: "spring", bounce: 0.16, duration: 0.45 }}
+    />
+  );
+}
+
 export function SlidingNav({
   className,
   children,
@@ -16,20 +30,23 @@ export function SlidingNav({
   className?: string;
   children: ReactNode;
 }) {
+  const id = useId();
   return (
     <nav className={NAV_SHELL}>
-      <div className={cn("relative flex min-w-max gap-0.5", className)}>
-        {children}
-      </div>
+      <NavPillContext.Provider value={id}>
+        <div className={cn("relative flex min-w-max gap-0.5", className)}>
+          {children}
+        </div>
+      </NavPillContext.Provider>
     </nav>
   );
 }
 
 export const navItemClass = (active: boolean) =>
   cn(
-    "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-500 ease-out motion-reduce:transition-none",
+    "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-300 ease-out motion-reduce:transition-none",
     active
-      ? "bg-[#079ED4] text-white"
+      ? "text-white"
       : "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
   );
 
@@ -74,6 +91,7 @@ export function OperationSubnav({
               data-nav-active={active ? "true" : undefined}
               className={navItemClass(active)}
             >
+              {active ? <NavActivePill /> : null}
               {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
               {tab.label}
               {isNavPathNovo(tab.to) ? (
@@ -114,6 +132,7 @@ export function PillTabs({
             onClick={() => onChange(item.id)}
             className={navItemClass(active)}
           >
+            {active ? <NavActivePill /> : null}
             {item.label}
             {item.novo ? (
               <NovoBadge

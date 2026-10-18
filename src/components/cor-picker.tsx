@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -67,17 +68,26 @@ export function CorPicker({
       </div>
       {!disabled ? (
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {CONSTRUTORA_CORES_PRESET.map((hex) => (
-            <button
-              key={hex}
-              type="button"
-              title={hex}
-              className="h-7 w-7 rounded-full border border-border"
-              style={{ backgroundColor: hex }}
-              onClick={() => onChange(hex)}
-              disabled={disabled}
-            />
-          ))}
+          {CONSTRUTORA_CORES_PRESET.map((hex) => {
+            const selected = value?.toLowerCase() === hex.toLowerCase();
+            return (
+              <motion.button
+                key={hex}
+                type="button"
+                title={hex}
+                className="h-7 w-7 rounded-full border border-border"
+                style={{
+                  backgroundColor: hex,
+                  boxShadow: selected ? "0 0 0 2px #fff, 0 0 0 4px #079ED4" : undefined,
+                }}
+                onClick={() => onChange(hex)}
+                disabled={disabled}
+                whileHover={{ scale: 1.12 }}
+                whileTap={{ scale: 0.92 }}
+                animate={{ scale: selected ? 1.08 : 1 }}
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>

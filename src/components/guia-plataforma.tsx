@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -79,11 +80,27 @@ function CopySnippet({
           onClick={() => void copy()}
           aria-label="Copiar"
         >
-          {copied ? (
-            <Check className="h-3.5 w-3.5 text-emerald-600" />
-          ) : (
-            <Copy className="h-3.5 w-3.5" />
-          )}
+          <AnimatePresence mode="wait" initial={false}>
+            {copied ? (
+              <motion.span
+                key="ok"
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.6, opacity: 0 }}
+              >
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="copy"
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.6, opacity: 0 }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </Button>
       </div>
     </div>

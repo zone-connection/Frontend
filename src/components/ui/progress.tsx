@@ -18,7 +18,7 @@ const Progress = React.forwardRef<
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className="funil-bar-flow h-full w-full flex-1 transition-all"
+      className="funil-bar-flow h-full w-full flex-1 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
       style={{
         transform: `translateX(-${100 - (value || 0)}%)`,
         backgroundImage:

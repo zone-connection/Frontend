@@ -509,3 +509,66 @@ html.tenant-density-compact .space-y-6 {
 .module-page-in > *:nth-child(n + 2) > *:nth-child(4) { animation-delay: 240ms; }
 .module-page-in > *:nth-child(n + 2) > *:nth-child(5) { animation-delay: 300ms; }
 .module-page-in > *:nth-child(n + 2) > *:nth-child(6) { animation-delay: 360ms; }
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 18;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.check-draw {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+}
+
+[data-state="checked"] .check-draw {
+  animation: check-draw 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes motion-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.motion-item {
+  animation: motion-item-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.motion-rows > tr {
+  animation: motion-item-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.motion-rows > tr:nth-child(1) { animation-delay: 20ms; }
+.motion-rows > tr:nth-child(2) { animation-delay: 45ms; }
+.motion-rows > tr:nth-child(3) { animation-delay: 70ms; }
+.motion-rows > tr:nth-child(4) { animation-delay: 95ms; }
+.motion-rows > tr:nth-child(5) { animation-delay: 120ms; }
+.motion-rows > tr:nth-child(6) { animation-delay: 145ms; }
+.motion-rows > tr:nth-child(7) { animation-delay: 170ms; }
+.motion-rows > tr:nth-child(8) { animation-delay: 195ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .check-draw,
+  .motion-item,
+  .motion-rows > tr,
+  .before\:animate-\[skeleton-shimmer_1\.4s_ease-in-out_infinite\] {
+    animation: none;
+  }
+}
