@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export type DashDonutItem = {
@@ -48,10 +49,10 @@ export function DashDonut({
           stroke="#DDD6FE"
           strokeWidth="16"
         />
-        {visible.map((item) => {
+        {visible.map((item, index) => {
           const len = (item.value / total) * circ;
           const node = (
-            <circle
+            <motion.circle
               key={item.label}
               cx="60"
               cy="60"
@@ -59,8 +60,10 @@ export function DashDonut({
               fill="none"
               strokeWidth="16"
               stroke={item.color}
-              strokeDasharray={`${len} ${circ - len}`}
               strokeDashoffset={-acc}
+              initial={{ strokeDasharray: `0 ${circ}` }}
+              animate={{ strokeDasharray: `${len} ${circ - len}` }}
+              transition={{ duration: 0.8, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
             />
           );
           acc += len;

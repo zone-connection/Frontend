@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import { CheckCircle2, FileText, Wallet } from "lucide-react";
 import { brl } from "@/lib/crm-types";
 import { cn } from "@/lib/utils";
@@ -37,12 +38,12 @@ export function DashRankBars({
               className="h-2.5 overflow-hidden rounded-full"
               style={{ backgroundColor: `${BAR_COLORS[index % BAR_COLORS.length]}22` }}
             >
-              <div
+              <motion.div
                 className="h-full rounded-full"
-                style={{
-                  width: `${width}%`,
-                  backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
-                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${width}%` }}
+                transition={{ duration: 0.7, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
               />
             </div>
             <span className="tabular-nums text-muted-foreground">
@@ -85,7 +86,7 @@ export function DashShareDonut({
             ? items.map((item, index) => {
                 const len = (item.valor / total) * circ;
                 const node = (
-                  <circle
+                  <motion.circle
                     key={item.nome}
                     cx="50"
                     cy="50"
@@ -93,8 +94,10 @@ export function DashShareDonut({
                     fill="none"
                     strokeWidth="12"
                     stroke={EQUIPE_COLORS[index % EQUIPE_COLORS.length]}
-                    strokeDasharray={`${len} ${circ - len}`}
                     strokeDashoffset={-acc}
+                    initial={{ strokeDasharray: `0 ${circ}` }}
+                    animate={{ strokeDasharray: `${len} ${circ - len}` }}
+                    transition={{ duration: 0.8, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   />
                 );
                 acc += len;
@@ -169,7 +172,7 @@ export function DashPipelineDonut({
             ? rows.map((row) => {
                 const len = (row.value / total) * circ;
                 const node = (
-                  <circle
+                  <motion.circle
                     key={row.label}
                     cx="50"
                     cy="50"
@@ -177,8 +180,12 @@ export function DashPipelineDonut({
                     fill="none"
                     strokeWidth="11"
                     stroke={row.color}
-                    strokeDasharray={`${Math.max(len, row.value ? 4 : 0)} ${circ}`}
                     strokeDashoffset={-acc}
+                    initial={{ strokeDasharray: `0 ${circ}` }}
+                    animate={{
+                      strokeDasharray: `${Math.max(len, row.value ? 4 : 0)} ${circ}`,
+                    }}
+                    transition={{ duration: 0.85, delay: rows.indexOf(row) * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   />
                 );
                 acc += len;
@@ -212,12 +219,12 @@ export function DashPipelineDonut({
                 className="h-1.5 overflow-hidden rounded-full"
                 style={{ backgroundColor: `${row.color}22` }}
               >
-                <div
+                <motion.div
                   className="h-full rounded-full"
-                  style={{
-                    width: `${Math.max(row.value ? 6 : 0, pct)}%`,
-                    backgroundColor: row.color,
-                  }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(row.value ? 6 : 0, pct)}%` }}
+                  transition={{ duration: 0.7, delay: rows.indexOf(row) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ backgroundColor: row.color }}
                 />
               </div>
             </div>

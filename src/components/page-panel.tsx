@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { SOFT_BTN } from "@/lib/soft-btn";
@@ -42,9 +43,12 @@ export function PagePanel({
   inset?: "plain" | "muted";
 }) {
   return (
-    <section
+    <motion.section
       data-guia={guia}
       className={cn(SOFT_SURFACE, className)}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
       {title ? (
         <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-1 sm:px-5">
@@ -69,6 +73,6 @@ export function PagePanel({
       >
         {children}
       </div>
-    </section>
+    </motion.section>
   );
 }
