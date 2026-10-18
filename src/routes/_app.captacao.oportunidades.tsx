@@ -33,7 +33,11 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
-import { FormDialogBody, FormDialogShell } from "@/components/form-dialog";
+import {
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import {
   emptyImovelFicha,
   fichaToPayload,
@@ -908,12 +912,15 @@ function OportunidadesPage() {
         </>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova oportunidade</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-3" onSubmit={(e) => void onCreate(e)}>
+      <FormDialogShell
+        open={open}
+        onOpenChange={setOpen}
+        icon={<Home className="size-5" />}
+        title="Nova oportunidade"
+        description="Registre o imóvel e o contato do proprietário no banco de oportunidades."
+      >
+          <form onSubmit={(e) => void onCreate(e)}>
+            <FormDialogBody>
             <div className="space-y-1">
               <Label>Localização</Label>
               <Input
@@ -1025,14 +1032,17 @@ function OportunidadesPage() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            </FormDialogBody>
+            <FormDialogActions hint="Depois de salvar, a ficha completa abre no mesmo padrão dos outros cadastros.">
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
               </Button>
-            </DialogFooter>
+            </FormDialogActions>
           </form>
-        </DialogContent>
-      </Dialog>
+      </FormDialogShell>
 
       <Dialog open={!!perderId} onOpenChange={(value) => !value && setPerderId(null)}>
         <DialogContent>

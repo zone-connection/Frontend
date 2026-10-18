@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +21,7 @@ import {
   appendEventoLocal,
   type AcompanhamentoItem,
 } from "@/lib/captacao-acompanhamento";
+import { Phone } from "lucide-react";
 import { toast } from "sonner";
 
 const CANAIS = [
@@ -161,14 +160,16 @@ export function CaptacaoRegistrarContatoDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Registrar contato</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+    <FormDialogShell
+      open={open}
+      onOpenChange={(next) => !saving && onOpenChange(next)}
+      icon={<Phone className="size-5" />}
+      title="Registrar contato"
+      description="Anota o que foi combinado e, se quiser, cria o retorno na agenda."
+    >
+      <FormDialogBody>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
               <Label>Canal</Label>
               <Select value={canal} onValueChange={(v) => setCanal(v as Canal)}>
                 <SelectTrigger>
@@ -203,7 +204,6 @@ export function CaptacaoRegistrarContatoDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
           <div className="space-y-1.5">
             <Label>Resultado</Label>
             <Select
@@ -222,8 +222,7 @@ export function CaptacaoRegistrarContatoDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="space-y-1.5">
               <Label htmlFor="retorno-data">Próximo retorno</Label>
               <Input
                 id="retorno-data"
@@ -242,11 +241,10 @@ export function CaptacaoRegistrarContatoDialog({
                 disabled={!retornoData}
               />
             </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground sm:col-span-2">
             Se informar a data, o retorno entra na agenda do corretor.
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="contato-nota">O que foi combinado</Label>
             <Textarea
               id="contato-nota"
@@ -256,12 +254,20 @@ export function CaptacaoRegistrarContatoDialog({
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button onClick={() => void salvar()} disabled={saving || !item}>
-            {saving ? "Salvando…" : "Salvar contato"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </FormDialogBody>
+      <FormDialogActions>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={saving}
+          onClick={() => onOpenChange(false)}
+        >
+          Cancelar
+        </Button>
+        <Button onClick={() => void salvar()} disabled={saving || !item}>
+          {saving ? "Salvando…" : "Salvar contato"}
+        </Button>
+      </FormDialogActions>
+    </FormDialogShell>
   );
 }

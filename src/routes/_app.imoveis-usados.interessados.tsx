@@ -9,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import {
   Table,
   TableBody,
@@ -38,7 +36,7 @@ import { TableFrame } from "@/components/operacao-ui";
 import { TABLE_LUX } from "@/lib/filter-bar";
 import { cn } from "@/lib/utils";
 import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/imoveis-usados/interessados")({
@@ -226,13 +224,16 @@ function InteressadosUsadoPage() {
         />
         </TableFrame>
       )}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <FormDialogShell
+        open={open}
+        onOpenChange={setOpen}
+        icon={<UserRound className="size-5" />}
+        title="Novo interessado"
+        description="Perfil de busca para matching com os imóveis usados."
+      >
           <form onSubmit={(e) => void handleSave(e)}>
-            <DialogHeader>
-              <DialogTitle>Novo interessado</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 py-2">
+            <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>Nome</Label>
                 <Input
@@ -372,14 +373,17 @@ function InteressadosUsadoPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            </FormDialogBody>
+            <FormDialogActions>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={saving}>
                 {saving ? "Salvando…" : "Cadastrar"}
               </Button>
-            </DialogFooter>
+            </FormDialogActions>
           </form>
-        </DialogContent>
-      </Dialog>
+      </FormDialogShell>
     </>
   );
 }

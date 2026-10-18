@@ -2,12 +2,10 @@ import { Check, Copy, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -92,17 +90,21 @@ export function ProprietarioPortalCredenciaisDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Credenciais do portal</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
+    <FormDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={<KeyRound className="size-5" />}
+      title="Credenciais do portal"
+      description={
+        <>
           Anote e entregue a {nome}. A senha só aparece agora. O login é em{" "}
           <span className="font-mono">/portal/login</span>, não no CRM da
           imobiliária.
-        </p>
-        <div className="grid gap-3">
+        </>
+      }
+    >
+      <FormDialogBody>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>E-mail</Label>
             <div className="mt-1 flex gap-2">
@@ -140,12 +142,12 @@ export function ProprietarioPortalCredenciaisDialog({
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            Entendi
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </FormDialogBody>
+      <FormDialogActions>
+        <Button type="button" onClick={() => onOpenChange(false)}>
+          Entendi
+        </Button>
+      </FormDialogActions>
+    </FormDialogShell>
   );
 }

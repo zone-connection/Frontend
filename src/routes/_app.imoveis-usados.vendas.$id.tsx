@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   FormDialogActions,
   FormDialogBody,
   FormDialogShell,
@@ -108,7 +101,15 @@ import {
   maskMoneyInput,
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
-import { Building2, Loader2 } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  ClipboardCheck,
+  FileText,
+  Handshake,
+  Loader2,
+  MessageSquare,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/imoveis-usados/vendas/$id")({
@@ -1801,18 +1802,18 @@ function VendaUsadoDetalhePage() {
         </Card>
       ) : null}
 
-      <Dialog open={iniciarOpen} onOpenChange={setIniciarOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Iniciar fechamento</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2 text-sm">
-            <p className="text-muted-foreground">
-              Selecione a proposta aceita. O imóvel não será marcado como
-              vendido nesta etapa.
-            </p>
+      <FormDialogShell
+        open={iniciarOpen}
+        onOpenChange={setIniciarOpen}
+        icon={<Handshake className="size-5" />}
+        title="Iniciar fechamento"
+        description="Selecione a proposta aceita. O imóvel não será marcado como vendido nesta etapa."
+      >
+          <FormDialogBody>
+            <div className="space-y-1.5">
+              <Label>Proposta aceita</Label>
             <select
-              className="h-9 rounded-md border bg-background px-3"
+              className="h-9 w-full rounded-md border bg-background px-3"
               value={iniciarPropostaId}
               onChange={(e) => setIniciarPropostaId(e.target.value)}
             >
@@ -1822,8 +1823,12 @@ function VendaUsadoDetalhePage() {
                 </option>
               ))}
             </select>
-          </div>
-          <DialogFooter>
+            </div>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button type="button" variant="ghost" onClick={() => setIniciarOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               disabled={!iniciarPropostaId}
               onClick={() => {
@@ -1847,16 +1852,18 @@ function VendaUsadoDetalhePage() {
             >
               Iniciar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormDialogActions>
+      </FormDialogShell>
 
-      <Dialog open={visitaOpen} onOpenChange={setVisitaOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agendar visita</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
+      <FormDialogShell
+        open={visitaOpen}
+        onOpenChange={setVisitaOpen}
+        icon={<CalendarDays className="size-5" />}
+        title="Agendar visita"
+        description="Marca a visita com o interessado e o responsável."
+      >
+          <FormDialogBody>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Interessado</Label>
               <select
@@ -1917,7 +1924,11 @@ function VendaUsadoDetalhePage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button type="button" variant="ghost" onClick={() => setVisitaOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               disabled={saving || !visitaForm.interessadoId}
               onClick={() => {
@@ -1945,16 +1956,20 @@ function VendaUsadoDetalhePage() {
             >
               Agendar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormDialogActions>
+      </FormDialogShell>
 
-      <Dialog open={Boolean(feedbackId)} onOpenChange={() => setFeedbackId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Feedback da visita</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
+      <FormDialogShell
+        open={Boolean(feedbackId)}
+        onOpenChange={(next) => {
+          if (!next) setFeedbackId(null);
+        }}
+        icon={<MessageSquare className="size-5" />}
+        title="Feedback da visita"
+        description="Registre a avaliação e o interesse após a visita."
+      >
+          <FormDialogBody>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Avaliação</Label>
               <select
@@ -2017,7 +2032,11 @@ function VendaUsadoDetalhePage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button type="button" variant="ghost" onClick={() => setFeedbackId(null)}>
+              Cancelar
+            </Button>
             <Button
               disabled={!feedbackId}
               onClick={() => {
@@ -2047,16 +2066,18 @@ function VendaUsadoDetalhePage() {
             >
               Salvar feedback
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormDialogActions>
+      </FormDialogShell>
 
-      <Dialog open={propostaOpen} onOpenChange={setPropostaOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova proposta</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
+      <FormDialogShell
+        open={propostaOpen}
+        onOpenChange={setPropostaOpen}
+        icon={<FileText className="size-5" />}
+        title="Nova proposta"
+        description="Oferta do interessado sobre este imóvel usado."
+      >
+          <FormDialogBody>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Interessado</Label>
               <select
@@ -2157,7 +2178,11 @@ function VendaUsadoDetalhePage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          </FormDialogBody>
+          <FormDialogActions>
+            <Button type="button" variant="ghost" onClick={() => setPropostaOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               disabled={!propostaForm.interessadoId}
               onClick={() => {
@@ -2192,18 +2217,19 @@ function VendaUsadoDetalhePage() {
             >
               Criar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormDialogActions>
+      </FormDialogShell>
 
-      <Dialog
+      <FormDialogShell
         open={Boolean(propostaAberta)}
-        onOpenChange={() => setPropostaAberta(null)}
+        onOpenChange={(next) => {
+          if (!next) setPropostaAberta(null);
+        }}
+        icon={<ClipboardCheck className="size-5" />}
+        title="Negociação"
+        description="Acompanhe a proposta e registre a contraproposta."
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Negociação</DialogTitle>
-          </DialogHeader>
+        <FormDialogBody>
           {propostaAberta ? (
             <div className="space-y-3 text-sm">
               <p>Interessado: {propostaAberta.interessado.nome}</p>
@@ -2338,8 +2364,8 @@ function VendaUsadoDetalhePage() {
               </div>
             </div>
           ) : null}
-        </DialogContent>
-      </Dialog>
+        </FormDialogBody>
+      </FormDialogShell>
       <FormDialogShell
         open={fichaOpen}
         onOpenChange={setFichaOpen}

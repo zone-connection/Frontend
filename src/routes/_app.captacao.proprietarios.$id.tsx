@@ -6,12 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import { ApiError } from "@/lib/api";
 import {
   deleteProprietario,
@@ -31,7 +29,7 @@ import {
   ProprietarioPortalFields,
 } from "@/components/proprietario-portal-fields";
 import { digitsOnly, formatCpfCnpj } from "@/lib/utils";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentosPanel } from "@/components/documentos-panel";
 
@@ -379,21 +377,24 @@ function ProprietarioDetalhePage() {
           </CardContent>
         </Card>
       </div>
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <form onSubmit={(e) => void handleSave(e)}>
-            <DialogHeader>
-              <DialogTitle>Editar proprietário</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 py-3">
-              <div>
+      <FormDialogShell
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        icon={<UserRound className="size-5" />}
+        title="Editar proprietário"
+        description="Atualize os dados da pessoa ou empresa dona do imóvel."
+      >
+        <form onSubmit={(e) => void handleSave(e)}>
+          <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Nome</Label>
                 <Input
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Tipo</Label>
                 <select
                   className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
@@ -413,7 +414,7 @@ function ProprietarioDetalhePage() {
                   <option value="juridica">Pessoa jurídica</option>
                 </select>
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>
                   {form.tipoPessoa === "juridica" ? "CNPJ" : "CPF"}
                 </Label>
@@ -432,7 +433,7 @@ function ProprietarioDetalhePage() {
                   }
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Telefone</Label>
                 <Input
                   value={form.telefone}
@@ -441,7 +442,7 @@ function ProprietarioDetalhePage() {
                   }
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>E-mail</Label>
                 <Input
                   type="email"
@@ -449,11 +450,13 @@ function ProprietarioDetalhePage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </div>
-              <ProprietarioPortalFields
-                senha={form.senhaPortal}
-                onSenha={(senhaPortal) => setForm({ ...form, senhaPortal })}
-              />
-              <div>
+              <div className="sm:col-span-2">
+                <ProprietarioPortalFields
+                  senha={form.senhaPortal}
+                  onSenha={(senhaPortal) => setForm({ ...form, senhaPortal })}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Observações</Label>
                 <Input
                   value={form.observacoes}
@@ -463,14 +466,17 @@ function ProprietarioDetalhePage() {
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Salvando…" : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </FormDialogBody>
+          <FormDialogActions hint="O e-mail e a senha liberam o portal do proprietário.">
+            <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Salvando…" : "Salvar"}
+            </Button>
+          </FormDialogActions>
+        </form>
+      </FormDialogShell>
       <ConfirmDeleteDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}

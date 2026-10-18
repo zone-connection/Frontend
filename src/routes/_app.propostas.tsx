@@ -220,6 +220,7 @@ import {
   Eye,
   FileText,
   Handshake,
+  Home,
   Loader2,
   Link2,
   MoreHorizontal,
@@ -4075,15 +4076,16 @@ function Page() {
         </form>
       </FormDialogShell>
 
-      <Dialog open={usadoCreateOpen} onOpenChange={setUsadoCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova proposta de usado</DialogTitle>
-            <DialogDescription>
-              A proposta fica ligada ao imóvel em venda e ao interessado.
-            </DialogDescription>
-          </DialogHeader>
-          <form className="grid gap-3" onSubmit={(e) => void salvarPropostaUsado(e)}>
+      <FormDialogShell
+        open={usadoCreateOpen}
+        onOpenChange={setUsadoCreateOpen}
+        icon={<Home className="size-5" />}
+        title="Nova proposta de usado"
+        description="A proposta fica ligada ao imóvel em venda e ao interessado."
+      >
+          <form onSubmit={(e) => void salvarPropostaUsado(e)}>
+            <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Imóvel</Label>
               <Select
@@ -4194,15 +4196,19 @@ function Page() {
                 }
               />
             </div>
-            <DialogFooter>
+            </div>
+            </FormDialogBody>
+            <FormDialogActions>
+              <Button type="button" variant="ghost" onClick={() => setUsadoCreateOpen(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={usadoSaving}>
                 {usadoSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
                 Criar proposta
               </Button>
-            </DialogFooter>
+            </FormDialogActions>
           </form>
-        </DialogContent>
-      </Dialog>
+      </FormDialogShell>
 
       <Dialog
         open={Boolean(usadoAberto)}
