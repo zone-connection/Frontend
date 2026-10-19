@@ -18,14 +18,24 @@ export function HeroSection() {
 
     return (
         <section
-            className="bg-white pb-5"
+            className="w-full bg-white pb-5"
             aria-labelledby="home-hero-title"
         >
-            <div className="relative flex w-full flex-col overflow-hidden bg-[#d6eef6] py-10 sm:px-10 sm:py-10 xl:min-h-136 xl:flex-row xl:items-center xl:justify-between xl:px-16 xl:py-16">
+            <div className="relative flex w-full flex-col overflow-hidden bg-[#d6eef6] py-10 sm:px-10 sm:py-10 xl:min-h-136 xl:justify-center xl:px-16 xl:py-16">
+
+                {/* Imagem ocupando toda a largura no desktop */}
+                <img
+                    src={HERO_IMAGE}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover object-center xl:block"
+                    loading="eager"
+                    fetchPriority="high"
+                />
 
                 {/* Conteúdo textual */}
                 <motion.div
-                    className="relative z-2 flex max-w-xl flex-col px-6 sm:px-0"
+                    className="relative z-[2] flex max-w-xl flex-col px-6 sm:px-0"
                     initial={
                         reducedMotion ? false : { opacity: 0, y: 20 }
                     }
@@ -90,10 +100,7 @@ export function HeroSection() {
                         >
                             Conheça as soluções
 
-                            <ArrowRight
-                                size={16}
-                                strokeWidth={2}
-                            />
+                            <ArrowRight size={16} strokeWidth={2} />
                         </a>
 
                         <a
@@ -108,21 +115,6 @@ export function HeroSection() {
                         </a>
                     </div>
                 </motion.div>
-
-                {/* Imagem: somente desktop */}
-                <img
-                    src={HERO_IMAGE}
-                    alt="Plataforma Zone Connection para gestão imobiliária"
-                    className="absolute right-0 top-0 hidden h-full w-1/2 object-contain object-right xl:block"
-                    loading="eager"
-                    fetchPriority="high"
-                />
-
-                {/* Véu para integrar a imagem ao fundo */}
-                <div
-                    className="pointer-events-none absolute inset-y-0 left-0 z-1 hidden w-3/5 bg-linear-to-r from-[#d6eef6]/95 via-[#d6eef6]/70 to-transparent xl:block"
-                    aria-hidden="true"
-                />
             </div>
         </section>
     );
