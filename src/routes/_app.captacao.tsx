@@ -2,12 +2,9 @@ import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tansta
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
 import {
   ClipboardList,
-  FolderOpen,
   Funnel,
-  Goal,
   LayoutDashboard,
   SearchCheck,
-  Target,
   Users,
 } from "lucide-react";
 
@@ -17,9 +14,6 @@ const TABS = [
   { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
   { to: "/captacao/oportunidades", label: "Oportunidades", icon: SearchCheck },
   { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
-  { to: "/captacao/avaliacoes", label: "Avaliações", icon: Goal },
-  { to: "/captacao/documentacao", label: "Documentação", icon: FolderOpen },
-  { to: "/captacao/relatorios", label: "Relatórios", icon: Target },
 ] as const;
 
 export const Route = createFileRoute("/_app/captacao")({
