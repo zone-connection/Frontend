@@ -7,7 +7,6 @@ import {
   Kanban,
   Funnel,
   Crosshair,
-  Calendar,
   ListTodo,
   Building2,
   UserCircle2,
@@ -270,7 +269,6 @@ const OPERACOES: {
       { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
       { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
       { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-      { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
       { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
       {
         id: "parcerias",
@@ -445,7 +443,6 @@ const NAV_SECTIONS: {
           { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
           { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-          { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
           { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
         ],
       },

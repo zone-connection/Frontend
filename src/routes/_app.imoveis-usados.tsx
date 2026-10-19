@@ -1,12 +1,11 @@
 import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
-import { Calendar, Funnel, LayoutDashboard, Store, Users } from "lucide-react";
+import { Funnel, LayoutDashboard, Store, Users } from "lucide-react";
 
 const TABS = [
   { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
   { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
   { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-  { to: "/imoveis-usados/visitas", label: "Visitas", icon: Calendar },
   { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
 ] as const;
 

@@ -152,8 +152,7 @@ function UsadosVisaoGeralPage() {
                 icon={Calendar}
                 format="number"
                 detail="Prévia"
-                href="/imoveis-usados/visitas"
-                search={{ periodo: "hoje" }}
+                href="/tarefas"
               />
               <FinanceKpiCard
                 label="Visitas realizadas"
@@ -162,8 +161,7 @@ function UsadosVisaoGeralPage() {
                 icon={Calendar}
                 format="number"
                 detail="Prévia"
-                href="/imoveis-usados/visitas"
-                search={{ periodo: "realizadas" }}
+                href="/tarefas"
               />
               <FinanceKpiCard
                 label="Propostas recebidas"
