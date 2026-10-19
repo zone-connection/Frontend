@@ -267,9 +267,6 @@ const OPERACOES: {
     prefixes: ["/imoveis-usados", "/parcerias"],
     items: [
       { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-      { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
-      { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-      { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
       {
         id: "parcerias",
         label: "Parceiros",
@@ -441,9 +438,6 @@ const NAV_SECTIONS: {
         icon: Store,
         children: [
           { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/imoveis-usados/funil", label: "Funil", icon: Funnel },
-          { to: "/imoveis-usados/estoque", label: "Estoque", icon: Store },
-          { to: "/imoveis-usados/interessados", label: "Interessados", icon: Users },
         ],
       },
       {
