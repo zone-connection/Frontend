@@ -137,6 +137,11 @@ import {
 import { createUser } from "@/lib/users-api";
 import { CorPicker } from "@/components/cor-picker";
 import { fetchEquipeGerentes, type EquipeOptionUser } from "@/lib/equipes-api";
+import { fetchProprietarios, type Proprietario } from "@/lib/captacao-api";
+import {
+  fetchInteressadosUsado,
+  type InteressadoUsado,
+} from "@/lib/imoveis-usados-api";
 import {
   FolderOpen,
   Plus,
@@ -275,6 +280,10 @@ type FormState = {
   nome: string;
   construtoraId: string;
   empreendimentoId: string;
+  origem: "lancamento" | "usado";
+  proprietarioId: string;
+  interessadoId: string;
+  matricula: string;
   fonte: string;
   status1: string;
   status2: string;
@@ -298,6 +307,10 @@ const emptyForm = (): FormState => ({
   nome: "",
   construtoraId: "",
   empreendimentoId: "",
+  origem: "lancamento",
+  proprietarioId: "",
+  interessadoId: "",
+  matricula: "",
   fonte: "",
   status1: "",
   status2: "",
@@ -649,6 +662,10 @@ function DocumentacaoPage() {
   const [importFileName, setImportFileName] = useState("");
 
   const [open, setOpen] = useState(false);
+  const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
+  const [interessadosUsado, setInteressadosUsado] = useState<InteressadoUsado[]>(
+    [],
+  );
   const [createLocked, setCreateLocked] = useState(false);
   const [leaveCreateOpen, setLeaveCreateOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit" | "view">(
@@ -1185,6 +1202,18 @@ function DocumentacaoPage() {
     void loadLookups();
   }, [loadLookups]);
 
+  useEffect(() => {
+    if (!open || form.origem !== "usado") return;
+    if (proprietarios.length && interessadosUsado.length) return;
+    void Promise.all([
+      fetchProprietarios().catch(() => [] as Proprietario[]),
+      fetchInteressadosUsado().catch(() => [] as InteressadoUsado[]),
+    ]).then(([donos, interessados]) => {
+      setProprietarios(donos);
+      setInteressadosUsado(interessados);
+    });
+  }, [open, form.origem, proprietarios.length, interessadosUsado.length]);
+
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -1269,6 +1298,10 @@ function DocumentacaoPage() {
       nome: doc.nome,
       construtoraId: doc.construtoraId ?? "",
       empreendimentoId: doc.empreendimentoId ?? "",
+      origem: doc.origem === "usado" ? "usado" : "lancamento",
+      proprietarioId: doc.proprietarioId ?? "",
+      interessadoId: doc.interessadoId ?? "",
+      matricula: doc.matricula ?? "",
       fonte: doc.fonte,
       status1: doc.status1,
       status2: doc.status2,
@@ -1330,7 +1363,18 @@ function DocumentacaoPage() {
   }
 
   function buildPayload(): CreateDocumentacaoInput | null {
-    if (form.nome.trim().length < 2) {
+    const interessado = interessadosUsado.find(
+      (item) => item.id === form.interessadoId,
+    );
+    const nome =
+      form.origem === "usado"
+        ? (interessado?.nome ?? "").trim()
+        : form.nome.trim();
+    if (form.origem === "usado" && !form.interessadoId) {
+      toast.error("Selecione o interessado.");
+      return null;
+    }
+    if (nome.length < 2) {
       toast.error("Informe o nome.");
       return null;
     }
@@ -1350,9 +1394,13 @@ function DocumentacaoPage() {
 
     return {
       ...(form.leadId ? { leadId: form.leadId } : { leadId: null }),
-      nome: form.nome.trim(),
-      construtoraId: form.construtoraId || null,
+      nome,
+      construtoraId: form.origem === "usado" ? null : form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
+      origem: form.origem,
+      proprietarioId: form.origem === "usado" ? form.proprietarioId || null : null,
+      interessadoId: form.origem === "usado" ? form.interessadoId || null : null,
+      matricula: form.origem === "usado" ? form.matricula.trim() : "",
       fonte: form.fonte,
       status1: form.status1.trim(),
       status2,
@@ -2606,6 +2654,11 @@ function DocumentacaoPage() {
                         title={doc.nome}
                       >
                         {doc.nome}
+                        {doc.origem === "usado" ? (
+                          <span className="ml-1.5 inline-flex rounded-full bg-[#E7F4FA] px-1.5 py-0.5 text-[10px] font-semibold text-[#05749E]">
+                            Usado
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
                         {diasEmAnaliseLabel(doc)}
@@ -2786,8 +2839,33 @@ function DocumentacaoPage() {
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
-            <FormSection title="Dados da planilha">
+            <div className="mb-4 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
+              {(
+                [
+                  ["lancamento", "Lançamento"],
+                  ["usado", "Usados"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => setField("origem", id)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium",
+                    form.origem === id
+                      ? "bg-white text-[#0B3148] shadow-sm"
+                      : "text-[#5C6B76]",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <FormSection title={form.origem === "usado" ? "Venda de usados" : "Dados da planilha"}>
               <div className="grid gap-4 sm:grid-cols-2">
+                {form.origem === "lancamento" ? (
+                <>
                 <p className="text-xs text-muted-foreground sm:col-span-2">
                   Vincular um lead ou cliente ativo é opcional. Sem vínculo, a ficha é só o registro.
                 </p>
@@ -2905,6 +2983,52 @@ function DocumentacaoPage() {
                     );
                   })()}
                 </div>
+                </>
+                ) : (
+                <>
+                <div className="space-y-2">
+                  <Label>Proprietário</Label>
+                  <IdSearchSelect
+                    value={form.proprietarioId}
+                    options={proprietarios.map((item) => ({
+                      id: item.id,
+                      label: item.nome,
+                      keywords: `${item.nome} ${item.telefone}`,
+                    }))}
+                    onChange={(id) => setField("proprietarioId", id)}
+                    placeholder="Selecione"
+                    searchPlaceholder="Pesquisar proprietário…"
+                    emptyLabel="Nenhum proprietário cadastrado"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Interessado *</Label>
+                  <IdSearchSelect
+                    value={form.interessadoId}
+                    options={interessadosUsado.map((item) => ({
+                      id: item.id,
+                      label: item.nome,
+                      keywords: `${item.nome} ${item.telefone}`,
+                    }))}
+                    onChange={(id) => setField("interessadoId", id)}
+                    placeholder="Selecione"
+                    searchPlaceholder="Pesquisar interessado…"
+                    emptyLabel="Nenhum interessado cadastrado"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="matricula">Matrícula</Label>
+                  <Input
+                    id="matricula"
+                    value={form.matricula}
+                    onChange={(e) => setField("matricula", e.target.value)}
+                    disabled={readOnly}
+                  />
+                </div>
+                </>
+                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">

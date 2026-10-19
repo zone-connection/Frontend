@@ -44,6 +44,10 @@ export interface Documentacao {
   construtoraId: string | null;
   empreendimentoId: string | null;
   fonte: string;
+  origem?: "lancamento" | "usado";
+  proprietarioId?: string | null;
+  interessadoId?: string | null;
+  matricula?: string | null;
   status1: string;
   status2: string;
   corretorId: string | null;
@@ -90,6 +94,10 @@ export type CreateDocumentacaoInput = {
   construtoraId?: string | null;
   empreendimentoId?: string | null;
   fonte: string;
+  origem?: "lancamento" | "usado";
+  proprietarioId?: string | null;
+  interessadoId?: string | null;
+  matricula?: string | null;
   status1: string;
   status2: string;
   corretorId?: string | null;
