@@ -131,6 +131,7 @@ import {
   addNegociacaoMovimento,
   createPropostaUsado,
   fetchInteressadosUsado,
+  fetchPropostaUsado,
   fetchTodasPropostasUsado,
   fetchUsadosResponsaveis,
   fetchVendasUsado,
@@ -1630,6 +1631,27 @@ function Page() {
     }
   }
 
+  async function abrirPropostaUsado(
+    proposta: NonNullable<typeof usadoAberto>,
+  ) {
+    setUsadoAberto(proposta);
+    setContraForm({ valor: "", origem: "corretor", observacoes: "" });
+    if (!proposta.vendaUsado?.id) return;
+    try {
+      const full = await fetchPropostaUsado(
+        proposta.vendaUsado.id,
+        proposta.id,
+      );
+      setUsadoAberto({
+        ...proposta,
+        ...full,
+        vendaUsado: proposta.vendaUsado,
+      });
+    } catch {
+      /* a lista já mostra o essencial */
+    }
+  }
+
   async function alterarStatusUsado(statusProposta: PropostaUsadoStatus) {
     if (!usadoAberto?.vendaUsado?.id) return;
     try {
@@ -2209,14 +2231,7 @@ function Page() {
                     <TableRow
                       key={linha.id}
                       className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => {
-                        setUsadoAberto(p);
-                        setContraForm({
-                          valor: "",
-                          origem: "corretor",
-                          observacoes: "",
-                        });
-                      }}
+                      onClick={() => void abrirPropostaUsado(p)}
                     >
                       <TableCell className="font-mono text-xs font-medium">
                         USADO
@@ -2262,16 +2277,36 @@ function Page() {
                         className="text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {p.vendaUsado?.id ? (
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link
-                              to="/imoveis-usados/vendas/$id"
-                              params={{ id: p.vendaUsado.id }}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              aria-label="Ações"
                             >
-                              Venda
-                            </Link>
-                          </Button>
-                        ) : null}
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => void abrirPropostaUsado(p)}>
+                              <Eye className="h-4 w-4" />
+                              Visualizar
+                            </DropdownMenuItem>
+                            {p.vendaUsado?.id ? (
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  to="/imoveis-usados/vendas/$id"
+                                  params={{ id: p.vendaUsado.id }}
+                                >
+                                  <Home className="h-4 w-4" />
+                                  Abrir venda
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -4210,113 +4245,162 @@ function Page() {
           </form>
       </FormDialogShell>
 
-      <Dialog
+      <FormDialogShell
         open={Boolean(usadoAberto)}
         onOpenChange={(openDialog) => {
           if (!openDialog) setUsadoAberto(null);
         }}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {usadoAberto?.interessado.nome ?? "Proposta de usado"}
-            </DialogTitle>
-            <DialogDescription>
-              {usadoAberto?.vendaUsado?.imovel.titulo ?? "Imóvel usado"} ·{" "}
-              {usadoAberto
-                ? brl(usadoAberto.valorAtual ?? usadoAberto.valor)
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          {usadoAberto ? (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select
-                  value={usadoAberto.status}
-                  onValueChange={(value) =>
-                    void alterarStatusUsado(value as PropostaUsadoStatus)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(
-                      Object.keys(USADO_PROPOSTA_STATUS_LABEL) as PropostaUsadoStatus[]
-                    ).map((statusItem) => (
-                      <SelectItem key={statusItem} value={statusItem}>
-                        {USADO_PROPOSTA_STATUS_LABEL[statusItem]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1 text-sm">
-                {(usadoAberto.negociacao?.movimentos ?? []).map((movimento) => (
-                  <div key={movimento.id} className="flex justify-between gap-2">
-                    <span>{brl(movimento.valor)}</span>
-                    <span className="text-muted-foreground">
-                      {movimento.observacoes || movimento.origem}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <form
-                className="grid gap-2"
-                onSubmit={(e) => void registrarContraproposta(e)}
+        icon={<FileText className="size-5" />}
+        title={usadoAberto?.interessado.nome ?? "Proposta de usado"}
+        description={
+          usadoAberto ? (
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={classeStatusUsado(usadoAberto.status)}
               >
-                <Label>Contraproposta</Label>
-                <Input
-                  inputMode="numeric"
-                  placeholder="Valor"
-                  value={contraForm.valor}
-                  onChange={(e) =>
-                    setContraForm((f) => ({
-                      ...f,
-                      valor: maskMoneyInput(e.target.value),
-                    }))
+                {USADO_PROPOSTA_STATUS_LABEL[usadoAberto.status]}
+              </Badge>
+              <span>Detalhes da proposta de usado</span>
+            </span>
+          ) : undefined
+        }
+        className="max-w-3xl"
+        footer={
+          usadoAberto ? (
+            <FormDialogActions>
+              <Button type="button" variant="outline" onClick={() => setUsadoAberto(null)}>
+                Fechar
+              </Button>
+              {usadoAberto.vendaUsado?.id ? (
+                <Button type="button" variant="outline" asChild>
+                  <Link
+                    to="/imoveis-usados/vendas/$id"
+                    params={{ id: usadoAberto.vendaUsado.id }}
+                  >
+                    Abrir venda
+                  </Link>
+                </Button>
+              ) : null}
+              {usadoAberto.status !== "aceita" && usadoAberto.status !== "recusada" ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void alterarStatusUsado("recusada")}
+                  >
+                    <XCircle className="mr-1 size-4" />
+                    Recusar
+                  </Button>
+                  <Button type="button" onClick={() => void alterarStatusUsado("aceita")}>
+                    <CheckCircle2 className="mr-1 size-4" />
+                    Aceitar
+                  </Button>
+                </>
+              ) : null}
+            </FormDialogActions>
+          ) : undefined
+        }
+      >
+        {usadoAberto ? (
+          <FormDialogBody>
+            <FormSection title="Cliente e imóvel">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <DetailField label="Interessado" value={usadoAberto.interessado.nome} />
+                <DetailField label="Corretor" value={usadoAberto.responsavel.name} />
+                <DetailField
+                  label="Imóvel"
+                  value={usadoAberto.vendaUsado?.imovel.titulo || "Imóvel usado"}
+                />
+                <DetailField
+                  label="Cidade"
+                  value={usadoAberto.vendaUsado?.imovel.cidade || "—"}
+                />
+                <DetailField
+                  label="Criada em"
+                  value={formatPropostaDate(usadoAberto.createdAt)}
+                />
+                <DetailField label="Observações" value={usadoAberto.observacoes || "—"} />
+              </div>
+            </FormSection>
+            <FormSection title="Valores">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-border/60 bg-muted/25 px-4 py-3">
+                  <div className="text-xs text-muted-foreground">Valor atual</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">
+                    {brl(usadoAberto.valorAtual ?? usadoAberto.valor)}
+                  </div>
+                </div>
+                <DetailField label="Entrada" value={usadoAberto.entrada != null ? brl(usadoAberto.entrada) : "—"} />
+                <DetailField
+                  label="Financiamento"
+                  value={
+                    usadoAberto.valorFinanciamento != null
+                      ? brl(usadoAberto.valorFinanciamento)
+                      : "—"
                   }
                 />
-                <Select
-                  value={contraForm.origem}
-                  onValueChange={(origemMovimento) =>
-                    setContraForm((f) => ({
-                      ...f,
-                      origem: origemMovimento as NegociacaoOrigem,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="corretor">Corretor</SelectItem>
-                    <SelectItem value="interessado">Interessado</SelectItem>
-                    <SelectItem value="proprietario">Proprietário</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-                <DialogFooter>
-                  {usadoAberto.vendaUsado?.id ? (
-                    <Button type="button" variant="outline" asChild>
-                      <Link
-                        to="/imoveis-usados/vendas/$id"
-                        params={{ id: usadoAberto.vendaUsado.id }}
-                      >
-                        Abrir venda
-                      </Link>
-                    </Button>
-                  ) : null}
+              </div>
+            </FormSection>
+            <FormSection title="Negociação">
+              <div className="space-y-2">
+                {(usadoAberto.negociacao?.movimentos ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma contraproposta registrada.</p>
+                ) : (
+                  (usadoAberto.negociacao?.movimentos ?? []).map((movimento) => (
+                    <div key={movimento.id} className="flex justify-between gap-2 text-sm">
+                      <span className="font-medium tabular-nums">{brl(movimento.valor)}</span>
+                      <span className="text-muted-foreground">
+                        {movimento.observacoes || movimento.origem}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={(e) => void registrarContraproposta(e)}>
+                <div className="space-y-1.5">
+                  <Label>Contraproposta</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="Valor"
+                    value={contraForm.valor}
+                    onChange={(e) =>
+                      setContraForm((f) => ({ ...f, valor: maskMoneyInput(e.target.value) }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Origem</Label>
+                  <Select
+                    value={contraForm.origem}
+                    onValueChange={(origemMovimento) =>
+                      setContraForm((f) => ({
+                        ...f,
+                        origem: origemMovimento as NegociacaoOrigem,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="corretor">Corretor</SelectItem>
+                      <SelectItem value="interessado">Interessado</SelectItem>
+                      <SelectItem value="proprietario">Proprietário</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
                   <Button type="submit" disabled={usadoSaving}>
-                    Registrar
+                    Registrar contraproposta
                   </Button>
-                </DialogFooter>
+                </div>
               </form>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            </FormSection>
+          </FormDialogBody>
+        ) : null}
+      </FormDialogShell>
 
       <AlertDialog
         open={!!deleteId}
