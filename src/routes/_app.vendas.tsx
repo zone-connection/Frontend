@@ -49,7 +49,14 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import {
+  fetchVendasUsado,
+  VENDA_STATUS_LABEL,
+  type VendaUsado,
+} from "@/lib/imoveis-usados-api";
+import { LOCACOES_MOCK } from "@/lib/modulos-mock";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
+import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
@@ -294,9 +301,32 @@ function VendasPage() {
   return <VendasDocumentacaoPage />;
 }
 
+type AbaVenda = "todos" | "lancamentos" | "usados" | "locacao";
+
 function VendasDocumentacaoPage() {
   const user = getSession();
   const navigate = useNavigate();
+  const modules = user?.tenant?.modules;
+  const verLancamentos = isTenantOperationEnabled(modules, "comercial");
+  const verUsados = isTenantOperationEnabled(modules, "imoveisUsados");
+  const verLocacao = isTenantOperationEnabled(modules, "locacao");
+  const fontes = [
+    verLancamentos,
+    verUsados,
+    verLocacao,
+  ].filter(Boolean).length;
+  const abas: { id: AbaVenda; label: string }[] = [
+    ...(fontes > 1 ? [{ id: "todos" as const, label: "Todos" }] : []),
+    ...(verLancamentos
+      ? [{ id: "lancamentos" as const, label: "Lançamentos" }]
+      : []),
+    ...(verUsados ? [{ id: "usados" as const, label: "Usados" }] : []),
+    ...(verLocacao ? [{ id: "locacao" as const, label: "Locação" }] : []),
+  ];
+  const [aba, setAba] = useState<AbaVenda>(abas[0]?.id ?? "lancamentos");
+  const abaAtiva = abas.some((item) => item.id === aba)
+    ? aba
+    : (abas[0]?.id ?? "lancamentos");
   const comVgv = Route.useSearch().comVgv === true;
   const isSolo = user?.tenant?.plano === "solo";
   const ownSalesOnly = isCorretorLike(user?.role);
@@ -716,6 +746,25 @@ function VendasDocumentacaoPage() {
           <p className="mt-1 max-w-xl text-sm text-[#5C6B76]">
             Acompanhe o desempenho das suas vendas e filtre os resultados conforme o período e critérios desejados.
           </p>
+          {abas.length > 1 ? (
+            <div className="mt-3 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
+              {abas.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setAba(item.id)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium",
+                    abaAtiva === item.id
+                      ? "bg-white text-[#0B3148] shadow-sm"
+                      : "text-[#5C6B76] hover:text-[#0B3148]",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select
@@ -739,6 +788,17 @@ function VendasDocumentacaoPage() {
           </Button>
         </div>
       </div>
+      {abaAtiva === "todos" ? (
+        <VendasTodosPanel
+          lancamentos={verLancamentos ? filtered : []}
+          usados={verUsados}
+          locacao={verLocacao}
+        />
+      ) : null}
+      {abaAtiva === "usados" ? <VendasUsadosPanel /> : null}
+      {abaAtiva === "locacao" ? <VendasLocacaoPanel /> : null}
+      {abaAtiva === "lancamentos" ? (
+      <>
       {comVgv ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D3EBF5] bg-[#E7F4FA] px-4 py-2.5 text-sm text-[#0B3148]">
           <span>Mostrando só as vendas que já têm VGV.</span>
@@ -1323,6 +1383,264 @@ function VendasDocumentacaoPage() {
           </FormDialogBody>
         </form>
       </FormDialogShell>
+      </>
+      ) : null}
+    </div>
+  );
+}
+
+function enderecoUsado(item: VendaUsado) {
+  const imovel = item.imovel;
+  return [imovel.logradouro, imovel.numero, imovel.bairro, imovel.cidade]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function VendasUsadosPanel() {
+  const [items, setItems] = useState<VendaUsado[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchVendasUsado({ status: "vendido" })
+      .then((rows) => {
+        if (active) setItems(rows);
+      })
+      .catch((error) => {
+        if (active) {
+          setErro(
+            error instanceof ApiError
+              ? error.message
+              : "Não foi possível carregar as vendas de usados.",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-10 text-sm text-[#5C6B76]">
+        <Loader2 className="size-4 animate-spin" />
+        Carregando vendas de usados…
+      </div>
+    );
+  }
+  if (erro) {
+    return <SemConexao title="Vendas de usados" description={erro} />;
+  }
+
+  const total = items.reduce((sum, item) => sum + (item.precoVenda ?? 0), 0);
+
+  return (
+    <div>
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        <VendaKpi label="Vendidos" value={String(items.length)} icon={Filter} tone="teal" />
+        <VendaKpi label="Valor de venda" value={brl(total)} icon={Wallet} tone="blue" />
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Imóvel</TableHead>
+              <TableHead>Responsável</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-8 text-center text-sm text-[#5C6B76]">
+                  Nenhum imóvel usado com status vendido.
+                </TableCell>
+              </TableRow>
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="font-medium text-[#0B3148]">{enderecoUsado(item) || "Imóvel"}</div>
+                    <div className="text-xs text-[#8B98A3]">{item.imovel.tipo}</div>
+                  </TableCell>
+                  <TableCell>{item.responsavel?.name ?? "—"}</TableCell>
+                  <TableCell>{VENDA_STATUS_LABEL[item.status]}</TableCell>
+                  <TableCell>{item.precoVenda != null ? brl(item.precoVenda) : "—"}</TableCell>
+                  <TableCell>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/imoveis-usados/vendas/$id" params={{ id: item.id }}>
+                        Abrir
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function VendasTodosPanel({
+  lancamentos,
+  usados,
+  locacao,
+}: {
+  lancamentos: Documentacao[];
+  usados: boolean;
+  locacao: boolean;
+}) {
+  const [usadosItems, setUsadosItems] = useState<VendaUsado[]>([]);
+  const [loading, setLoading] = useState(usados);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!usados) return;
+    let active = true;
+    fetchVendasUsado({ status: "vendido" })
+      .then((rows) => {
+        if (active) setUsadosItems(rows);
+      })
+      .catch((error) => {
+        if (active) {
+          setErro(
+            error instanceof ApiError
+              ? error.message
+              : "Não foi possível carregar as vendas de usados.",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [usados]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-10 text-sm text-[#5C6B76]">
+        <Loader2 className="size-4 animate-spin" />
+        Carregando vendas…
+      </div>
+    );
+  }
+  if (erro) {
+    return <SemConexao title="Vendas" description={erro} />;
+  }
+
+  const linhas: {
+    id: string;
+    tipo: string;
+    cliente: string;
+    referencia: string;
+    responsavel: string;
+    valor: string;
+  }[] = [
+    ...lancamentos.map((doc) => ({
+      id: `lanc-${doc.id}`,
+      tipo: "Lançamento",
+      cliente: doc.nome,
+      referencia: doc.empreendimento?.nome ?? "—",
+      responsavel: doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—",
+      valor: doc.vgv != null ? brl(doc.vgv) : "—",
+    })),
+    ...usadosItems.map((item) => ({
+      id: `usado-${item.id}`,
+      tipo: "Usado",
+      cliente: item.imovel.proprietario?.nome ?? "—",
+      referencia: enderecoUsado(item) || "Imóvel",
+      responsavel: item.responsavel?.name ?? "—",
+      valor: item.precoVenda != null ? brl(item.precoVenda) : "—",
+    })),
+    ...(locacao
+      ? LOCACOES_MOCK.map((row) => ({
+          id: row.id,
+          tipo: "Locação",
+          cliente: row.nome,
+          referencia: row.imovel,
+          responsavel: row.corretor,
+          valor: row.aluguel,
+        }))
+      : []),
+  ];
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Referência</TableHead>
+            <TableHead>Responsável</TableHead>
+            <TableHead>Valor</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {linhas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="py-8 text-center text-sm text-[#5C6B76]">
+                Nenhuma venda nas operações ativas.
+              </TableCell>
+            </TableRow>
+          ) : (
+            linhas.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>{row.tipo}</TableCell>
+                <TableCell className="font-medium">{row.cliente}</TableCell>
+                <TableCell>{row.referencia}</TableCell>
+                <TableCell>{row.responsavel}</TableCell>
+                <TableCell>{row.valor}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function VendasLocacaoPanel() {
+  return (
+    <div>
+      <p className="mb-3 text-sm text-[#5C6B76]">
+        Carteira de locação do módulo ativo. Os contratos reais entram quando o aluguel deixar de ser demonstração.
+      </p>
+      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Interessado</TableHead>
+              <TableHead>Imóvel</TableHead>
+              <TableHead>Aluguel</TableHead>
+              <TableHead>Etapa</TableHead>
+              <TableHead>Corretor</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {LOCACOES_MOCK.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium">{row.nome}</TableCell>
+                <TableCell>{row.imovel}</TableCell>
+                <TableCell>{row.aluguel}</TableCell>
+                <TableCell>{row.etapa}</TableCell>
+                <TableCell>{row.corretor}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
