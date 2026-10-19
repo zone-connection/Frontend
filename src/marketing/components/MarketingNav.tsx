@@ -19,15 +19,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
+import { HOME_ANCHORS } from "../home/routes";
 
+// Links de texto simples, sem "pílula" no hover (estilo do site de referência)
 const navLinkClass =
-  "inline-flex cursor-pointer items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium text-brand-dark/80 transition-colors hover:bg-surface-muted hover:text-brand-dark";
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium text-brand-dark/80 transition-colors hover:text-brand-dark focus-visible:text-brand-dark";
 
+// CTA principal: pílula escura com sombra e seta
 const ctaClass =
-  "inline-flex items-center justify-center rounded-full bg-brand-dark px-4 py-2.5 text-sm font-medium whitespace-nowrap text-white transition-all hover:-translate-y-px hover:bg-brand-dark/90";
+  "group inline-flex items-center justify-center gap-2.5 rounded-full bg-brand-dark px-5 py-2 text-[15px] font-semibold whitespace-nowrap text-white shadow-lg shadow-brand-dark/25 transition-all hover:-translate-y-px hover:bg-brand-dark/90";
 
 const loginClass =
-  "inline-flex items-center justify-center rounded-full px-3.5 py-2.5 text-sm font-medium text-brand-dark/80 transition-colors hover:bg-surface-muted hover:text-brand-dark";
+  "inline-flex items-center justify-center rounded-full px-4 py-2.5 text-[15px] font-medium text-brand-dark/80 transition-colors hover:text-brand-dark";
 
 const CONTACT_WHATSAPP_MSG = "Olá! Gostaria de falar com a Zone Connection.";
 
@@ -113,10 +116,12 @@ export function MarketingNav() {
     setProductsOpen(false);
   }
 
+  const whatsappHref = getWhatsAppUrl(CONTACT_WHATSAPP_MSG);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-white">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-white/90 backdrop-blur supports-backdrop-filter:bg-white/80">
       <nav
-        className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-3 lg:px-12"
+        className="mx-auto grid max-w-368 grid-cols-[auto_1fr_auto] items-center gap-6 px-6 py-2.5 lg:px-19"
         aria-label="Navegação principal"
       >
         <Link to="/" onClick={closeMobile} className="shrink-0">
@@ -124,11 +129,11 @@ export function MarketingNav() {
             <Logo size="sm" />
           </span>
           <span className="hidden sm:block">
-            <Logo size="md" />
+            <Logo size="sm" />
           </span>
         </Link>
 
-        <div className="hidden items-center justify-center gap-1 lg:flex">
+        <div className="hidden items-center justify-center gap-2 lg:flex xl:gap-4">
           <Link to="/" className={navLinkClass}>
             Sobre
           </Link>
@@ -141,7 +146,7 @@ export function MarketingNav() {
             <DropdownMenuTrigger
               className={cn(
                 navLinkClass,
-                "cursor-pointer outline-none data-[state=open]:bg-surface-muted data-[state=open]:text-brand-dark",
+                "cursor-pointer outline-none data-[state=open]:text-brand-dark",
               )}
               onMouseEnter={openDesktopProducts}
               onMouseLeave={closeDesktopProductsDelayed}
@@ -231,17 +236,17 @@ export function MarketingNav() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link to="/demonstracao" className={navLinkClass}>
-            Ver demonstração
-          </Link>
+          <a href={HOME_ANCHORS.ecosystem} className={navLinkClass}>
+            Soluções
+          </a>
         </div>
 
-        <div className="hidden items-center gap-1.5 lg:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <Link to="/login" className={loginClass}>
             Login
           </Link>
           <a
-            href={getWhatsAppUrl(CONTACT_WHATSAPP_MSG)}
+            href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             className={ctaClass}
@@ -335,20 +340,30 @@ export function MarketingNav() {
                 </AnimatePresence>
               </div>
 
-              <Link
-                to="/demonstracao"
+              <a
+                href={HOME_ANCHORS.ecosystem}
                 className="px-1 py-3 text-sm font-medium text-brand-dark/80 hover:text-brand-dark"
                 onClick={closeMobile}
               >
-                Ver demonstração
-              </Link>
+                Soluções
+              </a>
+
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-1 py-3 text-sm font-medium text-brand-dark/80 hover:text-brand-dark"
+                onClick={closeMobile}
+              >
+                Fale conosco
+              </a>
 
               <div className="mt-3 flex flex-col gap-3 border-t border-border pt-4">
                 <Link to="/login" className={loginClass} onClick={closeMobile}>
                   Login
                 </Link>
                 <a
-                  href={getWhatsAppUrl(CONTACT_WHATSAPP_MSG)}
+                  href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={ctaClass}
