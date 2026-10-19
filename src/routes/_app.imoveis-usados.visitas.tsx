@@ -12,7 +12,9 @@ import {
   type VisitaUsado,
   type VisitaUsadoStatus,
 } from "@/lib/imoveis-usados-api";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, CalendarDays, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type Periodo = "todas" | "agendada" | "realizada";
@@ -27,6 +29,93 @@ export const Route = createFileRoute("/_app/imoveis-usados/visitas")({
   },
   component: VisitasPage,
 });
+
+function ResumoVisita({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-[#E2E8EC] bg-white px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold tabular-nums text-[#0B3148]">{value}</p>
+    </div>
+  );
+}
+
+function CalendarioVisitas({
+  mes,
+  contagem,
+  dia,
+  onMes,
+  onDia,
+}: {
+  mes: Date;
+  contagem: Map<string, { agendadas: number; realizadas: number }>;
+  dia: string | null;
+  onMes: (delta: number) => void;
+  onDia: (key: string) => void;
+}) {
+  const ano = mes.getFullYear();
+  const month = mes.getMonth();
+  const inicio = new Date(ano, month, 1);
+  const diasNoMes = new Date(ano, month + 1, 0).getDate();
+  const offset = (inicio.getDay() + 6) % 7;
+  const celulas = [
+    ...Array.from({ length: offset }, () => null),
+    ...Array.from({ length: diasNoMes }, (_, index) => index + 1),
+  ];
+  const titulo = mes.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+  return (
+    <div className="mb-4 rounded-2xl border border-[#E2E8EC] bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-sm font-semibold capitalize text-[#0B3148]">
+          <CalendarDays className="size-4 text-[#079ED4]" />
+          {titulo}
+        </p>
+        <div className="flex gap-1">
+          <Button type="button" variant="outline" size="icon" className="size-8" onClick={() => onMes(-1)}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button type="button" variant="outline" size="icon" className="size-8" onClick={() => onMes(1)}>
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted-foreground">
+        {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label) => (
+          <span key={label} className="py-1">{label}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {celulas.map((numero, index) => {
+          if (!numero) return <span key={`vazio-${index}`} />;
+          const key = `${ano}-${String(month + 1).padStart(2, "0")}-${String(numero).padStart(2, "0")}`;
+          const conta = contagem.get(key);
+          const total = (conta?.agendadas ?? 0) + (conta?.realizadas ?? 0);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onDia(key)}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center rounded-lg text-sm",
+                dia === key ? "bg-[#079ED4] text-white" : "hover:bg-[#F3FAFD]",
+              )}
+            >
+              <span>{numero}</span>
+              {total > 0 ? (
+                <span className={cn("text-[10px] tabular-nums", dia === key ? "text-white" : "text-[#05749E]")}>
+                  {total}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        O número do dia soma visitas realizadas e agendadas. Clique de novo para limpar o dia.
+      </p>
+    </div>
+  );
+}
 
 function toneVisita(status: VisitaUsadoStatus) {
   if (status === "confirmada" || status === "realizada") return "emerald" as const;
@@ -65,16 +154,63 @@ function VisitasPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const [mes, setMes] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [dia, setDia] = useState<string | null>(null);
+
+  const agendadas = items.filter(
+    (item) => item.status === "agendada" || item.status === "confirmada",
+  ).length;
+  const realizadas = items.filter((item) => item.status === "realizada").length;
+
   const lista = useMemo(() => {
-    if (aba === "todas") return items;
-    return items.filter((item) => item.status === aba);
-  }, [aba, items]);
+    const porAba =
+      aba === "todas"
+        ? items
+        : aba === "agendada"
+          ? items.filter(
+              (item) => item.status === "agendada" || item.status === "confirmada",
+            )
+          : items.filter((item) => item.status === "realizada");
+    if (!dia) return porAba;
+    return porAba.filter((item) => item.dataHora.slice(0, 10) === dia);
+  }, [aba, dia, items]);
+
+  const contagemDia = useMemo(() => {
+    const map = new Map<string, { agendadas: number; realizadas: number }>();
+    for (const item of items) {
+      const key = item.dataHora.slice(0, 10);
+      const atual = map.get(key) ?? { agendadas: 0, realizadas: 0 };
+      if (item.status === "agendada" || item.status === "confirmada") {
+        atual.agendadas += 1;
+      }
+      if (item.status === "realizada") atual.realizadas += 1;
+      map.set(key, atual);
+    }
+    return map;
+  }, [items]);
 
   return (
     <>
       <PageHeader
         title="Visitas"
         description="Agenda de visitas nos imóveis em venda de usados."
+      />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <ResumoVisita label="Visitas" value={items.length} />
+        <ResumoVisita label="Realizadas" value={realizadas} />
+        <ResumoVisita label="Agendadas" value={agendadas} />
+      </div>
+      <CalendarioVisitas
+        mes={mes}
+        contagem={contagemDia}
+        dia={dia}
+        onMes={(delta) =>
+          setMes((atual) => new Date(atual.getFullYear(), atual.getMonth() + delta, 1))
+        }
+        onDia={(key) => setDia((atual) => (atual === key ? null : key))}
       />
       <PillTabs
         value={aba}
@@ -88,7 +224,7 @@ function VisitasPage() {
           { id: "todas", label: `Todas (${items.length})` },
           {
             id: "agendada",
-            label: `Agendadas (${items.filter((i) => i.status === "agendada").length})`,
+            label: `Agendadas (${agendadas})`,
           },
           {
             id: "realizada",
