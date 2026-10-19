@@ -148,6 +148,11 @@ import {
   IMOVEL_LOCALIZACAO_INFRA,
   type Imovel,
 } from "@/lib/captacao-api";
+import {
+  fetchVendasUsado,
+  VENDA_STATUS_LABEL,
+  type VendaUsado,
+} from "@/lib/imoveis-usados-api";
 import { AmenityChips } from "@/components/imovel-ficha-fields";
 import {
   ArrowRight,
@@ -656,6 +661,7 @@ export function ImoveisPage({
 
   const [items, setItems] = useState<Empreendimento[]>([]);
   const [captacaoImoveis, setCaptacaoImoveis] = useState<Imovel[]>([]);
+  const [estoqueUsados, setEstoqueUsados] = useState<VendaUsado[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -806,11 +812,20 @@ export function ImoveisPage({
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [lancamentos] = await Promise.all([
+      const [lancamentos, estoque] = await Promise.all([
         fetchEmpreendimentos({ ativo: true }),
-        loadCaptacaoImoveis(),
+        loadCaptacaoImoveis().then(() =>
+          embedded
+            ? ([] as VendaUsado[])
+            : fetchVendasUsado().catch(() => [] as VendaUsado[]),
+        ),
       ]);
       setItems(lancamentos);
+      setEstoqueUsados(
+        estoque.filter(
+          (item) => item.status === "disponivel" || item.status === "reservado",
+        ),
+      );
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -1576,34 +1591,20 @@ export function ImoveisPage({
   }, [filtered, origemCatalogo, sort]);
   const imoveisPager = useTablePager(sorted, sort);
 
-  const imoveisDeCaptacao = useMemo(
-    () =>
-      new Set(
-        items
-          .map((item) => item.imovelId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    [items],
-  );
-
   const kpiImoveis = useMemo(
     () => ({
-      total:
-        items.length +
-        captacaoImoveis.filter((item) => !imoveisDeCaptacao.has(item.id))
-          .length,
+      total: items.length + captacaoImoveis.length + estoqueUsados.length,
       empreendimentos: items.length,
       litoral: items.filter((item) => empreendimentoHasLitoral(item)).length,
       matches: items.filter((item) => (item.matchTotal ?? 0) > 0).length,
     }),
-    [captacaoImoveis, imoveisDeCaptacao, items],
+    [captacaoImoveis, estoqueUsados.length, items],
   );
 
   const captacaoFiltered = useMemo(() => {
     if (embedded || origemCatalogo === "lancamentos" || origemCatalogo === "orulo") return [];
     const q = search.trim().toLocaleLowerCase("pt-BR");
     return captacaoImoveis.filter((item) => {
-      if (imoveisDeCaptacao.has(item.id)) return false;
       if (proprietarioId && item.proprietarioId !== proprietarioId) return false;
       if (quartos && item.quartos !== Number(quartos)) return false;
       if (!q) return true;
@@ -1624,13 +1625,36 @@ export function ImoveisPage({
     embedded,
     origemCatalogo,
     captacaoImoveis,
-    imoveisDeCaptacao,
     proprietarioId,
     quartos,
     search,
   ]);
 
-  const catalogEmpty = sorted.length === 0 && captacaoFiltered.length === 0;
+  const estoqueFiltered = useMemo(() => {
+    if (embedded || origemCatalogo === "lancamentos" || origemCatalogo === "orulo" || origemCatalogo === "captacoes") {
+      return [];
+    }
+    const q = search.trim().toLocaleLowerCase("pt-BR");
+    return estoqueUsados.filter((item) => {
+      if (!q) return true;
+      const hay = [
+        item.imovel.titulo,
+        item.imovel.cidade,
+        item.imovel.bairro,
+        item.imovel.logradouro,
+        item.responsavel?.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+      return hay.includes(q);
+    });
+  }, [embedded, origemCatalogo, estoqueUsados, search]);
+
+  const catalogEmpty =
+    sorted.length === 0 &&
+    captacaoFiltered.length === 0 &&
+    estoqueFiltered.length === 0;
 
   function openPdfDialog() {
     if (sorted.length === 0) {
@@ -2086,7 +2110,7 @@ export function ImoveisPage({
           <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
             <Building2 className="w-8 h-8 opacity-40" />
             <p className="text-center max-w-sm">
-              {items.length === 0 && captacaoImoveis.length === 0
+              {items.length === 0 && captacaoImoveis.length === 0 && estoqueUsados.length === 0
                 ? canCreate
                   ? "Nenhum imóvel no catálogo. Use “Novo imóvel” para começar."
                   : "Nenhum imóvel no catálogo ainda."
@@ -2094,7 +2118,7 @@ export function ImoveisPage({
                   ? "Nenhum imóvel encontrado para os filtros selecionados."
                   : "Nenhum resultado para a busca."}
             </p>
-            {items.length === 0 && captacaoImoveis.length === 0 && canCreate && (
+            {items.length === 0 && captacaoImoveis.length === 0 && estoqueUsados.length === 0 && canCreate && (
               <Button
                 className={`mt-2 ${IMOVEIS_GRADIENT_BTN}`}
                 style={IMOVEIS_GRADIENT_STYLE}
@@ -2411,6 +2435,11 @@ export function ImoveisPage({
               </article>
             );
           })}
+        </div>
+      )}
+
+      {captacaoFiltered.length > 0 ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {captacaoFiltered.map((item) => (
             <article
               key={`cap-${item.id}`}
@@ -2425,7 +2454,7 @@ export function ImoveisPage({
                   </div>
                 )}
                 <span className="absolute left-3 top-3 rounded-full bg-[#7c3aed] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-                  Captação
+                  Captação{item.captacoes?.[0]?.funilEtapa?.label ? ` · ${item.captacoes[0].funilEtapa.label}` : ""}
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-2.5 p-4">
@@ -2496,7 +2525,47 @@ export function ImoveisPage({
             </article>
           ))}
         </div>
-      )}
+      ) : null}
+
+      {estoqueFiltered.length > 0 ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {estoqueFiltered.map((item) => (
+            <article
+              key={`usado-${item.id}`}
+              className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
+            >
+              <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
+                {imovelCapaUrl(item.imovel) ? (
+                  <img src={imovelCapaUrl(item.imovel) ?? ""} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Building2 className="h-10 w-10 text-[#05749E]/40" />
+                  </div>
+                )}
+                <span className="absolute left-3 top-3 rounded-full bg-[#0C7C86] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                  Estoque · {VENDA_STATUS_LABEL[item.status]}
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col gap-2 p-4">
+                <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
+                  {item.imovel.titulo || "Imóvel usado"}
+                </h3>
+                <p className="text-sm text-[#5C6B76]">
+                  {[item.imovel.bairro, item.imovel.cidade].filter(Boolean).join(" · ") || "Usado"}
+                </p>
+                <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
+                  {item.precoVenda != null ? formatBrl(item.precoVenda) : "—"}
+                </p>
+                <Button type="button" variant="outline" size="sm" className="mt-auto rounded-full" asChild>
+                  <Link to="/imoveis-usados/vendas/$id" params={{ id: item.id }}>
+                    Ver no estoque
+                  </Link>
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
       {!embedded ? (
         <CatalogUnidadeImoveis
