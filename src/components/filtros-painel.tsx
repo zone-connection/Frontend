@@ -34,8 +34,6 @@ export function FiltrosPainel({
   description = "Escolha o recorte da lista.",
   confirmLabel = "Aplicar filtros",
   onConfirm,
-  resultCount,
-  chips = [],
 }: {
   activeCount: number;
   onClear: () => void;
@@ -67,20 +65,28 @@ export function FiltrosPainel({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-white p-0 shadow-none sm:max-w-[920px] dark:border-white/10 dark:bg-[#0b0f14] [&>button]:hidden"
+          className="flex w-full flex-col gap-0 border-l border-[#E2E8EC] bg-white p-0 shadow-none sm:max-w-xl dark:border-white/10 dark:bg-[#0b0f14] [&>button]:hidden"
         >
           <div className="flex min-h-0 flex-1">
             <div className="flex min-w-0 flex-1 flex-col">
               <SheetHeader className="border-b border-[#E6EDF2] px-5 py-4 text-left">
-                <div className="flex items-center gap-2 text-[#079ED4]">
-                  <SlidersHorizontal className="size-4" />
-                  <SheetTitle className="text-lg font-semibold text-[#0B3148]">
-                    Filtros avançados
-                  </SheetTitle>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#079ED4]">
+                      <SlidersHorizontal className="size-4" />
+                      <SheetTitle className="text-lg font-semibold text-[#0B3148]">
+                        Filtros avançados
+                      </SheetTitle>
+                    </div>
+                    <p className="mt-1 text-sm text-[#5C6B76]">
+                      {kicker} · {description}
+                    </p>
+                  </div>
+                  <SheetClose className="grid size-8 shrink-0 place-items-center rounded-lg text-[#5C6B76] hover:bg-[#F3FAFD]">
+                    <X className="size-4" />
+                    <span className="sr-only">Fechar</span>
+                  </SheetClose>
                 </div>
-                <p className="text-sm text-[#5C6B76]">
-                  {kicker} · {description}
-                </p>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-5 py-5">
                 <div className="grid gap-4 sm:grid-cols-2 [&_label]:text-xs [&_label]:font-medium [&_label]:text-[#5C6B76]">
@@ -115,60 +121,6 @@ export function FiltrosPainel({
                 </div>
               </div>
             </div>
-            <aside className="hidden w-[280px] shrink-0 flex-col border-l border-[#E6EDF2] bg-[#F8FBFC] sm:flex">
-              <div className="flex items-start justify-between gap-2 border-b border-[#E6EDF2] px-4 py-4">
-                <div>
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-[#0B3148]">
-                    <SlidersHorizontal className="size-4 text-[#079ED4]" />
-                    Resumo dos filtros
-                  </p>
-                  <p className="text-xs text-[#5C6B76]">Filtros aplicados</p>
-                </div>
-                <SheetClose className="grid size-8 place-items-center rounded-lg text-[#5C6B76] hover:bg-white">
-                  <X className="size-4" />
-                  <span className="sr-only">Fechar</span>
-                </SheetClose>
-              </div>
-              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                <div className="flex items-center gap-3 rounded-2xl border border-[#079ED4]/25 bg-[#F3FAFD] px-3 py-3 text-[#05749E]">
-                  <span className="grid size-10 place-items-center rounded-xl bg-[#E7F4FA] text-[#079ED4]">
-                    <SlidersHorizontal className="size-5" />
-                  </span>
-                  <div>
-                    <p className="text-2xl font-semibold leading-none tabular-nums text-[#0B3148]">
-                      {resultCount ?? activeCount}
-                    </p>
-                    <p className="mt-1 text-xs">
-                      {resultCount != null ? "resultados encontrados" : "filtros aplicados"}
-                    </p>
-                  </div>
-                </div>
-                {chips.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {chips.map((chip) => (
-                      <span
-                        key={chip.id}
-                        className="inline-flex items-center rounded-full border border-[#079ED4]/25 bg-[#E7F4FA] px-2.5 py-1 text-xs text-[#05749E]"
-                      >
-                        {chip.label}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#5C6B76]">Nenhum filtro aplicado.</p>
-                )}
-              </div>
-              <div className="border-t border-[#E6EDF2] px-4 py-3">
-                <button
-                  type="button"
-                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8EC] bg-white text-sm font-medium text-[#0B3148] hover:bg-[#F3FAFD]"
-                  onClick={onClear}
-                >
-                  <RotateCcw className="size-4" />
-                  Limpar todos
-                </button>
-              </div>
-            </aside>
           </div>
         </SheetContent>
       </Sheet>
