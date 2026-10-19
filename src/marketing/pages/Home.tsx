@@ -7,6 +7,9 @@ import { FeatureHighlights } from "@/marketing/home/FeatureHighlights";
 import { HeroSection } from "@/marketing/home/HeroSection";
 import { TimelineSection } from "@/marketing/home/TimelineSection";
 import { organizationJsonLd, websiteJsonLd } from "@/marketing/seo";
+import { IaWhatsappSection } from "@/marketing/home/IaWhatsappSection";
+//import { SitesLandingSection } from "@/marketing/home/SitesLandingSection";
+//import { IntegrationsSection } from "@/marketing/home/IntegrationsSection";
 
 export default function Home() {
   return (
@@ -17,6 +20,9 @@ export default function Home() {
         <HeroSection />
         <ChallengesSection />
         <FeatureHighlights />
+        <IaWhatsappSection />
+        {/*<SitesLandingSection />
+        <IntegrationsSection />*/}
         <TimelineSection />
         <CTASection />
       </main>

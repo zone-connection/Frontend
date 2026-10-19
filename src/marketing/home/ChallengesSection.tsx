@@ -91,7 +91,7 @@ function ChallengeCard({
 const PRODUCTS = [
   {
     title: "CRM Imobiliário",
-    text: "Uma plataforma completa para gestão de imobiliárias.",
+    text: "Centralize lançamentos, captações e vendas de imóveis usados em um só lugar. Organize seus leads, acompanhe negociações e gerencie sua equipe com mais eficiência, do primeiro contato ao fechamento da venda.",
     href: PRODUCT_ROUTES.crm,
     icon: Network,
     image: "/marketing/product-crm.svg",
