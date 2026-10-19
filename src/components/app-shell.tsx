@@ -254,10 +254,6 @@ const OPERACOES: {
         icon: Home,
         children: [
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/captacao/funil", label: "Funil", icon: Funnel },
-          { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-          { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
-          { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
         ],
       },
       {
@@ -420,10 +416,6 @@ const NAV_SECTIONS: {
         icon: Home,
         children: [
           { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/captacao/funil", label: "Funil", icon: Funnel },
-          { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-          { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
-          { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
         ],
       },
       {
@@ -505,6 +497,8 @@ const NAV_SECTIONS: {
       { to: "/resultado", label: "Análise", icon: SearchCheck },
       { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
       { to: "/equipes", label: "Equipes", icon: Network },
+      { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
+      { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
       { to: "/usuarios", label: "Usuários", icon: UsersRound },
       { to: "/permissoes", label: "Permissões", icon: KeyRound },
       { to: "/tenants", label: "Clientes", icon: Building2 },

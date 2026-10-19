@@ -1,19 +1,9 @@
-import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
-import {
-  ClipboardList,
-  Funnel,
-  LayoutDashboard,
-  SearchCheck,
-  Users,
-} from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 
 const TABS = [
   { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-  { to: "/captacao/funil", label: "Funil", icon: Funnel },
-  { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-  { to: "/captacao/oportunidades", label: "Oportunidades", icon: SearchCheck },
-  { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
 ] as const;
 
 export const Route = createFileRoute("/_app/captacao")({
