@@ -177,7 +177,7 @@ function navItemsHaveNovo(items: NavItem[]): boolean {
   return items.some(navItemIsNovo);
 }
 
-type OperacaoId = "lancamentos" | "captacao" | "venda-usados" | "locacao";
+type OperacaoId = "operacional" | "locacao";
 
 const OPERACAO_STORAGE_KEY = "crm-operacao-ativa";
 
@@ -195,12 +195,7 @@ function navExitHold(count: number) {
 const OPERACAO_SECTION_IDS = new Set(["operacao", "usados", "locacao"]);
 
 function isOperacaoId(value: string | null): value is OperacaoId {
-  return (
-    value === "lancamentos" ||
-    value === "captacao" ||
-    value === "venda-usados" ||
-    value === "locacao"
-  );
+  return value === "operacional" || value === "locacao";
 }
 
 function pathMatchesPrefix(pathname: string, prefix: string) {
@@ -216,9 +211,9 @@ const OPERACOES: {
   items: NavItem[];
 }[] = [
   {
-    id: "lancamentos",
-    label: "Lançamentos",
-    description: "Leads, funil e triagem.",
+    id: "operacional",
+    label: "Operacional",
+    description: "Lançamentos, captação e venda de usados.",
     icon: Briefcase,
     prefixes: [
       "/leads",
@@ -231,47 +226,46 @@ const OPERACOES: {
       "/clientes-perdidos",
       "/leads-perdidos",
       "/construtoras",
+      "/captacao",
+      "/imoveis-usados",
+      "/parcerias",
     ],
     items: [
-      { to: "/leads", label: "Leads", icon: Users },
-      { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
-      { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-      { to: "/triagem", label: "Triagem", icon: ClipboardList },
-      { to: "/funil", label: "Funil", icon: Funnel },
-      { to: "/clientes", label: "Clientes", icon: UserCircle2 },
-      { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
-      { to: "/construtoras", label: "Construtoras", icon: Building2 },
-      { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
-      { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
-    ],
-  },
-  {
-    id: "captacao",
-    label: "Captação",
-    description: "Proprietários, imóveis e o funil de captação.",
-    icon: Home,
-    prefixes: ["/captacao"],
-    items: [
-      { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-      { to: "/captacao/funil", label: "Funil", icon: Funnel },
-      { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
-      { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
-      { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
-    ],
-  },
-  {
-    id: "venda-usados",
-    label: "Venda de Usados",
-    description: "Estoque, visitas, propostas e parceiros.",
-    icon: Store,
-    prefixes: ["/imoveis-usados", "/parcerias"],
-    items: [
-      { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
       {
-        id: "parcerias",
-        label: "Parceiros",
-        icon: Handshake,
+        id: "lancamentos",
+        label: "Lançamentos",
+        icon: Briefcase,
         children: [
+          { to: "/leads", label: "Leads", icon: Users },
+          { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
+          { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
+          { to: "/triagem", label: "Triagem", icon: ClipboardList },
+          { to: "/funil", label: "Funil", icon: Funnel },
+          { to: "/clientes", label: "Clientes", icon: UserCircle2 },
+          { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
+          { to: "/construtoras", label: "Construtoras", icon: Building2 },
+          { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
+          { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
+        ],
+      },
+      {
+        id: "captacao",
+        label: "Captação",
+        icon: Home,
+        children: [
+          { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+          { to: "/captacao/funil", label: "Funil", icon: Funnel },
+          { to: "/captacao/captacoes", label: "Captações", icon: ClipboardList },
+          { to: "/captacao/oportunidades", label: "Banco de oportunidades", icon: SearchCheck },
+          { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+        ],
+      },
+      {
+        id: "venda-usados",
+        label: "Venda de Usados",
+        icon: Store,
+        children: [
+          { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
           { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
           { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
         ],
@@ -584,7 +578,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {},
   );
   const closeTimers = useRef<Record<string, number>>({});
-  const [operacao, setOperacao] = useState<OperacaoId>("lancamentos");
+  const [operacao, setOperacao] = useState<OperacaoId>("operacional");
   const [operacaoPickerOpen, setOperacaoPickerOpen] = useState(false);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [agendaSolicitacoesCount, setAgendaSolicitacoesCount] = useState(0);
@@ -1457,7 +1451,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div
               className={cn(
                 "grid gap-1.5 rounded-2xl border border-white/12 bg-white/[0.06] p-1.5",
-                collapsedView ? "grid-cols-1" : "grid-cols-3",
+                collapsedView
+                  ? "grid-cols-1"
+                  : operacoesDisponiveis.length > 2
+                    ? "grid-cols-3"
+                    : "grid-cols-2",
               )}
             >
               {operacoesDisponiveis.map((op) => {
@@ -2064,15 +2062,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden",
           )}
         >
-          {operacaoAtiva?.id === "lancamentos" &&
+          {operacaoAtiva?.id === "operacional" &&
           !lockWhatsapp &&
-          operacaoAtiva.prefixes.some((prefix) =>
-            pathMatchesPrefix(pathname, prefix),
-          ) ? (
+          [
+            "/leads",
+            "/whatsapp",
+            "/caca-lead",
+            "/funil",
+            "/funil-clientes",
+            "/triagem",
+            "/clientes",
+            "/clientes-perdidos",
+            "/leads-perdidos",
+            "/construtoras",
+          ].some((prefix) => pathMatchesPrefix(pathname, prefix)) ? (
             <OperationSubnav
               pathname={pathname}
               items={operacaoAtiva.items.flatMap((item) =>
-                isNavGroup(item) ? item.children : [item],
+                isNavGroup(item) && item.id === "lancamentos" ? item.children : [],
               )}
             />
           ) : null}
