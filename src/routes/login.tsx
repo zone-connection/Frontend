@@ -119,7 +119,7 @@ function LoginBrandLogo({
         <span
           className={cn(
             "font-semibold text-brand-accent leading-none",
-            isLarge ? "text-2xl -mt-1.5" : "text-lg -mt-1",
+            isLarge ? "text-2xl -mt-1.5" : "text-lg -mt-2.5",
           )}
         >
           Connection
@@ -362,7 +362,6 @@ function LoginPage() {
           </div>
 
           <div className="w-full overflow-hidden rounded-3xl border border-[#E2E8EC] bg-white shadow-[0_24px_60px_-28px_rgba(5,54,71,0.45)]">
-            <div className="h-1.5 bg-gradient-to-r from-[#079ED4] via-[#0D9488] to-[#079ED4]" />
             <div className="p-6 sm:p-8">
             <div className="mb-6 space-y-3">
               <LoginBrandLogo size="md" />
@@ -398,12 +397,16 @@ function LoginPage() {
                 placeholder="••••••••"
                 required
                 labelExtra={
-                  <button
-                    type="button"
+                  <a
+                    href={getWhatsAppUrl(
+                      "Olá! Esqueci minha senha da Zone Connection e preciso de ajuda para recuperar o acesso.",
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-xs font-medium text-brand-accent transition-colors hover:text-brand-dark"
                   >
                     Esqueci minha senha
-                  </button>
+                  </a>
                 }
               />
 
