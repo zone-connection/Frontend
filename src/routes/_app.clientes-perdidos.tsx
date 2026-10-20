@@ -69,7 +69,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/clientes-perdidos")({
-  head: () => ({ meta: [{ title: "Perda de cliente — Zone Connection" }] }),
+  head: () => ({ meta: [{ title: "Perdas de clientes — Zone Connection" }] }),
   component: ClientesPerdidos,
 });
 
@@ -145,11 +145,11 @@ function ClientesPerdidos() {
   return (
     <div>
       <PageHeader
-        title="Perda de cliente"
+        title="Perdas de clientes"
         description={
           loading
             ? "Carregando..."
-            : `${filtered.length} cliente(s) removidos da sua carteira.${
+            : `${filtered.length} cliente(s) perdido(s) da sua carteira. Só você vê esta lista.${
                 refreshing ? " Atualizando…" : ""
               }`
         }

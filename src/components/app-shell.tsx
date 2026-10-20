@@ -210,7 +210,7 @@ const LANCAMENTO_NAV_LEAVES: NavLeaf[] = [
   { to: "/clientes", label: "Clientes", icon: UserCircle2 },
   { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
   { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
-  { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
+  { to: "/clientes-perdidos", label: "Clientes perdidos", icon: UserX },
 ];
 
 const COMERCIAL_NAV_LEAVES: NavLeaf[] = LANCAMENTO_NAV_LEAVES;
@@ -359,7 +359,8 @@ function leafSection(grupo: string, leaf: NavLeaf): NavSection {
 
 const COMERCIAL_GRUPO = ["/leads", "/triagem", "/funil", "/whatsapp", "/caca-lead"];
 const CARTEIRA_GRUPO = ["/clientes", "/funil-clientes"];
-const PERDAS_GRUPO = ["/leads-perdidos", "/clientes-perdidos"];
+const PERDAS_GRUPO = ["/leads-perdidos"];
+const PERDAS_CLIENTES_GRUPO = ["/clientes-perdidos"];
 const TIME_GRUPO = ["/equipes", "/usuarios", "/permissoes", "/presenca", "/corretores"];
 const RESULTADO_GRUPO = ["/metas", "/resultado", "/taxa-conversao", "/atrasos"];
 const CAPTACAO_GRUPO = ["/captacao/funil", "/captacao/proprietarios", "/mural-chaves"];
@@ -390,6 +391,7 @@ const NAV_SECTIONS: NavSection[] = [
   ...leavesIn(COMERCIAL_GRUPO, COMERCIAL_NAV_LEAVES, "comercial"),
   ...leavesIn(CARTEIRA_GRUPO, COMERCIAL_NAV_LEAVES, "carteira"),
   ...leavesIn(PERDAS_GRUPO, COMERCIAL_NAV_LEAVES, "perdas"),
+  ...leavesIn(PERDAS_CLIENTES_GRUPO, COMERCIAL_NAV_LEAVES, "perdas-clientes"),
   {
     id: "dashboard",
     grupo: "rotina",
@@ -1413,6 +1415,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "comercial",
       "carteira",
       "perdas",
+      "perdas-clientes",
       "rotina",
       "imoveis",
       "time",
@@ -1433,6 +1436,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       comercial: "Comercial",
       carteira: "Carteira",
       perdas: "Perdas",
+      "perdas-clientes": "Perdas de clientes",
       rotina: "Dia",
       imoveis: "Imóveis e fechamento",
       time: "Time",

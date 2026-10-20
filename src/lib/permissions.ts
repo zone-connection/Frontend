@@ -251,7 +251,9 @@ export function canAccessRoute(
   if (path === "/whatsapp" && options?.hasOzapConnection !== true) {
     return false;
   }
-  if (path === "/perfil") return true;
+  if (path === "/clientes-perdidos" || path.startsWith("/clientes-perdidos/")) {
+    return role === "corretor" || role === "treinee";
+  }
   if (path === "/tarefas") {
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
   }
