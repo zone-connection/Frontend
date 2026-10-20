@@ -228,28 +228,37 @@ function MetaConexoesCard({ selectingMeta }: { selectingMeta: boolean }) {
             </p>
             {assets && assets.pages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nenhuma Página veio nesta autorização. Cancele e conecte de
-                novo. Na Meta, marque as Páginas e os portfólios do Gerenciador
-                de Negócios (não só o perfil). Quem conecta precisa administrar
-                a Página ou o portfólio.
+                A Meta não enviou a lista de Páginas neste login. Na tela do
+                Facebook, marque cada Fan Page pelo nome (não só o perfil). Se
+                a lista continuar vazia, cole o ID numérico da Página (em
+                facebook.com/sua-pagina, o número aparece na URL ou em Sobre).
               </p>
             ) : null}
-            {assets && assets.pages.length > 0 ? (
+            {assets ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="meta-page">Página</Label>
-                  <select
-                    id="meta-page"
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    value={pageId}
-                    onChange={(e) => setPageId(e.target.value)}
-                  >
-                    {assets.pages.map((page) => (
-                      <option key={page.id} value={page.id}>
-                        {page.name}
-                      </option>
-                    ))}
-                  </select>
+                  {assets.pages.length > 0 ? (
+                    <select
+                      id="meta-page"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={pageId}
+                      onChange={(e) => setPageId(e.target.value)}
+                    >
+                      {assets.pages.map((page) => (
+                        <option key={page.id} value={page.id}>
+                          {page.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      id="meta-page"
+                      value={pageId}
+                      onChange={(e) => setPageId(e.target.value)}
+                      placeholder="ID da Página, ex. 1669377936684138"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="meta-ad">Conta de anúncios</Label>

@@ -109,15 +109,19 @@ export function expireReadableCsrfCookies() {
 }
 
 /**
- * Prefere sessionStorage (atualizado no login/refresh) e só cai no cookie
- * same-origin. Cookie legado de outro domínio/proxy antigo não pode ganhar
- * do token fresco — senão header ≠ cookie da API → 403 CSRF.
+ * O header precisa ser igual ao cookie que o navegador envia. O
+ * sessionStorage fica para trás quando outra aba renova a sessão.
  */
 function readCsrfToken(): string | null {
   if (!isBrowser()) return null;
-  return (
-    sessionStorage.getItem(CSRF_STORAGE_KEY) ?? readCookie(CSRF_COOKIE)
-  );
+  const cookie = readCookie(CSRF_COOKIE);
+  if (cookie) {
+    if (sessionStorage.getItem(CSRF_STORAGE_KEY) !== cookie) {
+      sessionStorage.setItem(CSRF_STORAGE_KEY, cookie);
+    }
+    return cookie;
+  }
+  return sessionStorage.getItem(CSRF_STORAGE_KEY);
 }
 
 export function storeCsrfToken(token: string | null | undefined) {
