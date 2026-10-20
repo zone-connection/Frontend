@@ -217,16 +217,18 @@ export function AgendaLuxKpis({
 export function AgendaLuxTypeChips({
   value,
   onChange,
+  fundirChaveNaVisita = false,
 }: {
   value: string;
   onChange: (next: string) => void;
+  fundirChaveNaVisita?: boolean;
 }) {
   const visuals = [
     "visita",
     "ligacao",
     "reuniao",
     "tarefa",
-    "retirada_chave",
+    ...(fundirChaveNaVisita ? [] : ["retirada_chave" as const]),
     "outro",
   ] as const;
 

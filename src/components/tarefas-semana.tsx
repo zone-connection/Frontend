@@ -40,7 +40,9 @@ function ymdDe(iso: string) {
 }
 
 function detalhe(item: Agendamento) {
-  const partes = [TIPO[item.tipo]];
+  const partes = [
+    item.tipo === "retirada_chave" ? "Visita" : TIPO[item.tipo],
+  ];
   if (item.lead?.nome) partes.push(`Lead: ${item.lead.nome}`);
   if (item.imovel) {
     partes.push(

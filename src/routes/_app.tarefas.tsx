@@ -908,7 +908,7 @@ function CriarCompromisso({
           <AgendamentoTipoPicker
             appearance="soft"
             value={form.tipo ?? "tarefa"}
-            options={AGENDAMENTO_TIPOS}
+            options={AGENDAMENTO_TIPOS.filter((item) => item !== "retirada_chave")}
             onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
           />
         </Section>

@@ -63,7 +63,7 @@ function kpisDoPeriodo(atual: Agendamento[], anterior: Agendamento[]): AgendaKpi
       atendimentos: ativos.filter((item) => item.tipo === "ligacao").length,
       reunioes: ativos.filter((item) => item.tipo === "reuniao").length,
       propostas: ativos.filter((item) => item.tipo === "tarefa" || /proposta/i.test(item.titulo)).length,
-      visitas: ativos.filter((item) => item.tipo === "visita").length,
+      visitas: ativos.filter((item) => item.tipo === "visita" || item.tipo === "retirada_chave").length,
     };
   };
   const agora = contar(atual);
@@ -129,7 +129,10 @@ export function TarefasAgendaPainel({
     const range = getVisibleRange(visao, anchor);
     setLoading(true);
     try {
-      const tipoApi = tipo !== "__all__" && tipo !== "aniversario" ? (tipo as AgendamentoTipo) : undefined;
+      const tipoApi =
+        tipo !== "__all__" && tipo !== "aniversario" && tipo !== "visita"
+          ? (tipo as AgendamentoTipo)
+          : undefined;
       const [data, sols, kpiData] = await Promise.all([
         fetchAgendamentos({
           from: range.from.toISOString(),
@@ -187,7 +190,9 @@ export function TarefasAgendaPainel({
   }, [gestor]);
 
   const visiveis = items.filter((item) => {
-    if (tipo !== "__all__" && getAgendamentoVisual(item) !== tipo) return false;
+    if (tipo === "visita") {
+      if (item.tipo !== "visita" && item.tipo !== "retirada_chave") return false;
+    } else if (tipo !== "__all__" && getAgendamentoVisual(item) !== tipo) return false;
     if (status !== "__all__" && item.status !== status) return false;
     return true;
   });
@@ -311,7 +316,7 @@ export function TarefasAgendaPainel({
             </div>
           </div>
           <div className="mb-2">
-            <AgendaLuxTypeChips value={tipo} onChange={setTipo} />
+            <AgendaLuxTypeChips value={tipo} onChange={setTipo} fundirChaveNaVisita />
           </div>
           {gestor ? (
             <div className="mb-2 grid gap-2 sm:grid-cols-3">
