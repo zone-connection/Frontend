@@ -52,6 +52,16 @@ export type DashboardCorretor = {
 };
 
 export type DashboardAdmin = {
+  captacao: {
+    novas: DashboardMetric;
+    ativas: number;
+    captados: number;
+    proprietarios: number;
+    paradas: number;
+    exclusividade: number;
+    portal: number;
+    funil: { etapa: string; total: number; color: string | null }[];
+  } | null;
   periodo: {
     mesAtual: { inicio: string; fim: string };
     mesAnterior: { inicio: string; fim: string };
@@ -209,7 +219,7 @@ export type DashboardFiltros = {
   ano?: number;
   /** Origem do lead (catálogo). Omite = todas. */
   origem?: string;
-  operacao?: "lancamento" | "usado";
+  operacao?: "lancamento" | "usado" | "captacao";
   faixa?: RankingFaixa;
   de?: string;
   ate?: string;

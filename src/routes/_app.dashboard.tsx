@@ -27,6 +27,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao, isCorretorLike } from "@/lib/permissions";
+import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { hasUserModule } from "@/lib/user-permissions";
 import { catalogColorToChartHex } from "@/lib/catalog-colors";
 import { useCatalog, type FunnelStage } from "@/lib/catalog-store";
@@ -50,6 +51,9 @@ import {
   FileCheck2,
   FileText,
   Goal,
+  Home,
+  Kanban,
+  KeyRound,
   Loader2,
   Percent,
   SlidersHorizontal,
@@ -519,7 +523,9 @@ function DashboardAdminView() {
           ano,
           origem: origemFilter === "all" ? undefined : origemFilter,
           operacao:
-            operacaoFilter === "lancamento" || operacaoFilter === "usado"
+            operacaoFilter === "lancamento" ||
+            operacaoFilter === "usado" ||
+            operacaoFilter === "captacao"
               ? operacaoFilter
               : undefined,
         }),
@@ -568,13 +574,15 @@ function DashboardAdminView() {
   const metasEquipesPage = usePagedList(metasEquipes);
   const metasCorretoresPage = usePagedList(metasCorretores);
 
+  const showCaptacao = isTenantOperationEnabled(modules, "captacao");
   const botoesOperacao = (
-    <div className="mt-3 flex gap-1">
+    <div className="mt-3 flex flex-wrap gap-1">
       {(
         [
           ["lancamento", "Lançamentos"],
           ["all", "Geral"],
           ["usado", "Usados"],
+          ...(showCaptacao ? ([["captacao", "Captações"]] as const) : []),
         ] as const
       ).map(([id, label]) => (
         <button
@@ -683,6 +691,130 @@ function DashboardAdminView() {
           title="Indicadores indisponíveis"
           description="Não foi possível carregar os dados do dashboard."
         />
+      </div>
+    );
+  }
+
+  if (operacaoFilter === "captacao") {
+    const cap = summary.captacao;
+    const capFunil = (cap?.funil ?? [])
+      .filter((row) => row.total > 0)
+      .map((row) => ({
+        etapa: row.etapa,
+        total: row.total,
+        fill: row.color ? catalogColorToChartHex(row.color) : "#0ea5e9",
+      }));
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          eyebrow="Bem-vindo(a)"
+          title={user?.tenant?.name || "Dashboard"}
+          description={
+            <>
+              <p className="max-w-2xl">
+                Captações · {mesLabel} · comparação com o mês anterior.
+              </p>
+              {botoesOperacao}
+            </>
+          }
+          actions={filtros}
+        />
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Atualizando indicadores…
+          </div>
+        ) : null}
+        <PagePanel
+          inset="muted"
+          title="Captações do mês"
+          description={`Novas captações registradas em ${mesLabel}.`}
+          action={<PanelLink to="/captacao/visao-geral">Ver captação</PanelLink>}
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <FinanceKpiCard
+              label="Novas captações"
+              value={cap?.novas.valor ?? 0}
+              evolucaoPct={cap?.novas.evolucaoPct}
+              valorMesAnterior={cap?.novas.valorMesAnterior}
+              icon={Home}
+              tone="violet"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Captações ativas"
+              value={cap?.ativas ?? 0}
+              icon={Kanban}
+              tone="orange"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Imóveis captados"
+              value={cap?.captados ?? 0}
+              icon={Home}
+              tone="emerald"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Proprietários"
+              value={cap?.proprietarios ?? 0}
+              icon={UsersRound}
+              tone="blue"
+              format="number"
+              variant="dash"
+            />
+          </div>
+        </PagePanel>
+        <PagePanel
+          inset="muted"
+          title="Acompanhamento"
+          description="Captações paradas, avisos do portal e exclusividade."
+          action={<PanelLink to="/captacao/funil">Ver funil</PanelLink>}
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+            <FinanceKpiCard
+              label="Captações paradas"
+              value={cap?.paradas ?? 0}
+              icon={AlertTriangle}
+              tone="orange"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Avisos do portal"
+              value={cap?.portal ?? 0}
+              icon={KeyRound}
+              tone="teal"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Exclusividade"
+              value={cap?.exclusividade ?? 0}
+              icon={FileCheck2}
+              tone="violet"
+              format="number"
+              variant="dash"
+            />
+          </div>
+        </PagePanel>
+        <PagePanel
+          inset="muted"
+          title="Funil de captação"
+          description="Volume atual em cada etapa do funil de captação."
+          action={<PanelLink to="/captacao/funil">Ver funil</PanelLink>}
+        >
+          {capFunil.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma captação nas etapas ativas.
+            </p>
+          ) : (
+            <FunnelWashBars data={capFunil} />
+          )}
+        </PagePanel>
       </div>
     );
   }
