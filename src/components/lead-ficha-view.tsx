@@ -22,6 +22,13 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
@@ -515,6 +522,30 @@ export function LeadFichaView({
         <aside className="space-y-3">
           <section className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
             <h2 className="text-sm font-semibold">Ações rápidas</h2>
+            {onSelectStage && stages.length > 0 ? (
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs text-muted-foreground">Avançar etapa</p>
+                <Select
+                  value={pendingStage ?? lead.stage}
+                  onValueChange={(stageId) => {
+                    if (!stageId || stageId === lead.stage) return;
+                    setPendingStage(stageId);
+                    onSelectStage(stageId);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Etapa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stages.map((stage) => (
+                      <SelectItem key={stage.id} value={stage.id}>
+                        {stage.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             {moreActions.length === 0 ? (
               <p className="mt-3 text-xs text-muted-foreground">Nenhuma ação disponível.</p>
             ) : (
