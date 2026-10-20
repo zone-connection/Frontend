@@ -558,7 +558,6 @@ export function ComercialFunilBoard({
     offsetY: number;
     width: number;
     activated: boolean;
-    panning: boolean;
     sourceEl: HTMLElement | null;
     longPressTimer: ReturnType<typeof setTimeout> | null;
     onMove: ((e: PointerEvent) => void) | null;
@@ -834,9 +833,6 @@ export function ComercialFunilBoard({
     };
   }, []);
 
-  const DRAG_THRESHOLD_PX = 3;
-  const TOUCH_DRAG_DELAY_MS = 80;
-
   function cacheColumnRects() {
     const board = boardRef.current;
     if (!board) {
@@ -1027,7 +1023,6 @@ export function ComercialFunilBoard({
     didDrag.current = false;
     const target = e.currentTarget;
     const pointerId = e.pointerId;
-    const pointerType = e.pointerType;
 
     const onMove = (ev: PointerEvent) => {
       const s = dragSession.current;
@@ -1035,35 +1030,12 @@ export function ComercialFunilBoard({
       const dx = ev.clientX - s.startX;
       const dy = ev.clientY - s.startY;
 
-      if (s.panning) {
-        const board = boardRef.current;
-        if (board) board.scrollLeft -= ev.clientX - s.lastX;
-        s.lastX = ev.clientX;
-        s.lastY = ev.clientY;
-        return;
-      }
-
       s.lastX = ev.clientX;
       s.lastY = ev.clientY;
 
       if (!s.activated) {
-        if (pointerType === "touch" || pointerType === "pen") {
-          if (Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
-            clearDragTimers();
-            detachDragWindowListeners();
-            dragSession.current = null;
-          }
-          return;
-        }
-        if (Math.abs(dx) >= 4 && Math.abs(dx) > Math.abs(dy)) {
-          s.panning = true;
-          didDrag.current = true;
-          clearDragTimers();
-          boardRef.current?.classList.remove("scroll-smooth");
-          document.body.classList.add("funil-card-dragging");
-          return;
-        }
-        if (Math.hypot(dx, dy) < 8) return;
+        if (Math.hypot(dx, dy) < 6) return;
+        clearDragTimers();
         activateCardDrag(s.leadId, target);
       }
 
@@ -1087,7 +1059,6 @@ export function ComercialFunilBoard({
       offsetY: 0,
       width: 0,
       activated: false,
-      panning: false,
       sourceEl: target,
       longPressTimer: null,
       onMove,
@@ -1097,12 +1068,7 @@ export function ComercialFunilBoard({
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
-
-    if (pointerType === "touch" || pointerType === "pen") {
-      dragSession.current.longPressTimer = setTimeout(() => {
-        activateCardDrag(leadId, target);
-      }, TOUCH_DRAG_DELAY_MS);
-    }
+    target.setPointerCapture?.(pointerId);
   }
 
   async function dropLeadOnStage(leadId: string, stage: StageId) {
@@ -1606,7 +1572,7 @@ export function ComercialFunilBoard({
                     onPointerDown={(e) => onCardPointerDown(e, l.id)}
                     onClick={() => openDetail(l)}
                     className={cn(
-                      "rounded-xl border-black/5 p-3 cursor-grab touch-manipulation select-none shadow-sm transition-[opacity,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md",
+                      "rounded-xl border-black/5 p-3 cursor-grab touch-none select-none shadow-sm transition-[opacity,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md",
                       (l.origemAtrasoLiberacao === "retrabalho" ||
                         l.triagemOrigemHerdada === "retrabalho") &&
                         "border-amber-400/70 bg-amber-50/90 ring-1 ring-amber-400/30 dark:bg-amber-950/25",
