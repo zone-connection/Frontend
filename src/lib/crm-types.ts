@@ -11,6 +11,40 @@ export type StageId = string;
 
 export type ContatoTipo = "lead" | "cliente";
 
+export type LeadCanalPortais = "Facebook" | "Instagram" | "OLX";
+
+function textoCanal(lead: {
+  origem?: string | null;
+  tags?: string[] | null;
+}): string {
+  return `${lead.origem ?? ""} ${(lead.tags ?? []).join(" ")}`
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+}
+
+/** Canal do anúncio (Facebook, Instagram ou OLX) para badge no funil. */
+export function leadCanalPortais(lead: {
+  origem?: string | null;
+  tags?: string[] | null;
+}): LeadCanalPortais | null {
+  const text = textoCanal(lead);
+  if (text.includes("olx") || text.includes("grupozap") || text.includes("vivareal")) {
+    return "OLX";
+  }
+  if (text.includes("instagram")) return "Instagram";
+  if (text.includes("facebook")) return "Facebook";
+  return null;
+}
+
+/** Lead de anúncio dos portais OLX (ZAP/VivaReal), tratado como entrada de usados. */
+export function isLeadEntradaUsados(lead: {
+  origem?: string | null;
+  tags?: string[] | null;
+}): boolean {
+  return leadCanalPortais(lead) === "OLX";
+}
+
 export type AnaliseStatus =
   "pendente" | "em_analise" | "aprovado" | "reprovado";
 

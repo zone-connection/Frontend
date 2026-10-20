@@ -18,6 +18,8 @@ import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { imovelCapaUrl } from "@/lib/captacao-api";
+import { origemBadgeClass } from "@/lib/catalog-colors";
+import { isLeadEntradaUsados, leadCanalPortais } from "@/lib/crm-types";
 import { fetchFunilAtivo, type Funil, type FunilEtapa } from "@/lib/funis-api";
 import {
   fetchLeads,
@@ -63,9 +65,13 @@ function proprietarioDe(item: VendaUsado) {
   };
 }
 
-type VisaoFunil = "todos" | "usados" | "lancamentos";
-
 const FORA_LANCAMENTO = "fora-lancamento";
+
+function canalTag(lead: { origem?: string | null; tags?: string[] | null }) {
+  const canal = leadCanalPortais(lead);
+  if (!canal) return [];
+  return [{ label: canal, className: origemBadgeClass(canal) }];
+}
 
 function etapaDoLead(etapas: FunilEtapa[], stage: string) {
   return etapas.find((etapa) => etapa.slug === stage || etapa.id === stage);
@@ -85,7 +91,6 @@ async function fetchTodosLeads() {
 function UsadosFunilPage() {
   const user = getSession();
   const isCorretor = user ? !canViewTeamData(user.role) : true;
-  const [visao, setVisao] = useState<VisaoFunil>("todos");
   const [funil, setFunil] = useState<Funil | null>(null);
   const [funilLancamento, setFunilLancamento] = useState<Funil | null>(null);
   const [leads, setLeads] = useState<ReturnType<typeof mapApiLead>[]>([]);
@@ -161,15 +166,21 @@ function UsadosFunilPage() {
 
   const leadsVisiveis = useMemo(() => {
     const etapas = funilLancamento?.etapas ?? [];
-    return leads.filter((lead) => {
-      if (funilLancamento && lead.funilId && lead.funilId !== funilLancamento.id) {
-        return false;
-      }
-      return matchesMonitoramentoFiltro(lead.monitoramento, filterMonitoramento);
-    }).map((lead) => ({
-      lead,
-      etapa: etapaDoLead(etapas, lead.stage),
-    }));
+    return leads
+      .filter((lead) => {
+        if (
+          funilLancamento &&
+          lead.funilId &&
+          lead.funilId !== funilLancamento.id
+        ) {
+          return false;
+        }
+        return matchesMonitoramentoFiltro(lead.monitoramento, filterMonitoramento);
+      })
+      .map((lead) => ({
+        lead,
+        etapa: etapaDoLead(etapas, lead.stage),
+      }));
   }, [funilLancamento, leads, filterMonitoramento]);
 
   const stages = useMemo(
@@ -280,32 +291,11 @@ function UsadosFunilPage() {
     <>
       <PageHeader
         title="Funil"
-        description="Lançamentos e venda de usados no mesmo lugar. Cada card só muda de etapa dentro do próprio funil."
+        description="Lançamentos e usados no mesmo funil. O card mostra se o lead veio do Facebook, Instagram ou OLX."
         actionsClassName="lg:max-w-none"
         actions={
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="flex gap-1 rounded-full border bg-background p-0.5">
-                {(
-                  [
-                    ["todos", "Todos"],
-                    ["lancamentos", "Lançamentos"],
-                    ["usados", "Venda de usados"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setVisao(id)}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium",
-                      visao === id ? "bg-[#079ED4] text-white" : "text-[#5C6B76]",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
               <Select
                 value={filterMonitoramento}
                 onValueChange={(value) =>
@@ -365,9 +355,10 @@ function UsadosFunilPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {visao !== "usados" ? (
             <section>
-              <h2 className="mb-2 text-sm font-semibold text-[#0B3148]">Lançamentos</h2>
+              <h2 className="mb-2 text-sm font-semibold text-[#0B3148]">
+                Leads
+              </h2>
               {stagesLancamento.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Não há funil de lançamentos ativo com etapas.
@@ -396,16 +387,19 @@ function UsadosFunilPage() {
                     footer: lead.corretor.split(" ")[0],
                     updatedAt: lead.updatedAt,
                     actionLabel: "Lead",
-                    tags: [{ label: "Lançamento", className: "bg-[#E7F4FA] text-[#05749E]" }],
+                    tags: [
+                      ...canalTag(lead),
+                      ...(isLeadEntradaUsados(lead)
+                        ? [{ label: "Usados", className: "bg-[#E8F6EE] text-[#1B7A46]" }]
+                        : []),
+                    ],
                     monitoramento: lead.monitoramento,
                   }))}
                 />
               )}
             </section>
-          ) : null}
-          {visao !== "lancamentos" ? (
             <section>
-              <h2 className="mb-2 text-sm font-semibold text-[#0B3148]">Venda de usados</h2>
+              <h2 className="mb-2 text-sm font-semibold text-[#0B3148]">Imóveis em venda</h2>
       {stages.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Não há funil de Venda de Usados ativo com etapas. Configure em
@@ -446,7 +440,6 @@ function UsadosFunilPage() {
         />
       )}
             </section>
-          ) : null}
         </div>
       )}
       <VendaUsadoDetalheDialog

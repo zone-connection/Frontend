@@ -510,6 +510,9 @@ export function origemBadgeClass(origem: string | null | undefined): string {
     return `${size} border-transparent bg-slate-200 text-slate-700 shadow-none hover:bg-slate-200`;
   }
 
+  if (key.includes("olx") || key.includes("grupozap") || key.includes("vivareal")) {
+    return `${size} border-transparent bg-[#6E0AD6]/15 text-[#6E0AD6] shadow-none hover:bg-[#6E0AD6]/22`;
+  }
   if (key.includes("facebook") || key === "fb") {
     return `${size} border-transparent bg-[#1877F2]/18 text-[#1877F2] shadow-none hover:bg-[#1877F2]/25`;
   }
