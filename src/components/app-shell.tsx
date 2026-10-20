@@ -1,8 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  Home,
   LayoutDashboard,
-  Store,
   Users,
   Kanban,
   Funnel,
@@ -215,14 +213,7 @@ const LANCAMENTO_NAV_LEAVES: NavLeaf[] = [
   { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
 ];
 
-const COMERCIAL_NAV_LEAVES: NavLeaf[] = [
-  ...LANCAMENTO_NAV_LEAVES,
-  { to: "/captacao/visao-geral", label: "Captação", icon: Home },
-  { to: "/imoveis-usados/visao-geral", label: "Usados", icon: Store },
-  { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
-  { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
-  { to: "/locacao", label: "Locação", icon: KeyRound },
-];
+const COMERCIAL_NAV_LEAVES: NavLeaf[] = LANCAMENTO_NAV_LEAVES;
 
 const OPERACOES: {
   id: OperacaoId;
