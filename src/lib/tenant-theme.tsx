@@ -9,7 +9,11 @@ import {
 import type { AuthUser, TenantBranding } from "@/lib/auth";
 import { getSession } from "@/lib/auth";
 import { initAppearance } from "@/lib/appearance";
-import { isTenantOperationEnabled, isTenantOperationKey } from "@/lib/tenant-modules";
+import {
+  isTenantOperationEnabled,
+  isTenantOperationKey,
+  modulesFromTenantJson,
+} from "@/lib/tenant-modules";
 
 /** Logo padrão Zone Connection (fundo transparente). */
 export const DEFAULT_TENANT_LOGO = "/LozoZone.png";
@@ -85,7 +89,9 @@ export function TenantThemeProvider({
     liveUser?.role === "super_admin" ? null : (liveUser?.tenant ?? null);
 
   const value = useMemo<TenantThemeContextValue>(() => {
-    const modules = normalizeModules(tenant?.modules ?? null);
+    const modules = modulesFromTenantJson(
+      normalizeModules(tenant?.modules ?? null),
+    );
     return {
       tenant,
       brandName: tenant?.name ?? "Zone Connection",

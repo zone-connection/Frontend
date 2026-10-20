@@ -562,7 +562,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [collapsed]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const { brandName, logoUrl, modules } = useTenantTheme();
+  const { brandName, logoUrl, modules, isModuleEnabled } = useTenantTheme();
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
@@ -972,6 +972,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
+  function moduleMenuAllows(to: string) {
+    if (to === "/mural-chaves" || to.startsWith("/mural-chaves/")) {
+      return isModuleEnabled("muralChaves");
+    }
+    if (to === "/captacao" || to.startsWith("/captacao/")) {
+      return isModuleEnabled("captacao");
+    }
+    if (to.startsWith("/imoveis-usados")) return isModuleEnabled("imoveisUsados");
+    if (to.startsWith("/locacao")) return isModuleEnabled("locacao");
+    if (to.startsWith("/parcerias")) return isModuleEnabled("parcerias");
+    return true;
+  }
+
+  function groupMenuAllows(id: string) {
+    if (id === "captacao") return isModuleEnabled("captacao");
+    if (id === "imoveis-usados" || id === "venda-usados") {
+      return isModuleEnabled("imoveisUsados");
+    }
+    if (id === "parcerias") return isModuleEnabled("parcerias");
+    if (id === "locacao") return isModuleEnabled("locacao");
+    return true;
+  }
+
   const navSections = useMemo(() => {
     if (!user) return [];
     return NAV_SECTIONS.filter((section) => {
@@ -1001,7 +1024,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: sectionItems
             .map((item) => {
               if (isNavGroup(item)) {
+                if (!groupMenuAllows(item.id)) return null;
                 const children = item.children.filter((c) => {
+                  if (!moduleMenuAllows(c.to)) return false;
                   if (c.to === "/caca-lead" && hideCacaLeadNav) return false;
                   if (
                     hideClientesFromSidebar &&
@@ -1016,6 +1041,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 });
                 return children.length ? { ...item, children } : null;
               }
+              if (!moduleMenuAllows(item.to)) return null;
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;
               }
@@ -1040,7 +1066,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav]);
+  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav, isModuleEnabled]);
 
   const operacoesDisponiveis = useMemo(() => {
     if (!user || user.role === "super_admin") return [];
@@ -1049,7 +1075,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: op.items
         .map((item) => {
           if (isNavGroup(item)) {
+            if (!groupMenuAllows(item.id)) return null;
             const children = item.children.filter((child) => {
+              if (!moduleMenuAllows(child.to)) return false;
               if (child.to === "/caca-lead" && hideCacaLeadNav) return false;
               if (
                 hideClientesFromSidebar &&
@@ -1061,6 +1089,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             });
             return children.length ? { ...item, children } : null;
           }
+          if (!moduleMenuAllows(item.to)) return null;
           if (item.to === "/caca-lead" && hideCacaLeadNav) return null;
           if (
             hideClientesFromSidebar &&
@@ -1078,6 +1107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     plano,
     hideCacaLeadNav,
     hideClientesFromSidebar,
+    isModuleEnabled,
   ]);
 
   const operacaoAtiva =

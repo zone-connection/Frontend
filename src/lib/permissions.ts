@@ -5,6 +5,7 @@ import {
   isSoloPathAllowed,
   isTenantOperationEnabled,
   isTenantOperationKey,
+  modulesFromTenantJson,
   type TenantPlano,
 } from "@/lib/tenant-modules";
 import {
@@ -271,25 +272,24 @@ export function canAccessRoute(
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;
   if (!isSoloPathAllowed(path, plano ?? null)) return false;
 
-  if (modules) {
-    const tenantKey = Object.entries(ROUTE_MODULE_KEY).find(
-      ([route]) => path === route || path.startsWith(`${route}/`),
-    )?.[1];
-    if (tenantKey) {
-      if (tenantKey === "muralChaves" && modules.muralChaves !== true) {
-        return false;
-      }
-      if (isTenantOperationKey(tenantKey)) {
-        if (!isTenantOperationEnabled(modules, tenantKey)) return false;
-      } else if (modules[tenantKey] === false) {
-        return false;
-      }
+  const resolvedModules = modulesFromTenantJson(modules ?? undefined);
+  const tenantKey = Object.entries(ROUTE_MODULE_KEY)
+    .sort((a, b) => b[0].length - a[0].length)
+    .find(([route]) => path === route || path.startsWith(`${route}/`))?.[1];
+  if (tenantKey) {
+    if (tenantKey === "muralChaves" && resolvedModules.muralChaves !== true) {
+      return false;
+    }
+    if (isTenantOperationKey(tenantKey)) {
+      if (!isTenantOperationEnabled(resolvedModules, tenantKey)) return false;
+    } else if (resolvedModules[tenantKey] === false) {
+      return false;
     }
   }
 
   const permKey = moduleForPath(path);
     if (permKey && isTenantOperationKey(permKey)) {
-      if (!isTenantOperationEnabled(modules, permKey)) return false;
+      if (!isTenantOperationEnabled(resolvedModules, permKey)) return false;
       if (
         role === "admin" ||
         role === "super_admin" ||
