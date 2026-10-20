@@ -387,11 +387,59 @@ function leavesIn(paths: string[], pool: NavLeaf[], grupo: string) {
   });
 }
 
+function folderSection(
+  id: string,
+  grupo: string,
+  label: string,
+  icon: LucideIcon,
+  paths: string[],
+  pool: NavLeaf[],
+): NavSection {
+  return {
+    id,
+    grupo,
+    label,
+    icon,
+    items: paths.flatMap((path) => {
+      const leaf = pool.find((item) => item.to === path);
+      return leaf ? [leaf] : [];
+    }),
+  };
+}
+
 const NAV_SECTIONS: NavSection[] = [
-  ...leavesIn(COMERCIAL_GRUPO, COMERCIAL_NAV_LEAVES, "comercial"),
-  ...leavesIn(CARTEIRA_GRUPO, COMERCIAL_NAV_LEAVES, "carteira"),
-  ...leavesIn(PERDAS_GRUPO, COMERCIAL_NAV_LEAVES, "perdas"),
-  ...leavesIn(PERDAS_CLIENTES_GRUPO, COMERCIAL_NAV_LEAVES, "perdas-clientes"),
+  folderSection(
+    "comercial",
+    "funil",
+    "Comercial",
+    Funnel,
+    COMERCIAL_GRUPO,
+    COMERCIAL_NAV_LEAVES,
+  ),
+  folderSection(
+    "carteira",
+    "funil",
+    "Carteira",
+    UserCircle2,
+    CARTEIRA_GRUPO,
+    COMERCIAL_NAV_LEAVES,
+  ),
+  folderSection(
+    "perdas",
+    "funil",
+    "Perdas",
+    UserX,
+    PERDAS_GRUPO,
+    COMERCIAL_NAV_LEAVES,
+  ),
+  folderSection(
+    "perdas-clientes",
+    "funil",
+    "Perdas de clientes",
+    UserX,
+    PERDAS_CLIENTES_GRUPO,
+    COMERCIAL_NAV_LEAVES,
+  ),
   {
     id: "dashboard",
     grupo: "rotina",
@@ -1412,10 +1460,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const sections = navSections.filter((section) => section.id !== "agenda");
     const ordem = [
-      "comercial",
-      "carteira",
-      "perdas",
-      "perdas-clientes",
+      "funil",
       "rotina",
       "imoveis",
       "time",
@@ -1433,10 +1478,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const menuSlots = ordered.map((section) => ({ kind: "section" as const, section }));
     const grupoDoSlot = (slot: (typeof menuSlots)[number]) => slot.section.grupo;
     const rotuloGrupo: Record<string, string> = {
-      comercial: "Comercial",
-      carteira: "Carteira",
-      perdas: "Perdas",
-      "perdas-clientes": "Perdas de clientes",
+      funil: "Funil",
       rotina: "Dia",
       imoveis: "Imóveis e fechamento",
       time: "Time",
