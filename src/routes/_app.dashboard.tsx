@@ -470,6 +470,7 @@ function DashboardAdminView() {
   const [mes, setMes] = useState(agora.mes);
   const [ano, setAno] = useState(agora.ano);
   const [origemFilter, setOrigemFilter] = useState("all");
+  const [operacaoFilter, setOperacaoFilter] = useState("all");
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
   const isPlatformAdmin = user?.role === "super_admin";
@@ -513,6 +514,10 @@ function DashboardAdminView() {
           mes,
           ano,
           origem: origemFilter === "all" ? undefined : origemFilter,
+          operacao:
+            operacaoFilter === "lancamento" || operacaoFilter === "usado"
+              ? operacaoFilter
+              : undefined,
         }),
       );
     } catch (err) {
@@ -524,7 +529,7 @@ function DashboardAdminView() {
     } finally {
       setLoading(false);
     }
-  }, [mes, ano, origemFilter]);
+  }, [mes, ano, origemFilter, operacaoFilter]);
 
   useEffect(() => {
     void load();
@@ -591,6 +596,19 @@ function DashboardAdminView() {
           </SelectContent>
         </Select>
       </div>
+      <div className="min-w-36 flex-1 space-y-1 sm:flex-none">
+        <Label className={FILTER_LABEL}>Operação</Label>
+        <Select value={operacaoFilter} onValueChange={setOperacaoFilter}>
+          <SelectTrigger className={cn("w-full sm:w-44", FILTER_CONTROL)}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="lancamento">Lançamentos</SelectItem>
+            <SelectItem value="usado">Venda de usados</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="min-w-32 flex-1 space-y-1 sm:min-w-40 sm:flex-none">
         <Label className={FILTER_LABEL}>Origem</Label>
         <Select value={origemFilter} onValueChange={setOrigemFilter}>
@@ -644,7 +662,13 @@ function DashboardAdminView() {
       <PageHeader
           eyebrow="Bem-vindo(a)"
           title={user?.tenant?.name || "Dashboard"}
-          description={`Visão gerencial · ${mesLabel} · comparação com o mês anterior.`}
+          description={
+            operacaoFilter === "usado"
+              ? `Vendas de usados · ${mesLabel} · VGV, documentação, ranking e comissão.`
+              : operacaoFilter === "lancamento"
+                ? `Lançamentos · ${mesLabel} · comparação com o mês anterior.`
+                : `Visão gerencial · ${mesLabel} · comparação com o mês anterior.`
+          }
           actions={filtros}
         />
 
@@ -978,7 +1002,7 @@ function DashboardAdminView() {
       </section>
       ) : null}
 
-      {showVendas && summary.usados ? (
+      {showVendas && summary.usados && operacaoFilter === "all" ? (
         <PagePanel
           inset="muted"
           title="Venda de usados"

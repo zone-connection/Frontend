@@ -209,6 +209,7 @@ export type DashboardFiltros = {
   ano?: number;
   /** Origem do lead (catálogo). Omite = todas. */
   origem?: string;
+  operacao?: "lancamento" | "usado";
   faixa?: RankingFaixa;
   de?: string;
   ate?: string;
@@ -221,6 +222,7 @@ function dashboardQuery(params?: DashboardFiltros): string {
   if (params?.mes != null) qs.set("mes", String(params.mes));
   if (params?.ano != null) qs.set("ano", String(params.ano));
   if (params?.origem) qs.set("origem", params.origem);
+  if (params?.operacao) qs.set("operacao", params.operacao);
   if (params?.faixa) qs.set("faixa", params.faixa);
   if (params?.de) qs.set("de", params.de);
   if (params?.ate) qs.set("ate", params.ate);
