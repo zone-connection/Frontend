@@ -225,7 +225,6 @@ const OPERACOES: {
       "/clientes",
       "/clientes-perdidos",
       "/leads-perdidos",
-      "/construtoras",
       "/captacao",
       "/imoveis-usados",
       "/parcerias",
@@ -243,7 +242,6 @@ const OPERACOES: {
           { to: "/funil", label: "Funil", icon: Funnel },
           { to: "/clientes", label: "Clientes", icon: UserCircle2 },
           { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
-          { to: "/construtoras", label: "Construtoras", icon: Building2 },
           { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
           { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
         ],
@@ -469,6 +467,13 @@ const NAV_SECTIONS: {
     icon: ListTodo,
     standalone: true,
     items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
+  },
+  {
+    id: "construtoras",
+    label: "Construtoras",
+    icon: Building2,
+    standalone: true,
+    items: [{ to: "/construtoras", label: "Construtoras", icon: Building2 }],
   },
   {
     id: "catalogo",
@@ -995,10 +1000,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: sectionItems
             .map((item) => {
               if (isNavGroup(item)) {
-                const children = item.children.filter((c) =>
-                  canUserAccessRoute(user, c.to) &&
-                  (c.to !== "/financeiro/comissao" || canSeeComissao(user)),
-                );
+                const children = item.children.filter((c) => {
+                  if (c.to === "/caca-lead" && hideCacaLeadNav) return false;
+                  if (
+                    hideClientesFromSidebar &&
+                    (c.to === "/clientes" || c.to === "/funil-clientes")
+                  ) {
+                    return false;
+                  }
+                  return (
+                    canUserAccessRoute(user, c.to) &&
+                    (c.to !== "/financeiro/comissao" || canSeeComissao(user))
+                  );
+                });
                 return children.length ? { ...item, children } : null;
               }
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
@@ -1034,9 +1048,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: op.items
         .map((item) => {
           if (isNavGroup(item)) {
-            const children = item.children.filter((child) =>
-              canUserAccessRoute(user, child.to),
-            );
+            const children = item.children.filter((child) => {
+              if (child.to === "/caca-lead" && hideCacaLeadNav) return false;
+              if (
+                hideClientesFromSidebar &&
+                (child.to === "/clientes" || child.to === "/funil-clientes")
+              ) {
+                return false;
+              }
+              return canUserAccessRoute(user, child.to);
+            });
             return children.length ? { ...item, children } : null;
           }
           if (item.to === "/caca-lead" && hideCacaLeadNav) return null;
@@ -1398,7 +1419,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ? navSections.filter((section) => section.id !== "agenda")
         : navSections.filter((section) => !OPERACAO_SECTION_IDS.has(section.id));
     const beforeOperacao = ["dashboard", "tarefas", "agenda"];
-    const afterOperacaoTop = ["catalogo", "fechamento"];
+    const afterOperacaoTop = ["construtoras", "catalogo", "fechamento"];
     const fimDoMenu = ["treinamento", "novidades", "guia-sistema", "conta"];
     const naOrdem = (ids: string[]) =>
       ids
@@ -1426,7 +1447,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const grupoDoSlot = (slot: (typeof visibleSlots)[number]) => {
       if (slot.kind === "operacao") return "comercial";
       if (["dashboard", "tarefas", "agenda"].includes(slot.section.id)) return "rotina";
-      if (["catalogo", "fechamento"].includes(slot.section.id)) return "imoveis";
+      if (["construtoras", "catalogo", "fechamento"].includes(slot.section.id)) return "imoveis";
       if (["treinamento", "novidades", "guia-sistema", "conta"].includes(slot.section.id)) return "apoio";
       return "gestao";
     };
@@ -2068,7 +2089,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "/clientes",
             "/clientes-perdidos",
             "/leads-perdidos",
-            "/construtoras",
           ].some((prefix) => pathMatchesPrefix(pathname, prefix)) ? (
             <OperationSubnav
               pathname={pathname}
