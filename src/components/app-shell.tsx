@@ -492,27 +492,27 @@ const NAV_SECTIONS: NavSection[] = [
     standalone: true,
     items: [{ to: "/treinamento", label: "Treinamento", icon: GraduationCap }],
   },
-  ...leavesIn(TIME_GRUPO, [
+  folderSection("time", "time", "Time", Network, TIME_GRUPO, [
     { to: "/equipes", label: "Equipes", icon: Network },
     { to: "/usuarios", label: "Usuários", icon: UsersRound },
     { to: "/permissoes", label: "Permissões", icon: KeyRound },
     { to: "/presenca", label: "Presença", icon: ClipboardCheck },
     { to: "/corretores", label: "Ranking", icon: UsersRound },
-  ], "time"),
-  ...leavesIn(RESULTADO_GRUPO, [
+  ]),
+  folderSection("resultado", "resultado", "Resultado", Target, RESULTADO_GRUPO, [
     { to: "/metas", label: "Metas", icon: Target },
     { to: "/resultado", label: "Análise", icon: SearchCheck },
     { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
     { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
-  ], "resultado"),
-  ...leavesIn(CAPTACAO_GRUPO, [
+  ]),
+  folderSection("captacao", "captacao", "Captação", Funnel, CAPTACAO_GRUPO, [
     { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
     { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
     { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
-  ], "captacao"),
-  ...leavesIn(CAIXA_GRUPO, FINANCEIRO_MODULES, "caixa"),
-  ...leavesIn(CONTAS_GRUPO, FINANCEIRO_MODULES, "contas"),
-  ...leavesIn(CADASTROS_GRUPO, FINANCEIRO_MODULES, "cadastros"),
+  ]),
+  folderSection("caixa", "caixa", "Caixa", Banknote, CAIXA_GRUPO, FINANCEIRO_MODULES),
+  folderSection("contas", "contas", "Contas", ArrowUpRight, CONTAS_GRUPO, FINANCEIRO_MODULES),
+  folderSection("cadastros", "cadastros", "Cadastros", Users, CADASTROS_GRUPO, FINANCEIRO_MODULES),
   ...leavesIn(
     ["/tenants", "/guia"],
     [
@@ -1460,8 +1460,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const sections = navSections.filter((section) => section.id !== "agenda");
     const ordem = [
-      "funil",
       "rotina",
+      "funil",
       "imoveis",
       "time",
       "resultado",
@@ -1481,12 +1481,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       funil: "Funil",
       rotina: "Dia",
       imoveis: "Imóveis e fechamento",
-      time: "Time",
-      resultado: "Resultado",
-      captacao: "Captação",
-      caixa: "Caixa",
-      contas: "Contas",
-      cadastros: "Cadastros",
+      time: "",
+      resultado: "",
+      captacao: "",
+      caixa: "",
+      contas: "",
+      cadastros: "",
       plataforma: "Plataforma",
       apoio: "Apoio",
     };
@@ -1542,9 +1542,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="mx-2 my-2 border-t border-white/20" />
             ) : (
               <div className={cn(index > 0 ? "mt-3 border-t border-white/20 pt-3" : "pt-1")}>
-                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-                  {rotuloGrupo[grupo]}
-                </p>
+                {rotuloGrupo[grupo] ? (
+                  <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                    {rotuloGrupo[grupo]}
+                  </p>
+                ) : null}
               </div>
             )
           ) : null;
