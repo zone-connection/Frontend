@@ -47,8 +47,6 @@ import {
   Goal,
   Loader2,
   Percent,
-  DollarSign,
-  Store,
   TrendingUp,
   UserRound,
   UserX,
@@ -596,18 +594,30 @@ function DashboardAdminView() {
           </SelectContent>
         </Select>
       </div>
-      <div className="min-w-36 flex-1 space-y-1 sm:flex-none">
-        <Label className={FILTER_LABEL}>Operação</Label>
-        <Select value={operacaoFilter} onValueChange={setOperacaoFilter}>
-          <SelectTrigger className={cn("w-full sm:w-44", FILTER_CONTROL)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="lancamento">Lançamentos</SelectItem>
-            <SelectItem value="usado">Venda de usados</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-end">
+        <div className="flex gap-1">
+          {(
+            [
+              ["lancamento", "Lançamentos"],
+              ["all", "Geral"],
+              ["usado", "Usados"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={cn(
+                "inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
+                operacaoFilter === id
+                  ? "bg-[#079ED4] text-white shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-accent",
+              )}
+              onClick={() => setOperacaoFilter(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="min-w-32 flex-1 space-y-1 sm:min-w-40 sm:flex-none">
         <Label className={FILTER_LABEL}>Origem</Label>
@@ -662,13 +672,7 @@ function DashboardAdminView() {
       <PageHeader
           eyebrow="Bem-vindo(a)"
           title={user?.tenant?.name || "Dashboard"}
-          description={
-            operacaoFilter === "usado"
-              ? `Vendas de usados · ${mesLabel} · VGV, documentação, ranking e comissão.`
-              : operacaoFilter === "lancamento"
-                ? `Lançamentos · ${mesLabel} · comparação com o mês anterior.`
-                : `Visão gerencial · ${mesLabel} · comparação com o mês anterior.`
-          }
+          description={`Visão gerencial · ${mesLabel} · comparação com o mês anterior.`}
           actions={filtros}
         />
 
@@ -1000,80 +1004,6 @@ function DashboardAdminView() {
         </PagePanel>
         ) : null}
       </section>
-      ) : null}
-
-      {showVendas && summary.usados && operacaoFilter === "all" ? (
-        <PagePanel
-          inset="muted"
-          title="Venda de usados"
-          description={`VGV, ranking e comissão das vendas de usados em ${mesLabel}. O cadastro é a ficha de documentação marcada como usado.`}
-          action={<PanelLink to="/documentacao">Registrar venda</PanelLink>}
-        >
-          <div className="grid gap-3 md:grid-cols-3">
-            <FinanceKpiCard
-              label="VGV de usados"
-              value={summary.usados.vgv.valor}
-              evolucaoPct={summary.usados.vgv.evolucaoPct}
-              valorMesAnterior={summary.usados.vgv.valorMesAnterior}
-              icon={DollarSign}
-              tone="emerald"
-              format="money"
-              variant="dash"
-            />
-            <FinanceKpiCard
-              label="Vendas de usados"
-              value={summary.usados.vendas.valor}
-              evolucaoPct={summary.usados.vendas.evolucaoPct}
-              valorMesAnterior={summary.usados.vendas.valorMesAnterior}
-              icon={Store}
-              tone="blue"
-              format="number"
-              variant="dash"
-            />
-            <FinanceKpiCard
-              label={
-                summary.usados.comissao.papel === "admin"
-                  ? "Comissão líquida"
-                  : "Comissão a receber"
-              }
-              value={
-                summary.usados.comissao.papel === "admin"
-                  ? summary.usados.comissao.total.valor
-                  : summary.usados.comissao.aReceber.valor
-              }
-              evolucaoPct={
-                summary.usados.comissao.papel === "admin"
-                  ? summary.usados.comissao.total.evolucaoPct
-                  : summary.usados.comissao.aReceber.evolucaoPct
-              }
-              valorMesAnterior={
-                summary.usados.comissao.papel === "admin"
-                  ? summary.usados.comissao.total.valorMesAnterior
-                  : summary.usados.comissao.aReceber.valorMesAnterior
-              }
-              icon={Percent}
-              tone="violet"
-              format="money"
-              variant="dash"
-            />
-          </div>
-          <div className="mt-4">
-            {summary.usados.ranking.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhuma venda de usado com VGV neste período.
-              </p>
-            ) : (
-              <DashRankBars
-                format="money"
-                items={summary.usados.ranking.slice(0, 5).map((r) => ({
-                  id: r.corretorId,
-                  nome: r.nome,
-                  valor: r.vgv,
-                }))}
-              />
-            )}
-          </div>
-        </PagePanel>
       ) : null}
 
       {showFunil || showDoc || showVendas || isPlatformAdmin ? (
