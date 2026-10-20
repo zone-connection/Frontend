@@ -332,10 +332,11 @@ const PLATFORM_FINANCEIRO_MODULES: NavLeaf[] = [
   { to: "/financeiro/funcionarios", label: "Funcionários", icon: UsersRound },
 ];
 
-const NAV_SECTIONS: {
+type NavSection = {
   id: string;
   label: string;
   icon: LucideIcon;
+  grupo: string;
   adminOnly?: boolean;
   /** Admin da imobiliária ou super_admin da plataforma. */
   adminOrPlatform?: boolean;
@@ -343,15 +344,87 @@ const NAV_SECTIONS: {
   /** Item solto no menu, sem pasta/seção. */
   standalone?: boolean;
   items: NavItem[];
-}[] = [
+};
+
+function leafSection(grupo: string, leaf: NavLeaf): NavSection {
+  return {
+    id: leaf.to,
+    grupo,
+    label: leaf.label,
+    icon: leaf.icon,
+    standalone: true,
+    items: [leaf],
+  };
+}
+
+const COMERCIAL_GRUPO = ["/leads", "/triagem", "/funil", "/whatsapp", "/caca-lead"];
+const CARTEIRA_GRUPO = ["/clientes", "/funil-clientes"];
+const PERDAS_GRUPO = ["/leads-perdidos", "/clientes-perdidos"];
+const TIME_GRUPO = ["/equipes", "/usuarios", "/permissoes", "/presenca", "/corretores"];
+const RESULTADO_GRUPO = ["/metas", "/resultado", "/taxa-conversao", "/atrasos"];
+const CAPTACAO_GRUPO = ["/captacao/funil", "/captacao/proprietarios", "/mural-chaves"];
+const CAIXA_GRUPO = [
+  "/financeiro/visao-geral",
+  "/financeiro/movimentacao",
+  "/financeiro/fluxo-caixa",
+];
+const CONTAS_GRUPO = [
+  "/financeiro/contas-a-receber",
+  "/financeiro/contas-a-pagar",
+  "/financeiro/despesas",
+  "/financeiro/comissao",
+];
+const CADASTROS_GRUPO = [
+  "/financeiro/clientes-fornecedores",
+  "/financeiro/funcionarios",
+];
+
+function leavesIn(paths: string[], pool: NavLeaf[], grupo: string) {
+  return paths.flatMap((path) => {
+    const leaf = pool.find((item) => item.to === path);
+    return leaf ? [leafSection(grupo, leaf)] : [];
+  });
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  ...leavesIn(COMERCIAL_GRUPO, COMERCIAL_NAV_LEAVES, "comercial"),
+  ...leavesIn(CARTEIRA_GRUPO, COMERCIAL_NAV_LEAVES, "carteira"),
+  ...leavesIn(PERDAS_GRUPO, COMERCIAL_NAV_LEAVES, "perdas"),
   {
-    id: "operacao",
-    label: "Comercial",
-    icon: Briefcase,
-    items: COMERCIAL_NAV_LEAVES,
+    id: "dashboard",
+    grupo: "rotina",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    standalone: true,
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    id: "tarefas",
+    grupo: "rotina",
+    label: "Tarefas",
+    icon: ListTodo,
+    standalone: true,
+    items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
+  },
+  {
+    id: "construtoras",
+    grupo: "imoveis",
+    label: "Construtoras",
+    icon: HardHat,
+    standalone: true,
+    items: [{ to: "/construtoras", label: "Construtoras", icon: HardHat }],
+  },
+  {
+    id: "catalogo",
+    grupo: "imoveis",
+    label: "Imóveis",
+    icon: Building2,
+    standalone: true,
+    items: [{ to: "/imoveis", label: "Imóveis", icon: Building2 }],
   },
   {
     id: "fechamento",
+    grupo: "imoveis",
     label: "Fechamento",
     icon: Handshake,
     items: [
@@ -362,77 +435,60 @@ const NAV_SECTIONS: {
     ],
   },
   {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    standalone: true,
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    id: "tarefas",
-    label: "Tarefas",
-    icon: ListTodo,
-    standalone: true,
-    items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
-  },
-  {
-    id: "construtoras",
-    label: "Construtoras",
-    icon: HardHat,
-    standalone: true,
-    items: [{ to: "/construtoras", label: "Construtoras", icon: HardHat }],
-  },
-  {
-    id: "catalogo",
-    label: "Imóveis",
-    icon: Building2,
-    standalone: true,
-    items: [{ to: "/imoveis", label: "Imóveis", icon: Building2 }],
-  },
-  {
     id: "treinamento",
+    grupo: "apoio",
     label: "Treinamento",
     icon: GraduationCap,
     standalone: true,
     items: [{ to: "/treinamento", label: "Treinamento", icon: GraduationCap }],
   },
-  {
-    id: "gestao",
-    label: "Gestão",
-    icon: Shield,
-    items: [
-      { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
-      { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
-      { to: "/metas", label: "Metas", icon: Target },
-      { to: "/corretores", label: "Ranking", icon: UsersRound },
-      { to: "/presenca", label: "Presença", icon: ClipboardCheck },
-      { to: "/resultado", label: "Análise", icon: SearchCheck },
-      { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
-      { to: "/equipes", label: "Equipes", icon: Network },
-      { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
-      { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
-      { to: "/usuarios", label: "Usuários", icon: UsersRound },
-      { to: "/permissoes", label: "Permissões", icon: KeyRound },
+  ...leavesIn(TIME_GRUPO, [
+    { to: "/equipes", label: "Equipes", icon: Network },
+    { to: "/usuarios", label: "Usuários", icon: UsersRound },
+    { to: "/permissoes", label: "Permissões", icon: KeyRound },
+    { to: "/presenca", label: "Presença", icon: ClipboardCheck },
+    { to: "/corretores", label: "Ranking", icon: UsersRound },
+  ], "time"),
+  ...leavesIn(RESULTADO_GRUPO, [
+    { to: "/metas", label: "Metas", icon: Target },
+    { to: "/resultado", label: "Análise", icon: SearchCheck },
+    { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
+    { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
+  ], "resultado"),
+  ...leavesIn(CAPTACAO_GRUPO, [
+    { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
+    { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+    { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
+  ], "captacao"),
+  ...leavesIn(CAIXA_GRUPO, FINANCEIRO_MODULES, "caixa"),
+  ...leavesIn(CONTAS_GRUPO, FINANCEIRO_MODULES, "contas"),
+  ...leavesIn(CADASTROS_GRUPO, FINANCEIRO_MODULES, "cadastros"),
+  ...leavesIn(
+    ["/tenants", "/guia"],
+    [
       { to: "/tenants", label: "Clientes", icon: Building2 },
       { to: "/guia", label: "Guia", icon: BookOpen },
-      { to: "/configuracoes", label: "Configurações", icon: Settings },
     ],
-  },
-  {
-    id: "financeiro",
-    label: "Financeiro",
-    icon: DollarSign,
-    adminOrPlatform: true,
-    items: FINANCEIRO_MODULES,
-  },
+    "plataforma",
+  ),
   {
     id: "conta",
+    grupo: "apoio",
     label: "Conta",
     icon: CircleUser,
     items: [{ to: "/perfil", label: "Perfil", icon: UserIcon }],
   },
   {
+    id: "configuracoes",
+    grupo: "apoio",
+    label: "Configurações",
+    icon: Settings,
+    standalone: true,
+    items: [{ to: "/configuracoes", label: "Configurações", icon: Settings }],
+  },
+  {
     id: "novidades",
+    grupo: "apoio",
     label: "Novidades",
     icon: Bell,
     standalone: true,
@@ -440,6 +496,7 @@ const NAV_SECTIONS: {
   },
   {
     id: "guia-sistema",
+    grupo: "apoio",
     label: "Guia do sistema",
     icon: BookMarked,
     standalone: true,
@@ -1351,48 +1408,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Renderiza as seções de navegação. Reaproveitado tanto pelo <aside> fixo
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
-    const sections =
-      user?.role === "super_admin"
-        ? navSections.filter((section) => section.id !== "agenda")
-        : navSections.filter((section) => !OPERACAO_SECTION_IDS.has(section.id));
-    const beforeOperacao = ["dashboard", "tarefas", "agenda"];
-    const afterOperacaoTop = ["construtoras", "catalogo", "fechamento"];
-    const fimDoMenu = ["treinamento", "novidades", "guia-sistema", "conta"];
-    const naOrdem = (ids: string[]) =>
-      ids
-        .map((id) => sections.find((section) => section.id === id))
-        .filter((section): section is (typeof sections)[number] => Boolean(section));
-    const menuSlots: Array<
-      | { kind: "section"; section: (typeof sections)[number] }
-      | { kind: "operacao" }
-    > = [
-      ...naOrdem(beforeOperacao).map((section) => ({ kind: "section" as const, section })),
-      { kind: "operacao" },
-      ...naOrdem(afterOperacaoTop).map((section) => ({ kind: "section" as const, section })),
-      ...sections
-        .filter(
-          (section) =>
-            !beforeOperacao.includes(section.id) &&
-            !afterOperacaoTop.includes(section.id) &&
-            !fimDoMenu.includes(section.id),
-        )
-        .map((section) => ({ kind: "section" as const, section })),
-      ...naOrdem(fimDoMenu).map((section) => ({ kind: "section" as const, section })),
+    const sections = navSections.filter((section) => section.id !== "agenda");
+    const ordem = [
+      "comercial",
+      "carteira",
+      "perdas",
+      "rotina",
+      "imoveis",
+      "time",
+      "resultado",
+      "captacao",
+      "caixa",
+      "contas",
+      "cadastros",
+      "plataforma",
+      "apoio",
     ];
-    const operacaoMenu = renderOperacaoMenu(collapsedView, onNavigate);
-    const visibleSlots = menuSlots.filter((slot) => slot.kind !== "operacao");
-    const grupoDoSlot = (slot: (typeof visibleSlots)[number]) => {
-      if (slot.kind === "operacao") return "comercial";
-      if (["dashboard", "tarefas", "agenda"].includes(slot.section.id)) return "rotina";
-      if (["construtoras", "catalogo", "fechamento"].includes(slot.section.id)) return "imoveis";
-      if (["treinamento", "novidades", "guia-sistema", "conta"].includes(slot.section.id)) return "apoio";
-      return "gestao";
-    };
+    const ordered = [...sections].sort(
+      (a, b) => ordem.indexOf(a.grupo) - ordem.indexOf(b.grupo),
+    );
+    const menuSlots = ordered.map((section) => ({ kind: "section" as const, section }));
+    const grupoDoSlot = (slot: (typeof menuSlots)[number]) => slot.section.grupo;
     const rotuloGrupo: Record<string, string> = {
-      rotina: "Dia",
       comercial: "Comercial",
+      carteira: "Carteira",
+      perdas: "Perdas",
+      rotina: "Dia",
       imoveis: "Imóveis e fechamento",
-      gestao: "Gestão",
+      time: "Time",
+      resultado: "Resultado",
+      captacao: "Captação",
+      caixa: "Caixa",
+      contas: "Contas",
+      cadastros: "Cadastros",
+      plataforma: "Plataforma",
       apoio: "Apoio",
     };
 
@@ -1438,16 +1487,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         ) : null}
-        {operacaoMenu ? <div className="mb-2">{operacaoMenu}</div> : null}
-        {visibleSlots.map((slot, index) => {
+        {menuSlots.map((slot, index) => {
           const grupo = grupoDoSlot(slot);
-          const grupoAnterior = index > 0 ? grupoDoSlot(visibleSlots[index - 1]) : "";
+          const grupoAnterior = index > 0 ? grupoDoSlot(menuSlots[index - 1]) : "";
           const novoGrupo = grupo !== grupoAnterior;
           const tituloGrupo = novoGrupo ? (
             collapsedView ? (
               <div className="mx-2 my-2 border-t border-white/20" />
             ) : (
-              <div className={cn(index > 0 || operacaoMenu ? "mt-3 border-t border-white/20 pt-3" : "pt-1")}>
+              <div className={cn(index > 0 ? "mt-3 border-t border-white/20 pt-3" : "pt-1")}>
                 <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
                   {rotuloGrupo[grupo]}
                 </p>
