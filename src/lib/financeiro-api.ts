@@ -123,6 +123,7 @@ export type VendaElegivelComissao = {
   equipe?: string | ComissaoRelacionamento | null;
   dataVenda: string;
   vgv: number;
+  origem?: "lancamento" | "usado";
 };
 
 export type ComissaoPercentuais = {

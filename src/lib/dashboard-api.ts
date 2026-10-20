@@ -93,6 +93,23 @@ export type DashboardAdmin = {
     vgv: DashboardMetric;
     papel: "gerente" | "admin" | "corretor";
   };
+  usados?: {
+    vendas: DashboardMetric;
+    vgv: DashboardMetric;
+    ranking: Array<{
+      corretorId: string;
+      nome: string;
+      equipe: string | null;
+      vendas: number;
+      vgv: number;
+    }>;
+    comissao: {
+      total: DashboardMetric;
+      aReceber: DashboardMetric;
+      pendente: DashboardMetric;
+      papel: "gerente" | "admin" | "corretor";
+    };
+  };
   atencao: {
     semDono: number;
     parados: number;

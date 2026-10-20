@@ -47,6 +47,8 @@ import {
   Goal,
   Loader2,
   Percent,
+  DollarSign,
+  Store,
   TrendingUp,
   UserRound,
   UserX,
@@ -974,6 +976,80 @@ function DashboardAdminView() {
         </PagePanel>
         ) : null}
       </section>
+      ) : null}
+
+      {showVendas && summary.usados ? (
+        <PagePanel
+          inset="muted"
+          title="Venda de usados"
+          description={`VGV, ranking e comissão das vendas de usados em ${mesLabel}. O cadastro é a ficha de documentação marcada como usado.`}
+          action={<PanelLink to="/documentacao">Registrar venda</PanelLink>}
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <FinanceKpiCard
+              label="VGV de usados"
+              value={summary.usados.vgv.valor}
+              evolucaoPct={summary.usados.vgv.evolucaoPct}
+              valorMesAnterior={summary.usados.vgv.valorMesAnterior}
+              icon={DollarSign}
+              tone="emerald"
+              format="money"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label="Vendas de usados"
+              value={summary.usados.vendas.valor}
+              evolucaoPct={summary.usados.vendas.evolucaoPct}
+              valorMesAnterior={summary.usados.vendas.valorMesAnterior}
+              icon={Store}
+              tone="blue"
+              format="number"
+              variant="dash"
+            />
+            <FinanceKpiCard
+              label={
+                summary.usados.comissao.papel === "admin"
+                  ? "Comissão líquida"
+                  : "Comissão a receber"
+              }
+              value={
+                summary.usados.comissao.papel === "admin"
+                  ? summary.usados.comissao.total.valor
+                  : summary.usados.comissao.aReceber.valor
+              }
+              evolucaoPct={
+                summary.usados.comissao.papel === "admin"
+                  ? summary.usados.comissao.total.evolucaoPct
+                  : summary.usados.comissao.aReceber.evolucaoPct
+              }
+              valorMesAnterior={
+                summary.usados.comissao.papel === "admin"
+                  ? summary.usados.comissao.total.valorMesAnterior
+                  : summary.usados.comissao.aReceber.valorMesAnterior
+              }
+              icon={Percent}
+              tone="violet"
+              format="money"
+              variant="dash"
+            />
+          </div>
+          <div className="mt-4">
+            {summary.usados.ranking.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma venda de usado com VGV neste período.
+              </p>
+            ) : (
+              <DashRankBars
+                format="money"
+                items={summary.usados.ranking.slice(0, 5).map((r) => ({
+                  id: r.corretorId,
+                  nome: r.nome,
+                  valor: r.vgv,
+                }))}
+              />
+            )}
+          </div>
+        </PagePanel>
       ) : null}
 
       {showFunil || showDoc || showVendas || isPlatformAdmin ? (

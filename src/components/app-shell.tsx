@@ -9,6 +9,7 @@ import {
   Crosshair,
   ListTodo,
   Building2,
+  HardHat,
   UserCircle2,
   UsersRound,
   FileSignature,
@@ -471,9 +472,9 @@ const NAV_SECTIONS: {
   {
     id: "construtoras",
     label: "Construtoras",
-    icon: Building2,
+    icon: HardHat,
     standalone: true,
-    items: [{ to: "/construtoras", label: "Construtoras", icon: Building2 }],
+    items: [{ to: "/construtoras", label: "Construtoras", icon: HardHat }],
   },
   {
     id: "catalogo",

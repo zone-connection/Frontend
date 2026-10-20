@@ -654,6 +654,7 @@ export function ComissaoLancamentoDialog({
                               <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium">
                                   {relationName(sale.cliente)}
+                                  {sale.origem === "usado" ? " · Usado" : ""}
                                 </p>
                                 <p className="truncate text-xs text-muted-foreground">
                                   {relationName(sale.empreendimento)} ·{" "}
