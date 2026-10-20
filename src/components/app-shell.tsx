@@ -203,6 +203,27 @@ function pathMatchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+const LANCAMENTO_NAV_LEAVES: NavLeaf[] = [
+  { to: "/leads", label: "Leads", icon: Users },
+  { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
+  { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
+  { to: "/triagem", label: "Triagem", icon: ClipboardList },
+  { to: "/funil", label: "Funil", icon: Funnel },
+  { to: "/clientes", label: "Clientes", icon: UserCircle2 },
+  { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
+  { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
+  { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
+];
+
+const COMERCIAL_NAV_LEAVES: NavLeaf[] = [
+  ...LANCAMENTO_NAV_LEAVES,
+  { to: "/captacao/visao-geral", label: "Captação", icon: Home },
+  { to: "/imoveis-usados/visao-geral", label: "Usados", icon: Store },
+  { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
+  { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
+  { to: "/locacao", label: "Locação", icon: KeyRound },
+];
+
 const OPERACOES: {
   id: OperacaoId;
   label: string;
@@ -213,67 +234,11 @@ const OPERACOES: {
 }[] = [
   {
     id: "operacional",
-    label: "Operacional",
-    description: "Lançamentos, captação e venda de usados.",
+    label: "Comercial",
+    description: "Leads, funil e módulos ativos da imobiliária.",
     icon: Briefcase,
-    prefixes: [
-      "/leads",
-      "/whatsapp",
-      "/caca-lead",
-      "/funil",
-      "/funil-clientes",
-      "/triagem",
-      "/clientes",
-      "/clientes-perdidos",
-      "/leads-perdidos",
-      "/captacao",
-      "/imoveis-usados",
-      "/parcerias",
-    ],
-    items: [
-      {
-        id: "lancamentos",
-        label: "Lançamentos",
-        icon: Briefcase,
-        children: [
-          { to: "/leads", label: "Leads", icon: Users },
-          { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
-          { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-          { to: "/triagem", label: "Triagem", icon: ClipboardList },
-          { to: "/funil", label: "Funil", icon: Funnel },
-          { to: "/clientes", label: "Clientes", icon: UserCircle2 },
-          { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
-          { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
-          { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
-        ],
-      },
-      {
-        id: "captacao",
-        label: "Captação",
-        icon: Home,
-        children: [
-          { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-        ],
-      },
-      {
-        id: "venda-usados",
-        label: "Venda de Usados",
-        icon: Store,
-        children: [
-          { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-          { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
-          { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
-        ],
-      },
-    ],
-  },
-  {
-    id: "locacao",
-    label: "Locação",
-    description: "Visão geral. Funil e contratos ainda não têm telas.",
-    icon: KeyRound,
-    prefixes: ["/locacao"],
-    items: [{ to: "/locacao", label: "Visão geral", icon: LayoutDashboard }],
+    prefixes: COMERCIAL_NAV_LEAVES.map((item) => item.to),
+    items: COMERCIAL_NAV_LEAVES,
   },
 ];
 
@@ -390,59 +355,9 @@ const NAV_SECTIONS: {
 }[] = [
   {
     id: "operacao",
-    label: "Lançamentos",
+    label: "Comercial",
     icon: Briefcase,
-    items: [
-      { to: "/leads", label: "Leads", icon: Users },
-      { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
-      { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
-      { to: "/triagem", label: "Triagem", icon: ClipboardList },
-      { to: "/funil", label: "Funil", icon: Funnel },
-      { to: "/clientes", label: "Clientes", icon: UserCircle2 },
-      { to: "/funil-clientes", label: "Funil de Clientes", icon: Kanban },
-      { to: "/leads-perdidos", label: "Leads Perdidos", icon: UserX },
-      { to: "/clientes-perdidos", label: "Perda de cliente", icon: UserX },
-    ],
-  },
-  {
-    id: "usados",
-    label: "Usados",
-    icon: Store,
-    items: [
-      {
-        id: "captacao",
-        label: "Captação",
-        icon: Home,
-        children: [
-          { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-        ],
-      },
-      {
-        id: "imoveis-usados",
-        label: "Venda",
-        icon: Store,
-        children: [
-          { to: "/imoveis-usados/visao-geral", label: "Visão geral", icon: LayoutDashboard },
-        ],
-      },
-      {
-        id: "parcerias",
-        label: "Parceiros",
-        icon: Handshake,
-        children: [
-          { to: "/parcerias/visao-geral", label: "Parcerias", icon: Handshake },
-          { to: "/parcerias/imoveis", label: "Imóveis na vitrine", icon: Home },
-        ],
-      },
-    ],
-  },
-  {
-    id: "locacao",
-    label: "Locação",
-    icon: KeyRound,
-    items: [
-      { to: "/locacao", label: "Visão geral", icon: LayoutDashboard },
-    ],
+    items: COMERCIAL_NAV_LEAVES,
   },
   {
     id: "fechamento",
@@ -2123,9 +2038,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ].some((prefix) => pathMatchesPrefix(pathname, prefix)) ? (
             <OperationSubnav
               pathname={pathname}
-              items={operacaoAtiva.items.flatMap((item) =>
-                isNavGroup(item) && item.id === "lancamentos" ? item.children : [],
-              )}
+              items={LANCAMENTO_NAV_LEAVES}
             />
           ) : null}
           {pathname.startsWith("/captacao") ||
