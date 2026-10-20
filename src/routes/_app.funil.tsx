@@ -506,8 +506,6 @@ export function ComercialFunilBoard({
     ];
   }, [funnelStages, orphanLeads.length]);
 
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [activeDropStage, setActiveDropStage] = useState<StageId | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
   const didDrag = useRef(false);
@@ -560,7 +558,10 @@ export function ComercialFunilBoard({
     offsetY: number;
     width: number;
     activated: boolean;
+    sourceEl: HTMLElement | null;
     longPressTimer: ReturnType<typeof setTimeout> | null;
+    onMove: ((e: PointerEvent) => void) | null;
+    onUp: ((e: PointerEvent) => void) | null;
   } | null>(null);
   const columnRectsRef = useRef<Array<{ id: StageId; rect: DOMRect }>>([]);
   const activeDropStageRef = useRef<StageId | null>(null);
@@ -815,25 +816,19 @@ export function ComercialFunilBoard({
     return () => {
       const s = dragSession.current;
       if (s?.longPressTimer != null) clearTimeout(s.longPressTimer);
+      if (s?.onMove) window.removeEventListener("pointermove", s.onMove);
+      if (s?.onUp) {
+        window.removeEventListener("pointerup", s.onUp);
+        window.removeEventListener("pointercancel", s.onUp);
+      }
       if (dragMoveRafRef.current != null) {
         cancelAnimationFrame(dragMoveRafRef.current);
         dragMoveRafRef.current = null;
       }
+      document.body.classList.remove("funil-card-dragging");
       dragSession.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const prevCursor = document.body.style.cursor;
-    const prevUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = "grabbing";
-    document.body.style.userSelect = "none";
-    return () => {
-      document.body.style.cursor = prevCursor;
-      document.body.style.userSelect = prevUserSelect;
-    };
-  }, [dragging]);
 
   const DRAG_THRESHOLD_PX = 3;
   const TOUCH_DRAG_DELAY_MS = 80;
@@ -864,10 +859,18 @@ export function ComercialFunilBoard({
     return null;
   }
 
+  function columnEl(stage: StageId | null) {
+    if (!stage || !boardRef.current) return null;
+    return boardRef.current.querySelector<HTMLElement>(
+      `[data-funnel-stage="${CSS.escape(stage)}"]`,
+    );
+  }
+
   function setDropStageIfChanged(stage: StageId | null) {
     if (activeDropStageRef.current === stage) return;
+    columnEl(activeDropStageRef.current)?.removeAttribute("data-drop-active");
     activeDropStageRef.current = stage;
-    setActiveDropStage(stage);
+    columnEl(stage)?.setAttribute("data-drop-active", "");
   }
 
   function clearDragTimers() {
@@ -908,38 +911,127 @@ export function ComercialFunilBoard({
     if (scrolled) cacheColumnRects();
   }
 
-  function activateCardDrag(leadId: string, target: HTMLElement, pointerId: number) {
+  function hideDragOverlay() {
+    const el = dragOverlayRef.current;
+    if (!el) return;
+    el.classList.add("hidden");
+    el.replaceChildren();
+  }
+
+  function detachDragWindowListeners() {
+    const s = dragSession.current;
+    if (!s) return;
+    if (s.onMove) window.removeEventListener("pointermove", s.onMove);
+    if (s.onUp) {
+      window.removeEventListener("pointerup", s.onUp);
+      window.removeEventListener("pointercancel", s.onUp);
+    }
+    s.onMove = null;
+    s.onUp = null;
+  }
+
+  function activateCardDrag(leadId: string, target: HTMLElement) {
     const s = dragSession.current;
     if (!s || s.leadId !== leadId || s.activated) return;
     s.activated = true;
+    s.sourceEl = target;
     didDrag.current = true;
     const rect = target.getBoundingClientRect();
     s.offsetX = Math.min(Math.max(s.startX - rect.left, 16), rect.width - 16);
     s.offsetY = Math.min(Math.max(s.startY - rect.top, 16), rect.height - 16);
     s.width = rect.width;
-    try {
-      target.setPointerCapture(pointerId);
-    } catch {
-      /* pointer already released */
-    }
     cacheColumnRects();
-    setDragging(leadId);
-    requestAnimationFrame(() => {
-      const live = dragSession.current;
-      if (!live?.activated) return;
-      positionDragOverlay(live.lastX, live.lastY);
-      setDropStageIfChanged(stageFromPoint(live.lastX, live.lastY));
-    });
+    document.body.classList.add("funil-card-dragging");
+    boardRef.current?.classList.remove("scroll-smooth");
+    target.style.opacity = "0.35";
+
+    const overlay = dragOverlayRef.current;
+    if (overlay) {
+      const clone = target.cloneNode(true) as HTMLElement;
+      clone.style.opacity = "1";
+      clone.style.transform = "none";
+      clone.style.transition = "none";
+      clone.style.pointerEvents = "none";
+      clone.classList.add("shadow-xl", "ring-2", "ring-primary/30");
+      overlay.style.width = `${rect.width}px`;
+      overlay.replaceChildren(clone);
+      overlay.classList.remove("hidden");
+    }
+    positionDragOverlay(s.lastX, s.lastY);
+    setDropStageIfChanged(stageFromPoint(s.lastX, s.lastY));
+  }
+
+  function finishCardDrag(clientX: number, clientY: number, drop: boolean, pointerId: number) {
+    const s = dragSession.current;
+    if (!s || s.pointerId !== pointerId) return;
+
+    const { leadId, activated, sourceEl } = s;
+    clearDragTimers();
+    detachDragWindowListeners();
+    if (dragMoveRafRef.current != null) {
+      cancelAnimationFrame(dragMoveRafRef.current);
+      dragMoveRafRef.current = null;
+    }
+    if (sourceEl) sourceEl.style.opacity = "";
+    hideDragOverlay();
+    columnEl(activeDropStageRef.current)?.removeAttribute("data-drop-active");
+    document.body.classList.remove("funil-card-dragging");
+    boardRef.current?.classList.add("scroll-smooth");
+    dragSession.current = null;
+    activeDropStageRef.current = null;
+
+    if (drop && activated) {
+      const stage = stageFromPoint(clientX, clientY);
+      if (stage) void dropLeadOnStage(leadId, stage);
+      window.setTimeout(() => {
+        didDrag.current = false;
+      }, 0);
+    }
   }
 
   function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, leadId: string) {
     if (e.button !== 0) return;
+    if (dragSession.current) return;
     didDrag.current = false;
-    clearDragTimers();
     const target = e.currentTarget;
+    const pointerId = e.pointerId;
+    const pointerType = e.pointerType;
+
+    const onMove = (ev: PointerEvent) => {
+      const s = dragSession.current;
+      if (!s || s.pointerId !== ev.pointerId) return;
+      s.lastX = ev.clientX;
+      s.lastY = ev.clientY;
+      const dist = Math.hypot(ev.clientX - s.startX, ev.clientY - s.startY);
+
+      if (!s.activated) {
+        if (pointerType === "touch" || pointerType === "pen") {
+          if (dist > DRAG_THRESHOLD_PX) {
+            clearDragTimers();
+            detachDragWindowListeners();
+            dragSession.current = null;
+          }
+          return;
+        }
+        if (dist < DRAG_THRESHOLD_PX) return;
+        activateCardDrag(s.leadId, target);
+      }
+
+      if (!dragSession.current?.activated) return;
+      positionDragOverlay(ev.clientX, ev.clientY);
+      if (dragMoveRafRef.current == null) {
+        dragMoveRafRef.current = requestAnimationFrame(flushDragMove);
+      }
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      const drop = ev.type === "pointerup";
+      finishCardDrag(ev.clientX, ev.clientY, drop, ev.pointerId);
+    };
+
     dragSession.current = {
       leadId,
-      pointerId: e.pointerId,
+      pointerId,
       startX: e.clientX,
       startY: e.clientY,
       lastX: e.clientX,
@@ -948,84 +1040,25 @@ export function ComercialFunilBoard({
       offsetY: 0,
       width: 0,
       activated: false,
+      sourceEl: target,
       longPressTimer: null,
+      onMove,
+      onUp,
     };
 
-    // Touch/pen: long-press to drag (preserves horizontal board scroll).
-    if (e.pointerType === "touch" || e.pointerType === "pen") {
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+
+    if (pointerType === "touch" || pointerType === "pen") {
       dragSession.current.longPressTimer = setTimeout(() => {
-        activateCardDrag(leadId, target, e.pointerId);
+        activateCardDrag(leadId, target);
       }, TOUCH_DRAG_DELAY_MS);
-    }
-  }
-
-  function onCardPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const s = dragSession.current;
-    if (!s || s.pointerId !== e.pointerId) return;
-
-    s.lastX = e.clientX;
-    s.lastY = e.clientY;
-    const dist = Math.hypot(e.clientX - s.startX, e.clientY - s.startY);
-
-    if (!s.activated) {
-      if (e.pointerType === "touch" || e.pointerType === "pen") {
-        // Finger moved before long-press → treat as scroll, cancel drag.
-        if (dist > DRAG_THRESHOLD_PX) {
-          clearDragTimers();
-          dragSession.current = null;
-        }
-        return;
-      }
-      // Mouse: start drag after a small movement.
-      if (dist < DRAG_THRESHOLD_PX) return;
-      activateCardDrag(s.leadId, e.currentTarget, e.pointerId);
-    }
-
-    if (!dragSession.current?.activated) return;
-    e.preventDefault();
-    positionDragOverlay(e.clientX, e.clientY);
-    if (dragMoveRafRef.current == null) {
-      dragMoveRafRef.current = requestAnimationFrame(flushDragMove);
-    }
-  }
-
-  function endCardPointer(
-    e: React.PointerEvent<HTMLDivElement>,
-    drop: boolean,
-  ) {
-    const s = dragSession.current;
-    if (!s || s.pointerId !== e.pointerId) return;
-
-    const { leadId, activated } = s;
-    clearDragTimers();
-    if (dragMoveRafRef.current != null) {
-      cancelAnimationFrame(dragMoveRafRef.current);
-      dragMoveRafRef.current = null;
-    }
-    dragSession.current = null;
-    activeDropStageRef.current = null;
-    setActiveDropStage(null);
-    setDragging(null);
-
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* not capturing */
-    }
-
-    if (drop && activated) {
-      const stage = stageFromPoint(e.clientX, e.clientY);
-      if (stage) void dropLeadOnStage(leadId, stage);
-      // Keep didDrag true through the synthetic click, then reset.
-      window.setTimeout(() => {
-        didDrag.current = false;
-      }, 0);
     }
   }
 
   async function dropLeadOnStage(leadId: string, stage: StageId) {
     const lead = allLeads.find((l) => l.id === leadId);
-    setDragging(null);
     if (!lead || lead.stage === stage) return;
     if (stage === FORA_DO_FUNIL_STAGE) return;
 
@@ -1494,8 +1527,7 @@ export function ComercialFunilBoard({
         ref={boardRef}
         data-guia="funil-board"
         className={cn(
-          "flex gap-3 overflow-x-auto pb-4 -mx-6 px-6",
-          !dragging && "scroll-smooth",
+          "flex gap-3 overflow-x-auto pb-4 -mx-6 px-6 scroll-smooth",
         )}
       >
         {boardStages.map((stage) => {
@@ -1519,31 +1551,18 @@ export function ComercialFunilBoard({
               total={brl(total)}
               color={stage.color}
               orphan={isOrphanColumn}
-              active={!isOrphanColumn && activeDropStage === stage.id}
             >
                 {visibleLeads.map((l) => (
                   <Card
                     key={l.id}
-                    data-dragging-card={dragging === l.id ? "" : undefined}
                     onPointerDown={(e) => onCardPointerDown(e, l.id)}
-                    onPointerMove={onCardPointerMove}
-                    onPointerUp={(e) => endCardPointer(e, true)}
-                    onPointerCancel={(e) => endCardPointer(e, false)}
                     onClick={() => openDetail(l)}
                     className={cn(
-                      "rounded-xl border-black/5 p-3 cursor-grab active:cursor-grabbing touch-manipulation select-none shadow-sm",
-                      dragging
-                        ? "transition-none"
-                        : "transition-[opacity,box-shadow,transform] duration-150",
-                      dragging === l.id
-                        ? "border-dashed border-primary/40 bg-muted/40 opacity-35 shadow-none"
-                        : !dragging && "hover:-translate-y-0.5 hover:shadow-md",
+                      "rounded-xl border-black/5 p-3 cursor-grab touch-manipulation select-none shadow-sm transition-[opacity,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md",
                       (l.origemAtrasoLiberacao === "retrabalho" ||
                         l.triagemOrigemHerdada === "retrabalho") &&
-                        dragging !== l.id &&
                         "border-amber-400/70 bg-amber-50/90 ring-1 ring-amber-400/30 dark:bg-amber-950/25",
                       isClientesFunil &&
-                        dragging !== l.id &&
                         "border-2 bg-white dark:bg-card",
                       leadMonitoramentoCardClass(l),
                     )}
@@ -1755,72 +1774,13 @@ export function ComercialFunilBoard({
         })}
       </div>
 
-      {dragging &&
-        typeof document !== "undefined" &&
+      {typeof document !== "undefined" &&
         createPortal(
-          (() => {
-            const lead =
-              allLeads.find((item) => item.id === dragging) ??
-              leads.find((item) => item.id === dragging) ??
-              null;
-            if (!lead) return null;
-            const width = dragSession.current?.width || 280;
-            return (
-              <div
-                ref={dragOverlayRef}
-                data-dragging-card=""
-                className="pointer-events-none fixed left-0 top-0 z-[200] will-change-transform"
-                style={{
-                  width,
-                  transform: "translate3d(-9999px, -9999px, 0)",
-                }}
-              >
-                <Card className="border-primary/30 bg-card p-3 shadow-2xl shadow-black/25 ring-1 ring-black/5">
-                  <div className="mb-1.5 flex items-start justify-between gap-2">
-                    <div className="table-person-name flex min-w-0 items-center gap-1.5 text-sm">
-                      <CircleUser
-                        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                        aria-hidden
-                      />
-                      <span className="truncate font-medium">{lead.nome}</span>
-                    </div>
-                    <div
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        lead.prioridade === "Alta"
-                          ? "bg-destructive"
-                          : lead.prioridade === "Média"
-                            ? "bg-warning"
-                            : "bg-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">{lead.telefone}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <Banknote
-                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    <span className="text-sm font-semibold text-primary">
-                      {lead.renda != null ? brl(lead.renda) : "—"}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between border-t pt-2 text-[11px] text-muted-foreground">
-                    {isPlatformAdmin ? (
-                      <span />
-                    ) : (
-                      <span className="truncate">
-                        {lead.corretor.split(" ")[0]}
-                      </span>
-                    )}
-                    <span>{lead.updatedAt}</span>
-                  </div>
-                </Card>
-              </div>
-            );
-          })(),
+          <div
+            ref={dragOverlayRef}
+            className="pointer-events-none fixed left-0 top-0 z-[200] hidden will-change-transform"
+            style={{ transform: "translate3d(0, 0, 0)" }}
+          />,
           document.body,
         )}
 
@@ -1925,6 +1885,7 @@ export function ComercialFunilBoard({
             ]
             : undefined
         }
+        onSelectStage={(stage) => void moveDetailToStage(stage)}
         stageControl={
           detailLead ? (
           <Select

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   Check,
@@ -137,6 +137,7 @@ export function LeadFichaView({
   showMeuLeadBadge,
   equipe,
   onBack,
+  onSelectStage,
   onCall,
   onWhatsApp,
   perdaAction,
@@ -163,6 +164,7 @@ export function LeadFichaView({
   showMeuLeadBadge?: boolean;
   equipe?: string | null;
   onBack: () => void;
+  onSelectStage?: (stageId: string) => void;
   onCall: () => void;
   onWhatsApp: () => void;
   perdaAction?: FichaAction;
@@ -182,6 +184,7 @@ export function LeadFichaView({
   hasWhatsapp: boolean;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
+  const [pendingStage, setPendingStage] = useState<string | null>(null);
   const [filter, setFilter] = useState<HistoryKind>("todos");
   const mon = lead.monitoramento;
   const principal = mon?.problemas[0];
@@ -191,6 +194,9 @@ export function LeadFichaView({
   const currentIndex = funnel.findIndex((s) => s.id === lead.stage);
   const basic = basicStages(funnel, currentIndex);
   const days = daysSince(mon?.stageEnteredAt);
+  useEffect(() => {
+    setPendingStage(null);
+  }, [lead.stage, lead.id]);
   const created = formatDateTimePt(lead.createdAt);
 
   const rows = useMemo(() => {
@@ -295,9 +301,25 @@ export function LeadFichaView({
           <div className="mt-4 flex items-center">
             {basic.map((stage, index) => {
               const state = currentIndex < 0 ? "next" : stage.index < currentIndex ? "done" : stage.index === currentIndex ? "current" : "next";
+              const canMove = Boolean(onSelectStage) && state !== "current" && !pendingStage;
               return (
                 <div key={stage.id} className="flex min-w-0 flex-1 items-center">
-                  <div className="flex min-w-0 flex-col items-center">
+                  <button
+                    type="button"
+                    disabled={!canMove}
+                    title={state === "current" ? stage.name : `Mover para ${stage.name}`}
+                    onClick={() => {
+                      if (!onSelectStage || stage.id === lead.stage) return;
+                      setPendingStage(stage.id);
+                      onSelectStage(stage.id);
+                    }}
+                    className={cn(
+                      "flex min-w-0 flex-col items-center rounded-xl px-1 py-1",
+                      canMove && "cursor-pointer hover:bg-muted/70",
+                      state === "current" && "cursor-default",
+                      pendingStage === stage.id && "opacity-60",
+                    )}
+                  >
                     <span className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs",
                       state === "done" && "border-emerald-500 bg-emerald-500 text-white",
@@ -308,7 +330,7 @@ export function LeadFichaView({
                     </span>
                     {state === "current" && days != null ? <span className="mt-1 text-[10px] font-medium text-[#05749E]">{days} dias</span> : <span className="mt-1 h-4" />}
                     <span className={cn("max-w-[6.5rem] truncate text-xs", state === "current" ? "font-semibold text-[#05749E]" : "text-muted-foreground")}>{stage.name}</span>
-                  </div>
+                  </button>
                   {index < basic.length - 1 ? <span className={cn("mb-5 h-0.5 flex-1", basic[index + 1].index <= currentIndex ? "bg-emerald-500" : "bg-border")} /> : null}
                 </div>
               );

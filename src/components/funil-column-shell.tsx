@@ -83,6 +83,7 @@ export function FunilColumnShell({
         orphan && "border-amber-400/60",
         active &&
           "border-[#079ED4]/45 shadow-[0_12px_28px_-16px_rgba(7,158,212,0.45)] ring-2 ring-[#079ED4]/35",
+        "data-[drop-active]:border-[#079ED4]/45 data-[drop-active]:shadow-[0_12px_28px_-16px_rgba(7,158,212,0.45)] data-[drop-active]:ring-2 data-[drop-active]:ring-[#079ED4]/35",
         className,
       )}
     >

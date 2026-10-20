@@ -77,7 +77,7 @@ import {
   MOTIVO_SEM_MOVIMENTACAO_LABEL,
   type ProblemaMonitoramento,
 } from "@/lib/lead-monitoramento";
-import { mapApiLead, updateLeadApi, type UpdateLeadInput } from "@/lib/leads-api";
+import { mapApiLead, updateLeadApi, updateLeadStageApi, type UpdateLeadInput } from "@/lib/leads-api";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import {
@@ -553,6 +553,7 @@ export function LeadDetalheDialog({
   footer,
   moreActions,
   stageControl,
+  onSelectStage,
   primaryAction,
   onAddAtividade,
 }: {
@@ -568,6 +569,7 @@ export function LeadDetalheDialog({
   footer?: ReactNode;
   moreActions?: LeadDetalheAction[];
   stageControl?: ReactNode;
+  onSelectStage?: (stageId: string) => void;
   primaryAction?: ReactNode;
   onAddAtividade?: () => void;
 }) {
@@ -706,6 +708,26 @@ export function LeadDetalheDialog({
       ? "Prazo próximo"
       : "Em dia";
 
+  async function moverEtapa(stageId: string) {
+    if (onSelectStage) {
+      onSelectStage(stageId);
+      return;
+    }
+    if (!lead || lead.stage === stageId) return;
+    const destino = stagesDoLead.find((item) => item.id === stageId);
+    if (destino?.papel === "perdido") {
+      perdaAction?.onClick();
+      return;
+    }
+    try {
+      const updated = mapApiLead(await updateLeadStageApi(lead.id, stageId));
+      onUpdated?.(updated);
+      toast.success(`${lead.nome} movido para ${destino?.name ?? "a nova etapa"}.`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível mover o lead."));
+    }
+  }
+
   function ligar() {
     if (!temTelefone) return;
     window.location.href = `tel:+55${telefoneDigits}`;
@@ -768,6 +790,7 @@ export function LeadDetalheDialog({
               showMeuLeadBadge={showMeuLeadBadge}
               equipe={equipe}
               onBack={() => onOpenChange(false)}
+              onSelectStage={(stageId) => void moverEtapa(stageId)}
               onCall={ligar}
               onWhatsApp={abrirWhatsApp}
               perdaAction={perdaAction}

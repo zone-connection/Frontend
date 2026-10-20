@@ -585,6 +585,12 @@ html.tenant-density-compact .space-y-6 {
 .motion-rows > tr:nth-child(7) { animation-delay: 170ms; }
 .motion-rows > tr:nth-child(8) { animation-delay: 195ms; }
 
+body.funil-card-dragging,
+body.funil-card-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .check-draw,
   .motion-item,
