@@ -441,116 +441,80 @@ const NAV_SECTIONS: NavSection[] = [
     COMERCIAL_NAV_LEAVES,
   ),
   {
-    id: "dashboard",
+    id: "dia",
     grupo: "rotina",
-    label: "Dashboard",
+    label: "Dia",
     icon: LayoutDashboard,
-    standalone: true,
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    id: "tarefas",
-    grupo: "rotina",
-    label: "Tarefas",
-    icon: ListTodo,
-    standalone: true,
-    items: [{ to: "/tarefas", label: "Tarefas", icon: ListTodo }],
-  },
-  {
-    id: "construtoras",
-    grupo: "imoveis",
-    label: "Construtoras",
-    icon: HardHat,
-    standalone: true,
-    items: [{ to: "/construtoras", label: "Construtoras", icon: HardHat }],
-  },
-  {
-    id: "catalogo",
-    grupo: "imoveis",
-    label: "Imóveis",
-    icon: Building2,
-    standalone: true,
-    items: [{ to: "/imoveis", label: "Imóveis", icon: Building2 }],
-  },
-  {
-    id: "fechamento",
-    grupo: "imoveis",
-    label: "Fechamento",
-    icon: Handshake,
     items: [
-      { to: "/documentacao", label: "Documentação", icon: FolderOpen },
-      { to: "/propostas", label: "Propostas", icon: ClipboardList },
-      { to: "/contratos", label: "Contratos", icon: FileSignature },
-      { to: "/vendas", label: "Vendas", icon: DollarSign },
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/tarefas", label: "Tarefas", icon: ListTodo },
     ],
   },
   {
-    id: "treinamento",
-    grupo: "apoio",
-    label: "Treinamento",
-    icon: GraduationCap,
-    standalone: true,
-    items: [{ to: "/treinamento", label: "Treinamento", icon: GraduationCap }],
+    id: "imoveis",
+    grupo: "imoveis",
+    label: "Imóveis",
+    icon: Building2,
+    items: [
+      { to: "/construtoras", label: "Construtoras", icon: HardHat },
+      { to: "/imoveis", label: "Imóveis", icon: Building2 },
+      {
+        id: "fechamento",
+        label: "Fechamento",
+        icon: Handshake,
+        children: [
+          { to: "/documentacao", label: "Documentação", icon: FolderOpen },
+          { to: "/propostas", label: "Propostas", icon: ClipboardList },
+          { to: "/contratos", label: "Contratos", icon: FileSignature },
+          { to: "/vendas", label: "Vendas", icon: DollarSign },
+        ],
+      },
+    ],
   },
-  folderSection("time", "time", "Time", Network, TIME_GRUPO, [
+  folderSection("time", "gestao", "Time", Network, TIME_GRUPO, [
     { to: "/equipes", label: "Equipes", icon: Network },
     { to: "/usuarios", label: "Usuários", icon: UsersRound },
     { to: "/permissoes", label: "Permissões", icon: KeyRound },
     { to: "/presenca", label: "Presença", icon: ClipboardCheck },
     { to: "/corretores", label: "Ranking", icon: UsersRound },
   ]),
-  folderSection("resultado", "resultado", "Resultado", Target, RESULTADO_GRUPO, [
+  folderSection("resultado", "gestao", "Resultado", Target, RESULTADO_GRUPO, [
     { to: "/metas", label: "Metas", icon: Target },
     { to: "/resultado", label: "Análise", icon: SearchCheck },
     { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
     { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
   ]),
-  folderSection("captacao", "captacao", "Captação", Funnel, CAPTACAO_GRUPO, [
+  folderSection("captacao", "gestao", "Captação", Funnel, CAPTACAO_GRUPO, [
     { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
     { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
     { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
   ]),
-  folderSection("caixa", "caixa", "Caixa", Banknote, CAIXA_GRUPO, FINANCEIRO_MODULES),
-  folderSection("contas", "contas", "Contas", ArrowUpRight, CONTAS_GRUPO, FINANCEIRO_MODULES),
-  folderSection("cadastros", "cadastros", "Cadastros", Users, CADASTROS_GRUPO, FINANCEIRO_MODULES),
-  ...leavesIn(
+  folderSection("caixa", "financeiro", "Caixa", Banknote, CAIXA_GRUPO, FINANCEIRO_MODULES),
+  folderSection("contas", "financeiro", "Contas", ArrowUpRight, CONTAS_GRUPO, FINANCEIRO_MODULES),
+  folderSection("cadastros", "financeiro", "Cadastros", Users, CADASTROS_GRUPO, FINANCEIRO_MODULES),
+  folderSection(
+    "plataforma",
+    "plataforma",
+    "Plataforma",
+    Building2,
     ["/tenants", "/guia"],
     [
       { to: "/tenants", label: "Clientes", icon: Building2 },
       { to: "/guia", label: "Guia", icon: BookOpen },
     ],
-    "plataforma",
   ),
   {
-    id: "conta",
+    id: "apoio",
     grupo: "apoio",
-    label: "Conta",
+    label: "Apoio",
     icon: CircleUser,
-    items: [{ to: "/perfil", label: "Perfil", icon: UserIcon }],
-  },
-  {
-    id: "configuracoes",
-    grupo: "apoio",
-    label: "Configurações",
-    icon: Settings,
-    standalone: true,
-    items: [{ to: "/configuracoes", label: "Configurações", icon: Settings }],
-  },
-  {
-    id: "novidades",
-    grupo: "apoio",
-    label: "Novidades",
-    icon: Bell,
-    standalone: true,
-    items: [{ to: "/novidades", label: "Novidades", icon: Bell }],
-  },
-  {
-    id: "guia-sistema",
-    grupo: "apoio",
-    label: "Guia do sistema",
-    icon: BookMarked,
-    standalone: true,
-    items: [{ to: "/guia-sistema", label: "Guia do sistema", icon: BookMarked }],
+    items: [
+      { to: "/treinamento", label: "Treinamento", icon: GraduationCap },
+      { to: "/perfil", label: "Perfil", icon: UserIcon },
+      { to: "/configuracoes", label: "Configurações", icon: Settings },
+      { to: "/novidades", label: "Novidades", icon: Bell },
+      { to: "/guia-sistema", label: "Guia do sistema", icon: BookMarked },
+    ],
   },
 ];
 
@@ -1038,7 +1002,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             .map((item) => {
               if (isNavGroup(item)) {
                 if (!groupMenuAllows(item.id)) return null;
-                const children = item.children.filter((c) => {
+                const source =
+                  user.role === "super_admin" && item.id === "fechamento"
+                    ? PLATFORM_FECHAMENTO_MODULES
+                    : item.children;
+                const children = source.filter((c) => {
                   if (!moduleMenuAllows(c.to)) return false;
                   if (c.to === "/caca-lead" && hideCacaLeadNav) return false;
                   if (
@@ -1463,12 +1431,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "rotina",
       "funil",
       "imoveis",
-      "time",
-      "resultado",
-      "captacao",
-      "caixa",
-      "contas",
-      "cadastros",
+      "gestao",
+      "financeiro",
       "plataforma",
       "apoio",
     ];
@@ -1478,17 +1442,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const menuSlots = ordered.map((section) => ({ kind: "section" as const, section }));
     const grupoDoSlot = (slot: (typeof menuSlots)[number]) => slot.section.grupo;
     const rotuloGrupo: Record<string, string> = {
-      funil: "Funil",
-      rotina: "Dia",
-      imoveis: "Imóveis e fechamento",
-      time: "Time",
-      resultado: "Resultado",
-      captacao: "Captação",
-      caixa: "Caixa",
-      contas: "Contas",
-      cadastros: "Cadastros",
-      plataforma: "Plataforma",
-      apoio: "Apoio",
+      funil: "",
+      rotina: "",
+      imoveis: "",
+      gestao: "",
+      financeiro: "",
+      plataforma: "",
+      apoio: "",
     };
 
     return (
