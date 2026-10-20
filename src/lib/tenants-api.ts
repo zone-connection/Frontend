@@ -186,7 +186,7 @@ export type PopulateDemoDataResult = {
 
 export type ResetTenantAdminPasswordResult = {
   user: TenantAdminUser;
-  temporaryPassword: string;
+  temporaryPassword?: string;
 };
 
 export async function fetchTenants(): Promise<Tenant[]> {
@@ -241,10 +241,11 @@ export async function createTenantUser(
 
 export async function resetTenantAdminPassword(
   tenantId: string,
+  password?: string,
 ): Promise<ResetTenantAdminPasswordResult> {
   return apiFetch<ResetTenantAdminPasswordResult>(
     `/tenants/${tenantId}/admin/reset-password`,
-    { method: "POST" },
+    { method: "POST", body: password ? { password } : {} },
   );
 }
 

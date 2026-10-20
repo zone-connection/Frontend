@@ -508,6 +508,9 @@ function Usuarios() {
   const [weekPresenceLoading, setWeekPresenceLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApiUser | null>(null);
   const deleteTargetRef = useRef<ApiUser | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<ApiUser | null>(null);
+  const [passwordDraft, setPasswordDraft] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const [credentials, setCredentials] = useState<{
     name: string;
     email: string;
@@ -898,9 +901,12 @@ function Usuarios() {
     }
   }
 
-  async function handleResetPassword(u: ApiUser) {
+  async function handleResetPassword(u: ApiUser, password?: string) {
+    setSavingPassword(true);
     try {
-      const result = await resetUserPassword(u.id);
+      const result = await resetUserPassword(u.id, password?.trim() || undefined);
+      setPasswordTarget(null);
+      setPasswordDraft("");
       if (result.temporaryPassword) {
         setDetail(null);
         setCredentials({
@@ -910,14 +916,16 @@ function Usuarios() {
           title: "Senha temporária gerada",
         });
       } else {
-        toast.success(`Senha de ${u.name} redefinida.`);
+        toast.success(`Senha de ${u.name} definida.`);
       }
     } catch (err) {
       toast.error(
         err instanceof ApiError
           ? err.message
-          : "Não foi possível resetar a senha.",
+          : "Não foi possível definir a senha.",
       );
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -1351,10 +1359,13 @@ function Usuarios() {
                         {(canManageUsers ||
                           (isManager && isCorretorLike(u.role))) && (
                           <DropdownMenuItem
-                            onClick={() => void handleResetPassword(u)}
+                            onClick={() => {
+                              setPasswordDraft("");
+                              setPasswordTarget(u);
+                            }}
                           >
                             <KeyRound className="w-3.5 h-3.5 mr-2" />
-                            Gerar senha temporária
+                            Definir senha
                           </DropdownMenuItem>
                         )}
                         {canManageUsers && (
@@ -2053,8 +2064,8 @@ function Usuarios() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   A senha original não pode ser visualizada (fica
-                  criptografada). Use <strong>Gerar senha temporária</strong> se
-                  o usuário esquecer.
+                  criptografada). Use <strong>Definir senha</strong> para escolher
+                  uma nova.
                 </p>
               </FormSection>
             </FormDialogBody>
@@ -2089,10 +2100,13 @@ function Usuarios() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => void handleResetPassword(detail)}
+                  onClick={() => {
+                    setPasswordDraft("");
+                    setPasswordTarget(detail);
+                  }}
                 >
                   <KeyRound className="w-4 h-4 mr-1" />
-                  Gerar senha temporária
+                  Definir senha
                 </Button>
               )}
               {isAdmin && (
@@ -2119,6 +2133,57 @@ function Usuarios() {
             </FormDialogActions>
           </>
         )}
+      </FormDialogShell>
+
+      <FormDialogShell
+        open={passwordTarget != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPasswordTarget(null);
+            setPasswordDraft("");
+          }
+        }}
+        icon={<KeyRound className="w-5 h-5" />}
+        title="Definir senha"
+        description={
+          passwordTarget
+            ? `Escolha a nova senha de ${passwordTarget.name}.`
+            : undefined
+        }
+      >
+        <FormDialogBody>
+          <FormSection title="Nova senha">
+            <Label htmlFor="user-new-password">Senha</Label>
+            <Input
+              id="user-new-password"
+              type="text"
+              autoComplete="new-password"
+              value={passwordDraft}
+              onChange={(e) => setPasswordDraft(e.target.value)}
+              placeholder="Mínimo 8 caracteres, com maiúscula, minúscula e número"
+            />
+          </FormSection>
+        </FormDialogBody>
+        <FormDialogActions>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={savingPassword || !passwordTarget}
+            onClick={() => passwordTarget && void handleResetPassword(passwordTarget)}
+          >
+            Gerar senha aleatória
+          </Button>
+          <Button
+            type="button"
+            disabled={savingPassword || passwordDraft.trim().length < 8 || !passwordTarget}
+            onClick={() =>
+              passwordTarget && void handleResetPassword(passwordTarget, passwordDraft)
+            }
+          >
+            {savingPassword ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+            Definir senha
+          </Button>
+        </FormDialogActions>
       </FormDialogShell>
 
       <FormDialogShell

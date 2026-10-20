@@ -223,6 +223,7 @@ function TenantsPage() {
     null,
   );
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [adminNewPassword, setAdminNewPassword] = useState("");
   const [credentials, setCredentials] = useState<{
     name: string;
     email: string;
@@ -365,27 +366,33 @@ function TenantsPage() {
     }
   }
 
-  async function handleResetAdminPassword() {
+  async function handleResetAdminPassword(password?: string) {
     if (!editingId || !editingAdmin) return;
+    const chosen = password?.trim();
     setResettingPassword(true);
     try {
-      const result = await resetTenantAdminPassword(editingId);
-      setCredentials({
-        name: result.user.name,
-        email: result.user.email,
-        password: result.temporaryPassword,
-        slug: form.slug,
-      });
+      const result = await resetTenantAdminPassword(editingId, chosen);
+      if (result.temporaryPassword) {
+        setCredentials({
+          name: result.user.name,
+          email: result.user.email,
+          password: result.temporaryPassword,
+          slug: form.slug,
+        });
+        toast.success("Senha temporária gerada.");
+      } else {
+        toast.success("Senha definida.");
+      }
+      setAdminNewPassword("");
       setEditingAdmin({
         ...editingAdmin,
         ...result.user,
       });
-      toast.success("Senha temporária gerada.");
     } catch (err) {
       toast.error(
         err instanceof ApiError
           ? err.message
-          : "Falha ao gerar senha temporária.",
+          : "Falha ao definir a senha.",
       );
     } finally {
       setResettingPassword(false);
@@ -1577,21 +1584,37 @@ function TenantsPage() {
                             ). Alterar não muda o login do cliente original.
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={resettingPassword}
-                          onClick={() => void handleResetAdminPassword()}
-                        >
-                          {resettingPassword ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Gerando…
-                            </>
-                          ) : (
-                            "Gerar nova senha temporária"
-                          )}
-                        </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="tenant-admin-password">Nova senha</Label>
+                          <Input
+                            id="tenant-admin-password"
+                            type="text"
+                            autoComplete="new-password"
+                            value={adminNewPassword}
+                            onChange={(e) => setAdminNewPassword(e.target.value)}
+                            placeholder="Mínimo 8 caracteres, com maiúscula, minúscula e número"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              disabled={resettingPassword || adminNewPassword.trim().length < 8}
+                              onClick={() => void handleResetAdminPassword(adminNewPassword)}
+                            >
+                              {resettingPassword ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : null}
+                              Definir senha
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={resettingPassword}
+                              onClick={() => void handleResetAdminPassword()}
+                            >
+                              Gerar senha aleatória
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
