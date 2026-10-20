@@ -21,7 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ApiError } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getSession } from "@/lib/auth";
 import {
   createTreinamentoLink,
@@ -38,6 +43,7 @@ import {
 import {
   ChevronDown,
   ExternalLink,
+  Eye,
   FolderOpen,
   GraduationCap,
   Link2,
@@ -110,6 +116,7 @@ function TreinamentoPage() {
 
   const [deleteSecao, setDeleteSecao] = useState<TreinamentoSecao | null>(null);
   const [deleteLink, setDeleteLink] = useState<TreinamentoLink | null>(null);
+  const [preview, setPreview] = useState<TreinamentoLink | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
@@ -360,6 +367,7 @@ function TreinamentoPage() {
               onAddFile={openNewFile}
               onEditLink={openEditLink}
               onDeleteLink={setDeleteLink}
+              onPreview={setPreview}
             />
           ))}
         </div>
@@ -572,6 +580,15 @@ function TreinamentoPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={preview != null} onOpenChange={(open) => !open && setPreview(null)}>
+        <DialogContent className="flex max-h-[92vh] w-[min(960px,calc(100vw-2rem))] max-w-none flex-col gap-3 overflow-hidden p-4 sm:p-5">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">{preview?.titulo}</DialogTitle>
+          </DialogHeader>
+          {preview ? <MaterialPreview url={preview.url} titulo={preview.titulo} /> : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -587,6 +604,7 @@ function SecaoBlock({
   onAddFile,
   onEditLink,
   onDeleteLink,
+  onPreview,
 }: {
   secao: TreinamentoSecao;
   depth: number;
@@ -598,6 +616,7 @@ function SecaoBlock({
   onAddFile: (secaoId: string) => void;
   onEditLink: (link: TreinamentoLink) => void;
   onDeleteLink: (link: TreinamentoLink) => void;
+  onPreview: (link: TreinamentoLink) => void;
 }) {
   const [open, setOpen] = useState(true);
   const hasBody = secao.links.length > 0 || secao.children.length > 0;
@@ -709,15 +728,37 @@ function SecaoBlock({
                   className="flex items-center gap-2 rounded-lg border bg-background/60 px-3 py-2"
                 >
                   <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
-                    title={link.url}
-                  >
-                    {link.titulo}
-                  </a>
+                  {isArquivoDoSistema(link.url) ? (
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
+                      onClick={() => onPreview(link)}
+                    >
+                      {link.titulo}
+                    </button>
+                  ) : (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
+                      title={link.url}
+                    >
+                      {link.titulo}
+                    </a>
+                  )}
+                  {isArquivoDoSistema(link.url) ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Abrir"
+                      onClick={() => onPreview(link)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
                   <Button
                     type="button"
                     variant="ghost"
@@ -734,6 +775,7 @@ function SecaoBlock({
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </Button>
+                  )}
                   {canManage ? (
                     <>
                       <Button
@@ -777,6 +819,7 @@ function SecaoBlock({
                   onAddFile={onAddFile}
                   onEditLink={onEditLink}
                   onDeleteLink={onDeleteLink}
+                  onPreview={onPreview}
                 />
               ))}
             </div>
@@ -791,5 +834,49 @@ function SecaoBlock({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function isArquivoDoSistema(url: string) {
+  return url.includes("res.cloudinary.com");
+}
+
+function materialKind(url: string): "video" | "image" | "file" {
+  const path = url.split("?")[0].toLowerCase();
+  if (path.includes("/video/") || /\.(mp4|webm|mov|m4v)$/.test(path)) return "video";
+  if (path.includes("/image/") || /\.(png|jpe?g|webp|gif)$/.test(path)) return "image";
+  return "file";
+}
+
+function MaterialPreview({ url, titulo }: { url: string; titulo: string }) {
+  const kind = materialKind(url);
+  if (kind === "video") {
+    return (
+      <video
+        key={url}
+        src={url}
+        controls
+        playsInline
+        className="max-h-[75vh] w-full rounded-xl bg-black"
+      >
+        {titulo}
+      </video>
+    );
+  }
+  if (kind === "image") {
+    return (
+      <img
+        src={url}
+        alt={titulo}
+        className="max-h-[75vh] w-full rounded-xl object-contain"
+      />
+    );
+  }
+  return (
+    <iframe
+      title={titulo}
+      src={url}
+      className="h-[75vh] w-full rounded-xl border bg-muted"
+    />
   );
 }
