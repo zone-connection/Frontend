@@ -31,6 +31,7 @@ import {
   fetchTreinamento,
   updateTreinamentoLink,
   updateTreinamentoSecao,
+  uploadTreinamentoArquivo,
   type TreinamentoLink,
   type TreinamentoSecao,
 } from "@/lib/treinamento-api";
@@ -41,6 +42,7 @@ import {
   GraduationCap,
   Link2,
   Loader2,
+  Upload,
   Pencil,
   Plus,
   Search,
@@ -101,6 +103,10 @@ function TreinamentoPage() {
   const [editingLink, setEditingLink] = useState<TreinamentoLink | null>(null);
   const [linkTitulo, setLinkTitulo] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [fileOpen, setFileOpen] = useState(false);
+  const [fileSecaoId, setFileSecaoId] = useState<string | null>(null);
+  const [fileTitulo, setFileTitulo] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   const [deleteSecao, setDeleteSecao] = useState<TreinamentoSecao | null>(null);
   const [deleteLink, setDeleteLink] = useState<TreinamentoLink | null>(null);
@@ -192,6 +198,32 @@ function TreinamentoPage() {
     }
   }
 
+  function openNewFile(secaoId: string) {
+    setFileSecaoId(secaoId);
+    setFileTitulo("");
+    setFile(null);
+    setFileOpen(true);
+  }
+
+  async function saveFile() {
+    if (!fileSecaoId || !file) {
+      toast.error("Selecione um arquivo, foto ou vídeo.");
+      return;
+    }
+    const titulo = fileTitulo.trim() || file.name.replace(/\.[^.]+$/, "");
+    setSaving(true);
+    try {
+      await uploadTreinamentoArquivo({ secaoId: fileSecaoId, titulo, file });
+      toast.success("Arquivo enviado.");
+      setFileOpen(false);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível enviar o arquivo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveLink() {
     const titulo = linkTitulo.trim();
     const url = linkUrl.trim();
@@ -270,8 +302,8 @@ function TreinamentoPage() {
         title="Treinamento"
         description={
           canManage
-            ? "Pastas e links do Drive organizados em seções para o time."
-            : "Consulte os materiais e abra as pastas do Drive cadastradas pela gerência."
+            ? "Pastas, links, arquivos, fotos e vídeos organizados em seções para o time."
+            : "Consulte os materiais cadastrados pela gerência."
         }
         actions={
           canManage ? (
@@ -325,6 +357,7 @@ function TreinamentoPage() {
               onEditSecao={openEditSecao}
               onDeleteSecao={setDeleteSecao}
               onAddLink={openNewLink}
+              onAddFile={openNewFile}
               onEditLink={openEditLink}
               onDeleteLink={setDeleteLink}
             />
@@ -384,6 +417,46 @@ function TreinamentoPage() {
             </div>
           </FormSection>
         </FormDialogBody>
+      </FormDialogShell>
+
+      <FormDialogShell
+        open={fileOpen}
+        onOpenChange={setFileOpen}
+        icon={<Upload className="h-5 w-5" />}
+        title="Enviar arquivo"
+        description="Foto, vídeo ou documento. Vídeo até 40 MB; os demais até 15 MB."
+      >
+        <FormDialogBody>
+          <FormSection title="Material">
+            <div className="space-y-1.5">
+              <Label htmlFor="treino-arquivo-titulo">Título</Label>
+              <Input
+                id="treino-arquivo-titulo"
+                value={fileTitulo}
+                onChange={(event) => setFileTitulo(event.target.value)}
+                placeholder="Opcional — usa o nome do arquivo"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="treino-arquivo">Arquivo</Label>
+              <Input
+                id="treino-arquivo"
+                type="file"
+                accept="image/*,video/mp4,video/webm,video/quicktime,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </div>
+          </FormSection>
+        </FormDialogBody>
+        <FormDialogActions>
+          <Button type="button" variant="outline" onClick={() => setFileOpen(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={() => void saveFile()} disabled={saving}>
+            {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+            Enviar
+          </Button>
+        </FormDialogActions>
       </FormDialogShell>
 
       <FormDialogShell
@@ -511,6 +584,7 @@ function SecaoBlock({
   onEditSecao,
   onDeleteSecao,
   onAddLink,
+  onAddFile,
   onEditLink,
   onDeleteLink,
 }: {
@@ -521,6 +595,7 @@ function SecaoBlock({
   onEditSecao: (secao: TreinamentoSecao) => void;
   onDeleteSecao: (secao: TreinamentoSecao) => void;
   onAddLink: (secaoId: string) => void;
+  onAddFile: (secaoId: string) => void;
   onEditLink: (link: TreinamentoLink) => void;
   onDeleteLink: (link: TreinamentoLink) => void;
 }) {
@@ -590,6 +665,16 @@ function SecaoBlock({
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
               Link
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => onAddFile(secao.id)}
+            >
+              <Upload className="mr-1 h-3.5 w-3.5" />
+              Arquivo
             </Button>
             <Button
               type="button"
@@ -689,6 +774,7 @@ function SecaoBlock({
                   onEditSecao={onEditSecao}
                   onDeleteSecao={onDeleteSecao}
                   onAddLink={onAddLink}
+                  onAddFile={onAddFile}
                   onEditLink={onEditLink}
                   onDeleteLink={onDeleteLink}
                 />

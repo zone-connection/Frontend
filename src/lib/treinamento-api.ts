@@ -53,6 +53,21 @@ export async function deleteTreinamentoSecao(
   });
 }
 
+export async function uploadTreinamentoArquivo(input: {
+  secaoId: string;
+  titulo: string;
+  file: File;
+}): Promise<TreinamentoLink> {
+  const data = new FormData();
+  data.set("secaoId", input.secaoId);
+  data.set("titulo", input.titulo);
+  data.set("file", input.file);
+  return apiFetch<TreinamentoLink>("/treinamento/links/upload", {
+    method: "POST",
+    body: data,
+  });
+}
+
 export async function createTreinamentoLink(input: {
   secaoId: string;
   titulo: string;
