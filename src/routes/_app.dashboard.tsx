@@ -19,6 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FunnelBarChart } from "@/components/funnel-bar-chart";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao, isCorretorLike } from "@/lib/permissions";
@@ -47,6 +52,7 @@ import {
   Goal,
   Loader2,
   Percent,
+  SlidersHorizontal,
   TrendingUp,
   UserRound,
   UserX,
@@ -562,80 +568,89 @@ function DashboardAdminView() {
   const metasEquipesPage = usePagedList(metasEquipes);
   const metasCorretoresPage = usePagedList(metasCorretores);
 
-  const filtros = (
-    <div className="flex w-full flex-wrap items-end gap-2">
-      <div className="min-w-28 flex-1 space-y-1 sm:flex-none">
-        <Label className={FILTER_LABEL}>Mês</Label>
-        <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-          <SelectTrigger className={cn("w-full sm:w-36", FILTER_CONTROL)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MESES_PT.map((nome, idx) => (
-              <SelectItem key={nome} value={String(idx + 1)}>
-                {nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="min-w-20 flex-1 space-y-1 sm:flex-none">
-        <Label className={FILTER_LABEL}>Ano</Label>
-        <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-          <SelectTrigger className={cn("w-full sm:w-24", FILTER_CONTROL)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {anosDisponiveis.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-end">
-        <div className="flex gap-1">
-          {(
-            [
-              ["lancamento", "Lançamentos"],
-              ["all", "Geral"],
-              ["usado", "Usados"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={cn(
-                "inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
-                operacaoFilter === id
-                  ? "bg-[#079ED4] text-white shadow-sm"
-                  : "bg-secondary text-muted-foreground hover:bg-accent",
-              )}
-              onClick={() => setOperacaoFilter(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="min-w-32 flex-1 space-y-1 sm:min-w-40 sm:flex-none">
-        <Label className={FILTER_LABEL}>Origem</Label>
-        <Select value={origemFilter} onValueChange={setOrigemFilter}>
-          <SelectTrigger className={cn("w-full sm:w-44", FILTER_CONTROL)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {origens.map((o) => (
-              <SelectItem key={o} value={o}>
-                {o}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+  const botoesOperacao = (
+    <div className="mt-3 flex gap-1">
+      {(
+        [
+          ["lancamento", "Lançamentos"],
+          ["all", "Geral"],
+          ["usado", "Usados"],
+        ] as const
+      ).map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          className={cn(
+            "inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
+            operacaoFilter === id
+              ? "bg-[#079ED4] text-white shadow-sm"
+              : "bg-secondary text-muted-foreground hover:bg-accent",
+          )}
+          onClick={() => setOperacaoFilter(id)}
+        >
+          {label}
+        </button>
+      ))}
     </div>
+  );
+
+  const filtros = (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 space-y-3">
+        <div className="space-y-1">
+          <Label className={FILTER_LABEL}>Mês</Label>
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MESES_PT.map((nome, idx) => (
+                <SelectItem key={nome} value={String(idx + 1)}>
+                  {nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className={FILTER_LABEL}>Ano</Label>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {anosDisponiveis.map((y) => (
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className={FILTER_LABEL}>Origem</Label>
+          <Select value={origemFilter} onValueChange={setOrigemFilter}>
+            <SelectTrigger className={cn("w-full", FILTER_CONTROL)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {origens.map((o) => (
+                <SelectItem key={o} value={o}>
+                  {o}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 
   if (loading && !summary) {
@@ -644,7 +659,12 @@ function DashboardAdminView() {
         <PageHeader
           eyebrow="Bem-vindo(a)"
           title={user?.tenant?.name || "Dashboard"}
-          description="Visão gerencial da imobiliária."
+          description={
+            <>
+              <p>Visão gerencial da imobiliária.</p>
+              {botoesOperacao}
+            </>
+          }
           actions={filtros}
         />
         <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -672,7 +692,14 @@ function DashboardAdminView() {
       <PageHeader
           eyebrow="Bem-vindo(a)"
           title={user?.tenant?.name || "Dashboard"}
-          description={`Visão gerencial · ${mesLabel} · comparação com o mês anterior.`}
+          description={
+            <>
+              <p className="max-w-2xl">
+                Visão gerencial · {mesLabel} · comparação com o mês anterior.
+              </p>
+              {botoesOperacao}
+            </>
+          }
           actions={filtros}
         />
 
