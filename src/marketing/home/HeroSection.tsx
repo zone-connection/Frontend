@@ -6,6 +6,9 @@ import { HOME_ANCHORS } from "./routes";
 const HERO_IMAGE =
     "https://res.cloudinary.com/dkgjwrjpv/image/upload/f_auto,q_auto/v1792406229/heroImagem_lrepmb.png";
 
+const HERO_IMAGE_MOBILE =
+    "https://res.cloudinary.com/dkgjwrjpv/image/upload/f_auto,q_auto/v1792439664/Painel_SaaS_em_Dispositivos_Modernos_qh9kob.png";
+
 const HIGHLIGHTS = [
     "Funil, leads e agenda no mesmo fluxo",
     "Financeiro e comissões sem planilha",
@@ -21,9 +24,21 @@ export function HeroSection() {
             className="w-full bg-white pb-5"
             aria-labelledby="home-hero-title"
         >
-            <div className="relative flex w-full flex-col overflow-hidden bg-[#d6eef6] py-10 sm:px-10 sm:py-10 xl:min-h-136 xl:justify-center xl:px-16 xl:py-16">
+            <div className="relative flex w-full flex-col overflow-hidden bg-white py-10 sm:px-10 sm:py-10 xl:min-h-136 xl:justify-center xl:bg-[#d6eef6] xl:px-16 xl:py-16">
 
-                {/* Imagem ocupando toda a largura no desktop */}
+                <img
+                    src={HERO_IMAGE_MOBILE}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom xl:hidden"
+                    loading="eager"
+                    fetchPriority="high"
+                />
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/50 via-white/55 to-white/35 xl:hidden"
+                />
+
                 <img
                     src={HERO_IMAGE}
                     alt=""
@@ -35,7 +50,7 @@ export function HeroSection() {
 
                 {/* Conteúdo textual */}
                 <motion.div
-                    className="relative z-[2] flex max-w-xl flex-col px-6 sm:px-0"
+                    className="relative z-2 flex max-w-xl flex-col px-6 sm:px-0"
                     initial={
                         reducedMotion ? false : { opacity: 0, y: 20 }
                     }
