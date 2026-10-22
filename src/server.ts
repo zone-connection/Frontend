@@ -75,15 +75,43 @@ function withSecurityHeaders(response: Response): Response {
   });
 }
 
+function isAssetPath(pathname: string): boolean {
+  return pathname.startsWith("/assets/");
+}
+
+/** Um 404 de /assets não pode virar HTML cacheado por um ano no lugar do JS. */
+function missingAsset(pathname: string): Response {
+  const type = pathname.endsWith(".css")
+    ? "text/css; charset=utf-8"
+    : "text/javascript; charset=utf-8";
+  return new Response("/* asset ausente */", {
+    status: 404,
+    headers: {
+      "content-type": type,
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const pathname = new URL(request.url).pathname;
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
+      if (isAssetPath(pathname)) {
+        const type = response.headers.get("content-type") ?? "";
+        if (response.status >= 400 || type.includes("text/html")) {
+          return withSecurityHeaders(missingAsset(pathname));
+        }
+      }
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return withSecurityHeaders(normalized);
     } catch (error) {
       console.error(error);
+      if (isAssetPath(pathname)) {
+        return withSecurityHeaders(missingAsset(pathname));
+      }
       return withSecurityHeaders(
         new Response(renderErrorPage(), {
           status: 500,
