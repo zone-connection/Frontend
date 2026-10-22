@@ -55,6 +55,7 @@ import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao, canUserAccessRoute } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
+import { useHiddenMenuPaths } from "@/lib/menu-visibility";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
 import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
 import marcaZone from "@/assets/marca-zone.png";
@@ -458,17 +459,18 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/construtoras", label: "Construtoras", icon: HardHat },
       { to: "/imoveis", label: "Imóveis", icon: Building2 },
-      {
-        id: "fechamento",
-        label: "Fechamento",
-        icon: Handshake,
-        children: [
-          { to: "/documentacao", label: "Documentação", icon: FolderOpen },
-          { to: "/propostas", label: "Propostas", icon: ClipboardList },
-          { to: "/contratos", label: "Contratos", icon: FileSignature },
-          { to: "/vendas", label: "Vendas", icon: DollarSign },
-        ],
-      },
+    ],
+  },
+  {
+    id: "fechamento",
+    grupo: "imoveis",
+    label: "Fechamento",
+    icon: Handshake,
+    items: [
+      { to: "/documentacao", label: "Documentação", icon: FolderOpen },
+      { to: "/propostas", label: "Propostas", icon: ClipboardList },
+      { to: "/contratos", label: "Contratos", icon: FileSignature },
+      { to: "/vendas", label: "Vendas", icon: DollarSign },
     ],
   },
   folderSection("time", "gestao", "Time", Network, TIME_GRUPO, [
@@ -541,6 +543,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const { brandName, logoUrl, modules, isModuleEnabled } = useTenantTheme();
   const hideImoveisFromSidebar = useHideImoveisFromSidebar();
+  const hiddenMenuPaths = useHiddenMenuPaths();
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
   const plano = user?.tenant?.plano ?? null;
@@ -1007,6 +1010,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     ? PLATFORM_FECHAMENTO_MODULES
                     : item.children;
                 const children = source.filter((c) => {
+                  if (hiddenMenuPaths.has(c.to)) return false;
                   if (!moduleMenuAllows(c.to)) return false;
                   if (c.to === "/caca-lead" && hideCacaLeadNav) return false;
                   if (
@@ -1022,6 +1026,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 });
                 return children.length ? { ...item, children } : null;
               }
+              if (hiddenMenuPaths.has(item.to)) return null;
               if (!moduleMenuAllows(item.to)) return null;
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {
                 return null;
@@ -1047,7 +1052,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         };
       })
       .filter((section) => section.items.length > 0);
-  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav, isModuleEnabled]);
+  }, [user, modules, plano, hideImoveisFromSidebar, hideClientesFromSidebar, hideCacaLeadNav, hiddenMenuPaths, isModuleEnabled]);
 
   const operacoesDisponiveis = useMemo(() => {
     if (!user || user.role === "super_admin") return [];
@@ -1058,6 +1063,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (isNavGroup(item)) {
             if (!groupMenuAllows(item.id)) return null;
             const children = item.children.filter((child) => {
+              if (hiddenMenuPaths.has(child.to)) return false;
               if (!moduleMenuAllows(child.to)) return false;
               if (child.to === "/caca-lead" && hideCacaLeadNav) return false;
               if (
@@ -1070,6 +1076,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             });
             return children.length ? { ...item, children } : null;
           }
+          if (hiddenMenuPaths.has(item.to)) return null;
           if (!moduleMenuAllows(item.to)) return null;
           if (item.to === "/caca-lead" && hideCacaLeadNav) return null;
           if (
@@ -1088,6 +1095,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     plano,
     hideCacaLeadNav,
     hideClientesFromSidebar,
+    hiddenMenuPaths,
     isModuleEnabled,
   ]);
 

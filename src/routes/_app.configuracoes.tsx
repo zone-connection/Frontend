@@ -65,6 +65,7 @@ import { ConfigEmpresaPanel } from "@/components/config-empresa-panel";
 import { ConfigCreciPanel } from "@/components/config-creci-panel";
 import { ConfigConexoesPanel } from "@/components/config-conexoes-panel";
 import { ConfigHideClientesMenuCard } from "@/components/config-hide-clientes-menu-card";
+import { ConfigMenuVisibilidadePanel } from "@/components/config-menu-visibilidade-panel";
 import { ConfigUsuarioExtraPanel } from "@/components/config-usuario-extra-panel";
 import { ConfigSettingsLayout } from "@/components/config-settings-layout";
 import { userCanInformarCreci } from "@/lib/users-api";
@@ -654,6 +655,8 @@ function Config() {
             }
           />
         ) : null}
+
+        {selection.item === "menu" ? <ConfigMenuVisibilidadePanel /> : null}
 
         {selection.item === "conexoes" ? (
           <div className="space-y-4">

@@ -8,6 +8,7 @@ export const CONFIG_ITEMS = [
   "empresa",
   "creci",
   "conexoes",
+  "menu",
   "usuario-extra",
   "modulos",
   "funil",
@@ -121,6 +122,7 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
     contaItems.push({ id: "creci", label: "CRECI" });
   }
   contaItems.push({ id: "conexoes", label: "Conexões" });
+  contaItems.push({ id: "menu", label: "Menu" });
   if (flags.showUsuarioExtra) {
     contaItems.push({ id: "usuario-extra", label: "Assistente" });
   }
