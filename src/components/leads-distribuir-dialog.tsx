@@ -264,26 +264,12 @@ export function LeadsDistribuirDialog({
         usarSelecao || data.equipes.length === 0 ? "corretores" : "equipes";
       setDestino(defaultDestino);
       setCorretorPreferido("");
-
-      const pool = usarSelecao ? selecionados.length : data.disponiveis;
-      const splitEq = splitEvenly(pool, data.equipes.length);
-      const nextEq: Record<string, number> = {};
-      data.equipes.forEach((eq, i) => {
-        nextEq[eq.equipeId] = splitEq[i] ?? 0;
-      });
-      setQtdEquipes(nextEq);
-
-      const online = data.corretores.filter((c) => c.online);
-      const destinosCr = online.length > 0 ? online : data.corretores;
-      const splitCr = splitEvenly(pool, destinosCr.length);
-      const nextCr: Record<string, number> = {};
-      data.corretores.forEach((c) => {
-        nextCr[c.id] = 0;
-      });
-      destinosCr.forEach((c, i) => {
-        nextCr[c.id] = splitCr[i] ?? 0;
-      });
-      setQtdCorretores(nextCr);
+      setQtdEquipes(
+        Object.fromEntries(data.equipes.map((eq) => [eq.equipeId, 0])),
+      );
+      setQtdCorretores(
+        Object.fromEntries(data.corretores.map((c) => [c.id, 0])),
+      );
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -341,6 +327,12 @@ export function LeadsDistribuirDialog({
     if (online.length === 0) {
       toast.error(
         "Nenhum corretor online agora. Quem estiver no CRM com sessão ativa recebe a divisão.",
+      );
+      return;
+    }
+    if (online.length === 1) {
+      toast.error(
+        "Só um corretor está online. Informe a quantidade no campo dele em vez de enviar o pool inteiro.",
       );
       return;
     }
