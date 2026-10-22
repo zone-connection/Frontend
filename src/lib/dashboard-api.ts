@@ -251,6 +251,37 @@ export async function fetchDashboardAdmin(
   return apiFetch<DashboardAdmin>(`/dashboard/admin${dashboardQuery(params)}`);
 }
 
+export type DashboardEntradaRecorte = "hoje" | "semana" | "mes" | "vgv";
+
+export type DashboardEntradaLista = {
+  recorte: DashboardEntradaRecorte;
+  leads: Array<{
+    id: string;
+    nome: string;
+    telefone: string | null;
+    origem: string | null;
+    createdAt: string;
+    corretor: string | null;
+  }>;
+  vendas: Array<{
+    id: string;
+    nome: string;
+    vgv: number;
+    data: string;
+    status: string;
+    corretor: string | null;
+    empreendimento: string | null;
+  }>;
+};
+
+export async function fetchDashboardEntrada(
+  params: DashboardFiltros & { recorte: DashboardEntradaRecorte },
+): Promise<DashboardEntradaLista> {
+  const qs = new URLSearchParams(dashboardQuery(params).replace(/^\?/, ""));
+  qs.set("recorte", params.recorte);
+  return apiFetch<DashboardEntradaLista>(`/dashboard/entrada?${qs.toString()}`);
+}
+
 export type DashboardRankingMeta = {
   tipo: string;
   valor: number;

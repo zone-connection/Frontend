@@ -34,8 +34,11 @@ import { useCatalog, type FunnelStage } from "@/lib/catalog-store";
 import {
   fetchDashboardAdmin,
   fetchDashboardCorretor,
+  fetchDashboardEntrada,
   type DashboardAdmin,
   type DashboardCorretor,
+  type DashboardEntradaLista,
+  type DashboardEntradaRecorte,
 } from "@/lib/dashboard-api";
 import {
   AlertTriangle,
@@ -135,6 +138,110 @@ const MESES_PT = [
 
 function money(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+const ENTRADA_TITULO: Record<DashboardEntradaRecorte, string> = {
+  mes: "Novos leads do mês",
+  hoje: "Novos leads de hoje",
+  semana: "Novos leads da semana",
+  vgv: "Vendas do VGV do mês",
+};
+
+function formatQuando(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function EntradaLista({
+  recorte,
+  lista,
+  loading,
+}: {
+  recorte: DashboardEntradaRecorte;
+  lista: DashboardEntradaLista | null;
+  loading: boolean;
+}) {
+  const vazio =
+    recorte === "vgv"
+      ? "Nenhuma venda neste período."
+      : "Nenhum lead novo neste período.";
+  const itens =
+    recorte === "vgv" ? (lista?.vendas ?? []) : (lista?.leads ?? []);
+
+  return (
+    <div className="mt-4 rounded-xl border bg-background">
+      <p className="border-b px-4 py-3 text-sm font-semibold">
+        {ENTRADA_TITULO[recorte]}
+      </p>
+      {loading ? (
+        <p className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando lista…
+        </p>
+      ) : itens.length === 0 ? (
+        <p className="px-4 py-6 text-sm text-muted-foreground">{vazio}</p>
+      ) : (
+        <>
+      {recorte === "vgv" ? (
+        <ul className="divide-y">
+          {lista?.vendas.map((venda) => (
+            <li
+              key={venda.id}
+              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="font-medium">{venda.nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[venda.empreendimento, venda.corretor, venda.status]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold">{money(venda.vgv)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatQuando(venda.data)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="divide-y">
+          {lista?.leads.map((lead) => (
+            <li
+              key={lead.id}
+              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="font-medium">{lead.nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[lead.telefone, lead.origem, lead.corretor]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formatQuando(lead.createdAt)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+      {itens.length === 200 ? (
+        <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+          Mostrando os 200 mais recentes.
+        </p>
+      ) : null}
+        </>
+      )}
+    </div>
+  );
 }
 
 const DASHBOARD_PAGE_SIZE = 5;
@@ -481,6 +588,12 @@ function DashboardAdminView() {
   const [operacaoFilter, setOperacaoFilter] = useState("all");
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
+  const [entradaRecorte, setEntradaRecorte] =
+    useState<DashboardEntradaRecorte | null>(null);
+  const [entradaLista, setEntradaLista] = useState<DashboardEntradaLista | null>(
+    null,
+  );
+  const [entradaLoading, setEntradaLoading] = useState(false);
   const isPlatformAdmin = user?.role === "super_admin";
   const isSolo = user?.tenant?.plano === "solo";
   const modules = user?.tenant?.modules ?? null;
@@ -513,23 +626,26 @@ function DashboardAdminView() {
     return list;
   }, [agora.ano]);
 
+  const filtrosEntrada = useMemo(
+    () => ({
+      mes,
+      ano,
+      origem: origemFilter === "all" ? undefined : origemFilter,
+      operacao:
+        operacaoFilter === "lancamento" ||
+        operacaoFilter === "usado" ||
+        operacaoFilter === "captacao"
+          ? operacaoFilter
+          : undefined,
+    }),
+    [mes, ano, origemFilter, operacaoFilter],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setSummary(null);
     try {
-      setSummary(
-        await fetchDashboardAdmin({
-          mes,
-          ano,
-          origem: origemFilter === "all" ? undefined : origemFilter,
-          operacao:
-            operacaoFilter === "lancamento" ||
-            operacaoFilter === "usado" ||
-            operacaoFilter === "captacao"
-              ? operacaoFilter
-              : undefined,
-        }),
-      );
+      setSummary(await fetchDashboardAdmin(filtrosEntrada));
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -539,11 +655,43 @@ function DashboardAdminView() {
     } finally {
       setLoading(false);
     }
-  }, [mes, ano, origemFilter, operacaoFilter]);
+  }, [filtrosEntrada]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const abrirEntrada = useCallback(
+    async (recorte: DashboardEntradaRecorte) => {
+      if (entradaRecorte === recorte) {
+        setEntradaRecorte(null);
+        setEntradaLista(null);
+        return;
+      }
+      setEntradaRecorte(recorte);
+      setEntradaLoading(true);
+      try {
+        setEntradaLista(
+          await fetchDashboardEntrada({ ...filtrosEntrada, recorte }),
+        );
+      } catch (err) {
+        setEntradaRecorte(null);
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível carregar a lista.",
+        );
+      } finally {
+        setEntradaLoading(false);
+      }
+    },
+    [entradaRecorte, filtrosEntrada],
+  );
+
+  useEffect(() => {
+    setEntradaRecorte(null);
+    setEntradaLista(null);
+  }, [filtrosEntrada]);
 
   const funnelData = useMemo(() => {
     if (!summary) return [];
@@ -865,6 +1013,8 @@ function DashboardAdminView() {
             tone="emerald"
             format="number"
             variant="dash"
+            active={entradaRecorte === "mes"}
+            onClick={() => void abrirEntrada("mes")}
           />
           <FinanceKpiCard
             label="Novos hoje"
@@ -873,6 +1023,8 @@ function DashboardAdminView() {
             tone="blue"
             format="number"
             variant="dash"
+            active={entradaRecorte === "hoje"}
+            onClick={() => void abrirEntrada("hoje")}
           />
           <FinanceKpiCard
             label="Novos na semana"
@@ -881,6 +1033,8 @@ function DashboardAdminView() {
             tone="violet"
             format="number"
             variant="dash"
+            active={entradaRecorte === "semana"}
+            onClick={() => void abrirEntrada("semana")}
           />
           {showVendas ? (
           <FinanceKpiCard
@@ -891,9 +1045,18 @@ function DashboardAdminView() {
             icon={Wallet}
             tone="teal"
             variant="dash"
+            active={entradaRecorte === "vgv"}
+            onClick={() => void abrirEntrada("vgv")}
           />
           ) : null}
         </div>
+        {entradaRecorte ? (
+          <EntradaLista
+            recorte={entradaRecorte}
+            lista={entradaLista}
+            loading={entradaLoading}
+          />
+        ) : null}
       </PagePanel>
 
       <PagePanel
