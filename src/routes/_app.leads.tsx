@@ -76,6 +76,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  UserMinus,
   Upload,
   FileSpreadsheet,
   FileText,
@@ -136,7 +137,7 @@ import { useLeads } from "@/lib/leads-store";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
-import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates } from "@/lib/leads-api";
+import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi } from "@/lib/leads-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -669,12 +670,14 @@ function LeadsPage() {
     emails: {},
   });
   const [distribuirOpen, setDistribuirOpen] = useState(false);
+  const [desvincularOpen, setDesvincularOpen] = useState(false);
+  const [desvinculando, setDesvinculando] = useState(false);
 
   const leads = useMemo(() => {
     const scoped =
       isCorretor && user
         ? allLeads.filter(
-            (l) => l.corretor === user.name || l.corretorId === user.id,
+            (l) => l.corretorId === user.id || l.corretor === user.name,
           )
         : allLeads;
     return scoped.filter((l) => l.tipo === "lead");
@@ -1432,6 +1435,37 @@ function LeadsPage() {
     });
   }
 
+  async function confirmDesvincular() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setDesvinculando(true);
+    try {
+      const result = await desvincularCorretoresApi(ids);
+      setSelectedIds(new Set());
+      setDesvincularOpen(false);
+      await refresh({ silent: true });
+      if (result.updated === 0) {
+        toast.error(
+          "Nenhum lead foi desvinculado. Leads em venda ou sem corretor ficam de fora.",
+        );
+        return;
+      }
+      toast.success(
+        result.skipped > 0
+          ? `${result.updated} lead(s) desvinculado(s). ${result.skipped} ficaram de fora.`
+          : `${result.updated} lead(s) desvinculado(s) do corretor.`,
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível desvincular os leads.",
+      );
+    } finally {
+      setDesvinculando(false);
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteLead) return;
     const motivo =
@@ -1757,6 +1791,22 @@ function LeadsPage() {
                     : "Distribuir"}
                 </Button>
               )}
+              {canDistribuir && selectedCount > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={desvinculando}
+                  onClick={() => setDesvincularOpen(true)}
+                  className={LEADS_SECONDARY_BTN}
+                >
+                  {desvinculando ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <UserMinus className="mr-1.5 size-3.5 text-[#079ED4]" />
+                  )}
+                  Desvincular ({selectedCount})
+                </Button>
+              ) : null}
               {canExportLeads ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -3261,6 +3311,40 @@ function LeadsPage() {
               }}
             >
               Excluir permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={desvincularOpen}
+        onOpenChange={(open) => {
+          if (!open && !desvinculando) setDesvincularOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Desvincular {selectedCount} lead(s) do corretor?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O corretor sai da ficha. O lead volta para o pool e pode ser
+              distribuído de novo. A equipe, quando houver, permanece. Leads em
+              etapa de venda não são alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={desvinculando}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={desvinculando}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDesvincular();
+              }}
+            >
+              {desvinculando ? "Desvinculando…" : "Desvincular"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

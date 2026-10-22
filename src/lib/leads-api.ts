@@ -406,6 +406,13 @@ export async function distribuirLeadsCorretores(input: {
   });
 }
 
+export async function desvincularCorretoresApi(ids: string[]): Promise<{
+  updated: number;
+  skipped: number;
+}> {
+  return apiFetch("/leads/desvincular", { method: "POST", body: { ids } });
+}
+
 export async function updateLeadApi(
   id: string,
   input: UpdateLeadInput,
