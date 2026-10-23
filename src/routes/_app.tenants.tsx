@@ -2258,6 +2258,7 @@ function TenantsPage() {
                       ["Propostas", demoResult.counts.propostas],
                       ["Análises", demoResult.counts.analises],
                       ["Agendamentos", demoResult.counts.agendamentos],
+                      ["Tarefas", demoResult.counts.tarefas ?? 0],
                       ["Metas", demoResult.counts.metas],
                       ["Notificações", demoResult.counts.notificacoes],
                       ["Treinamento", demoResult.counts.treinamentos],

@@ -170,6 +170,7 @@ export type DemoDataCounts = {
   vinculosProposta?: number;
   corretoresParceiros?: number;
   parcerias?: number;
+  tarefas?: number;
 };
 
 export type PopulateDemoDataResult = {

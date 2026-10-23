@@ -28,7 +28,6 @@ import { TarefasAgendaPainel } from "@/components/tarefas-agenda-painel";
 import { TarefasVinculos } from "@/components/tarefas-vinculos";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { hojeYmd, type TarefaVisao } from "@/components/tarefas-calendario";
-import { tarefaMock, tarefasMock } from "@/lib/tarefas-mock";
 import { downloadArquivoFile, fetchArquivos, type ArquivoDocumento } from "@/lib/arquivos-api";
 import { toDateInput } from "@/components/agenda-board";
 import { Button } from "@/components/ui/button";
@@ -163,9 +162,7 @@ function TarefasPage() {
       const acesso = await fetchTarefasAcesso();
       setEnabled(acesso.enabled);
       if (!acesso.enabled) return;
-      const reais = await fetchTarefas({ filtro: "todas" });
-      const responsavel = { id: session?.id ?? "mock-user", name: session?.name ?? "Você" };
-      setItems([...reais, ...tarefasMock(hojeYmd(), responsavel)]);
+      setItems(await fetchTarefas({ filtro: "todas" }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Falha ao carregar tarefas.");
     } finally {
@@ -178,7 +175,7 @@ function TarefasPage() {
   }, [load]);
 
   useEffect(() => {
-    if (!detalhe || tarefaMock(detalhe.id)) {
+    if (!detalhe) {
       setAnexos([]);
       return;
     }
@@ -424,10 +421,6 @@ function TarefasPage() {
         onOpen={(tarefa) => setDetalhe(tarefa)}
         onEdit={(tarefa) => abrirEdicao(tarefa)}
         onDelete={(tarefa) => {
-          if (tarefaMock(tarefa.id)) {
-            setItems((atual) => atual.filter((item) => item.id !== tarefa.id));
-            return;
-          }
           void deleteTarefa(tarefa.id)
             .then(() => {
               toast.success("Tarefa excluída.");
@@ -436,16 +429,6 @@ function TarefasPage() {
             .catch((err) => toast.error(err instanceof ApiError ? err.message : "Não foi possível excluir."));
         }}
         onComplete={(tarefa) => {
-          if (tarefaMock(tarefa.id)) {
-            setItems((atual) =>
-              atual.map((item) =>
-                item.id === tarefa.id
-                  ? { ...item, status: item.status === "concluida" ? "aberta" : "concluida", atrasada: false }
-                  : item,
-              ),
-            );
-            return;
-          }
           void updateTarefa(tarefa.id, {
             status: tarefa.status === "concluida" ? "aberta" : "concluida",
           }).then(load);
@@ -500,11 +483,6 @@ function TarefasPage() {
               onConcluir={() => {
                 const atual = detalhe;
                 const proximo = atual.status === "concluida" ? "aberta" : "concluida";
-                if (tarefaMock(atual.id)) {
-                  setItems((lista) => lista.map((item) => item.id === atual.id ? { ...item, status: proximo, atrasada: false } : item));
-                  setDetalhe(null);
-                  return;
-                }
                 void updateTarefa(atual.id, { status: proximo }).then(() => {
                   setDetalhe(null);
                   void load();
