@@ -8,6 +8,7 @@ import {
 } from "@/components/form-dialog";
 import { IdSearchSelect } from "@/components/id-search-select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
   CommandEmpty,
@@ -116,6 +117,24 @@ const EMPTY_FORM: ComissaoFormState = {
   status: "pendente",
   observacao: "",
 };
+
+const REGISTRAR_DOC_KEY = "crm_comissao_registrar_documentacao";
+
+function readRegistrarDocumentacao() {
+  try {
+    return localStorage.getItem(REGISTRAR_DOC_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeRegistrarDocumentacao(value: boolean) {
+  try {
+    localStorage.setItem(REGISTRAR_DOC_KEY, value ? "1" : "0");
+  } catch {
+    /* preferência local; o lançamento segue mesmo sem storage */
+  }
+}
 
 const STATUS_OPTIONS: { value: ComissaoStatus; label: string }[] = [
   { value: "pendente", label: "Pendente" },
@@ -235,6 +254,9 @@ export function ComissaoLancamentoDialog({
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
+  const [registrarDocumentacao, setRegistrarDocumentacao] = useState(
+    readRegistrarDocumentacao,
+  );
 
   const isAvulsa = mode === "create" && form.origemVenda === "avulsa";
 
@@ -479,10 +501,12 @@ export function ComissaoLancamentoDialog({
               ? (await createTituloComissaoAvulsa({
                   ...avulsaPayload,
                   observacao,
+                  registrarDocumentacao,
                 })).comissao
               : await createComissaoComVendaAvulsa({
                   ...avulsaPayload,
                   observacao,
+                  registrarDocumentacao,
                 })
             : via === "titulo"
               ? (
@@ -505,7 +529,9 @@ export function ComissaoLancamentoDialog({
       toast.success(
         created
           ? isAvulsa
-            ? "Comissão lançada."
+            ? registrarDocumentacao
+              ? "Comissão lançada e venda registrada na documentação."
+              : "Comissão lançada."
             : createSuccessMessage
           : "Comissão atualizada.",
       );
@@ -675,10 +701,30 @@ export function ComissaoLancamentoDialog({
               </div>
               ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                <p className="text-xs text-muted-foreground sm:col-span-2">
-                  Lança só a comissão. A venda não entra em Documentação.
-                  {loadingCatalogs ? " Carregando cadastros…" : ""}
-                </p>
+                <div className="flex items-start gap-3 rounded-md border bg-muted/30 px-3 py-2.5 sm:col-span-2">
+                  <Checkbox
+                    id="comissao-registrar-documentacao"
+                    checked={registrarDocumentacao}
+                    onCheckedChange={(checked) => {
+                      const next = checked === true;
+                      setRegistrarDocumentacao(next);
+                      writeRegistrarDocumentacao(next);
+                    }}
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="comissao-registrar-documentacao"
+                      className="cursor-pointer font-medium"
+                    >
+                      Registrar na documentação
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Desligado por padrão. Ligado, a venda entra em
+                      Documentação e a escolha permanece até você desmarcar.
+                      {loadingCatalogs ? " Carregando cadastros…" : ""}
+                    </p>
+                  </div>
+                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="comissao-cliente-nome">Nome do cliente</Label>
                   <Input

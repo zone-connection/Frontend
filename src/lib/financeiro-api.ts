@@ -167,6 +167,7 @@ export type CreateComissaoVendaAvulsaInput = ComissaoPercentuais &
     dataPrevistaRecebimento: string;
     status?: ComissaoStatus;
     observacao?: string;
+    registrarDocumentacao?: boolean;
   };
 
 export type CreateTituloComissaoResponse = {

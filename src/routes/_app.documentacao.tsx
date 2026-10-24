@@ -697,26 +697,39 @@ function DocumentacaoPage() {
 
   const corretorOptions = useMemo(() => {
     // Lista dedicada da API de documentação (todos os corretores ativos).
-    if (docCorretores.length > 0) {
-      return docCorretores.map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.role,
-        cor: c.cor,
-        gerenteId: c.gerenteId,
-        gerente: c.gerente,
-      }));
-    }
-    // Fallback enquanto a lista dedicada carrega.
-    return assignees.filter(
-      (a) =>
-        !a.role ||
-        isCorretorLike(a.role) ||
-        a.role === "gerente" ||
-        (canOwnCarteira && a.role === "admin" && a.id === user?.id),
+    const source =
+      docCorretores.length > 0
+        ? docCorretores.map((c) => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            cor: c.cor,
+            gerenteId: c.gerenteId,
+            gerente: c.gerente,
+          }))
+        : assignees.filter(
+            (a) =>
+              !a.role ||
+              isCorretorLike(a.role) ||
+              a.role === "gerente" ||
+              (canOwnCarteira && a.role === "admin" && a.id === user?.id),
+          );
+    if (user?.role !== "gerente" || !user.id) return source;
+    return source.filter(
+      (person) => person.id === user.id || person.gerenteId === user.id,
     );
-  }, [docCorretores, assignees, canOwnCarteira, user?.id]);
+  }, [docCorretores, assignees, canOwnCarteira, user?.id, user?.role]);
   const gerenteOptions = useMemo<EquipeOptionUser[]>(() => {
+    if (user?.role === "gerente" && user.id) {
+      return [
+        {
+          id: user.id,
+          name: user.name,
+          email: "",
+          status: "ativo" as const,
+        },
+      ];
+    }
     const options =
       gerentes.length > 0
         ? gerentes
@@ -756,7 +769,7 @@ function DocumentacaoPage() {
       (option, index, all) =>
         all.findIndex((candidate) => candidate.id === option.id) === index,
     );
-  }, [gerentes, assignees, items]);
+  }, [gerentes, assignees, items, user?.id, user?.name, user?.role]);
 
   const filteredEmpreendimentos = useMemo(() => {
     if (!form.construtoraId) return empreendimentos;
