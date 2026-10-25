@@ -23,8 +23,6 @@ import {
   Target,
   ClipboardList,
   Briefcase,
-  Shield,
-  CircleUser,
   ArrowLeftRight,
   Banknote,
   ArrowUpRight,
@@ -41,13 +39,15 @@ import {
   BookOpen,
   BookMarked,
   GraduationCap,
-  Handshake,
   Receipt,
   TriangleAlert,
   ClipboardCheck,
   KeyRound,
   Key,
   FileText,
+  Search,
+  BarChart3,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
@@ -247,106 +247,6 @@ const OPERACOES: {
   },
 ];
 
-const FINANCEIRO_MODULES: NavLeaf[] = [
-  {
-    to: "/financeiro/visao-geral",
-    label: "Visão geral",
-    icon: LayoutDashboard,
-  },
-  {
-    to: "/financeiro/clientes-fornecedores",
-    label: "Clientes e fornecedores",
-    icon: Users,
-  },
-  {
-    to: "/financeiro/movimentacao",
-    label: "Movimentação financeira",
-    icon: ArrowLeftRight,
-  },
-  { to: "/financeiro/fluxo-caixa", label: "Fluxo de caixa", icon: Banknote },
-  {
-    to: "/financeiro/contas-a-receber",
-    label: "Contas a receber",
-    icon: ArrowUpRight,
-  },
-  {
-    to: "/financeiro/contas-a-pagar",
-    label: "Contas a pagar",
-    icon: ArrowDownRight,
-  },
-  {
-    to: "/financeiro/despesas",
-    label: "Despesas",
-    icon: Receipt,
-  },
-  { to: "/financeiro/comissao", label: "Comissão", icon: Percent },
-  { to: "/financeiro/funcionarios", label: "Funcionários", icon: UsersRound },
-];
-
-/** Operação da plataforma (super_admin). */
-const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
-  { to: "/leads", label: "Leads", icon: Users },
-  { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
-  { to: "/funil", label: "Funil", icon: Funnel },
-  { to: "/tarefas", label: "Tarefas", icon: ListTodo },
-  { to: "/lembretes", label: "Lembretes", icon: BellRing },
-  { to: "/metas", label: "Metas", icon: Target },
-];
-
-/** Fechamento da plataforma (super_admin) — sem Documentação nem Propostas. */
-const PLATFORM_FECHAMENTO_MODULES: NavLeaf[] = [
-  { to: "/contratos", label: "Contratos", icon: FileSignature },
-  { to: "/vendas", label: "Vendas", icon: DollarSign },
-];
-
-/** Gestão da plataforma (super_admin) — clientes da plataforma e guia. */
-const PLATFORM_GESTAO_MODULES: NavLeaf[] = [
-  { to: "/tenants", label: "Clientes", icon: Building2 },
-  { to: "/usuarios", label: "Usuários", icon: UsersRound },
-  { to: "/guia", label: "Guia", icon: BookOpen },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
-];
-
-/** Financeiro da plataforma (super_admin) — mesmo design das imobiliárias. */
-const PLATFORM_FINANCEIRO_MODULES: NavLeaf[] = [
-  {
-    to: "/financeiro/visao-geral",
-    label: "Visão geral",
-    icon: LayoutDashboard,
-  },
-  {
-    to: "/financeiro/clientes-fornecedores",
-    label: "Fornecedores",
-    icon: Users,
-  },
-  {
-    to: "/financeiro/movimentacao",
-    label: "Movimentação financeira",
-    icon: ArrowLeftRight,
-  },
-  {
-    to: "/financeiro/contas-a-receber",
-    label: "Contas a receber",
-    icon: ArrowUpRight,
-  },
-  {
-    to: "/financeiro/contas-a-pagar",
-    label: "Contas a pagar",
-    icon: ArrowDownRight,
-  },
-  {
-    to: "/financeiro/despesas",
-    label: "Despesas",
-    icon: Receipt,
-  },
-  {
-    to: "/financeiro/fluxo-caixa",
-    label: "Fluxo de caixa",
-    icon: Banknote,
-  },
-  { to: "/financeiro/funcionarios", label: "Funcionários", icon: UsersRound },
-];
-
 type NavSection = {
   id: string;
   label: string;
@@ -355,6 +255,7 @@ type NavSection = {
   adminOnly?: boolean;
   /** Admin da imobiliária ou super_admin da plataforma. */
   adminOrPlatform?: boolean;
+  platformOnly?: boolean;
   gerenteOnly?: boolean;
   /** Item solto no menu, sem pasta/seção. */
   standalone?: boolean;
@@ -372,163 +273,152 @@ function leafSection(grupo: string, leaf: NavLeaf): NavSection {
   };
 }
 
-const COMERCIAL_GRUPO = [
-  "/leads",
-  "/triagem",
-  "/funil",
-  "/whatsapp",
-  "/caca-lead",
-  "/leads-perdidos",
-];
-const CARTEIRA_GRUPO = ["/clientes", "/funil-clientes"];
-const PERDAS_CLIENTES_GRUPO = ["/clientes-perdidos"];
-const TIME_GRUPO = ["/equipes", "/usuarios", "/permissoes", "/presenca", "/corretores"];
-const RESULTADO_GRUPO = ["/metas", "/resultado", "/taxa-conversao", "/atrasos"];
-const CAPTACAO_GRUPO = ["/captacao/funil", "/captacao/proprietarios", "/mural-chaves"];
-const CAIXA_GRUPO = [
-  "/financeiro/visao-geral",
-  "/financeiro/movimentacao",
-  "/financeiro/fluxo-caixa",
-];
-const CONTAS_GRUPO = [
-  "/financeiro/contas-a-receber",
-  "/financeiro/contas-a-pagar",
-  "/financeiro/despesas",
-  "/financeiro/comissao",
-];
-const CADASTROS_GRUPO = [
-  "/financeiro/clientes-fornecedores",
-  "/financeiro/funcionarios",
+const ATENDIMENTO_LEAVES: NavLeaf[] = [
+  { to: "/lembretes", label: "Lembretes", icon: BellRing },
+  { to: "/leads", label: "Leads", icon: Users },
+  { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
+  { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
+  { to: "/triagem", label: "Triagem", icon: ClipboardList },
+  { to: "/funil", label: "Funil", icon: Funnel },
+  { to: "/leads-perdidos", label: "Leads perdidos", icon: UserX },
+  { to: "/clientes", label: "Clientes", icon: UserCircle2 },
+  { to: "/funil-clientes", label: "Funil de clientes", icon: Kanban },
+  { to: "/clientes-perdidos", label: "Clientes perdidos", icon: UserX },
 ];
 
-function leavesIn(paths: string[], pool: NavLeaf[], grupo: string) {
-  return paths.flatMap((path) => {
-    const leaf = pool.find((item) => item.to === path);
-    return leaf ? [leafSection(grupo, leaf)] : [];
-  });
-}
+const IMOVEIS_VENDAS_LEAVES: NavLeaf[] = [
+  { to: "/construtoras", label: "Construtoras", icon: HardHat },
+  { to: "/imoveis", label: "Imóveis", icon: Building2 },
+  { to: "/documentacao", label: "Documentação", icon: FolderOpen },
+  { to: "/propostas", label: "Propostas", icon: ClipboardList },
+  { to: "/contratos", label: "Contratos", icon: FileSignature },
+  { to: "/vendas", label: "Vendas", icon: DollarSign },
+];
 
-function folderSection(
-  id: string,
-  grupo: string,
-  label: string,
-  icon: LucideIcon,
-  paths: string[],
-  pool: NavLeaf[],
-): NavSection {
-  return {
-    id,
-    grupo,
-    label,
-    icon,
-    items: paths.flatMap((path) => {
-      const leaf = pool.find((item) => item.to === path);
-      return leaf ? [leaf] : [];
-    }),
-  };
-}
+const CAPTACAO_LEAVES: NavLeaf[] = [
+  { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
+  { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
+  { to: "/mural-chaves", label: "Mural de chaves", icon: Key },
+];
+
+const FINANCEIRO_MENU_LEAVES: NavLeaf[] = [
+  { to: "/financeiro/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+  {
+    to: "/financeiro/movimentacao",
+    label: "Movimentação financeira",
+    icon: ArrowLeftRight,
+  },
+  { to: "/financeiro/fluxo-caixa", label: "Fluxo de caixa", icon: Banknote },
+  {
+    to: "/financeiro/contas-a-receber",
+    label: "Contas a receber",
+    icon: ArrowUpRight,
+  },
+  {
+    to: "/financeiro/contas-a-pagar",
+    label: "Contas a pagar",
+    icon: ArrowDownRight,
+  },
+  { to: "/financeiro/despesas", label: "Despesas", icon: Receipt },
+  { to: "/financeiro/comissao", label: "Comissão", icon: Percent },
+  {
+    to: "/financeiro/clientes-fornecedores",
+    label: "Clientes e fornecedores",
+    icon: Users,
+  },
+];
+
+const EQUIPE_LEAVES: NavLeaf[] = [
+  { to: "/equipes", label: "Equipes", icon: Network },
+  { to: "/usuarios", label: "Usuários", icon: UsersRound },
+  { to: "/permissoes", label: "Permissões", icon: KeyRound },
+  { to: "/presenca", label: "Presença", icon: ClipboardCheck },
+  { to: "/corretores", label: "Ranking", icon: UsersRound },
+  { to: "/metas", label: "Metas", icon: Target },
+  { to: "/financeiro/funcionarios", label: "Funcionários", icon: UsersRound },
+];
+
+const RELATORIOS_LEAVES: NavLeaf[] = [
+  { to: "/resultado", label: "Análise", icon: SearchCheck },
+  { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
+  { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
+];
 
 const NAV_SECTIONS: NavSection[] = [
-  folderSection(
-    "comercial",
-    "funil",
-    "Comercial",
-    Funnel,
-    COMERCIAL_GRUPO,
-    COMERCIAL_NAV_LEAVES,
-  ),
-  folderSection(
-    "carteira",
-    "funil",
-    "Carteira",
-    UserCircle2,
-    CARTEIRA_GRUPO,
-    COMERCIAL_NAV_LEAVES,
-  ),
-  folderSection(
-    "perdas-clientes",
-    "funil",
-    "Perdas de clientes",
-    UserX,
-    PERDAS_CLIENTES_GRUPO,
-    COMERCIAL_NAV_LEAVES,
-  ),
-  {
-    id: "dia",
-    grupo: "rotina",
-    label: "Dia",
+  leafSection("menu", {
+    to: "/dashboard",
+    label: "Dashboard",
     icon: LayoutDashboard,
-    items: [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/tarefas", label: "Tarefas", icon: ListTodo },
-      { to: "/lembretes", label: "Lembretes", icon: BellRing },
-    ],
+  }),
+  leafSection("menu", { to: "/tarefas", label: "Tarefas", icon: ListTodo }),
+  {
+    id: "atendimento",
+    grupo: "menu",
+    label: "Atendimento",
+    icon: Users,
+    items: ATENDIMENTO_LEAVES,
   },
   {
-    id: "imoveis",
-    grupo: "imoveis",
-    label: "Imóveis",
+    id: "imoveis-vendas",
+    grupo: "menu",
+    label: "Imóveis e vendas",
     icon: Building2,
-    items: [
-      { to: "/construtoras", label: "Construtoras", icon: HardHat },
-      { to: "/imoveis", label: "Imóveis", icon: Building2 },
-    ],
+    items: IMOVEIS_VENDAS_LEAVES,
   },
   {
-    id: "fechamento",
-    grupo: "imoveis",
-    label: "Fechamento",
-    icon: Handshake,
-    items: [
-      { to: "/documentacao", label: "Documentação", icon: FolderOpen },
-      { to: "/propostas", label: "Propostas", icon: ClipboardList },
-      { to: "/contratos", label: "Contratos", icon: FileSignature },
-      { to: "/vendas", label: "Vendas", icon: DollarSign },
-    ],
+    id: "captacao",
+    grupo: "menu",
+    label: "Captação",
+    icon: Search,
+    items: CAPTACAO_LEAVES,
   },
-  folderSection("time", "gestao", "Time", Network, TIME_GRUPO, [
-    { to: "/equipes", label: "Equipes", icon: Network },
-    { to: "/usuarios", label: "Usuários", icon: UsersRound },
-    { to: "/permissoes", label: "Permissões", icon: KeyRound },
-    { to: "/presenca", label: "Presença", icon: ClipboardCheck },
-    { to: "/corretores", label: "Ranking", icon: UsersRound },
-  ]),
-  folderSection("resultado", "gestao", "Resultado", Target, RESULTADO_GRUPO, [
-    { to: "/metas", label: "Metas", icon: Target },
-    { to: "/resultado", label: "Análise", icon: SearchCheck },
-    { to: "/taxa-conversao", label: "Taxa de conversão", icon: Goal },
-    { to: "/atrasos", label: "Atrasos", icon: TriangleAlert },
-  ]),
-  folderSection("captacao", "gestao", "Captação", Funnel, CAPTACAO_GRUPO, [
-    { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
-    { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
-    { to: "/mural-chaves", label: "Mural de Chaves", icon: Key },
-  ]),
-  folderSection("caixa", "financeiro", "Caixa", Banknote, CAIXA_GRUPO, FINANCEIRO_MODULES),
-  folderSection("contas", "financeiro", "Contas", ArrowUpRight, CONTAS_GRUPO, FINANCEIRO_MODULES),
-  folderSection("cadastros", "financeiro", "Cadastros", Users, CADASTROS_GRUPO, FINANCEIRO_MODULES),
-  folderSection(
-    "plataforma",
-    "plataforma",
-    "Plataforma",
-    Building2,
-    ["/tenants", "/guia"],
-    [
-      { to: "/tenants", label: "Clientes", icon: Building2 },
-      { to: "/guia", label: "Guia", icon: BookOpen },
-    ],
-  ),
   {
-    id: "apoio",
-    grupo: "apoio",
-    label: "Apoio",
-    icon: CircleUser,
+    id: "financeiro",
+    grupo: "menu",
+    label: "Financeiro",
+    icon: FileText,
+    items: FINANCEIRO_MENU_LEAVES,
+  },
+  {
+    id: "equipe",
+    grupo: "menu",
+    label: "Equipe",
+    icon: Users,
+    items: EQUIPE_LEAVES,
+  },
+  {
+    id: "relatorios",
+    grupo: "menu",
+    label: "Relatórios",
+    icon: BarChart3,
+    items: RELATORIOS_LEAVES,
+  },
+  {
+    id: "treinamento",
+    grupo: "menu",
+    label: "Treinamento",
+    icon: GraduationCap,
     items: [
       { to: "/treinamento", label: "Treinamento", icon: GraduationCap },
-      { to: "/perfil", label: "Perfil", icon: UserIcon },
-      { to: "/configuracoes", label: "Configurações", icon: Settings },
-      { to: "/novidades", label: "Novidades", icon: Bell },
       { to: "/guia-sistema", label: "Guia do sistema", icon: BookMarked },
+    ],
+  },
+  leafSection("menu", { to: "/perfil", label: "Perfil", icon: UserIcon }),
+  leafSection("menu", {
+    to: "/configuracoes",
+    label: "Configurações",
+    icon: Settings,
+  }),
+  leafSection("menu", { to: "/novidades", label: "Novidades", icon: Sparkles }),
+  {
+    id: "plataforma",
+    grupo: "plataforma",
+    label: "Plataforma",
+    icon: Building2,
+    platformOnly: true,
+    items: [
+      { to: "/tenants", label: "Clientes", icon: Building2 },
+      { to: "/guia", label: "Guia", icon: BookOpen },
     ],
   },
 ];
@@ -560,9 +450,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { hide: hideCacaLeadNav } = useHideCacaLeadNav();
   const hideClientesFromSidebar = useHideClientesFromSidebar();
   const plano = user?.tenant?.plano ?? null;
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    operacao: true,
-  });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [closingSections, setClosingSections] = useState<Record<string, boolean>>(
     {},
@@ -1058,6 +946,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navSections = useMemo(() => {
     if (!user) return [];
     return NAV_SECTIONS.filter((section) => {
+      if (section.platformOnly) return user.role === "super_admin";
       if (section.adminOnly) return user.role === "admin";
       if (section.adminOrPlatform) {
         return (
@@ -1070,26 +959,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return true;
     })
       .map((section) => {
-        let sectionItems = section.items;
-        if (user.role === "super_admin") {
-          if (section.id === "operacao") sectionItems = PLATFORM_OPERACAO_MODULES;
-          else if (section.id === "fechamento")
-            sectionItems = PLATFORM_FECHAMENTO_MODULES;
-          else if (section.id === "gestao") sectionItems = PLATFORM_GESTAO_MODULES;
-          else if (section.id === "financeiro")
-            sectionItems = PLATFORM_FINANCEIRO_MODULES;
-        }
         return {
           ...section,
-          items: sectionItems
+          items: section.items
             .map((item) => {
               if (isNavGroup(item)) {
                 if (!groupMenuAllows(item.id)) return null;
-                const source =
-                  user.role === "super_admin" && item.id === "fechamento"
-                    ? PLATFORM_FECHAMENTO_MODULES
-                    : item.children;
-                const children = source.filter((c) => {
+                const children = item.children.filter((c) => {
                   if (hiddenMenuPaths.has(c.to)) return false;
                   if (!moduleMenuAllows(c.to)) return false;
                   if (c.to === "/caca-lead" && hideCacaLeadNav) return false;
@@ -1536,28 +1412,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const sections = navSections.filter((section) => section.id !== "agenda");
-    const ordem = [
-      "rotina",
-      "funil",
-      "imoveis",
-      "gestao",
-      "financeiro",
-      "plataforma",
-      "apoio",
-    ];
+    const ordem = ["menu", "plataforma"];
     const ordered = [...sections].sort(
       (a, b) => ordem.indexOf(a.grupo) - ordem.indexOf(b.grupo),
     );
     const menuSlots = ordered.map((section) => ({ kind: "section" as const, section }));
     const grupoDoSlot = (slot: (typeof menuSlots)[number]) => slot.section.grupo;
     const rotuloGrupo: Record<string, string> = {
-      funil: "",
-      rotina: "",
-      imoveis: "",
-      gestao: "",
-      financeiro: "",
+      menu: "",
       plataforma: "",
-      apoio: "",
     };
 
     return (
