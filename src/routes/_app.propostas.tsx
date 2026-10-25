@@ -1139,7 +1139,7 @@ function Page() {
     try {
       const [propostas, cons, emps, eqs, docs, caps, usados, propostasUsado] =
         await Promise.all([
-        fetchPropostas(),
+        fetchPropostas().catch(() => [] as Proposta[]),
         fetchConstrutoras().catch(() => [] as Construtora[]),
         fetchEmpreendimentos().catch(() => [] as Empreendimento[]),
         isManager && !isGerente
