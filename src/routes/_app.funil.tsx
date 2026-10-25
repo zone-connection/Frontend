@@ -156,6 +156,8 @@ import {
   Users,
   Settings,
 } from "lucide-react";
+import { SkeletonKanban } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -478,6 +480,10 @@ export function ComercialFunilBoard({
     tipoFiltro,
     user,
   ]);
+
+  const showKanbanSkeleton = useDeferredLoading(
+    catalogLoading || (loading && leads.length === 0),
+  );
 
   const funnelStageIds = useMemo(
     () => new Set(funnelStages.map((s) => s.id)),
@@ -1486,7 +1492,9 @@ export function ComercialFunilBoard({
         }
       />
 
-      {!catalogLoading && boardStages.length === 0 ? (
+      {showKanbanSkeleton ? (
+        <SkeletonKanban columns={Math.max(boardStages.length, 5)} />
+      ) : !catalogLoading && boardStages.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-16 text-center">
           <p className="text-sm font-medium text-foreground">
             Nenhum funil comercial ativo neste ambiente.
@@ -1509,8 +1517,8 @@ export function ComercialFunilBoard({
             </Button>
           ) : null}
         </div>
-      ) : null}
-
+      ) : (
+        <>
       {orphanLeads.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
           <p>
@@ -1523,14 +1531,12 @@ export function ComercialFunilBoard({
               size="sm"
               variant="outline"
               className="bg-background"
-              disabled={recoveringStages || !funilAtivo}
+              loading={recoveringStages}
+              loadingText="Restaurando..."
+              disabled={!funilAtivo}
               onClick={() => void recoverOrphanStages()}
             >
-              {recoveringStages ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <LifeBuoy className="mr-1.5 h-3.5 w-3.5" />
-              )}
+              <LifeBuoy className="mr-1.5 h-3.5 w-3.5" />
               Restaurar etapas aqui
             </Button>
           )}
@@ -1787,6 +1793,8 @@ export function ComercialFunilBoard({
           );
         })}
       </div>
+        </>
+      )}
 
       {typeof document !== "undefined" &&
         createPortal(
@@ -2165,6 +2173,7 @@ function AnalistaFunilBoard() {
 
   const [items, setItems] = useState<Analise[]>([]);
   const [loading, setLoading] = useState(true);
+  const showAnalistaSkeleton = useDeferredLoading(loading && items.length === 0);
   const [docPrompt, setDocPrompt] = useState<Analise | null>(null);
   const [docOpen, setDocOpen] = useState(false);
   const [docTarget, setDocTarget] = useState<Analise | null>(null);
@@ -2442,11 +2451,8 @@ function AnalistaFunilBoard() {
         }
       />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-          Carregando…
-        </div>
+      {showAnalistaSkeleton ? (
+        <SkeletonKanban columns={ANALISTA_COLUMNS.length} />
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6">
           {ANALISTA_COLUMNS.map((col) => {

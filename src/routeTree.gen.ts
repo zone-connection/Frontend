@@ -40,6 +40,7 @@ import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
+import { Route as AppLembretesRouteImport } from './routes/_app.lembretes'
 import { Route as AppLocacaoRouteImport } from './routes/_app.locacao'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppMuralChavesRouteImport } from './routes/_app.mural-chaves'
@@ -277,6 +278,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
   id: '/leads-perdidos',
   path: '/leads-perdidos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLembretesRoute = AppLembretesRouteImport.update({
+  id: '/lembretes',
+  path: '/lembretes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLocacaoRoute = AppLocacaoRouteImport.update({
@@ -752,6 +758,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/lembretes': typeof AppLembretesRoute
   '/locacao': typeof AppLocacaoRoute
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
@@ -866,6 +873,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/lembretes': typeof AppLembretesRoute
   '/locacao': typeof AppLocacaoRoute
   '/metas': typeof AppMetasRoute
   '/mural-chaves': typeof AppMuralChavesRoute
@@ -979,6 +987,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/_app/lembretes': typeof AppLembretesRoute
   '/_app/locacao': typeof AppLocacaoRoute
   '/_app/metas': typeof AppMetasRoute
   '/_app/mural-chaves': typeof AppMuralChavesRoute
@@ -1097,6 +1106,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/lembretes'
     | '/locacao'
     | '/metas'
     | '/mural-chaves'
@@ -1211,6 +1221,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/lembretes'
     | '/locacao'
     | '/metas'
     | '/mural-chaves'
@@ -1323,6 +1334,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados'
     | '/_app/leads'
     | '/_app/leads-perdidos'
+    | '/_app/lembretes'
     | '/_app/locacao'
     | '/_app/metas'
     | '/_app/mural-chaves'
@@ -1645,6 +1657,13 @@ declare module '@tanstack/react-router' {
       path: '/leads-perdidos'
       fullPath: '/leads-perdidos'
       preLoaderRoute: typeof AppLeadsPerdidosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lembretes': {
+      id: '/_app/lembretes'
+      path: '/lembretes'
+      fullPath: '/lembretes'
+      preLoaderRoute: typeof AppLembretesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/locacao': {
@@ -2421,6 +2440,7 @@ interface AppRouteChildren {
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
+  AppLembretesRoute: typeof AppLembretesRoute
   AppLocacaoRoute: typeof AppLocacaoRoute
   AppMetasRoute: typeof AppMetasRoute
   AppMuralChavesRoute: typeof AppMuralChavesRoute
@@ -2468,6 +2488,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
+  AppLembretesRoute: AppLembretesRoute,
   AppLocacaoRoute: AppLocacaoRoute,
   AppMetasRoute: AppMetasRoute,
   AppMuralChavesRoute: AppMuralChavesRoute,
@@ -2577,3 +2598,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

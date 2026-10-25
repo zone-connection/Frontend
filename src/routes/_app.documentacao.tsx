@@ -11,6 +11,8 @@ import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { PagePanel, PanelLink } from "@/components/page-panel";
 import { Button } from "@/components/ui/button";
+import { SkeletonTableRows } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { TablePager } from "@/components/table-pager";
@@ -145,7 +147,6 @@ import {
 import {
   FolderOpen,
   Plus,
-  Loader2,
   Trash2,
   Pencil,
   Eye,
@@ -628,6 +629,7 @@ function DocumentacaoPage() {
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [gerentes, setGerentes] = useState<EquipeOptionUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const showDocSkeleton = useDeferredLoading(loading && items.length === 0);
   const [filterCorretorId, setFilterCorretorId] = useState<string>("__all__");
   const [filterSearch, setFilterSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
@@ -1936,15 +1938,12 @@ function DocumentacaoPage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={importParsing}
+                loading={importParsing}
+                loadingText="Importando..."
                 onClick={() => setImportHelpOpen(true)}
                 className={SOFT_BTN}
               >
-                {importParsing ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4 mr-1" />
-                )}
+                <Upload className="w-4 h-4 mr-1" />
                 Importar
               </Button>
             )}
@@ -2609,11 +2608,31 @@ function DocumentacaoPage() {
 
       <Card className="min-w-0 overflow-hidden">
         <CardContent className="min-w-0 p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Carregando…
-            </div>
+          {showDocSkeleton ? (
+            <Table
+              containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
+              className="w-full min-w-376 table-fixed text-xs [&_th]:h-9 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:overflow-hidden [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle"
+            >
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-48">Nome</TableHead>
+                  <TableHead className="w-40">Construtora</TableHead>
+                  <TableHead className="w-40">Empreend.</TableHead>
+                  <TableHead className="w-40">Status 1</TableHead>
+                  <TableHead className="w-40">Status 2</TableHead>
+                  <TableHead className="w-36">VGV</TableHead>
+                  <TableHead className="w-40">Corretor</TableHead>
+                  {!isSolo ? (
+                    <TableHead className="w-40">Gerente</TableHead>
+                  ) : null}
+                  <TableHead className="w-40">Fonte</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonTableRows rows={8} cols={isSolo ? 9 : 10} />
+              </TableBody>
+            </Table>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
               <FolderOpen className="w-8 h-8 opacity-40" />
@@ -3448,8 +3467,7 @@ function DocumentacaoPage() {
                   : "Cancelar"}
             </Button>
             {!readOnly && (
-              <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              <Button type="submit" loading={saving} loadingText="Salvando...">
                 Salvar
               </Button>
             )}
@@ -3540,8 +3558,7 @@ function DocumentacaoPage() {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={quickSaving}>
-              {quickSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button type="submit" loading={quickSaving} loadingText="Criando...">
               Criar
             </Button>
           </FormDialogActions>
@@ -3593,8 +3610,7 @@ function DocumentacaoPage() {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={empSaving}>
-              {empSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button type="submit" loading={empSaving} loadingText="Criando...">
               Criar
             </Button>
           </FormDialogActions>
@@ -3817,14 +3833,11 @@ function DocumentacaoPage() {
             </Button>
             <Button
               type="button"
-              disabled={importParsing}
+              loading={importParsing}
+              loadingText="Lendo arquivo..."
               onClick={() => importInputRef.current?.click()}
             >
-              {importParsing ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4 mr-1" />
-              )}
+              <Upload className="w-4 h-4 mr-1" />
               Escolher arquivo
             </Button>
           </DialogFooter>
@@ -3897,14 +3910,11 @@ function DocumentacaoPage() {
             </Button>
             <Button
               type="button"
-              disabled={
-                importSaving || importRows.every((r) => Boolean(r.error))
-              }
+              loading={importSaving}
+              loadingText="Importando..."
+              disabled={importRows.every((r) => Boolean(r.error))}
               onClick={() => void confirmImport()}
             >
-              {importSaving && (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              )}
               Importar válidos
             </Button>
           </DialogFooter>

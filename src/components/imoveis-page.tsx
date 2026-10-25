@@ -9,6 +9,8 @@ import {
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
+import { SkeletonPropertyCards } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import {
@@ -664,6 +666,12 @@ export function ImoveisPage({
   const [estoqueUsados, setEstoqueUsados] = useState<VendaUsado[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [loading, setLoading] = useState(true);
+  const showImoveisSkeleton = useDeferredLoading(
+    loading &&
+      items.length === 0 &&
+      captacaoImoveis.length === 0 &&
+      estoqueUsados.length === 0,
+  );
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
   const [localidade, setLocalidade] = useState("");
@@ -2100,11 +2108,8 @@ export function ImoveisPage({
         <h2 className="mb-3 mt-2 text-base font-semibold">Catálogo</h2>
       ) : null}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-          Carregando…
-        </div>
+      {showImoveisSkeleton ? (
+        <SkeletonPropertyCards />
       ) : catalogEmpty ? (
         <Card className={TABLE_SHELL}>
           <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
@@ -2881,10 +2886,10 @@ export function ImoveisPage({
             <Button
               type="button"
               className="rounded-xl"
-              disabled={quickSaving}
+              loading={quickSaving}
+              loadingText={editingId ? "Salvando..." : "Cadastrando..."}
               onClick={() => void handleQuickSave()}
             >
-              {quickSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               {editingId ? "Salvar" : "Cadastrar"}
             </Button>
           </FormDialogActions>
@@ -4270,12 +4275,10 @@ export function ImoveisPage({
             </Button>
             <Button
               type="button"
-              disabled={quickCatalogSaving}
+              loading={quickCatalogSaving}
+              loadingText={quickCatalogEditing ? "Salvando..." : "Adicionando..."}
               onClick={() => void saveQuickCatalog()}
             >
-              {quickCatalogSaving && (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              )}
               {quickCatalogEditing ? "Salvar" : "Adicionar"}
             </Button>
           </DialogFooter>

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,8 @@ const buttonVariants = cva(
           "border border-[#E2E8EC] bg-white text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:border-[#079ED4]/50 dark:hover:bg-[#243044] dark:hover:text-[#f8fafc] [&_svg]:text-[#079ED4]",
         secondary:
           "border border-[#E2E8EC] bg-white text-[#16324A] shadow-none hover:bg-[#F3FAFD] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] dark:hover:bg-[#243044] dark:hover:text-[#f8fafc] [&_svg]:text-[#079ED4]",
-        ghost: "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
+        ghost:
+          "text-[#5C6B76] hover:bg-[#F3FAFD] hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
         link: "text-[#05749E] underline-offset-4 hover:underline dark:text-[#7DD3FC]",
       },
       size: {
@@ -39,17 +41,45 @@ export interface ButtonProps
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
+  loadingText?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      loading = false,
+      loadingText,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         {...props}
-      />
+      >
+        {asChild ? (
+          children
+        ) : (
+          <>
+            {loading ? (
+              <Loader2 className="animate-spin motion-reduce:animate-none" />
+            ) : null}
+            {loading && loadingText ? loadingText : children}
+          </>
+        )}
+      </Comp>
     );
   },
 );

@@ -6,6 +6,7 @@ import {
   Funnel,
   Crosshair,
   ListTodo,
+  BellRing,
   Building2,
   HardHat,
   UserCircle2,
@@ -77,11 +78,22 @@ import {
 } from "@/lib/novidades";
 import { ApiError } from "@/lib/api";
 import {
+  fetchAtividadesProximas,
+  type AtividadeProxima,
+} from "@/lib/atividades-proximas";
+import {
+  fetchLembretesPendentes,
+  LOGIN_LEMBRETES_FLAG,
+  reconhecerLembretesPendentes,
+  type LembretePessoal,
+} from "@/lib/lembretes-api";
+import {
   fetchNotificacoes,
   markAllNotificacoesLidas,
   markNotificacaoLida,
   type Notificacao,
 } from "@/lib/notificacoes-api";
+import { visualNotificacao } from "@/lib/notificacao-visual";
 import { syncLeadMonitoramento } from "@/lib/leads-api";
 import {
   fetchAgendaLembretes,
@@ -89,6 +101,7 @@ import {
   type AgendaUrgencia,
 } from "@/lib/agenda-api";
 import { AgendaLembretesDialog } from "@/components/agenda-lembretes-dialog";
+import { LoginLembretesDialog } from "@/components/login-lembretes-dialog";
 import { ChaveConfirmacaoGate } from "@/components/chave-confirmacao-gate";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -276,6 +289,7 @@ const PLATFORM_OPERACAO_MODULES: NavLeaf[] = [
   { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
   { to: "/funil", label: "Funil", icon: Funnel },
   { to: "/tarefas", label: "Tarefas", icon: ListTodo },
+  { to: "/lembretes", label: "Lembretes", icon: BellRing },
   { to: "/metas", label: "Metas", icon: Target },
 ];
 
@@ -358,9 +372,15 @@ function leafSection(grupo: string, leaf: NavLeaf): NavSection {
   };
 }
 
-const COMERCIAL_GRUPO = ["/leads", "/triagem", "/funil", "/whatsapp", "/caca-lead"];
+const COMERCIAL_GRUPO = [
+  "/leads",
+  "/triagem",
+  "/funil",
+  "/whatsapp",
+  "/caca-lead",
+  "/leads-perdidos",
+];
 const CARTEIRA_GRUPO = ["/clientes", "/funil-clientes"];
-const PERDAS_GRUPO = ["/leads-perdidos"];
 const PERDAS_CLIENTES_GRUPO = ["/clientes-perdidos"];
 const TIME_GRUPO = ["/equipes", "/usuarios", "/permissoes", "/presenca", "/corretores"];
 const RESULTADO_GRUPO = ["/metas", "/resultado", "/taxa-conversao", "/atrasos"];
@@ -426,14 +446,6 @@ const NAV_SECTIONS: NavSection[] = [
     COMERCIAL_NAV_LEAVES,
   ),
   folderSection(
-    "perdas",
-    "funil",
-    "Perdas",
-    UserX,
-    PERDAS_GRUPO,
-    COMERCIAL_NAV_LEAVES,
-  ),
-  folderSection(
     "perdas-clientes",
     "funil",
     "Perdas de clientes",
@@ -449,6 +461,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/tarefas", label: "Tarefas", icon: ListTodo },
+      { to: "/lembretes", label: "Lembretes", icon: BellRing },
     ],
   },
   {
@@ -568,11 +581,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [agendaProximos, setAgendaProximos] = useState<AgendaProximo[]>([]);
   const [lembretesOpen, setLembretesOpen] = useState(false);
   const [anuncioOpen, setAnuncioOpen] = useState(false);
+  const [loginLembretes, setLoginLembretes] = useState<LembretePessoal[]>([]);
+  const [loginAtividades, setLoginAtividades] = useState<AtividadeProxima[]>([]);
+  const [loginLembretesOpen, setLoginLembretesOpen] = useState(false);
+  const [loginLembretesAck, setLoginLembretesAck] = useState(false);
   const adiarLembretesRef = useRef(false);
   const lembretesAposAnuncioRef = useRef(false);
+  const loginLembretesCheckedRef = useRef(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [analiseAlert, setAnaliseAlert] = useState<Notificacao | null>(null);
-  adiarLembretesRef.current = Boolean(user) && novidadeAnuncioPendente();
+  adiarLembretesRef.current =
+    Boolean(user) &&
+    (novidadeAnuncioPendente() ||
+      loginLembretesOpen ||
+      (typeof sessionStorage !== "undefined" &&
+        sessionStorage.getItem(LOGIN_LEMBRETES_FLAG) === "1"));
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isTriagem = pathname === "/triagem";
@@ -703,8 +726,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    if (novidadeAnuncioPendente()) setAnuncioOpen(true);
+    if (loginLembretesCheckedRef.current) return;
+    loginLembretesCheckedRef.current = true;
+    let showLogin = false;
+    try {
+      showLogin = sessionStorage.getItem(LOGIN_LEMBRETES_FLAG) === "1";
+      sessionStorage.removeItem(LOGIN_LEMBRETES_FLAG);
+    } catch {
+      showLogin = false;
+    }
+    if (!showLogin) return;
+    void Promise.all([
+      fetchLembretesPendentes().catch(() => [] as LembretePessoal[]),
+      fetchAtividadesProximas().catch(() => [] as AtividadeProxima[]),
+    ]).then(([items, atividades]) => {
+      if (items.length === 0 && atividades.length === 0) return;
+      setAnuncioOpen(false);
+      setLoginLembretes(items);
+      setLoginAtividades(atividades);
+      setLoginLembretesOpen(true);
+      if (atividades.length > 0) {
+        try {
+          sessionStorage.setItem(SESSION_LEMBRETE_KEY, "1");
+        } catch {
+          // ignore
+        }
+      }
+    });
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (loginLembretesOpen) return;
+    if (novidadeAnuncioPendente()) setAnuncioOpen(true);
+  }, [user, loginLembretesOpen]);
 
   const fecharAnuncio = useCallback(() => {
     marcarNovidadeAnuncioVista();
@@ -718,6 +773,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     setLembretesOpen(true);
   }, []);
+
+  const fecharLoginLembretes = useCallback(async () => {
+    if (loginLembretesAck) return;
+    setLoginLembretesAck(true);
+    try {
+      await reconhecerLembretesPendentes();
+    } catch {
+      // silencioso
+    }
+    setLoginLembretesOpen(false);
+    setLoginLembretes([]);
+    setLoginAtividades([]);
+    if (novidadeAnuncioPendente()) {
+      setAnuncioOpen(true);
+      return;
+    }
+    if (!lembretesAposAnuncioRef.current) return;
+    lembretesAposAnuncioRef.current = false;
+    try {
+      sessionStorage.setItem(SESSION_LEMBRETE_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setLembretesOpen(true);
+  }, [loginLembretesAck]);
 
   useEffect(() => {
     if (!user) return;
@@ -1954,9 +2034,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className="relative"
                     aria-label="Notificações"
                   >
-                    <Bell className="w-4 h-4" />
+                    <Bell
+                      className={cn(
+                        "h-4 w-4",
+                        unreadCount > 0 && "bell-has-unread",
+                      )}
+                    />
                     {unreadCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-primary">
+                      <Badge className="absolute -top-1 -right-1 h-4 min-w-4 border-0 bg-[#F97316] px-1 text-[10px] text-white hover:bg-[#EA580C]">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </Badge>
                     )}
@@ -1973,46 +2058,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   align="end"
                   side="bottom"
                   sideOffset={8}
-                  className="w-80 p-0"
+                  className="w-[min(100vw-1.5rem,22.5rem)] overflow-hidden rounded-2xl border-[#E8EEF2] p-0 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
                 >
-                  <div className="flex items-center justify-between px-3 py-2 border-b">
-                    <p className="text-sm font-semibold">Notificações</p>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <p className="text-[15px] font-semibold text-[#16324A] dark:text-foreground">
+                      Notificações
+                    </p>
                     {unreadCount > 0 && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-7 rounded-full border-[#F4C7A5] bg-white px-2.5 text-[11px] font-medium text-[#E06A1A] hover:bg-[#FFF6F0] hover:text-[#C65A12]"
                         onClick={() => void handleMarkAllRead()}
                       >
                         Marcar todas
                       </Button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-96 overflow-y-auto">
                     {notificacoes.length === 0 ? (
-                      <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      <div className="px-4 py-10 text-center text-xs text-muted-foreground">
                         Nenhuma notificação
                       </div>
                     ) : (
-                      notificacoes.map((n) => (
-                        <button
-                          key={n.id}
-                          type="button"
-                          className={cn(
-                            "w-full text-left px-3 py-2.5 border-b last:border-0 hover:bg-accent/60 transition-colors",
-                            !n.lida && "bg-primary/5",
-                          )}
-                          onClick={() => void handleOpenNotif(n)}
-                        >
-                          <div className="text-xs font-medium leading-snug">
-                            {n.titulo}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
-                            {n.corpo}
-                          </div>
-                        </button>
-                      ))
+                      notificacoes.map((n) => {
+                        const visual = visualNotificacao(n.tipo);
+                        const Icon = visual.icon;
+                        return (
+                          <button
+                            key={n.id}
+                            type="button"
+                            className={cn(
+                              "flex w-full items-start gap-3 border-t border-[#F0F3F6] px-4 py-3 text-left transition-colors hover:bg-[#F8FBFD] dark:border-white/5 dark:hover:bg-white/5",
+                              !n.lida && "bg-[#FFF6F0] dark:bg-orange-500/10",
+                            )}
+                            onClick={() => void handleOpenNotif(n)}
+                          >
+                            <span
+                              className={cn(
+                                "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full",
+                                visual.wrap,
+                              )}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[13px] font-semibold leading-snug text-[#16324A] dark:text-foreground">
+                                {n.titulo}
+                              </span>
+                              <span className="mt-0.5 block text-[12px] leading-snug text-[#6B7C89] dark:text-muted-foreground">
+                                {n.corpo}
+                              </span>
+                            </span>
+                            <span className="mt-1 flex shrink-0 items-center gap-1.5">
+                              {!n.lida ? (
+                                <span className="size-1.5 rounded-full bg-[#F97316]" />
+                              ) : null}
+                              <ChevronRight className="h-3.5 w-3.5 text-[#C5CED6]" />
+                            </span>
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </PopoverContent>
@@ -2116,16 +2223,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <GuiaTourHost />
       </div>
 
+      <LoginLembretesDialog
+        open={loginLembretesOpen}
+        items={loginLembretes}
+        atividades={loginAtividades}
+        acknowledging={loginLembretesAck}
+        onEntendi={() => void fecharLoginLembretes()}
+      />
+
       <NovidadeAnuncioDialog
         open={anuncioOpen}
         onOpenChange={(open) => {
           if (!open) fecharAnuncio();
         }}
-        podeAbrirTarefas={
+        podeAbrirDestino={
           user
             ? canAccessRoute(
                 user.role,
-                "/tarefas",
+                "/leads",
                 modules,
                 plano,
                 user.permissions ?? null,

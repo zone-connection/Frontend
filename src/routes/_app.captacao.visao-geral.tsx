@@ -8,6 +8,8 @@ import {
 } from "@/components/funnel-bar-chart";
 import { OperationSection } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
+import { SkeletonKpiGrid } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { ApiError } from "@/lib/api";
 import {
   fetchCaptacaoResumo,
@@ -17,7 +19,7 @@ import {
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
-import { Building2, Home, Kanban, Loader2, Plus, Users } from "lucide-react";
+import { Building2, Home, Kanban, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/captacao/visao-geral")({
@@ -31,6 +33,7 @@ function CaptacaoVisaoGeralPage() {
   const [paradas, setParadas] = useState(0);
   const [portal, setPortal] = useState(0);
   const [exclusividade, setExclusividade] = useState(0);
+  const showSkeleton = useDeferredLoading(loading && !resumo);
 
   useEffect(() => {
     void Promise.all([
@@ -93,11 +96,8 @@ function CaptacaoVisaoGeralPage() {
           </div>
         }
       />
-      {loading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando…
-        </div>
+      {showSkeleton ? (
+        <SkeletonKpiGrid count={5} />
       ) : resumo ? (
         <div className="space-y-8">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

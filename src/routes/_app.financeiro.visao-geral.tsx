@@ -43,7 +43,6 @@ import {
   ChevronRight,
   CircleDashed,
   Eye,
-  Loader2,
   Percent,
   PieChart as PieChartIcon,
   Pin,
@@ -53,6 +52,12 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  SkeletonChart,
+  SkeletonKpiGrid,
+  SkeletonList,
+} from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { toast } from "sonner";
 import {
   Bar,
@@ -230,6 +235,7 @@ function Page() {
   const [hideValues] = useHideFinanceiroValues();
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState(EMPTY_KPIS);
+  const showSkeleton = useDeferredLoading(loading && kpis === EMPTY_KPIS);
   const [mesesResumo, setMesesResumo] = useState<MesResumo[]>([]);
   const [centros, setCentros] = useState<CentroDespesaResumo[]>([]);
   const [pipeline, setPipeline] = useState<{
@@ -498,13 +504,16 @@ function Page() {
         }}
       />
 
-      {loading ? (
-        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando indicadores...
+      {showSkeleton ? (
+        <div className="space-y-4">
+          <SkeletonKpiGrid count={4} />
+          <div className="grid min-w-0 gap-4 lg:grid-cols-5">
+            <SkeletonChart className="lg:col-span-3" />
+            <SkeletonList rows={5} />
+          </div>
         </div>
-      ) : null}
-
+      ) : (
+      <>
       <PagePanel
         inset="muted"
         className="mb-4"
@@ -982,6 +991,8 @@ function Page() {
           ) : null}
         </FormDialogBody>
       </FormDialogShell>
+      </>
+      )}
     </div>
   );
 }

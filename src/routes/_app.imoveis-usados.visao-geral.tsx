@@ -8,6 +8,8 @@ import {
 } from "@/components/funnel-bar-chart";
 import { OperationSection } from "@/components/operacao-ui";
 import { Button } from "@/components/ui/button";
+import { SkeletonDashboard } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { ApiError } from "@/lib/api";
 import { fetchUsadosResumo, type UsadosResumo } from "@/lib/imoveis-usados-api";
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
@@ -21,7 +23,6 @@ import {
   FileSignature,
   FileText,
   KeyRound,
-  Loader2,
   Plus,
   Store,
   Users,
@@ -36,6 +37,7 @@ function UsadosVisaoGeralPage() {
   const [resumo, setResumo] = useState<UsadosResumo | null>(null);
   const [funil, setFunil] = useState<Funil | null>(null);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDeferredLoading(loading && !resumo);
 
   useEffect(() => {
     void Promise.all([
@@ -78,11 +80,8 @@ function UsadosVisaoGeralPage() {
           </div>
         }
       />
-      {loading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando…
-        </div>
+      {showSkeleton ? (
+        <SkeletonDashboard />
       ) : resumo ? (
         <div className="space-y-8">
           <OverviewFunnelPanel

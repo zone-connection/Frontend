@@ -4,7 +4,9 @@ import { PageHeader } from "@/components/app-shell";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import { dashCardTone } from "@/components/finance-kpi-card";
 import { Card } from "@/components/ui/card";
+import { SkeletonTableRows } from "@/components/skeletons";
 import { TablePager } from "@/components/table-pager";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { useTablePager } from "@/lib/use-table-pager";
 import {
   Table,
@@ -349,6 +351,7 @@ function Clientes() {
     loading,
     refresh,
   } = useLeads();
+  const showClienteSkeleton = useDeferredLoading(loading && allLeads.length === 0);
   const {
     origens: origemOptions,
     tags: tagOptions,
@@ -1091,7 +1094,9 @@ function Clientes() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clientesPager.pageItems.map((l) => (
+            {showClienteSkeleton ? (
+              <SkeletonTableRows rows={8} cols={isCorretor ? 7 : 8} />
+            ) : clientesPager.pageItems.map((l) => (
               <TableRow
                 key={l.id}
                 className="hover:bg-muted/40 cursor-pointer"
@@ -1221,7 +1226,7 @@ function Clientes() {
                 </TableCell>
               </TableRow>
             ))}
-            {clientes.length === 0 && (
+            {!showClienteSkeleton && clientes.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={isCorretor ? 7 : 8}

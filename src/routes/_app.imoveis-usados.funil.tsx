@@ -6,6 +6,8 @@ import {
   OperationFunnelBoard,
 } from "@/components/operation-funnel-board";
 import { VendaUsadoDetalheDialog } from "@/components/venda-usado-detalhe-dialog";
+import { SkeletonKanban } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -41,7 +43,7 @@ import {
 import { canViewTeamData } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { FILTER_CONTROL } from "@/lib/filter-bar";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/imoveis-usados/funil")({
@@ -96,6 +98,7 @@ function UsadosFunilPage() {
   const [leads, setLeads] = useState<ReturnType<typeof mapApiLead>[]>([]);
   const [items, setItems] = useState<VendaUsado[]>([]);
   const [loading, setLoading] = useState(true);
+  const showKanbanSkeleton = useDeferredLoading(loading && items.length === 0);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [canScroll, setCanScroll] = useState({ left: false, right: false });
   const [detail, setDetail] = useState<VendaUsado | null>(null);
@@ -348,11 +351,8 @@ function UsadosFunilPage() {
           </div>
         }
       />
-      {loading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando…
-        </div>
+      {showKanbanSkeleton ? (
+        <SkeletonKanban />
       ) : (
         <div className="space-y-8">
             <section>

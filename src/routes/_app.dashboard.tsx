@@ -7,7 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
+import { InlineSpinner } from "@/components/inline-spinner";
 import { PagePanel } from "@/components/page-panel";
+import { SkeletonDashboard, SkeletonList } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { EvolucaoBadge, FinanceKpiCard } from "@/components/finance-kpi-card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -57,7 +60,6 @@ import {
   Home,
   Kanban,
   KeyRound,
-  Loader2,
   Percent,
   SlidersHorizontal,
   TrendingUp,
@@ -179,10 +181,9 @@ function EntradaLista({
         {ENTRADA_TITULO[recorte]}
       </p>
       {loading ? (
-        <p className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando lista…
-        </p>
+        <div className="px-2 py-2">
+          <SkeletonList rows={4} />
+        </div>
       ) : itens.length === 0 ? (
         <p className="px-4 py-6 text-sm text-muted-foreground">{vazio}</p>
       ) : (
@@ -588,6 +589,8 @@ function DashboardAdminView() {
   const [operacaoFilter, setOperacaoFilter] = useState("all");
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
+  const awaitingFirst = loading && !summary;
+  const showSkeleton = useDeferredLoading(awaitingFirst);
   const [entradaRecorte, setEntradaRecorte] =
     useState<DashboardEntradaRecorte | null>(null);
   const [entradaLista, setEntradaLista] = useState<DashboardEntradaLista | null>(
@@ -809,7 +812,7 @@ function DashboardAdminView() {
     </Popover>
   );
 
-  if (loading && !summary) {
+  if (awaitingFirst) {
     return (
       <div>
         <PageHeader
@@ -823,10 +826,11 @@ function DashboardAdminView() {
           }
           actions={filtros}
         />
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Carregando indicadores…
-        </div>
+        {showSkeleton ? (
+          <SkeletonDashboard />
+        ) : (
+          <div className="min-h-[28rem]" aria-busy="true" />
+        )}
       </div>
     );
   }
@@ -868,10 +872,7 @@ function DashboardAdminView() {
           actions={filtros}
         />
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Atualizando indicadores…
-          </div>
+          <InlineSpinner label="Atualizando indicadores…" />
         ) : null}
         <PagePanel
           inset="muted"
@@ -984,10 +985,7 @@ function DashboardAdminView() {
         />
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Atualizando indicadores…
-        </div>
+        <InlineSpinner label="Atualizando indicadores…" />
       ) : null}
 
       <PagePanel
@@ -1830,6 +1828,8 @@ function DashboardCorretorView() {
   const { funnelStages, stageByPapel } = useCatalog();
   const [summary, setSummary] = useState<DashboardCorretor | null>(null);
   const [loading, setLoading] = useState(true);
+  const awaitingFirst = loading && !summary;
+  const showSkeleton = useDeferredLoading(awaitingFirst);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1877,17 +1877,18 @@ function DashboardCorretorView() {
     [summary],
   );
 
-  if (loading) {
+  if (awaitingFirst) {
     return (
       <div>
         <PageHeader
           title="Dashboard"
           description="Visão geral da sua operação."
         />
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Carregando indicadores…
-        </div>
+        {showSkeleton ? (
+          <SkeletonDashboard />
+        ) : (
+          <div className="min-h-[28rem]" aria-busy="true" />
+        )}
       </div>
     );
   }

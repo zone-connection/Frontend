@@ -13,6 +13,8 @@ export type Novidade = {
   href: string;
   hrefLabel: string;
   status: string;
+  /** Texto de apoio no destaque visual do anúncio de login. */
+  dropHint?: string;
   agora: string[];
   /** Prefixo de rota do menu que recebe o selo Novo. */
   navPaths: string[];
@@ -35,7 +37,9 @@ export const NOVIDADES: Novidade[] = [
     where: "Abra um lead ou cliente e vá em Documentações.",
     href: "/leads",
     hrefLabel: "Abrir leads",
-    status: "Disponível na ficha do lead e do cliente",
+    status: "Disponível da ficha do lead e do cliente",
+    dropHint:
+      "Arraste e solte seus arquivos aqui ou clique para selecionar. PDF, JPG, PNG e outros formatos.",
     agora: [
       "Envie PDF ou imagem de até 5 MB.",
       "O histórico registra quem enviou, visualizou, baixou ou compartilhou.",

@@ -466,7 +466,7 @@ html.tenant-density-compact .space-y-6 {
 
 .operacao-section-in > *,
 .operacao-section-out > * {
-  animation-duration: 420ms;
+  animation-duration: 220ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   animation-fill-mode: both;
 }
@@ -517,19 +517,19 @@ html.tenant-density-compact .space-y-6 {
 .operacao-section-out > *:nth-child(16) { animation-delay: 545ms; }
 
 .module-page-in > *:first-child {
-  animation: module-block-in 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: module-block-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .module-page-in > *:nth-child(n + 2) > * {
-  animation: module-block-in 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: module-block-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.module-page-in > *:nth-child(n + 2) > *:nth-child(1) { animation-delay: 60ms; }
-.module-page-in > *:nth-child(n + 2) > *:nth-child(2) { animation-delay: 120ms; }
-.module-page-in > *:nth-child(n + 2) > *:nth-child(3) { animation-delay: 180ms; }
-.module-page-in > *:nth-child(n + 2) > *:nth-child(4) { animation-delay: 240ms; }
-.module-page-in > *:nth-child(n + 2) > *:nth-child(5) { animation-delay: 300ms; }
-.module-page-in > *:nth-child(n + 2) > *:nth-child(6) { animation-delay: 360ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(1) { animation-delay: 20ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(2) { animation-delay: 40ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(3) { animation-delay: 60ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(4) { animation-delay: 80ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(5) { animation-delay: 100ms; }
+.module-page-in > *:nth-child(n + 2) > *:nth-child(6) { animation-delay: 120ms; }
 
 @keyframes check-draw {
   from {
@@ -568,6 +568,34 @@ html.tenant-density-compact .space-y-6 {
   }
 }
 
+@keyframes bell-ring {
+  0%,
+  12%,
+  100% {
+    transform: rotate(0deg);
+  }
+  2% {
+    transform: rotate(16deg);
+  }
+  4% {
+    transform: rotate(-14deg);
+  }
+  6% {
+    transform: rotate(12deg);
+  }
+  8% {
+    transform: rotate(-8deg);
+  }
+  10% {
+    transform: rotate(4deg);
+  }
+}
+
+.bell-has-unread {
+  transform-origin: top center;
+  animation: bell-ring 2.8s ease-in-out infinite;
+}
+
 .motion-item {
   animation: motion-item-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -591,10 +619,17 @@ body.funil-card-dragging * {
   user-select: none !important;
 }
 
+body.funil-card-dragging .motion-item,
+body.funil-card-dragging .motion-rows > tr,
+body.funil-card-dragging .module-page-in > * {
+  animation: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .check-draw,
   .motion-item,
   .motion-rows > tr,
+  .bell-has-unread,
   .before\:animate-\[skeleton-shimmer_1\.4s_ease-in-out_infinite\] {
     animation: none;
   }

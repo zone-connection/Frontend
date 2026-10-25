@@ -258,6 +258,7 @@ export function canAccessRoute(
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
   }
   if (path === "/novidades") return true;
+  if (path === "/lembretes") return true;
   if (path === "/caca-lead") return true;
   if (path === "/whatsapp") {
     const routes = getAllowedRoutes(role);

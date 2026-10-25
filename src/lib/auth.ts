@@ -1,4 +1,5 @@
 import { apiFetch, expireReadableCsrfCookies, sessionCache, storeCsrfToken } from "@/lib/api";
+import { LOGIN_LEMBRETES_FLAG } from "@/lib/lembretes-api";
 import { reiniciarNovidadeAnuncio } from "@/lib/novidades";
 
 export type Role =
@@ -127,6 +128,11 @@ export async function signIn(
 
   sessionCache.setUser(data.user);
   storeCsrfToken(data.csrfToken);
+  try {
+    sessionStorage.setItem(LOGIN_LEMBRETES_FLAG, "1");
+  } catch {
+    // ignore
+  }
   reiniciarNovidadeAnuncio();
   lastValidatedAt = Date.now();
   writeValidatedAt(lastValidatedAt);
@@ -141,6 +147,11 @@ export async function signOut(): Promise<void> {
     // Mesmo se o backend estiver fora, a sessão local precisa ser encerrada.
   } finally {
     sessionCache.clear();
+    try {
+      sessionStorage.removeItem(LOGIN_LEMBRETES_FLAG);
+    } catch {
+      // ignore
+    }
     lastValidatedAt = 0;
     writeValidatedAt(0);
     validatedThisDocument = false;

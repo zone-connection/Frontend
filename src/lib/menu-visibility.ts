@@ -7,7 +7,10 @@ export const MENU_VISIBILITY_EVENT = "menu-visibility-pref";
 export const MENU_OCULTAVEIS = [
   {
     grupo: "Dia",
-    items: [{ to: "/tarefas", label: "Tarefas" }],
+    items: [
+      { to: "/tarefas", label: "Tarefas" },
+      { to: "/lembretes", label: "Lembretes" },
+    ],
   },
   {
     grupo: "Comercial",
@@ -17,6 +20,7 @@ export const MENU_OCULTAVEIS = [
       { to: "/triagem", label: "Triagem" },
       { to: "/funil", label: "Funil" },
       { to: "/caca-lead", label: "Caça-lead" },
+      { to: "/leads-perdidos", label: "Leads perdidos" },
     ],
   },
   {
@@ -28,10 +32,7 @@ export const MENU_OCULTAVEIS = [
   },
   {
     grupo: "Perdas",
-    items: [
-      { to: "/leads-perdidos", label: "Leads perdidos" },
-      { to: "/clientes-perdidos", label: "Clientes perdidos" },
-    ],
+    items: [{ to: "/clientes-perdidos", label: "Clientes perdidos" }],
   },
   {
     grupo: "Imóveis",

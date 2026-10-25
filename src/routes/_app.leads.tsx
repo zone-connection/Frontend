@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { SkeletonTableRows } from "@/components/skeletons";
 import { TablePager } from "@/components/table-pager";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -645,6 +647,7 @@ function LeadsPage() {
     assignees,
     refresh,
   } = useLeads();
+  const showLeadSkeleton = useDeferredLoading(loading && allLeads.length === 0);
   const {
     funnelStages,
     origens: origemOptions,
@@ -3825,7 +3828,9 @@ function LeadsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {showLeadSkeleton ? (
+              <SkeletonTableRows rows={8} cols={leadTableColSpan} />
+            ) : loading && filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={leadTableColSpan}

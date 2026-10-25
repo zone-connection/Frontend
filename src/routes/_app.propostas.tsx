@@ -23,6 +23,8 @@ import {
 } from "@/components/form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SkeletonTableRows } from "@/components/skeletons";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1047,6 +1049,9 @@ function Page() {
     () => new Set(),
   );
   const [loading, setLoading] = useState(true);
+  const showPropostaSkeleton = useDeferredLoading(
+    loading && items.length === 0 && usadosPropostas.length === 0,
+  );
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
@@ -2202,16 +2207,8 @@ function Page() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={10}
-                  className="h-24 text-center text-sm text-muted-foreground"
-                >
-                  <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
-                  Carregando…
-                </TableCell>
-              </TableRow>
+            {showPropostaSkeleton ? (
+              <SkeletonTableRows rows={8} cols={10} />
             ) : sortedRows.length === 0 ? (
               <TableRow>
                 <TableCell
@@ -2975,8 +2972,12 @@ function Page() {
             >
               Cancelar
             </Button>
-            <Button type="submit" form="proposta-form" disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button
+              type="submit"
+              form="proposta-form"
+              loading={saving}
+              loadingText="Salvando..."
+            >
               Salvar
             </Button>
           </FormDialogActions>
@@ -4050,8 +4051,7 @@ function Page() {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={quickSaving}>
-              {quickSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button type="submit" loading={quickSaving} loadingText="Criando...">
               Criar
             </Button>
           </FormDialogActions>
@@ -4103,8 +4103,7 @@ function Page() {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={empSaving}>
-              {empSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button type="submit" loading={empSaving} loadingText="Criando...">
               Criar
             </Button>
           </FormDialogActions>
@@ -4237,8 +4236,11 @@ function Page() {
               <Button type="button" variant="ghost" onClick={() => setUsadoCreateOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={usadoSaving}>
-                {usadoSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              <Button
+                type="submit"
+                loading={usadoSaving}
+                loadingText="Criando..."
+              >
                 Criar proposta
               </Button>
             </FormDialogActions>

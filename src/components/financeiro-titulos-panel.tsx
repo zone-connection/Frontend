@@ -154,7 +154,6 @@ import {
   FileText,
   Layers,
   ListOrdered,
-  Loader2,
   Pencil,
   Percent,
   Plus,
@@ -2206,11 +2205,11 @@ export function FinanceiroTitulosPanel({
             <Button
               type="submit"
               form="titulo-form"
-              disabled={saving}
+              loading={saving}
+              loadingText="Salvando..."
               className={BRAND_GRADIENT_BTN}
               style={BRAND_GRADIENT_STYLE}
             >
-              {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Salvar
             </Button>
           </FormDialogActions>
@@ -3307,11 +3306,11 @@ export function FinanceiroTitulosPanel({
             <Button
               type="submit"
               form="quick-financeiro-form"
-              disabled={quickSaving}
+              loading={quickSaving}
+              loadingText="Criando..."
               className={BRAND_GRADIENT_BTN}
               style={BRAND_GRADIENT_STYLE}
             >
-              {quickSaving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Criar
             </Button>
           </FormDialogActions>
@@ -3387,12 +3386,12 @@ export function FinanceiroTitulosPanel({
             </Button>
             <Button
               type="button"
-              disabled={busy}
+              loading={busy}
+              loadingText="Confirmando..."
               className={BRAND_GRADIENT_BTN}
               style={BRAND_GRADIENT_STYLE}
               onClick={() => void onBaixar()}
             >
-              {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Confirmar baixa
             </Button>
           </FormDialogActions>
