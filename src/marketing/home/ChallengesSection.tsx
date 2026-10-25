@@ -17,6 +17,7 @@ import {
   MessageSquareText,
   Network,
   UserRoundX,
+  FileText
 } from "lucide-react";
 import { getWhatsAppUrl } from "@/lib/env";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,13 @@ const CHALLENGES = [
     icon: AppWindow,
     title: "Vários sistemas",
     text: "CRM, planilha, WhatsApp e agenda em ferramentas que não conversam.",
-    tone: "bg-[var(--kpi-seq-2,#079ED4)]",
+    tone: "bg-pink-600",
+  },
+  {
+    icon: FileText,
+    title: "Documentações perdidas",
+    text: "Propostas, contratos e documentos importantes ficam sem controle.",
+    tone: "bg-orange-600",
   },
 ] as const;
 
