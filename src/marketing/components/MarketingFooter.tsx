@@ -54,6 +54,9 @@ export function MarketingFooter() {
                 Institucional
               </p>
               <Link to="/" className={footerLinkClass}>
+                Início
+              </Link>
+              <Link to="/about" className={footerLinkClass}>
                 Sobre
               </Link>
               <a href={HOME_ANCHORS.solutions} className={footerLinkClass}>

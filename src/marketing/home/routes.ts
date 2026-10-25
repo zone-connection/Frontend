@@ -11,7 +11,7 @@ export const PRODUCT_ROUTES = {
 } as const;
 
 export const HOME_ANCHORS = {
-  about: "/",
+  about: "/about",
   mission: "/",
   culture: "/",
   ecosystem: "/#ecossistema",

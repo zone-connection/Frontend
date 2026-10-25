@@ -83,7 +83,7 @@ export function HeroSection() {
                         {HIGHLIGHTS.map((item, index) => (
                             <motion.li
                                 key={item}
-                                className="flex items-start gap-2 text-sm leading-snug text-brand-dark"
+                                className="flex items-start gap-2 text-base leading-snug text-brand-dark"
                                 initial={
                                     reducedMotion
                                         ? false

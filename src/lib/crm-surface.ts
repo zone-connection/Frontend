@@ -7,6 +7,7 @@ const PUBLIC_EXACT = new Set([
   "/demonstracao",
   "/termos",
   "/privacidade",
+  "/about",
 ]);
 
 /** Marketing, login e páginas públicas — sem tema/cores do CRM. */

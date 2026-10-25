@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ParceirosRouteImport } from './routes/parceiros'
@@ -130,6 +131,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemonstracaoRoute = DemonstracaoRouteImport.update({
@@ -710,6 +716,7 @@ const PublicoPropostaReciboCompradorTokenRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/login': typeof LoginRoute
   '/parceiros': typeof ParceirosRouteWithChildren
@@ -824,6 +831,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -933,6 +941,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/about': typeof AboutRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/login': typeof LoginRoute
   '/parceiros': typeof ParceirosRouteWithChildren
@@ -1049,6 +1058,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/demonstracao'
     | '/login'
     | '/parceiros'
@@ -1163,6 +1173,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/demonstracao'
     | '/login'
     | '/privacidade'
@@ -1271,6 +1282,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/about'
     | '/demonstracao'
     | '/login'
     | '/parceiros'
@@ -1387,6 +1399,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AboutRoute: typeof AboutRoute
   DemonstracaoRoute: typeof DemonstracaoRoute
   LoginRoute: typeof LoginRoute
   ParceirosRoute: typeof ParceirosRouteWithChildren
@@ -1416,6 +1429,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demonstracao': {
@@ -2516,6 +2536,7 @@ const PortalRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AboutRoute: AboutRoute,
   DemonstracaoRoute: DemonstracaoRoute,
   LoginRoute: LoginRoute,
   ParceirosRoute: ParceirosRouteWithChildren,

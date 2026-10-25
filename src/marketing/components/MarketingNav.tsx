@@ -135,6 +135,9 @@ export function MarketingNav() {
 
         <div className="hidden items-center justify-center gap-2 lg:flex xl:gap-4">
           <Link to="/" className={navLinkClass}>
+            Início
+          </Link>
+          <Link to="/about" className={navLinkClass}>
             Sobre
           </Link>
 
@@ -280,6 +283,13 @@ export function MarketingNav() {
             <div className="flex flex-col gap-1 px-6 py-4">
               <Link
                 to="/"
+                className="px-1 py-3 text-sm font-medium text-brand-dark/80 hover:text-brand-dark"
+                onClick={closeMobile}
+              >
+                Início
+              </Link>
+              <Link
+                to="/about"
                 className="px-1 py-3 text-sm font-medium text-brand-dark/80 hover:text-brand-dark"
                 onClick={closeMobile}
               >

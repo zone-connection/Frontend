@@ -35,6 +35,7 @@ export function setTheme(theme: Theme) {
     path === "/demonstracao" ||
     path === "/termos" ||
     path === "/privacidade" ||
+    path === "/about" ||
     path.startsWith("/produtos/") ||
     path.startsWith("/portal") ||
     path.startsWith("/parceiros");
