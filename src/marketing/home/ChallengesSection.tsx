@@ -1,5 +1,12 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "framer-motion";
 import {
   AppWindow,
   ArrowRight,
@@ -64,22 +71,26 @@ function ChallengeCard({
   tone: string;
 }) {
   return (
-    <article className="overflow-hidden rounded-xl border border-border/60 bg-white shadow-sm">
+    <article className="h-full overflow-hidden rounded-xl border border-border/60 bg-white shadow-sm">
       <div className={cn("h-1.5 w-full", tone)} aria-hidden />
-      <div className="flex items-start gap-3 p-3.5 sm:p-4">
+      <div className="flex h-full flex-col items-start gap-2 p-3 sm:flex-row sm:gap-3 sm:p-4">
         <div
           className={cn(
-            "grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white shadow-sm sm:h-11 sm:w-11",
+            "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white shadow-sm sm:h-11 sm:w-11",
             tone,
           )}
         >
-          <Icon size={18} strokeWidth={2} aria-hidden />
+          <Icon
+            strokeWidth={2}
+            aria-hidden
+            className="h-4 w-4 sm:h-4.5 sm:w-4.5"
+          />
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-brand-dark sm:text-[0.95rem]">
+          <h3 className="text-[0.8rem] font-semibold leading-snug text-brand-dark sm:text-[0.95rem]">
             {title}
           </h3>
-          <p className="mt-0.5 text-sm leading-relaxed text-text-muted">
+          <p className="mt-0.5 text-xs leading-relaxed text-text-muted sm:text-sm">
             {text}
           </p>
         </div>
@@ -153,6 +164,60 @@ function ProductLink({
   );
 }
 
+function ProductScrollCard({
+  product,
+  index,
+}: {
+  product: (typeof PRODUCTS)[number];
+  index: number;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const shift = index * 0.08;
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: [`start ${0.96 - shift}`, `start ${0.58 - shift}`],
+  });
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [64, 0]);
+  const Icon = product.icon;
+
+  return (
+    <motion.article
+      ref={ref}
+      style={
+        reduceMotion
+          ? undefined
+          : { opacity: opacity as MotionValue<number>, y }
+      }
+      className="flex h-full flex-col rounded-3xl border border-black/5 bg-white p-7 shadow-[0_16px_40px_-24px_rgba(5,54,71,0.35)]"
+    >
+      <div className="mb-5 grid h-11 w-11 place-items-center rounded-2xl bg-brand-accent/10 text-brand-accent">
+        <Icon size={20} strokeWidth={1.75} />
+      </div>
+      <h3 className="mb-3 text-lg font-semibold text-brand-dark">
+        {product.title}
+      </h3>
+      <p className="text-[0.975rem] leading-relaxed text-text-muted">
+        {product.text}
+      </p>
+      <div className="mt-5 flex flex-1 items-end justify-center">
+        <img
+          src={product.image}
+          alt={product.imageAlt}
+          className="h-36 w-full max-w-56 object-contain sm:h-40"
+          width={280}
+          height={160}
+        />
+      </div>
+      <ProductLink href={product.href}>
+        Saiba mais
+        <ArrowRight size={16} strokeWidth={1.75} />
+      </ProductLink>
+    </motion.article>
+  );
+}
+
 export function ChallengesSection() {
   return (
     <section
@@ -161,7 +226,7 @@ export function ChallengesSection() {
       aria-labelledby="challenges-title"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)_minmax(0,1fr)] lg:gap-8 xl:gap-10">
+        <div className="grid grid-cols-2 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)_minmax(0,1fr)] lg:items-center lg:gap-8 xl:gap-10">
           <div className="order-2 flex flex-col gap-3 lg:order-1">
             {LEFT_CHALLENGES.map((item, index) => (
               <ScrollReveal key={item.title} delay={index * 0.04}>
@@ -170,7 +235,7 @@ export function ChallengesSection() {
             ))}
           </div>
 
-          <ScrollReveal className="order-1 lg:order-2">
+          <ScrollReveal className="order-1 col-span-2 lg:order-2 lg:col-span-1">
             <div className="mx-auto max-w-md text-center lg:max-w-none">
               <h2
                 id="challenges-title"
@@ -237,37 +302,13 @@ export function ChallengesSection() {
           id="ecossistema"
           className="mt-12 grid gap-5 md:mt-14 md:grid-cols-3"
         >
-          {PRODUCTS.map((product, index) => {
-            const Icon = product.icon;
-            return (
-              <ScrollReveal key={product.title} delay={0.08 + index * 0.08}>
-                <article className="flex h-full flex-col rounded-3xl border border-black/5 bg-white p-7 shadow-[0_16px_40px_-24px_rgba(5,54,71,0.35)] transition-all hover:-translate-y-1 hover:shadow-[0_22px_50px_-22px_rgba(5,54,71,0.4)]">
-                  <div className="mb-5 grid h-11 w-11 place-items-center rounded-2xl bg-brand-accent/10 text-brand-accent">
-                    <Icon size={20} strokeWidth={1.75} />
-                  </div>
-                  <h3 className="mb-3 text-lg font-semibold text-brand-dark">
-                    {product.title}
-                  </h3>
-                  <p className="text-[0.975rem] leading-relaxed text-text-muted">
-                    {product.text}
-                  </p>
-                  <div className="mt-5 flex flex-1 items-end justify-center">
-                    <img
-                      src={product.image}
-                      alt={product.imageAlt}
-                      className="h-36 w-full max-w-56 object-contain sm:h-40"
-                      width={280}
-                      height={160}
-                    />
-                  </div>
-                  <ProductLink href={product.href}>
-                    Saiba mais
-                    <ArrowRight size={16} strokeWidth={1.75} />
-                  </ProductLink>
-                </article>
-              </ScrollReveal>
-            );
-          })}
+          {PRODUCTS.map((product, index) => (
+            <ProductScrollCard
+              key={product.title}
+              product={product}
+              index={index}
+            />
+          ))}
         </div>
 
         <ScrollReveal delay={0.25}>

@@ -36,7 +36,7 @@ export function HeroSection() {
                 />
                 <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/50 via-white/55 to-white/35 xl:hidden"
+                    className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/40 via-white/60 to-white/60 xl:hidden"
                 />
 
                 <img
