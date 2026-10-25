@@ -835,11 +835,13 @@ export function ImoveisPage({
         ),
       );
     } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível carregar os imóveis.",
-      );
+      if (!(err instanceof ApiError && err.status >= 500)) {
+        toast.error(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível carregar os imóveis.",
+        );
+      }
     } finally {
       setLoading(false);
     }

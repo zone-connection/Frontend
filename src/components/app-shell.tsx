@@ -1184,6 +1184,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     operacoesDisponiveis[0] ??
     null;
 
+  const lancamentoSubnavItems = useMemo(
+    () =>
+      LANCAMENTO_NAV_LEAVES.filter((item) => {
+        if (hiddenMenuPaths.has(item.to)) return false;
+        if (item.to === "/caca-lead" && hideCacaLeadNav) return false;
+        if (
+          hideClientesFromSidebar &&
+          (item.to === "/clientes" || item.to === "/funil-clientes")
+        ) {
+          return false;
+        }
+        return user ? canUserAccessRoute(user, item.to) : false;
+      }),
+    [
+      user,
+      hideCacaLeadNav,
+      hideClientesFromSidebar,
+      hiddenMenuPaths,
+    ],
+  );
+
   useEffect(() => {
     const saved = localStorage.getItem(OPERACAO_STORAGE_KEY);
     if (isOperacaoId(saved)) setOperacao(saved);
@@ -2041,7 +2062,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       )}
                     />
                     {unreadCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 min-w-4 border-0 bg-[#F97316] px-1 text-[10px] text-white hover:bg-[#EA580C]">
+                      <Badge className="absolute -top-1 -right-1 h-4 min-w-4 border-0 bg-info px-1 text-[10px] text-info-foreground hover:bg-info">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </Badge>
                     )}
@@ -2058,10 +2079,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   align="end"
                   side="bottom"
                   sideOffset={8}
-                  className="w-[min(100vw-1.5rem,22.5rem)] overflow-hidden rounded-2xl border-[#E8EEF2] p-0 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
+                  className="w-[min(100vw-1.5rem,22.5rem)] overflow-hidden rounded-2xl border-border p-0 shadow-[0_18px_50px_rgba(5,54,71,0.14)]"
                 >
                   <div className="flex items-center justify-between px-4 py-3">
-                    <p className="text-[15px] font-semibold text-[#16324A] dark:text-foreground">
+                    <p className="text-[15px] font-semibold text-foreground">
                       Notificações
                     </p>
                     {unreadCount > 0 && (
@@ -2069,7 +2090,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-7 rounded-full border-[#F4C7A5] bg-white px-2.5 text-[11px] font-medium text-[#E06A1A] hover:bg-[#FFF6F0] hover:text-[#C65A12]"
+                        className="h-7 rounded-full border-info/35 bg-card px-2.5 text-[11px] font-medium text-info hover:bg-accent hover:text-info"
                         onClick={() => void handleMarkAllRead()}
                       >
                         Marcar todas
@@ -2090,8 +2111,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             key={n.id}
                             type="button"
                             className={cn(
-                              "flex w-full items-start gap-3 border-t border-[#F0F3F6] px-4 py-3 text-left transition-colors hover:bg-[#F8FBFD] dark:border-white/5 dark:hover:bg-white/5",
-                              !n.lida && "bg-[#FFF6F0] dark:bg-orange-500/10",
+                              "flex w-full items-start gap-3 border-t border-border/80 px-4 py-3 text-left transition-colors hover:bg-accent/70",
+                              !n.lida && "bg-accent dark:bg-info/10",
                             )}
                             onClick={() => void handleOpenNotif(n)}
                           >
@@ -2104,18 +2125,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               <Icon className="h-4 w-4" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block text-[13px] font-semibold leading-snug text-[#16324A] dark:text-foreground">
+                              <span className="block text-[13px] font-semibold leading-snug text-foreground">
                                 {n.titulo}
                               </span>
-                              <span className="mt-0.5 block text-[12px] leading-snug text-[#6B7C89] dark:text-muted-foreground">
+                              <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">
                                 {n.corpo}
                               </span>
                             </span>
                             <span className="mt-1 flex shrink-0 items-center gap-1.5">
                               {!n.lida ? (
-                                <span className="size-1.5 rounded-full bg-[#F97316]" />
+                                <span className="size-1.5 rounded-full bg-info" />
                               ) : null}
-                              <ChevronRight className="h-3.5 w-3.5 text-[#C5CED6]" />
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
                             </span>
                           </button>
                         );
@@ -2200,7 +2221,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ].some((prefix) => pathMatchesPrefix(pathname, prefix)) ? (
             <OperationSubnav
               pathname={pathname}
-              items={LANCAMENTO_NAV_LEAVES}
+              items={lancamentoSubnavItems}
             />
           ) : null}
           {pathname.startsWith("/captacao") ||

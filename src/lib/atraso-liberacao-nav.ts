@@ -31,7 +31,7 @@ export function notifyAtrasoLiberacaoNav(
 
 /** Caça-lead some do menu para todo o tenant quando a automação não está em Caça-lead. */
 export function useHideCacaLeadNav() {
-  const [hide, setHide] = useState(false);
+  const [hide, setHide] = useState(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function useHideCacaLeadNav() {
       })
       .catch(() => {
         if (!cancelled) {
-          setHide(false);
+          setHide(true);
           setReady(true);
         }
       });
