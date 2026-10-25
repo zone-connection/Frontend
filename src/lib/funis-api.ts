@@ -1,23 +1,40 @@
 import { apiFetch } from "@/lib/api";
 
-export type FunilEtapaPapel = "inicial" | "analise" | "venda" | "captado" | "perdido";
+export type FunilEtapaPapel =
+  | "inicial"
+  | "analise"
+  | "venda"
+  | "captado"
+  | "perdido"
+  | "concluido";
 
-export type FunilTipo = "comercial" | "captacao" | "venda_usados";
+export type FunilTipo =
+  | "comercial"
+  | "captacao"
+  | "venda_usados"
+  | "pos_venda";
 
 export const FUNIL_TIPO_LABEL: Record<FunilTipo, string> = {
   comercial: "Comercial",
   captacao: "Captação",
   venda_usados: "Venda de usados",
+  pos_venda: "Pós-venda",
 };
 
 export const FUNIL_TIPOS: FunilTipo[] = [
   "comercial",
   "captacao",
   "venda_usados",
+  "pos_venda",
 ];
 
 export function parseFunilTipo(tipo: unknown): FunilTipo | null {
-  if (tipo === "comercial" || tipo === "captacao" || tipo === "venda_usados") {
+  if (
+    tipo === "comercial" ||
+    tipo === "captacao" ||
+    tipo === "venda_usados" ||
+    tipo === "pos_venda"
+  ) {
     return tipo;
   }
   return null;
@@ -32,6 +49,7 @@ export const FUNIL_PADRAO_ETAPAS_COUNT: Record<FunilTipo, number> = {
   comercial: 11,
   captacao: 8,
   venda_usados: 9,
+  pos_venda: 6,
 };
 
 export type FunilEtapa = {

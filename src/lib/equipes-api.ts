@@ -12,7 +12,7 @@ export type EquipeMember = {
 export type EquipeFunilResumo = {
   id: string;
   name: string;
-  tipo: "comercial" | "captacao" | "venda_usados";
+  tipo: "comercial" | "captacao" | "venda_usados" | "pos_venda";
   ativo: boolean;
 };
 
@@ -20,6 +20,7 @@ export type EquipeFunisMap = {
   comercial: EquipeFunilResumo | null;
   captacao: EquipeFunilResumo | null;
   venda_usados: EquipeFunilResumo | null;
+  pos_venda: EquipeFunilResumo | null;
 };
 
 export type Equipe = {
@@ -111,6 +112,7 @@ export async function putEquipeFunis(
     comercial: string | null;
     captacao: string | null;
     venda_usados: string | null;
+    pos_venda: string | null;
   },
 ): Promise<EquipeFunisMap> {
   return apiFetch<EquipeFunisMap>(`/equipes/${id}/funis`, {

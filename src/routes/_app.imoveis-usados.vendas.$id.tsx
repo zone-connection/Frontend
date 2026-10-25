@@ -6,10 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   FormDialogActions,
   FormDialogBody,
   FormDialogShell,
 } from "@/components/form-dialog";
+import { getSession } from "@/lib/auth";
 import { ImovelFichaFields } from "@/components/imovel-ficha-fields";
 import { fichaToPayload, imovelToFicha } from "@/lib/imovel-ficha";
 import { ImovelFichaVisao } from "@/components/imovel-ficha-visao";
@@ -29,11 +40,12 @@ import {
   createPosVendaPendencia,
   devolverChaveUsado,
   entregarChaveComprador,
+  encaminharPosVendaUsado,
   fetchChaveHistorico,
   fetchChavesUsado,
   fetchPosVendaUsado,
-  iniciarPosVendaUsado,
   perderChaveUsado,
+  recusarPosVendaUsado,
   retirarChaveUsado,
   updatePosVendaPendencia,
   CHAVE_LOCALIZACAO_LABEL,
@@ -163,10 +175,18 @@ function toLocalInput(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function canEncaminharPosVendaRole(role: string | null | undefined) {
+  return role === "admin" || role === "gerente";
+}
+
 function VendaUsadoDetalhePage() {
   const { id } = Route.useParams();
+  const session = getSession();
+  const podeEncaminharPosVenda = canEncaminharPosVendaRole(session?.role);
   const [tab, setTab] = useState<TabId>("informacoes");
   const [item, setItem] = useState<VendaUsado | null>(null);
+  const [posVendaConfirmOpen, setPosVendaConfirmOpen] = useState(false);
+  const [posVendaBusy, setPosVendaBusy] = useState(false);
   const [funis, setFunis] = useState<Funil[]>([]);
   const [responsaveis, setResponsaveis] = useState<
     Array<{ id: string; name: string }>
@@ -1012,9 +1032,15 @@ function VendaUsadoDetalhePage() {
                     size="sm"
                     onClick={() => {
                       void concluirFechamentoUsado(id)
-                        .then(() => {
+                        .then(async (result) => {
                           toast.success("Venda concluída.");
-                          return load();
+                          await load();
+                          if (
+                            result.oferecerPosVenda ||
+                            podeEncaminharPosVenda
+                          ) {
+                            setPosVendaConfirmOpen(true);
+                          }
                         })
                         .catch((err) =>
                           toast.error(
@@ -1610,28 +1636,41 @@ function VendaUsadoDetalhePage() {
             {!posVenda ? (
               <>
                 <p className="text-muted-foreground">
-                  O pós-venda só pode ser iniciado depois da venda concluída.
+                  {item.status !== "vendido"
+                    ? "O pós-venda só pode ser encaminhado depois da venda concluída."
+                    : podeEncaminharPosVenda
+                      ? item.posVendaRecusadoEm
+                        ? "O encaminhamento foi recusado anteriormente. Você pode enviar o lead ao funil de pós-venda agora."
+                        : "Encaminhe o lead e a venda ao funil de pós-venda para acompanhar pendências e etapas."
+                      : "Aguarde um gerente ou administrador encaminhar esta venda ao funil de pós-venda."}
                 </p>
-                <Button
-                  size="sm"
-                  disabled={item.status !== "vendido"}
-                  onClick={() =>
-                    void iniciarPosVendaUsado(id)
-                      .then(() => {
-                        toast.success("Pós-venda iniciado.");
-                        return load();
-                      })
-                      .catch((err) =>
-                        toast.error(
-                          err instanceof ApiError
-                            ? err.message
-                            : "Não foi possível iniciar.",
-                        ),
-                      )
-                  }
-                >
-                  Iniciar pós-venda
-                </Button>
+                {podeEncaminharPosVenda ? (
+                  <Button
+                    size="sm"
+                    disabled={item.status !== "vendido" || posVendaBusy}
+                    onClick={() =>
+                      void (async () => {
+                        setPosVendaBusy(true);
+                        try {
+                          await encaminharPosVendaUsado(id);
+                          toast.success("Encaminhado ao funil de pós-venda.");
+                          setTab("pos-venda");
+                          await load();
+                        } catch (err) {
+                          toast.error(
+                            err instanceof ApiError
+                              ? err.message
+                              : "Não foi possível encaminhar.",
+                          );
+                        } finally {
+                          setPosVendaBusy(false);
+                        }
+                      })()
+                    }
+                  >
+                    Encaminhar para pós-venda
+                  </Button>
+                ) : null}
               </>
             ) : (
               <>
@@ -1640,11 +1679,36 @@ function VendaUsadoDetalhePage() {
                   <span className="font-medium">
                     {POS_VENDA_STATUS_LABEL[posVenda.status]}
                   </span>
+                  {posVenda.funilEtapa ? (
+                    <>
+                      {" "}
+                      · Etapa:{" "}
+                      <span className="font-medium">
+                        {posVenda.funilEtapa.label}
+                      </span>
+                    </>
+                  ) : null}
                 </p>
                 <p>Responsável: {posVenda.responsavel.name}</p>
                 <p>
-                  Comprador: {posVenda.interessado.nome} · Proprietário:{" "}
-                  {posVenda.proprietario.nome}
+                  Lead: {posVenda.lead?.nome ?? posVenda.interessado.nome} ·
+                  Proprietário: {posVenda.proprietario.nome}
+                </p>
+                {posVenda.encaminhadoPor ? (
+                  <p className="text-xs text-muted-foreground">
+                    Encaminhado por {posVenda.encaminhadoPor.name}
+                    {posVenda.encaminhadoEm
+                      ? ` em ${new Date(posVenda.encaminhadoEm).toLocaleString("pt-BR")}`
+                      : ""}
+                  </p>
+                ) : null}
+                <p>
+                  <Link
+                    to="/imoveis-usados/pos-venda"
+                    className="text-sm text-primary underline-offset-4 hover:underline"
+                  >
+                    Abrir funil de pós-venda
+                  </Link>
                 </p>
                 <p>
                   Pendências: {posVenda.resumo.concluidas} de {posVenda.resumo.total}{" "}
@@ -2455,6 +2519,79 @@ function VendaUsadoDetalhePage() {
           </Button>
         </FormDialogActions>
       </FormDialogShell>
+
+      <AlertDialog
+        open={posVendaConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !posVendaBusy) setPosVendaConfirmOpen(false);
+        }}
+      >
+        <AlertDialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>Encaminhar para pós-venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A venda foi concluída. Deseja encaminhar o lead e esta venda ao
+              funil de pós-venda? Você pode fazer isso depois pela aba Pós-venda.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={posVendaBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void (async () => {
+                  setPosVendaBusy(true);
+                  try {
+                    await recusarPosVendaUsado(id);
+                    toast.message("Venda mantida sem pós-venda.");
+                    await load();
+                    setPosVendaConfirmOpen(false);
+                  } catch (err) {
+                    toast.error(
+                      err instanceof ApiError
+                        ? err.message
+                        : "Não foi possível registrar a decisão.",
+                    );
+                  } finally {
+                    setPosVendaBusy(false);
+                  }
+                })();
+              }}
+            >
+              Não, manter como está
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={posVendaBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                void (async () => {
+                  setPosVendaBusy(true);
+                  try {
+                    await encaminharPosVendaUsado(id);
+                    toast.success("Encaminhado ao funil de pós-venda.");
+                    setTab("pos-venda");
+                    await load();
+                    setPosVendaConfirmOpen(false);
+                  } catch (err) {
+                    toast.error(
+                      err instanceof ApiError
+                        ? err.message
+                        : "Não foi possível encaminhar.",
+                    );
+                  } finally {
+                    setPosVendaBusy(false);
+                  }
+                })();
+              }}
+            >
+              Sim, encaminhar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

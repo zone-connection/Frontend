@@ -99,7 +99,8 @@ const PAPEL_OPTIONS: Array<{
   { value: "analise", label: "Análise" },
   { value: "venda", label: "Venda" },
   { value: "captado", label: "Captado" },
-  { value: "perdido", label: "Perdido" },
+  { value: "perdido", label: "Perdido / Cancelado" },
+  { value: "concluido", label: "Concluído" },
 ];
 
 const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
@@ -108,6 +109,7 @@ const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
   venda: "Venda",
   captado: "Captado",
   perdido: "Perdido",
+  concluido: "Concluído",
 };
 
 type FiltroFunil = FunilTipo | "sem_tipo";
@@ -122,7 +124,7 @@ function funilTipoVisivel(
   if (tipo === "captacao") {
     return isTenantOperationEnabled(modules, "captacao");
   }
-  if (tipo === "venda_usados") {
+  if (tipo === "venda_usados" || tipo === "pos_venda") {
     return isTenantOperationEnabled(modules, "imoveisUsados");
   }
   return true;

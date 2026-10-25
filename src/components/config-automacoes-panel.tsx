@@ -43,7 +43,7 @@ function funilTipoVisivel(
   if (tipo === "captacao") {
     return isTenantOperationEnabled(modules, "captacao");
   }
-  if (tipo === "venda_usados") {
+  if (tipo === "venda_usados" || tipo === "pos_venda") {
     return isTenantOperationEnabled(modules, "imoveisUsados");
   }
   return true;
@@ -57,7 +57,12 @@ function sortEtapas(etapas: FunilEtapa[]): FunilEtapa[] {
 }
 
 function isEtapaTerminal(etapa: FunilEtapa): boolean {
-  return etapa.papel === "venda" || etapa.papel === "captado" || etapa.papel === "perdido";
+  return (
+    etapa.papel === "venda" ||
+    etapa.papel === "captado" ||
+    etapa.papel === "perdido" ||
+    etapa.papel === "concluido"
+  );
 }
 
 export function ConfigAutomacoesPanel() {

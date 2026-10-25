@@ -100,6 +100,7 @@ import { Route as AppFinanceiroVisaoGeralRouteImport } from './routes/_app.finan
 import { Route as AppImoveisUsadosEstoqueRouteImport } from './routes/_app.imoveis-usados.estoque'
 import { Route as AppImoveisUsadosFunilRouteImport } from './routes/_app.imoveis-usados.funil'
 import { Route as AppImoveisUsadosInteressadosRouteImport } from './routes/_app.imoveis-usados.interessados'
+import { Route as AppImoveisUsadosPosVendaRouteImport } from './routes/_app.imoveis-usados.pos-venda'
 import { Route as AppImoveisUsadosPropostasRouteImport } from './routes/_app.imoveis-usados.propostas'
 import { Route as AppImoveisUsadosVendasRouteImport } from './routes/_app.imoveis-usados.vendas'
 import { Route as AppImoveisUsadosVisaoGeralRouteImport } from './routes/_app.imoveis-usados.visao-geral'
@@ -589,6 +590,12 @@ const AppImoveisUsadosInteressadosRoute =
     path: '/interessados',
     getParentRoute: () => AppImoveisUsadosRoute,
   } as any)
+const AppImoveisUsadosPosVendaRoute =
+  AppImoveisUsadosPosVendaRouteImport.update({
+    id: '/pos-venda',
+    path: '/pos-venda',
+    getParentRoute: () => AppImoveisUsadosRoute,
+  } as any)
 const AppImoveisUsadosPropostasRoute =
   AppImoveisUsadosPropostasRouteImport.update({
     id: '/propostas',
@@ -805,6 +812,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
   '/imoveis-usados/funil': typeof AppImoveisUsadosFunilRoute
   '/imoveis-usados/interessados': typeof AppImoveisUsadosInteressadosRoute
+  '/imoveis-usados/pos-venda': typeof AppImoveisUsadosPosVendaRoute
   '/imoveis-usados/propostas': typeof AppImoveisUsadosPropostasRoute
   '/imoveis-usados/vendas': typeof AppImoveisUsadosVendasRouteWithChildren
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
@@ -914,6 +922,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
   '/imoveis-usados/funil': typeof AppImoveisUsadosFunilRoute
   '/imoveis-usados/interessados': typeof AppImoveisUsadosInteressadosRoute
+  '/imoveis-usados/pos-venda': typeof AppImoveisUsadosPosVendaRoute
   '/imoveis-usados/propostas': typeof AppImoveisUsadosPropostasRoute
   '/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
   '/imoveis/$id': typeof AppImoveisIdRoute
@@ -1030,6 +1039,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
   '/_app/imoveis-usados/funil': typeof AppImoveisUsadosFunilRoute
   '/_app/imoveis-usados/interessados': typeof AppImoveisUsadosInteressadosRoute
+  '/_app/imoveis-usados/pos-venda': typeof AppImoveisUsadosPosVendaRoute
   '/_app/imoveis-usados/propostas': typeof AppImoveisUsadosPropostasRoute
   '/_app/imoveis-usados/vendas': typeof AppImoveisUsadosVendasRouteWithChildren
   '/_app/imoveis-usados/visao-geral': typeof AppImoveisUsadosVisaoGeralRoute
@@ -1147,6 +1157,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/estoque'
     | '/imoveis-usados/funil'
     | '/imoveis-usados/interessados'
+    | '/imoveis-usados/pos-venda'
     | '/imoveis-usados/propostas'
     | '/imoveis-usados/vendas'
     | '/imoveis-usados/visao-geral'
@@ -1256,6 +1267,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados/estoque'
     | '/imoveis-usados/funil'
     | '/imoveis-usados/interessados'
+    | '/imoveis-usados/pos-venda'
     | '/imoveis-usados/propostas'
     | '/imoveis-usados/visao-geral'
     | '/imoveis/$id'
@@ -1371,6 +1383,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados/estoque'
     | '/_app/imoveis-usados/funil'
     | '/_app/imoveis-usados/interessados'
+    | '/_app/imoveis-usados/pos-venda'
     | '/_app/imoveis-usados/propostas'
     | '/_app/imoveis-usados/vendas'
     | '/_app/imoveis-usados/visao-geral'
@@ -2054,6 +2067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImoveisUsadosInteressadosRouteImport
       parentRoute: typeof AppImoveisUsadosRoute
     }
+    '/_app/imoveis-usados/pos-venda': {
+      id: '/_app/imoveis-usados/pos-venda'
+      path: '/pos-venda'
+      fullPath: '/imoveis-usados/pos-venda'
+      preLoaderRoute: typeof AppImoveisUsadosPosVendaRouteImport
+      parentRoute: typeof AppImoveisUsadosRoute
+    }
     '/_app/imoveis-usados/propostas': {
       id: '/_app/imoveis-usados/propostas'
       path: '/propostas'
@@ -2343,6 +2363,7 @@ interface AppImoveisUsadosRouteChildren {
   AppImoveisUsadosEstoqueRoute: typeof AppImoveisUsadosEstoqueRoute
   AppImoveisUsadosFunilRoute: typeof AppImoveisUsadosFunilRoute
   AppImoveisUsadosInteressadosRoute: typeof AppImoveisUsadosInteressadosRoute
+  AppImoveisUsadosPosVendaRoute: typeof AppImoveisUsadosPosVendaRoute
   AppImoveisUsadosPropostasRoute: typeof AppImoveisUsadosPropostasRoute
   AppImoveisUsadosVendasRoute: typeof AppImoveisUsadosVendasRouteWithChildren
   AppImoveisUsadosVisaoGeralRoute: typeof AppImoveisUsadosVisaoGeralRoute
@@ -2352,6 +2373,7 @@ const AppImoveisUsadosRouteChildren: AppImoveisUsadosRouteChildren = {
   AppImoveisUsadosEstoqueRoute: AppImoveisUsadosEstoqueRoute,
   AppImoveisUsadosFunilRoute: AppImoveisUsadosFunilRoute,
   AppImoveisUsadosInteressadosRoute: AppImoveisUsadosInteressadosRoute,
+  AppImoveisUsadosPosVendaRoute: AppImoveisUsadosPosVendaRoute,
   AppImoveisUsadosPropostasRoute: AppImoveisUsadosPropostasRoute,
   AppImoveisUsadosVendasRoute: AppImoveisUsadosVendasRouteWithChildren,
   AppImoveisUsadosVisaoGeralRoute: AppImoveisUsadosVisaoGeralRoute,
@@ -2555,13 +2577,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

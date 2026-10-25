@@ -93,6 +93,8 @@ export type VendaUsado = {
   responsavel: { id: string; name: string };
   funil: { id: string; name: string };
   funilEtapa: { id: string; label: string; color?: string };
+  posVendaRecusadoEm?: string | null;
+  posVendaRecusadoPorId?: string | null;
   _count?: { vinculos: number };
   vinculos?: VendaUsadoVinculo[];
   historicos?: Array<{
@@ -561,8 +563,12 @@ export function updateFechamentoUsado(
   });
 }
 
+export type ConcluirFechamentoResult = FechamentoUsado & {
+  oferecerPosVenda?: boolean;
+};
+
 export function concluirFechamentoUsado(vendaId: string) {
-  return apiFetch<FechamentoUsado>(
+  return apiFetch<ConcluirFechamentoResult>(
     `/imoveis-usados/${vendaId}/fechamento/concluir`,
     { method: "POST" },
   );
@@ -699,10 +705,40 @@ export type PosVendaPendencia = {
 
 export type PosVendaUsado = {
   id: string;
+  vendaUsadoId?: string | null;
   status: PosVendaStatus;
   interessado: { id: string; nome: string };
+  lead?: { id: string; nome: string; telefone?: string | null; email?: string | null };
   proprietario: { id: string; nome: string };
   responsavel: { id: string; name: string };
+  encaminhadoEm?: string | null;
+  encaminhadoPor?: { id: string; name: string } | null;
+  funilId?: string | null;
+  funilEtapaId?: string | null;
+  funil?: { id: string; name: string; tipo: string } | null;
+  funilEtapa?: {
+    id: string;
+    label: string;
+    slug: string;
+    color: string;
+    papel: string | null;
+  } | null;
+  venda?: {
+    id: string;
+    status: string;
+    corretor?: { id: string; name: string } | null;
+    dataVenda?: string | null;
+    valor?: number | null;
+    imovel?: {
+      id: string;
+      tipo?: string | null;
+      logradouro?: string | null;
+      numero?: string | null;
+      bairro?: string | null;
+      cidade?: string | null;
+      estado?: string | null;
+    } | null;
+  } | null;
   pendencias: PosVendaPendencia[];
   resumo: { total: number; concluidas: number; abertas: number; atrasadas: number };
 };
@@ -779,6 +815,10 @@ export function fetchChaveHistorico(vendaId: string, chaveId: string) {
   );
 }
 
+export function fetchPosVendasUsado() {
+  return apiFetch<PosVendaUsado[]>(`/imoveis-usados/pos-vendas`);
+}
+
 export async function fetchPosVendaUsado(vendaId: string) {
   try {
     return await apiFetch<PosVendaUsado>(`/imoveis-usados/${vendaId}/pos-venda`);
@@ -798,6 +838,25 @@ export function iniciarPosVendaUsado(
   });
 }
 
+export function encaminharPosVendaUsado(
+  vendaId: string,
+  body: Record<string, unknown> = {},
+) {
+  return apiFetch<PosVendaUsado>(
+    `/imoveis-usados/${vendaId}/pos-venda/encaminhar`,
+    { method: "POST", body },
+  );
+}
+
+export function recusarPosVendaUsado(vendaId: string) {
+  return apiFetch<{
+    ok: true;
+    recusado: true;
+    recusadoEm: string;
+    recusadoPor: { id: string; name: string };
+  }>(`/imoveis-usados/${vendaId}/pos-venda/recusar`, { method: "POST" });
+}
+
 export function updatePosVendaUsado(
   vendaId: string,
   body: Record<string, unknown>,
@@ -806,6 +865,16 @@ export function updatePosVendaUsado(
     method: "PATCH",
     body,
   });
+}
+
+export function moverPosVendaEtapa(
+  vendaId: string,
+  funilEtapaId: string,
+) {
+  return apiFetch<PosVendaUsado>(
+    `/imoveis-usados/${vendaId}/pos-venda/mover-etapa`,
+    { method: "POST", body: { funilEtapaId } },
+  );
 }
 
 export function concluirPosVendaUsado(vendaId: string) {

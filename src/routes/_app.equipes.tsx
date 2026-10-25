@@ -114,6 +114,7 @@ const emptyFunisForm = (): Record<FunilTipo, string> => ({
   comercial: "",
   captacao: "",
   venda_usados: "",
+  pos_venda: "",
 });
 
 const emptyForm = (): FormState => ({
@@ -129,6 +130,7 @@ function funisFromEquipe(equipe: Equipe): Record<FunilTipo, string> {
     comercial: equipe.funis?.comercial?.id ?? "",
     captacao: equipe.funis?.captacao?.id ?? "",
     venda_usados: equipe.funis?.venda_usados?.id ?? "",
+    pos_venda: equipe.funis?.pos_venda?.id ?? "",
   };
 }
 
@@ -386,6 +388,7 @@ function EquipesPage() {
           comercial: form.funis.comercial || null,
           captacao: form.funis.captacao || null,
           venda_usados: form.funis.venda_usados || null,
+          pos_venda: form.funis.pos_venda || null,
         });
       }
       toast.success(
