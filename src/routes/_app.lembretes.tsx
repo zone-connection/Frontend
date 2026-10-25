@@ -67,7 +67,14 @@ function LembretesPage() {
     setLoading(true);
     try {
       const [lista, proxima] = await Promise.all([
-        fetchLembretes(),
+        fetchLembretes().catch((err) => {
+          if (!(err instanceof ApiError && err.status >= 500)) {
+            toast.error(
+              errorMessage(err, "Não foi possível carregar os lembretes."),
+            );
+          }
+          return [] as LembretePessoal[];
+        }),
         fetchAtividadesProximas().catch(() => [] as AtividadeProxima[]),
       ]);
       setItems(lista);
