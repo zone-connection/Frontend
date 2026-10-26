@@ -25,7 +25,21 @@ import {
   fetchDistribuirResumo,
   type DistribuirResumo,
 } from "@/lib/leads-api";
-import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  Loader2,
+  Pause,
+  Play,
+  Search,
+  Settings,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -47,10 +61,24 @@ const CARGO: Record<string, string> = {
   treinee: "Trainee",
 };
 
-function FilaDistribuicaoPainel() {
+function iniciais(nome: string) {
+  return nome
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function FilaDistribuicaoPainel({
+  onlineIds,
+}: {
+  onlineIds: Set<string>;
+}) {
   const [painel, setPainel] = useState<FilaPainel | null>(null);
   const [elegiveis, setElegiveis] = useState<FilaElegivel[]>([]);
   const [userId, setUserId] = useState("");
+  const [busca, setBusca] = useState("");
   const [minutos, setMinutos] = useState("0");
   const [busy, setBusy] = useState(true);
 
@@ -96,16 +124,27 @@ function FilaDistribuicaoPainel() {
     );
   }
 
+  const termo = busca.trim().toLowerCase();
+  const membros = painel.membros.filter((m) =>
+    termo ? m.nome.toLowerCase().includes(termo) : true,
+  );
+  const ativos = painel.membros.filter((m) => m.ativoNaFila).length;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-        <div>
-          <p className="text-sm font-medium">Distribuição automática</p>
-          <p className="text-xs text-muted-foreground">
-            {painel.ativa
-              ? "Leads novos seguem a ordem. Quem recebe vai para o fim."
-              : "Pausada. Novos leads não entram na fila."}
-          </p>
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#079ed4]/20 bg-[#079ed4]/8 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#079ed4]/15 text-[#079ed4]">
+            <Zap className="size-4" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold">Distribuição automática</p>
+            <p className="text-xs text-muted-foreground">
+              {painel.ativa
+                ? "Leads novos seguem a ordem. Quem recebe vai para o fim."
+                : "Pausada. Novos leads não entram na fila."}
+            </p>
+          </div>
         </div>
         <Switch
           checked={painel.ativa}
@@ -114,27 +153,28 @@ function FilaDistribuicaoPainel() {
           aria-label="Ativar fila automática"
         />
       </div>
-      <div className="flex items-end gap-2 rounded-md border px-3 py-2">
-        <label className="min-w-0 flex-1 text-sm">
-          Redistribuir após (min)
-          <Input
-            type="number"
-            min={0}
-            max={1440}
-            className="mt-1 h-9"
-            value={minutos}
-            onChange={(e) => setMinutos(e.target.value)}
-          />
-          <span className="mt-1 block text-xs text-muted-foreground">
-            {Number(painel.redistribuirMinutos) > 0
-              ? `Parado ${painel.redistribuirMinutos} min na primeira etapa, sem atividade, vai ao próximo. 0 desliga.`
-              : "0 desliga. Salve os minutos para a roleta passar o lead adiante."}
-          </span>
-        </label>
+
+      <div className="flex items-center gap-3 rounded-2xl border px-4 py-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-[#079ed4]">
+          <Clock className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">Redistribuir após (min)</p>
+          <p className="text-xs text-muted-foreground">
+            Parado na primeira etapa, sem atividade, vai ao próximo. 0 desliga.
+          </p>
+        </div>
+        <Input
+          type="number"
+          min={0}
+          max={1440}
+          className="h-9 w-20"
+          value={minutos}
+          onChange={(e) => setMinutos(e.target.value)}
+        />
         <Button
           type="button"
           size="sm"
-          variant="outline"
           disabled={busy}
           onClick={() =>
             void run(() =>
@@ -145,111 +185,162 @@ function FilaDistribuicaoPainel() {
           Salvar
         </Button>
       </div>
-      <div className="flex gap-2">
-        <select
-          className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-        >
-          <option value="">Adicionar integrante</option>
-          {elegiveis.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} · {CARGO[u.role] ?? u.role}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!userId || busy}
-          onClick={() =>
-            void run(async () => {
-              await addFilaMembro(userId);
-              setUserId("");
-            })
-          }
-        >
-          Adicionar
-        </Button>
-      </div>
-      <ul className="space-y-2">
-        {painel.membros.length === 0 ? (
-          <li className="text-sm text-muted-foreground">Nenhum integrante na fila.</li>
-        ) : (
-          painel.membros.map((membro, index) => (
-            <li
-              key={membro.id}
-              className="flex items-center gap-2 rounded-md border px-2 py-2"
-            >
-              <span className="w-5 text-center text-xs font-semibold text-primary">
-                {membro.ordem}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                  {membro.nome}
-                  {membro.proximo ? " · próximo" : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {CARGO[membro.role] ?? membro.role}
-                  {membro.ativoNaFila ? "" : " · inativo"}
-                </p>
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="size-8"
-                disabled={busy || index === 0}
-                onClick={() => {
-                  const ids = painel.membros.map((m) => m.id);
-                  const [item] = ids.splice(index, 1);
-                  ids.splice(index - 1, 0, item);
-                  void run(() => reordenarFila(ids));
-                }}
-                aria-label="Subir"
-              >
-                <ArrowUp className="size-3.5" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="size-8"
-                disabled={busy || index === painel.membros.length - 1}
-                onClick={() => {
-                  const ids = painel.membros.map((m) => m.id);
-                  const [item] = ids.splice(index, 1);
-                  ids.splice(index + 1, 0, item);
-                  void run(() => reordenarFila(ids));
-                }}
-                aria-label="Descer"
-              >
-                <ArrowDown className="size-3.5" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  void run(() => setFilaMembroAtivo(membro.id, !membro.ativoNaFila))
-                }
-              >
-                {membro.ativoNaFila ? "Pausar" : "Ativar"}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => void run(() => removeFilaMembro(membro.id))}
-              >
-                Tirar
-              </Button>
+
+      <div className="rounded-2xl border">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Users className="size-4 text-[#079ed4]" />
+            <div>
+              <p className="text-sm font-semibold">Corretores</p>
+              <p className="text-xs text-muted-foreground">
+                {ativos} ativo{ativos === 1 ? "" : "s"} na fila
+              </p>
+            </div>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar corretor..."
+              className="h-9 w-48 pl-8"
+            />
+          </div>
+        </div>
+        <ul className="space-y-2 p-3">
+          {membros.length === 0 ? (
+            <li className="px-2 py-4 text-sm text-muted-foreground">
+              {painel.membros.length === 0
+                ? "Nenhum integrante na fila."
+                : "Nenhum corretor com esse nome."}
             </li>
-          ))
-        )}
-      </ul>
+          ) : (
+            membros.map((membro) => {
+              const index = painel.membros.findIndex((m) => m.id === membro.id);
+              const online = onlineIds.has(membro.userId);
+              return (
+                <li
+                  key={membro.id}
+                  className="flex items-center gap-2 rounded-xl border px-2 py-2"
+                >
+                  <span className="w-5 text-center text-xs font-semibold text-[#079ed4]">
+                    {membro.ordem}
+                  </span>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#079ed4]/15 text-xs font-semibold text-[#075a82]">
+                    {iniciais(membro.nome)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {membro.nome}
+                      {online ? (
+                        <span className="ml-1.5 text-xs font-normal text-emerald-600">● Online</span>
+                      ) : null}
+                      {membro.proximo ? (
+                        <span className="ml-1.5 text-xs font-normal text-[#079ed4]">· próximo</span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {CARGO[membro.role] ?? membro.role}
+                      {membro.ativoNaFila ? "" : " · pausado"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8 rounded-full"
+                    disabled={busy || index <= 0}
+                    onClick={() => {
+                      const ids = painel.membros.map((m) => m.id);
+                      const [item] = ids.splice(index, 1);
+                      ids.splice(index - 1, 0, item);
+                      void run(() => reordenarFila(ids));
+                    }}
+                    aria-label="Subir"
+                  >
+                    <ArrowUp className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8 rounded-full"
+                    disabled={busy || index === painel.membros.length - 1}
+                    onClick={() => {
+                      const ids = painel.membros.map((m) => m.id);
+                      const [item] = ids.splice(index, 1);
+                      ids.splice(index + 1, 0, item);
+                      void run(() => reordenarFila(ids));
+                    }}
+                    aria-label="Descer"
+                  >
+                    <ArrowDown className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(() => setFilaMembroAtivo(membro.id, !membro.ativoNaFila))
+                    }
+                  >
+                    {membro.ativoNaFila ? (
+                      <Pause className="size-3.5" />
+                    ) : (
+                      <Play className="size-3.5" />
+                    )}
+                    {membro.ativoNaFila ? "Pausar" : "Ativar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8 rounded-full"
+                    disabled={busy}
+                    onClick={() => void run(() => removeFilaMembro(membro.id))}
+                    aria-label="Tirar da fila"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+        <div className="border-t p-3">
+          <div className="flex gap-2">
+            <select
+              className="h-10 min-w-0 flex-1 rounded-xl border border-dashed bg-background px-3 text-sm"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
+              <option value="">Adicionar corretor</option>
+              {elegiveis.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} · {CARGO[u.role] ?? u.role}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={!userId || busy}
+              onClick={() =>
+                void run(async () => {
+                  await addFilaMembro(userId);
+                  setUserId("");
+                })
+              }
+            >
+              <UserPlus className="size-4" />
+              Adicionar
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -507,20 +598,29 @@ export function LeadsDistribuirDialog({
         ? resumo.equipes.length > 0 && somaEquipes > 0
         : resumo.corretores.length > 0 && somaCorretores > 0);
 
+  const onlineIds = new Set(
+    (resumo?.corretores ?? []).filter((c) => c.online).map((c) => c.id),
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
-            {usarSelecao
-              ? `Distribuir ${selecionados.length} lead(s) selecionado(s)`
-              : "Distribuir leads"}
-          </DialogTitle>
-          <DialogDescription>
-            {usarSelecao
-              ? "Só os leads marcados na lista vão para o corretor que você escolher."
-              : "Envie leads do pool do admin (sem equipe e sem corretor), incluindo os de retrabalho. Por equipes: o lead vai para o pool da equipe; por corretores: já fica com um corretor."}
-          </DialogDescription>
+      <DialogContent className="flex max-h-[90vh] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="flex-row items-start gap-3 space-y-0 border-b px-6 py-5 text-left">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4] text-white">
+            <Users className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <DialogTitle>
+              {usarSelecao
+                ? `Distribuir ${selecionados.length} lead(s) selecionado(s)`
+                : "Distribuir leads"}
+            </DialogTitle>
+            <DialogDescription className="mt-1">
+              {usarSelecao
+                ? "Só os leads marcados na lista vão para o corretor que você escolher."
+                : "Envie leads do pool do admin (sem equipe e sem corretor), incluindo os de retrabalho. Por equipes: o lead vai para o pool da equipe; por corretores: já fica com um corretor."}
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
         {loading || !resumo ? (
@@ -567,33 +667,34 @@ export function LeadsDistribuirDialog({
             )}
           </div>
         ) : (
-          <div className="space-y-4 overflow-auto flex-1 min-h-0">
-            <p className="text-sm">
-              Disponíveis:{" "}
-              <span className="font-semibold tabular-nums">
-                {resumo.disponiveis}
-              </span>
-            </p>
+          <div className="grid min-h-0 flex-1 gap-0 overflow-auto lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="space-y-4 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border px-3 py-2">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#079ed4]/10 text-[#079ed4]">
+                  <Users className="size-4" />
+                </span>
+                <div>
+                  <p className="text-xs text-muted-foreground">Disponíveis</p>
+                  <p className="text-lg font-semibold tabular-nums text-[#079ed4]">
+                    {resumo.disponiveis}
+                  </p>
+                </div>
+              </div>
+              <Tabs value={destino} onValueChange={(v) => setDestino(v as Destino)}>
+                <TabsList>
+                  <TabsTrigger value="equipes" disabled={resumo.equipes.length === 0}>
+                    Por equipes
+                  </TabsTrigger>
+                  <TabsTrigger value="corretores" disabled={resumo.corretores.length === 0}>
+                    Por corretores
+                  </TabsTrigger>
+                  <TabsTrigger value="fila">Fila</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
-            <Tabs
-              value={destino}
-              onValueChange={(v) => setDestino(v as Destino)}
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger
-                  value="equipes"
-                  disabled={resumo.equipes.length === 0}
-                >
-                  Por equipes
-                </TabsTrigger>
-                <TabsTrigger
-                  value="corretores"
-                  disabled={resumo.corretores.length === 0}
-                >
-                  Por corretores
-                </TabsTrigger>
-                <TabsTrigger value="fila">Fila</TabsTrigger>
-              </TabsList>
+            <Tabs value={destino} onValueChange={(v) => setDestino(v as Destino)}>
 
               {destino === "fila" ? null : (
               <div className="mt-3 flex justify-end">
@@ -702,13 +803,86 @@ export function LeadsDistribuirDialog({
               </TabsContent>
 
               <TabsContent value="fila" className="mt-3">
-                <FilaDistribuicaoPainel />
+                <FilaDistribuicaoPainel onlineIds={onlineIds} />
               </TabsContent>
             </Tabs>
+            </div>
+            <aside className="space-y-5 border-t bg-muted/40 p-5 lg:border-l lg:border-t-0">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Settings className="size-4 text-[#079ed4]" />
+                Configurações da distribuição
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Tipo de distribuição</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {(
+                    [
+                      ["corretores", "Por corretores"],
+                      ["equipes", "Por equipes"],
+                      ["fila", "Fila"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setDestino(id)}
+                      className={
+                        destino === id
+                          ? "rounded-xl bg-[#079ed4] px-3 py-2 text-left text-sm font-medium text-white"
+                          : "rounded-xl border bg-background px-3 py-2 text-left text-sm"
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {destino === "equipes"
+                    ? "O lead vai para o pool da equipe, ainda sem corretor."
+                    : destino === "fila"
+                      ? "A fila entrega um lead por vez e quem recebe vai para o fim."
+                      : "O lead fica direto com os corretores escolhidos."}
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Ordem de prioridade</p>
+                <p className="text-xs text-muted-foreground">
+                  Na fila, a ordem de cima para baixo define quem recebe o próximo lead.
+                </p>
+              </div>
+              <div className="flex gap-2 rounded-xl border bg-background px-3 py-2">
+                <Shield className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                <div>
+                  <p className="text-sm font-medium">Incluir leads de retrabalho</p>
+                  <p className="text-xs text-muted-foreground">
+                    Leads que já passaram por atendimento também entram neste envio.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2 rounded-xl border bg-background px-3 py-3 text-sm">
+                <p className="font-semibold">Resumo</p>
+                <div className="flex justify-between gap-3 text-muted-foreground">
+                  <span>Disponíveis</span>
+                  <span className="font-medium text-foreground">{resumo.disponiveis}</span>
+                </div>
+                <div className="flex justify-between gap-3 text-muted-foreground">
+                  <span>Destino</span>
+                  <span className="font-medium text-foreground">
+                    {destino === "equipes" ? "Equipes" : destino === "fila" ? "Fila" : "Corretores"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3 text-muted-foreground">
+                  <span>Soma informada</span>
+                  <span className="font-medium text-foreground">
+                    {destino === "equipes" ? somaEquipes : destino === "corretores" ? somaCorretores : "—"}
+                  </span>
+                </div>
+              </div>
+            </aside>
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 border-t px-6 py-4 sm:gap-2">
           <Button
             type="button"
             variant="outline"
