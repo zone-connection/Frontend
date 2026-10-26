@@ -36,6 +36,7 @@ import {
   reordenarFila,
   setFilaAtiva,
   setFilaMembroAtivo,
+  setFilaPrazo,
   type FilaElegivel,
   type FilaPainel,
 } from "@/lib/lead-fila-api";
@@ -50,6 +51,7 @@ function FilaDistribuicaoPainel() {
   const [painel, setPainel] = useState<FilaPainel | null>(null);
   const [elegiveis, setElegiveis] = useState<FilaElegivel[]>([]);
   const [userId, setUserId] = useState("");
+  const [minutos, setMinutos] = useState("0");
   const [busy, setBusy] = useState(true);
 
   const load = useCallback(async () => {
@@ -58,6 +60,7 @@ function FilaDistribuicaoPainel() {
       fetchFilaElegiveis(),
     ]);
     setPainel(next);
+    setMinutos(String(next.redistribuirMinutos ?? 0));
     setElegiveis(livres);
   }, []);
 
@@ -110,6 +113,37 @@ function FilaDistribuicaoPainel() {
           onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}
           aria-label="Ativar fila automática"
         />
+      </div>
+      <div className="flex items-end gap-2 rounded-md border px-3 py-2">
+        <label className="min-w-0 flex-1 text-sm">
+          Redistribuir após (min)
+          <Input
+            type="number"
+            min={0}
+            max={1440}
+            className="mt-1 h-9"
+            value={minutos}
+            onChange={(e) => setMinutos(e.target.value)}
+          />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {Number(painel.redistribuirMinutos) > 0
+              ? `Parado ${painel.redistribuirMinutos} min na primeira etapa, sem atividade, vai ao próximo. 0 desliga.`
+              : "0 desliga. Salve os minutos para a roleta passar o lead adiante."}
+          </span>
+        </label>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            void run(() =>
+              setFilaPrazo(Math.max(0, Math.min(1440, Math.trunc(Number(minutos) || 0)))),
+            )
+          }
+        >
+          Salvar
+        </Button>
       </div>
       <div className="flex gap-2">
         <select
