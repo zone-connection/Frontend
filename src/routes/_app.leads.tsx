@@ -1417,8 +1417,8 @@ function LeadsPage() {
   }
 
   const allVisibleIds = useMemo(
-    () => filteredLeads.map((l) => l.id),
-    [filteredLeads],
+    () => leadsPager.pageItems.map((l) => l.id),
+    [leadsPager.pageItems],
   );
   const allSelected =
     allVisibleIds.length > 0 &&
@@ -1427,7 +1427,14 @@ function LeadsPage() {
   const selectedCount = selectedIds.size;
 
   function toggleSelectAll(checked: boolean) {
-    setSelectedIds(checked ? new Set(allVisibleIds) : new Set());
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of allVisibleIds) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
   }
 
   function toggleSelectOne(id: string, checked: boolean) {
@@ -1781,7 +1788,7 @@ function LeadsPage() {
                 )}
                 Importar
               </Button>
-              {canDistribuir && (
+              {canDistribuir && selectedCount === 0 ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1790,25 +1797,7 @@ function LeadsPage() {
                   data-guia="leads-distribuir"
                 >
                   <Share2 className="mr-1.5 size-3.5 text-[#079ED4]" />
-                  {selectedCount > 0
-                    ? `Distribuir (${selectedCount})`
-                    : "Distribuir"}
-                </Button>
-              )}
-              {canDistribuir && selectedCount > 0 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={desvinculando}
-                  onClick={() => setDesvincularOpen(true)}
-                  className={LEADS_SECONDARY_BTN}
-                >
-                  {desvinculando ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  ) : (
-                    <UserMinus className="mr-1.5 size-3.5 text-[#079ED4]" />
-                  )}
-                  Desvincular ({selectedCount})
+                  Distribuir
                 </Button>
               ) : null}
               {canExportLeads ? (
@@ -1852,36 +1841,6 @@ function LeadsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               ) : null}
-              {selectedCount > 0 && canDeleteLeads && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={bulkDeleting}
-                    onClick={() => setBulkDeleteOpen(true)}
-                  >
-                    {bulkDeleting ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4 mr-1" />
-                    )}
-                    Perda ({selectedCount})
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={bulkPurging}
-                    onClick={() => setBulkPurgeOpen(true)}
-                  >
-                    {bulkPurging ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4 mr-1" />
-                    )}
-                    Excluir permanentemente ({selectedCount})
-                  </Button>
-                </>
-              )}
             </div>
             <Button
               size="sm"
@@ -1895,6 +1854,73 @@ function LeadsPage() {
           </div>
         }
       />
+
+      {selectedCount > 0 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border bg-card px-3 py-2">
+          <span className="mr-1 text-sm font-medium text-[#075a82]">
+            {selectedCount} selecionado{selectedCount === 1 ? "" : "s"}
+          </span>
+          {canDistribuir ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDistribuirOpen(true)}
+              className={LEADS_SECONDARY_BTN}
+            >
+              <Share2 className="mr-1.5 size-3.5 text-[#079ED4]" />
+              Distribuir
+            </Button>
+          ) : null}
+          {canDistribuir ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={desvinculando}
+              onClick={() => setDesvincularOpen(true)}
+              className={LEADS_SECONDARY_BTN}
+            >
+              {desvinculando ? (
+                <Loader2 className="mr-1 size-3.5 animate-spin" />
+              ) : (
+                <UserMinus className="mr-1.5 size-3.5 text-[#079ED4]" />
+              )}
+              Desvincular
+            </Button>
+          ) : null}
+          {canDeleteLeads ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkDeleting}
+              onClick={() => setBulkDeleteOpen(true)}
+              className={LEADS_SECONDARY_BTN}
+            >
+              {bulkDeleting ? (
+                <Loader2 className="mr-1 size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 size-3.5" />
+              )}
+              Perda
+            </Button>
+          ) : null}
+          {canDeleteLeads ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkPurging}
+              onClick={() => setBulkPurgeOpen(true)}
+              className="rounded-full border-destructive/40 text-destructive hover:bg-destructive/10"
+            >
+              {bulkPurging ? (
+                <Loader2 className="mr-1 size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 size-3.5" />
+              )}
+              Excluir
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       <FormDialogShell
         open={open}
