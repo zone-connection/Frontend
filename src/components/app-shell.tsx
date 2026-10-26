@@ -354,14 +354,14 @@ const NAV_SECTIONS: NavSection[] = [
   {
     id: "atendimento",
     grupo: "atendimento",
-    label: "Atendimento",
+    label: "Comercial",
     icon: Users,
     items: ATENDIMENTO_LEAVES,
   },
   {
     id: "imoveis-vendas",
     grupo: "imoveis",
-    label: "Imóveis e vendas",
+    label: "Imóveis",
     icon: Building2,
     items: IMOVEIS_VENDAS_LEAVES,
   },
@@ -371,13 +371,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Captação",
     icon: Search,
     items: CAPTACAO_LEAVES,
-  },
-  {
-    id: "financeiro",
-    grupo: "financeiro",
-    label: "Financeiro",
-    icon: FileText,
-    items: FINANCEIRO_MENU_LEAVES,
   },
   {
     id: "equipe",
@@ -392,6 +385,13 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Relatórios",
     icon: BarChart3,
     items: RELATORIOS_LEAVES,
+  },
+  {
+    id: "financeiro",
+    grupo: "financeiro",
+    label: "Financeiro",
+    icon: FileText,
+    items: FINANCEIRO_MENU_LEAVES,
   },
   {
     id: "treinamento",
@@ -1417,9 +1417,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "atendimento",
       "imoveis",
       "captacao",
-      "financeiro",
       "equipe",
       "relatorios",
+      "financeiro",
       "treinamento",
       "conta",
       "plataforma",
@@ -1476,8 +1476,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           const grupo = grupoDoSlot(slot);
           const grupoAnterior = index > 0 ? grupoDoSlot(menuSlots[index - 1]) : "";
           const novoGrupo = grupo !== grupoAnterior;
-          const tituloGrupo = novoGrupo && index > 0 ? (
-            <div className="mx-2 my-2.5 border-t border-white/25" />
+          const rotuloGrupo: Record<string, string> = {
+            rotina: "Início",
+            conta: "Conta",
+          };
+          const tituloGrupo = novoGrupo ? (
+            <div className={index > 0 ? "mx-2 mt-2.5 border-t border-white/25 pt-2.5" : "pt-1"}>
+              {!collapsedView && rotuloGrupo[grupo] ? (
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                  {rotuloGrupo[grupo]}
+                </p>
+              ) : null}
+            </div>
           ) : null;
           const section = slot.section;
           const SectionIcon = section.icon;
