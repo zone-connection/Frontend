@@ -21,6 +21,13 @@ export function ChaveConfirmacaoGate() {
 
   const carregar = useCallback(async () => {
     const session = getSession();
+    if (
+      session?.role === "admin" &&
+      session.twoFactorStatus === "pendente"
+    ) {
+      setItens([]);
+      return;
+    }
     if (session?.tenant?.modules?.muralChaves !== true) {
       setItens([]);
       return;
