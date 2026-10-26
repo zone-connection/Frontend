@@ -171,6 +171,11 @@ export type DemoDataCounts = {
   corretoresParceiros?: number;
   parcerias?: number;
   tarefas?: number;
+  posVendas?: number;
+  funcionarios?: number;
+  lembretes?: number;
+  processos?: number;
+  cadastroVendas?: number;
 };
 
 export type PopulateDemoDataResult = {

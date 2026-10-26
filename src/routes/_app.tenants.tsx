@@ -2282,6 +2282,11 @@ function TenantsPage() {
                         demoResult.counts.corretoresParceiros ?? 0,
                       ],
                       ["Parcerias", demoResult.counts.parcerias ?? 0],
+                      ["Pós-vendas", demoResult.counts.posVendas ?? 0],
+                      ["Funcionários", demoResult.counts.funcionarios ?? 0],
+                      ["Lembretes", demoResult.counts.lembretes ?? 0],
+                      ["Processos", demoResult.counts.processos ?? 0],
+                      ["Vendas cadastradas", demoResult.counts.cadastroVendas ?? 0],
                     ] as [string, number][]
                   ).map(([label, value]) => (
                     <div
