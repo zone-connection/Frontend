@@ -293,6 +293,7 @@ const IMOVEIS_VENDAS_LEAVES: NavLeaf[] = [
   { to: "/propostas", label: "Propostas", icon: ClipboardList },
   { to: "/contratos", label: "Contratos", icon: FileSignature },
   { to: "/vendas", label: "Vendas", icon: DollarSign },
+  { to: "/imoveis-usados/pos-venda", label: "Funil de pós-venda", icon: Funnel },
 ];
 
 const CAPTACAO_LEAVES: NavLeaf[] = [
