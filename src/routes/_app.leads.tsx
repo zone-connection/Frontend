@@ -80,6 +80,7 @@ import {
   Trash2,
   UserMinus,
   Upload,
+  Ban,
   FileSpreadsheet,
   FileText,
   Loader2,
@@ -4153,120 +4154,136 @@ function LeadsPage() {
       </Card>
 
       <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Importar leads</DialogTitle>
-            <DialogDescription>
-              Use o padrão abaixo para o arquivo ser lido corretamente.
-              Preferível Excel (.xlsx).
-            </DialogDescription>
+        <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="flex-row items-start gap-3 space-y-0 border-b px-6 py-5 text-left">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4] text-white">
+              <Upload className="size-5" />
+            </span>
+            <div>
+              <DialogTitle>Importar leads</DialogTitle>
+              <DialogDescription className="mt-1">
+                Use o padrão abaixo para o arquivo ser lido corretamente. Preferível Excel (.xlsx).
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4 text-sm">
+          <div className="space-y-4 overflow-auto px-6 py-5 text-sm">
             {isPlatformAdmin ? (
-              <div>
-                <p className="font-medium mb-1.5">Planilha de prospecção</p>
-                <p className="text-muted-foreground mb-2">
-                  Aceita a planilha Zone Connection (aba de leads) com Empresa,
-                  Município, Bairro/Região, Endereço, Telefone/WhatsApp, redes,
-                  atuação, módulos, CRM, produto, fit, prioridade e fonte.
-                </p>
-                <div className="rounded-md border overflow-x-auto overflow-y-hidden">
+              <div className="overflow-hidden rounded-2xl border">
+                <div className="border-b px-4 py-3">
+                  <p className="font-semibold">Planilha de prospecção</p>
+                  <p className="text-xs text-muted-foreground">
+                    Aba de leads da Zone Connection: empresa, município, telefone, produto, fit e fonte.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-muted/60 text-left">
-                        <th className="p-2 font-medium">Empresa</th>
-                        <th className="p-2 font-medium">Município</th>
-                        <th className="p-2 font-medium">Telefone/WhatsApp</th>
-                        <th className="p-2 font-medium">Produto indicado</th>
-                        <th className="p-2 font-medium">Fit</th>
-                        <th className="p-2 font-medium">Fonte</th>
+                      <tr className="bg-[#079ed4]/10 text-left text-[#075a82]">
+                        <th className="px-3 py-2 font-medium">Empresa</th>
+                        <th className="px-3 py-2 font-medium">Município</th>
+                        <th className="px-3 py-2 font-medium">Telefone</th>
+                        <th className="px-3 py-2 font-medium">Produto</th>
+                        <th className="px-3 py-2 font-medium">Fit</th>
+                        <th className="px-3 py-2 font-medium">Fonte</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-t text-muted-foreground">
-                        <td className="p-2">Âncora Imobiliária</td>
-                        <td className="p-2">Recife</td>
-                        <td className="p-2 tabular-nums">(81) 2123-3333</td>
-                        <td className="p-2">CRM + IA SDR</td>
-                        <td className="p-2">9.5</td>
-                        <td className="p-2">Google Maps</td>
+                      <tr className="border-t">
+                        <td className="px-3 py-2">Âncora Imobiliária</td>
+                        <td className="px-3 py-2">Recife</td>
+                        <td className="px-3 py-2 tabular-nums">(81) 2123-3333</td>
+                        <td className="px-3 py-2">CRM + IA SDR</td>
+                        <td className="px-3 py-2">9.5</td>
+                        <td className="px-3 py-2">Google Maps</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
             ) : (
-            <div>
-              <p className="font-medium mb-1.5">Colunas (nessa ordem)</p>
-              <div className="rounded-md border overflow-x-auto overflow-y-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted/60 text-left">
-                      <th className="p-2 font-medium">Nome</th>
-                      <th className="p-2 font-medium">Telefone</th>
-                      <th className="p-2 font-medium">Email</th>
-                      <th className="p-2 font-medium">Localidade de interesse</th>
-                      <th className="p-2 font-medium">Origem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t text-muted-foreground">
-                      <td className="p-2">Maria Silva</td>
-                      <td className="p-2 tabular-nums">(81) 98888-7777</td>
-                      <td className="p-2">maria@email.com</td>
-                      <td className="p-2">Recife</td>
-                      <td className="p-2">WhatsApp</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="overflow-hidden rounded-2xl border">
+                <div className="border-b px-4 py-3">
+                  <p className="font-semibold">Colunas, nessa ordem</p>
+                  <p className="text-xs text-muted-foreground">A primeira linha do modelo já traz esses títulos.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-[#079ed4]/10 text-left text-[#075a82]">
+                        <th className="px-3 py-2 font-medium">Nome</th>
+                        <th className="px-3 py-2 font-medium">Telefone</th>
+                        <th className="px-3 py-2 font-medium">Email</th>
+                        <th className="px-3 py-2 font-medium">Localidade</th>
+                        <th className="px-3 py-2 font-medium">Origem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="px-3 py-2.5">Maria Silva</td>
+                        <td className="px-3 py-2.5 tabular-nums">(81) 98888-7777</td>
+                        <td className="px-3 py-2.5">maria@email.com</td>
+                        <td className="px-3 py-2.5">Recife</td>
+                        <td className="px-3 py-2.5">WhatsApp</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
             )}
 
-            <div>
-              <p className="font-medium mb-1.5">Regras</p>
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                <li>
-                  <span className="text-foreground">
-                    {isPlatformAdmin ? "Empresa" : "Nome"}
-                  </span>{" "}
-                  e <span className="text-foreground">Telefone</span> são
-                  obrigatórios
+            <div className="rounded-2xl border">
+              <div className="flex items-center gap-2 border-b px-4 py-3">
+                <ClipboardList className="size-4 text-[#079ed4]" />
+                <p className="font-semibold">Regras</p>
+              </div>
+              <ul className="space-y-3 px-4 py-3 text-muted-foreground">
+                <li className="flex gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>
+                    <span className="font-medium text-foreground">{isPlatformAdmin ? "Empresa" : "Nome"}</span> e{" "}
+                    <span className="font-medium text-foreground">Telefone</span> são obrigatórios.
+                  </span>
                 </li>
-                <li>
-                  Telefone já com DDD, ex.: (81) 98888-7777 ou 81 98888-7777.
-                  Se houver mais de um número na célula, usa o primeiro.
+                <li className="flex gap-2">
+                  <Phone className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>
+                    Telefone já com DDD, ex.: (81) 98888-7777 ou 81 98888-7777. Se houver mais de um número na célula, usa o primeiro.
+                  </span>
                 </li>
-                {isPlatformAdmin ? (
-                  <li>
-                    As demais colunas (endereço, redes, fit, produto, fonte)
-                    são opcionais e entram na ficha de prospecção.
-                  </li>
-                ) : (
-                <li>
-                  Email, Localidade de interesse e Origem são opcionais
+                <li className="flex gap-2">
+                  <Mail className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>
+                    {isPlatformAdmin
+                      ? "Endereço, redes, fit, produto e fonte são opcionais e entram na ficha de prospecção."
+                      : "Email, localidade de interesse e origem são opcionais."}
+                  </span>
                 </li>
-                )}
-                <li>Uma linha = um lead</li>
+                <li className="flex gap-2">
+                  <Users className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>Uma linha = um lead.</span>
+                </li>
               </ul>
             </div>
 
             {isPlatformAdmin ? null : (
-            <div>
-              <p className="font-medium mb-1.5">Não incluir</p>
-              <p className="text-muted-foreground">
-                Hora da captura, DDD em coluna separada, mensagem de captura,
-                etapa, corretor ou prioridade.
-              </p>
-            </div>
+              <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                <Ban className="mt-0.5 size-4 shrink-0" />
+                <div>
+                  <p className="font-semibold">Não incluir</p>
+                  <p className="mt-0.5 text-xs opacity-90">
+                    Hora da captura, DDD em coluna separada, mensagem de captura, etapa, corretor ou prioridade.
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
+          <DialogFooter className="gap-2 border-t px-6 py-4 sm:gap-2">
             <Button
               type="button"
               variant="outline"
+              className="rounded-full"
               onClick={() =>
                 downloadImportTemplate(
                   isPlatformAdmin
@@ -4276,18 +4293,19 @@ function LeadsPage() {
                 )
               }
             >
-              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              <FileSpreadsheet className="size-4" />
               Baixar modelo Excel
             </Button>
             <Button
               type="button"
+              className="rounded-full bg-[#079ed4] hover:bg-[#075a82]"
               disabled={importParsing}
               onClick={() => importInputRef.current?.click()}
             >
               {importParsing ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Upload className="w-4 h-4 mr-1" />
+                <Upload className="size-4" />
               )}
               Escolher arquivo
             </Button>
