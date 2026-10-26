@@ -345,57 +345,57 @@ const RELATORIOS_LEAVES: NavLeaf[] = [
 ];
 
 const NAV_SECTIONS: NavSection[] = [
-  leafSection("menu", {
+  leafSection("rotina", {
     to: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
   }),
-  leafSection("menu", { to: "/tarefas", label: "Tarefas", icon: ListTodo }),
+  leafSection("rotina", { to: "/tarefas", label: "Tarefas", icon: ListTodo }),
   {
     id: "atendimento",
-    grupo: "menu",
+    grupo: "atendimento",
     label: "Atendimento",
     icon: Users,
     items: ATENDIMENTO_LEAVES,
   },
   {
     id: "imoveis-vendas",
-    grupo: "menu",
+    grupo: "imoveis",
     label: "Imóveis e vendas",
     icon: Building2,
     items: IMOVEIS_VENDAS_LEAVES,
   },
   {
     id: "captacao",
-    grupo: "menu",
+    grupo: "captacao",
     label: "Captação",
     icon: Search,
     items: CAPTACAO_LEAVES,
   },
   {
     id: "financeiro",
-    grupo: "menu",
+    grupo: "financeiro",
     label: "Financeiro",
     icon: FileText,
     items: FINANCEIRO_MENU_LEAVES,
   },
   {
     id: "equipe",
-    grupo: "menu",
+    grupo: "equipe",
     label: "Equipe",
     icon: Users,
     items: EQUIPE_LEAVES,
   },
   {
     id: "relatorios",
-    grupo: "menu",
+    grupo: "relatorios",
     label: "Relatórios",
     icon: BarChart3,
     items: RELATORIOS_LEAVES,
   },
   {
     id: "treinamento",
-    grupo: "menu",
+    grupo: "treinamento",
     label: "Treinamento",
     icon: GraduationCap,
     items: [
@@ -403,13 +403,13 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/guia-sistema", label: "Guia do sistema", icon: BookMarked },
     ],
   },
-  leafSection("menu", { to: "/perfil", label: "Perfil", icon: UserIcon }),
-  leafSection("menu", {
+  leafSection("conta", { to: "/perfil", label: "Perfil", icon: UserIcon }),
+  leafSection("conta", {
     to: "/configuracoes",
     label: "Configurações",
     icon: Settings,
   }),
-  leafSection("menu", { to: "/novidades", label: "Novidades", icon: Sparkles }),
+  leafSection("conta", { to: "/novidades", label: "Novidades", icon: Sparkles }),
   {
     id: "plataforma",
     grupo: "plataforma",
@@ -1412,16 +1412,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const sections = navSections.filter((section) => section.id !== "agenda");
-    const ordem = ["menu", "plataforma"];
+    const ordem = [
+      "rotina",
+      "atendimento",
+      "imoveis",
+      "captacao",
+      "financeiro",
+      "equipe",
+      "relatorios",
+      "treinamento",
+      "conta",
+      "plataforma",
+    ];
     const ordered = [...sections].sort(
       (a, b) => ordem.indexOf(a.grupo) - ordem.indexOf(b.grupo),
     );
     const menuSlots = ordered.map((section) => ({ kind: "section" as const, section }));
     const grupoDoSlot = (slot: (typeof menuSlots)[number]) => slot.section.grupo;
-    const rotuloGrupo: Record<string, string> = {
-      menu: "",
-      plataforma: "",
-    };
 
     return (
       <nav className="sidebar-nav-scroll relative z-10 flex-1 overflow-y-auto px-2 py-3">
@@ -1469,18 +1476,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           const grupo = grupoDoSlot(slot);
           const grupoAnterior = index > 0 ? grupoDoSlot(menuSlots[index - 1]) : "";
           const novoGrupo = grupo !== grupoAnterior;
-          const tituloGrupo = novoGrupo ? (
-            collapsedView ? (
-              <div className="mx-2 my-2 border-t border-white/20" />
-            ) : (
-              <div className={cn(index > 0 ? "mt-3 border-t border-white/20 pt-3" : "pt-1")}>
-                {rotuloGrupo[grupo] ? (
-                  <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-                    {rotuloGrupo[grupo]}
-                  </p>
-                ) : null}
-              </div>
-            )
+          const tituloGrupo = novoGrupo && index > 0 ? (
+            <div className="mx-2 my-2.5 border-t border-white/25" />
           ) : null;
           const section = slot.section;
           const SectionIcon = section.icon;
