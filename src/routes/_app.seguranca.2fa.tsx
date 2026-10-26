@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiError } from "@/lib/api";
-import { fetchMe } from "@/lib/auth";
+import { fetchMe, getSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app/seguranca/2fa")({
   head: () => ({ meta: [{ title: "Autenticação 2FA — Zone Connection" }] }),
@@ -14,11 +14,11 @@ export const Route = createFileRoute("/_app/seguranca/2fa")({
 
 type Estado = {
   twoFactorStatus: "pendente" | "ativo" | "desativado" | "nao_aplica";
-  codigoConfirmado?: boolean;
 };
 
 export function Decisao2faPage() {
-  const [modo, setModo] = useState<"codigo" | "escolha" | "risco">("codigo");
+  const pendente = getSession()?.twoFactorStatus === "pendente";
+  const [modo, setModo] = useState<"escolha" | "ativar" | "risco">("escolha");
   const [secret, setSecret] = useState("");
   const [otpauth, setOtpauth] = useState("");
   const [code, setCode] = useState("");
@@ -29,80 +29,43 @@ export function Decisao2faPage() {
   const [estado, setEstado] = useState<Estado | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const atual = await apiFetch<Estado>("/seguranca/2fa/eu");
-        if (cancelled) return;
-        setEstado(atual);
-        if (atual.twoFactorStatus === "pendente" && atual.codigoConfirmado) {
-          setModo("escolha");
-          return;
-        }
-        if (
-          atual.twoFactorStatus === "pendente" ||
-          atual.twoFactorStatus === "desativado"
-        ) {
-          const data = await apiFetch<{ secret: string; otpauthUrl: string }>(
-            "/seguranca/2fa/preparar",
-            { method: "POST" },
-          );
-          if (cancelled) return;
-          setSecret(data.secret);
-          setOtpauth(data.otpauthUrl);
-          setModo("codigo");
-          return;
-        }
-        setModo("escolha");
-      } catch (error) {
-        toast.error(
-          error instanceof ApiError
-            ? error.message
-            : "Não foi possível carregar a autenticação de dois fatores.",
-        );
-      }
-      try {
-        const row = await apiFetch<{ text: string }>("/seguranca/2fa/termos");
-        if (!cancelled) setTermos(row.text);
-      } catch {
-        // termos só são necessários na desativação
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void apiFetch<Estado>("/seguranca/2fa/eu")
+      .then(setEstado)
+      .catch(() => undefined);
+    void apiFetch<{ text: string }>("/seguranca/2fa/termos")
+      .then((row) => setTermos(row.text))
+      .catch(() => undefined);
   }, []);
 
-  async function confirmar() {
+  async function preparar() {
     setBusy(true);
     try {
-      const data = await apiFetch<{
-        recoveryCodes: string[];
-        codigoConfirmado?: boolean;
-      }>("/seguranca/2fa/confirmar", { method: "POST", body: { code } });
-      setRecovery(data.recoveryCodes);
-      setEstado((atual) =>
-        atual
-          ? { ...atual, codigoConfirmado: true }
-          : { twoFactorStatus: "pendente", codigoConfirmado: true },
+      const data = await apiFetch<{ secret: string; otpauthUrl: string }>(
+        "/seguranca/2fa/preparar",
+        { method: "POST" },
       );
-      setModo("escolha");
-      toast.success("Código confirmado. Agora escolha manter ou desativar.");
+      setSecret(data.secret);
+      setOtpauth(data.otpauthUrl);
+      setModo("ativar");
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Código inválido.");
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível gerar o autenticador.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function manter() {
+  async function confirmar() {
     setBusy(true);
     try {
-      await apiFetch("/seguranca/2fa/manter", { method: "POST" });
+      const data = await apiFetch<{ recoveryCodes: string[] }>(
+        "/seguranca/2fa/confirmar",
+        { method: "POST", body: { code } },
+      );
+      setRecovery(data.recoveryCodes);
       await fetchMe();
-      window.location.href = "/";
+      toast.success("Autenticação de dois fatores confirmada.");
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Não foi possível manter o 2FA.");
+      toast.error(error instanceof ApiError ? error.message : "Código inválido.");
     } finally {
       setBusy(false);
     }
@@ -116,7 +79,9 @@ export function Decisao2faPage() {
         body: { aceito: true },
       });
       await fetchMe();
-      window.location.href = "/";
+      setEstado({ twoFactorStatus: "desativado" });
+      setModo("escolha");
+      toast.success("Decisão registrada. O 2FA ficou desativado.");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Não foi possível registrar a decisão.");
     } finally {
@@ -129,7 +94,11 @@ export function Decisao2faPage() {
       <PageHeader
         eyebrow="Segurança"
         title="Autenticação de dois fatores"
-        description="Confirme o código do autenticador. Só depois disso você escolhe manter a proteção ou desativá-la."
+        description={
+          pendente
+            ? "Antes de entrar no CRM, escolha manter a proteção ou aceitar o risco de desativá-la."
+            : "Você pode ativar ou desativar a proteção. Cada mudança fica no histórico."
+        }
       />
 
       {recovery ? (
@@ -145,35 +114,8 @@ export function Decisao2faPage() {
               </li>
             ))}
           </ul>
-          <Button className="mt-5" onClick={() => setRecovery(null)} disabled={modo !== "escolha"}>
-            Escolher manter ou desativar
-          </Button>
-        </section>
-      ) : null}
-
-      {!recovery && modo === "codigo" ? (
-        <section className="space-y-4 rounded-2xl border bg-card p-6">
-          <p className="text-sm text-muted-foreground">
-            Cadastre a chave no aplicativo autenticador e informe o código de 6 dígitos.
-          </p>
-          <p className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-sm">
-            {secret || "Gerando chave…"}
-          </p>
-          {otpauth ? (
-            <p className="break-all text-xs text-muted-foreground">{otpauth}</p>
-          ) : null}
-          <label className="block text-sm font-medium">
-            Código de confirmação
-            <input
-              className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-            />
-          </label>
-          <Button onClick={() => void confirmar()} disabled={busy || !secret || code.trim().length < 6}>
-            Confirmar código
+          <Button className="mt-5" onClick={() => (window.location.href = "/")}>
+            Continuar para o CRM
           </Button>
         </section>
       ) : null}
@@ -182,14 +124,14 @@ export function Decisao2faPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <button
             type="button"
-            onClick={() => void manter()}
+            onClick={() => void preparar()}
             disabled={busy}
             className="rounded-2xl border bg-card p-5 text-left hover:border-primary"
           >
             <ShieldCheck className="mb-3 h-5 w-5 text-primary" />
             <div className="font-semibold">Manter 2FA</div>
             <p className="mt-1 text-sm text-muted-foreground">
-              O código já foi confirmado. O segundo fator permanece ativo.
+              Configura e confirma o segundo fator. Estado: ativo.
             </p>
           </button>
           <button
@@ -205,10 +147,43 @@ export function Decisao2faPage() {
           </button>
           {estado?.twoFactorStatus === "ativo" ? (
             <p className="text-sm text-muted-foreground md:col-span-2">
-              A proteção está ativa. Para desligar, aceite o risco.
+              A proteção está ativa. Para desligar, aceite o risco. Para trocar o autenticador, escolha manter 2FA de novo.
+            </p>
+          ) : null}
+          {estado?.twoFactorStatus === "desativado" ? (
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              O 2FA está desativado. Você pode ativá-lo quando quiser.
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {!recovery && modo === "ativar" ? (
+        <section className="space-y-4 rounded-2xl border bg-card p-6">
+          <p className="text-sm text-muted-foreground">
+            No aplicativo autenticador, use a chave abaixo ou cole o endereço otpauth.
+          </p>
+          <p className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-sm">{secret}</p>
+          <p className="break-all text-xs text-muted-foreground">{otpauth}</p>
+          <label className="block text-sm font-medium">
+            Código de confirmação
+            <input
+              className="mt-1 w-full rounded-lg border bg-background px-3 py-2"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+            />
+          </label>
+          <div className="flex gap-2">
+            <Button onClick={() => void confirmar()} disabled={busy || code.trim().length < 6}>
+              Confirmar
+            </Button>
+            <Button variant="outline" onClick={() => setModo("escolha")}>
+              Voltar
+            </Button>
+          </div>
+        </section>
       ) : null}
 
       {!recovery && modo === "risco" ? (

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { fetchFunilAtivo, type Funil } from "@/lib/funis-api";
-import { decisao2faPendente } from "@/lib/auth";
 
 export const ATRASO_LIBERACAO_NAV_EVENT = "atraso-liberacao-nav";
 
@@ -37,10 +36,6 @@ export function useHideCacaLeadNav() {
 
   useEffect(() => {
     let cancelled = false;
-    if (decisao2faPendente()) {
-      setReady(true);
-      return;
-    }
     void fetchFunilAtivo("comercial")
       .then((funil) => {
         if (!cancelled) {

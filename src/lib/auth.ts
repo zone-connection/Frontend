@@ -109,10 +109,6 @@ export function getSession(): AuthUser | null {
   return sessionCache.getUser<AuthUser>();
 }
 
-export function decisao2faPendente(user: AuthUser | null = getSession()): boolean {
-  return user?.role === "admin" && user.twoFactorStatus === "pendente";
-}
-
 export async function signIn(
   email: string,
   password: string,

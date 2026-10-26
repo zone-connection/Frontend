@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError } from "@/lib/api";
-import { decisao2faPendente } from "@/lib/auth";
 import {
   createCatalogItem,
   deleteCatalogItem,
@@ -162,10 +161,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const loadedOnce = useRef(false);
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
-    if (decisao2faPendente()) {
-      setLoading(false);
-      return;
-    }
     if (!opts?.silent && !loadedOnce.current) setLoading(true);
     setError(null);
     try {

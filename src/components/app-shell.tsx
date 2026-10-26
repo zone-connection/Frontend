@@ -53,7 +53,7 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { getSession, sendHeartbeat, signOut, decisao2faPendente, type AuthUser } from "@/lib/auth";
+import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao, canUserAccessRoute } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
@@ -654,7 +654,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    if (decisao2faPendente(user)) return;
     if (loginLembretesCheckedRef.current) return;
     loginLembretesCheckedRef.current = true;
     let showLogin = false;
@@ -730,7 +729,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    if (decisao2faPendente(user)) return;
     // Super admin não usa notificações/agenda do CRM operacional.
     if (user.role === "super_admin") return;
 
@@ -752,7 +750,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   //
   // ; Presença: heartbeat a cada 60s com a aba visível (tempo logado no dia).
   useEffect(() => {
-    if (!user || user.role === "super_admin" || decisao2faPendente(user)) return;
+    if (!user || user.role === "super_admin") return;
 
     const beat = () => {
       if (typeof document !== "undefined" && document.hidden) return;
