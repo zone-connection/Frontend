@@ -9,8 +9,6 @@ import {
 import { PageHeader } from "@/components/app-shell";
 import { InlineSpinner } from "@/components/inline-spinner";
 import { PagePanel } from "@/components/page-panel";
-import { SkeletonDashboard, SkeletonList } from "@/components/skeletons";
-import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { EvolucaoBadge, FinanceKpiCard } from "@/components/finance-kpi-card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -181,9 +179,7 @@ function EntradaLista({
         {ENTRADA_TITULO[recorte]}
       </p>
       {loading ? (
-        <div className="px-2 py-2">
-          <SkeletonList rows={4} />
-        </div>
+        <div className="min-h-24" aria-busy="true" />
       ) : itens.length === 0 ? (
         <p className="px-4 py-6 text-sm text-muted-foreground">{vazio}</p>
       ) : (
@@ -590,7 +586,6 @@ function DashboardAdminView() {
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
   const awaitingFirst = loading && !summary;
-  const showSkeleton = useDeferredLoading(awaitingFirst);
   const [entradaRecorte, setEntradaRecorte] =
     useState<DashboardEntradaRecorte | null>(null);
   const [entradaLista, setEntradaLista] = useState<DashboardEntradaLista | null>(
@@ -826,11 +821,6 @@ function DashboardAdminView() {
           }
           actions={filtros}
         />
-        {showSkeleton ? (
-          <SkeletonDashboard />
-        ) : (
-          <div className="min-h-[28rem]" aria-busy="true" />
-        )}
       </div>
     );
   }
@@ -1829,7 +1819,6 @@ function DashboardCorretorView() {
   const [summary, setSummary] = useState<DashboardCorretor | null>(null);
   const [loading, setLoading] = useState(true);
   const awaitingFirst = loading && !summary;
-  const showSkeleton = useDeferredLoading(awaitingFirst);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1884,11 +1873,6 @@ function DashboardCorretorView() {
           title="Dashboard"
           description="Visão geral da sua operação."
         />
-        {showSkeleton ? (
-          <SkeletonDashboard />
-        ) : (
-          <div className="min-h-[28rem]" aria-busy="true" />
-        )}
       </div>
     );
   }
