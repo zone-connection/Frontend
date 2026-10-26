@@ -61,6 +61,43 @@ const CARGO: Record<string, string> = {
   treinee: "Trainee",
 };
 
+function Quantidade({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div className="flex items-center rounded-full border bg-background">
+      <button
+        type="button"
+        className="flex size-8 items-center justify-center text-lg text-[#075a82] disabled:opacity-40"
+        disabled={value <= 0}
+        onClick={() => onChange(Math.max(0, value - 1))}
+        aria-label="Diminuir"
+      >
+        −
+      </button>
+      <input
+        type="number"
+        min={0}
+        className="h-8 w-10 border-0 bg-transparent text-center text-sm font-semibold outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        value={value}
+        onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+      />
+      <button
+        type="button"
+        className="flex size-8 items-center justify-center text-lg text-[#075a82]"
+        onClick={() => onChange(value + 1)}
+        aria-label="Aumentar"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 function iniciais(nome: string) {
   return nome
     .split(" ")
@@ -667,7 +704,7 @@ export function LeadsDistribuirDialog({
             )}
           </div>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-0 overflow-auto lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="grid max-h-[70vh] gap-0 overflow-auto lg:grid-cols-[minmax(0,1fr)_280px]">
             <div className="space-y-4 p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3 rounded-2xl border px-3 py-2">
@@ -696,110 +733,149 @@ export function LeadsDistribuirDialog({
 
             <Tabs value={destino} onValueChange={(v) => setDestino(v as Destino)}>
 
-              {destino === "fila" ? null : (
-              <div className="mt-3 flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={saving || loading}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    void autoDividir();
-                  }}
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  Dividir automaticamente
-                </Button>
-              </div>
-              )}
-
-              <TabsContent value="equipes" className="mt-3 space-y-2">
+              <TabsContent value="equipes" className="mt-4">
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Equipes</p>
+                    <p className="text-xs text-muted-foreground">
+                      {somaEquipes} de {resumo.disponiveis} leads distribuídos
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-full bg-[#079ed4] hover:bg-[#075a82]"
+                    disabled={saving || loading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void autoDividir();
+                    }}
+                  >
+                    {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Dividir automaticamente
+                  </Button>
+                </div>
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={somaEquipes > resumo.disponiveis ? "h-full bg-destructive" : "h-full bg-[#079ed4]"}
+                    style={{
+                      width: `${Math.min(100, resumo.disponiveis ? (somaEquipes / resumo.disponiveis) * 100 : 0)}%`,
+                    }}
+                  />
+                </div>
                 {resumo.equipes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                     Nenhuma equipe cadastrada. Use a aba Corretores.
                   </p>
                 ) : (
-                  resumo.equipes.map((eq) => (
-                    <div
-                      key={eq.equipeId}
-                      className="flex items-center gap-3 rounded-md border px-3 py-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {eq.nome}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {resumo.equipes.map((eq) => {
+                      const qtd = qtdEquipes[eq.equipeId] ?? 0;
+                      return (
+                        <div
+                          key={eq.equipeId}
+                          className={
+                            qtd > 0
+                              ? "flex items-center gap-3 rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
+                              : "flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm"
+                          }
+                        >
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
+                            {iniciais(eq.nome)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{eq.nome}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {eq.gerente} · {eq.corretores} corretor{eq.corretores === 1 ? "" : "es"}
+                            </p>
+                          </div>
+                          <Quantidade
+                            value={qtd}
+                            onChange={(next) =>
+                              setQtdEquipes((prev) => ({ ...prev, [eq.equipeId]: next }))
+                            }
+                          />
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Gerente: {eq.gerente} · {eq.corretores} corretor
-                          {eq.corretores === 1 ? "" : "es"}
-                        </div>
-                      </div>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-24 h-9"
-                        value={qtdEquipes[eq.equipeId] ?? 0}
-                        onChange={(e) =>
-                          setQtdEquipes((prev) => ({
-                            ...prev,
-                            [eq.equipeId]: Math.max(
-                              0,
-                              Number(e.target.value) || 0,
-                            ),
-                          }))
-                        }
-                      />
-                    </div>
-                  ))
+                      );
+                    })}
+                  </div>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Soma: {somaEquipes} / {resumo.disponiveis}
-                </p>
               </TabsContent>
 
-              <TabsContent value="corretores" className="mt-3 space-y-2">
+              <TabsContent value="corretores" className="mt-4">
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Corretores</p>
+                    <p className="text-xs text-muted-foreground">
+                      {somaCorretores} de {resumo.disponiveis} leads distribuídos
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-full bg-[#079ed4] hover:bg-[#075a82]"
+                    disabled={saving || loading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void autoDividir();
+                    }}
+                  >
+                    {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Dividir automaticamente
+                  </Button>
+                </div>
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={somaCorretores > resumo.disponiveis ? "h-full bg-destructive" : "h-full bg-[#079ed4]"}
+                    style={{
+                      width: `${Math.min(100, resumo.disponiveis ? (somaCorretores / resumo.disponiveis) * 100 : 0)}%`,
+                    }}
+                  />
+                </div>
                 {resumo.corretores.length === 0 ? (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                  <p className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-amber-600">
                     Cadastre corretores ativos em Usuários para poder distribuir.
                   </p>
                 ) : (
-                  resumo.corretores.map((c) => (
-                    <div
-                      key={c.id}
-                      className="flex items-center gap-3 rounded-md border px-3 py-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {c.nome}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {resumo.corretores.map((c) => {
+                      const qtd = qtdCorretores[c.id] ?? 0;
+                      return (
+                        <div
+                          key={c.id}
+                          className={
+                            qtd > 0
+                              ? "flex items-center gap-3 rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
+                              : "flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm"
+                          }
+                        >
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
+                            {iniciais(c.nome)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">
+                              {c.nome}
+                              {c.online ? (
+                                <span className="ml-1.5 text-[11px] font-normal text-emerald-600">●</span>
+                              ) : null}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {c.equipeNome ?? "Sem equipe"}
+                            </p>
+                          </div>
+                          <Quantidade
+                            value={qtd}
+                            onChange={(next) =>
+                              setQtdCorretores((prev) => ({ ...prev, [c.id]: next }))
+                            }
+                          />
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {c.equipeNome
-                            ? `Equipe: ${c.equipeNome}`
-                            : "Sem equipe"}
-                          {c.online ? " · Online" : ""}
-                        </div>
-                      </div>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-24 h-9"
-                        value={qtdCorretores[c.id] ?? 0}
-                        onChange={(e) =>
-                          setQtdCorretores((prev) => ({
-                            ...prev,
-                            [c.id]: Math.max(0, Number(e.target.value) || 0),
-                          }))
-                        }
-                      />
-                    </div>
-                  ))
+                      );
+                    })}
+                  </div>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Soma: {somaCorretores} / {resumo.disponiveis}
-                </p>
               </TabsContent>
 
               <TabsContent value="fila" className="mt-3">
