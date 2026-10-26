@@ -79,7 +79,7 @@ import {
 } from "@/lib/lead-monitoramento";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
-import { LeadOrigemLiberacaoBadge } from "@/components/lead-origem-liberacao-badge";
+import { LeadOrigemLiberacaoBadge, LeadRoletaBadge } from "@/components/lead-origem-liberacao-badge";
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import {
@@ -1582,6 +1582,8 @@ export function ComercialFunilBoard({
                       (l.origemAtrasoLiberacao === "retrabalho" ||
                         l.triagemOrigemHerdada === "retrabalho") &&
                         "border-amber-400/70 bg-amber-50/90 ring-1 ring-amber-400/30 dark:bg-amber-950/25",
+                      l.roletaRedistribuido &&
+                        "border-blue-500/70 bg-blue-50/90 ring-1 ring-blue-400/40 dark:bg-blue-950/30",
                       isClientesFunil &&
                         "border-2 bg-white dark:bg-card",
                       leadMonitoramentoCardClass(l),
@@ -1605,6 +1607,7 @@ export function ComercialFunilBoard({
                               <MeuLeadBadge />
                             )}
                           <LeadOrigemLiberacaoBadge lead={l} compact />
+                          {l.roletaRedistribuido ? <LeadRoletaBadge compact /> : null}
                           {l.tipo === "cliente" && (
                             <Badge
                               variant="outline"

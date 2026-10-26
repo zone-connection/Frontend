@@ -17,6 +17,7 @@ import {
   removeFilaMembro,
   reordenarFila,
   setFilaAtiva,
+  setFilaPrazo,
   setFilaMembroAtivo,
   type FilaElegivel,
   type FilaEvento,
@@ -45,6 +46,7 @@ const EVENTO: Record<string, string> = {
   membro_ativar: "Integrante ativado",
   membro_desativar: "Integrante desativado",
   reordenar: "Ordem alterada",
+  redistribuicao: "Redistribuído pela roleta",
 };
 
 function Page() {
@@ -55,6 +57,7 @@ function Page() {
   const [historico, setHistorico] = useState<FilaEvento[]>([]);
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [minutos, setMinutos] = useState("10");
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
 
@@ -65,6 +68,7 @@ function Page() {
       fetchFilaHistorico(),
     ]);
     setPainel(next);
+    setMinutos(String(next.redistribuirMinutos ?? 0));
     setElegiveis(livres);
     setHistorico(eventos);
   }
@@ -133,10 +137,35 @@ function Page() {
                   : "Pausada. Leads novos ficam sem atribuição automática."}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
+                {painel.redistribuirMinutos > 0
+                  ? `Se ficar ${painel.redistribuirMinutos} min na primeira etapa sem atividade, vai para o próximo. Zero desliga.`
+                  : "Redistribuição por tempo desligada. Informe os minutos e salve para ligar."}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Falhas no período: {painel.falhas} · Corretor {painel.porCargo.corretor} · Gerente{" "}
                 {painel.porCargo.gerente} · Trainee {painel.porCargo.treinee}
               </p>
             </div>
+            <label className="text-sm">
+              Redistribuir após (min)
+              <input
+                type="number"
+                min={0}
+                max={1440}
+                className="mt-1 block w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
+                value={minutos}
+                onChange={(e) => setMinutos(e.target.value)}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                void run(() => setFilaPrazo(Math.max(0, Math.min(1440, Number(minutos) || 0))))
+              }
+            >
+              Salvar prazo
+            </Button>
             <Switch
               checked={painel.ativa}
               onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}

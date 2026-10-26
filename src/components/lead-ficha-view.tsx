@@ -32,6 +32,7 @@ import {
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { LeadRoletaBadge } from "@/components/lead-origem-liberacao-badge";
 import {
   HistoryTimeline,
   MAX_TRIAGEM_TEXTO,
@@ -259,6 +260,7 @@ export function LeadFichaView({
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">{lead.nome}</h1>
                 {showMeuLeadBadge ? <MeuLeadBadge /> : null}
+                {lead.roletaRedistribuido ? <LeadRoletaBadge /> : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">

@@ -1,4 +1,4 @@
-import { Repeat, UserRoundCog } from "lucide-react";
+import { Repeat, Shuffle, UserRoundCog } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,29 @@ export function resolveLeadOrigemLiberacao(
     return { label: "Reatribuído", kind: "reatribuido" };
   }
   return null;
+}
+
+export function LeadRoletaBadge({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <Badge
+      variant="outline"
+      title="Redistribuído pela roleta porque o prazo esgotou sem atualização"
+      className={cn(
+        compact ? "h-5 px-1.5 py-0 text-[9px]" : "h-5 px-1.5 text-[10px] font-semibold",
+        "border-blue-500/50 bg-blue-500/15 text-blue-800 dark:text-blue-200",
+        className,
+      )}
+    >
+      <Shuffle className={cn("mr-0.5", compact ? "h-2.5 w-2.5" : "size-3")} />
+      Roleta
+    </Badge>
+  );
 }
 
 export function LeadOrigemLiberacaoBadge({

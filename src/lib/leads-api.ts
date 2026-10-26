@@ -85,6 +85,7 @@ export interface ApiLead {
   origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
   atrasoLiberadoAt?: string | null;
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
+  roletaRedistribuido?: boolean;
   createdAt: string;
   updatedAt: string;
   monitoramento?: LeadMonitoramento | null;
@@ -156,6 +157,7 @@ export function mapApiLead(api: ApiLead): Lead {
     origemAtrasoLiberacao: api.origemAtrasoLiberacao ?? null,
     atrasoLiberadoAt: api.atrasoLiberadoAt ?? null,
     triagemOrigemHerdada: api.triagemOrigemHerdada ?? null,
+    roletaRedistribuido: api.roletaRedistribuido ?? false,
     construtoraId: api.construtoraId ?? null,
     construtora: api.construtora ?? null,
     empreendimentoId: api.empreendimentoId ?? null,

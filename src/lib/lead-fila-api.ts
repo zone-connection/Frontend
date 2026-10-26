@@ -17,6 +17,7 @@ export type FilaMembro = {
 
 export type FilaPainel = {
   ativa: boolean;
+  redistribuirMinutos: number;
   ativos: number;
   inativos: number;
   distribuidos: number;
@@ -65,6 +66,13 @@ export function setFilaAtiva(ativa: boolean) {
   return apiFetch<{ ativa: boolean }>("/leads/distribuir/fila", {
     method: "PATCH",
     body: { ativa },
+  });
+}
+
+export function setFilaPrazo(minutos: number) {
+  return apiFetch<{ redistribuirMinutos: number }>("/leads/distribuir/fila/prazo", {
+    method: "PATCH",
+    body: { minutos },
   });
 }
 

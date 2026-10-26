@@ -136,6 +136,8 @@ export interface Lead {
   atrasoLiberadoAt?: string | null;
   /** Destaque na triagem após herdar o lead (caça-lead / retrabalho). */
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
+  /** Passou para outro integrante porque o prazo da roleta esgotou. */
+  roletaRedistribuido?: boolean;
   /** Nome da equipe para exibição. */
   equipe?: string | null;
   construtoraId?: string | null;
