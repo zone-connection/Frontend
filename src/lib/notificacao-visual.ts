@@ -57,10 +57,6 @@ export function visualNotificacao(tipo: NotificacaoTipo): NotificacaoVisual {
     case "processo_pendencia":
     case "processo_reenvio":
       return { icon: FolderOpen, wrap: MUTED };
-    case "two_factor_desativado":
-      return { icon: TriangleAlert, wrap: INFO };
-    case "two_factor_ativado":
-      return { icon: KeyRound, wrap: SUCCESS };
     default:
       return { icon: FileText, wrap: INFO };
   }
