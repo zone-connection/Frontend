@@ -22,7 +22,9 @@ export type NotificacaoTipo =
   | "chave_devolucao"
   | "chave_confirmacao"
   | "processo_pendencia"
-  | "processo_reenvio";
+  | "processo_reenvio"
+  | "two_factor_desativado"
+  | "two_factor_ativado";
 
 export type Notificacao = {
   id: string;
@@ -48,4 +50,34 @@ export async function markNotificacaoLida(id: string): Promise<Notificacao> {
 
 export async function markAllNotificacoesLidas(): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>("/notificacoes/lidas", { method: "POST" });
+}
+
+export async function fetchAvisosPlataforma(): Promise<Notificacao[]> {
+  const rows = await apiFetch<
+    Array<{
+      id: string;
+      tipo: "two_factor_desativado" | "two_factor_ativado";
+      titulo: string;
+      corpo: string;
+      lida: boolean;
+      createdAt: string;
+    }>
+  >("/seguranca/2fa/avisos");
+  return rows.map((row) => ({
+    id: row.id,
+    tipo: row.tipo,
+    titulo: row.titulo,
+    corpo: row.corpo,
+    lida: row.lida,
+    leadId: null,
+    analiseId: null,
+    agendamentoId: null,
+    empreendimentoId: null,
+    propostaId: null,
+    createdAt: row.createdAt,
+  }));
+}
+
+export async function markAvisoPlataformaLido(id: string): Promise<void> {
+  await apiFetch(`/seguranca/2fa/avisos/${id}/lida`, { method: "PATCH" });
 }

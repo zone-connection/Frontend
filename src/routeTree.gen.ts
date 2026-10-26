@@ -78,6 +78,7 @@ import { Route as PortalVisitasRouteImport } from './routes/portal.visitas'
 import { Route as ProdutosCrmImobiliarioRouteImport } from './routes/produtos.crm-imobiliario'
 import { Route as ProdutosIaWhatsappRouteImport } from './routes/produtos.ia-whatsapp'
 import { Route as ProdutosSitesInstitucionaisRouteImport } from './routes/produtos.sites-institucionais'
+import { Route as AppAdministracao2faRouteImport } from './routes/_app.administracao.2fa'
 import { Route as AppCaptacaoCaptacoesRouteImport } from './routes/_app.captacao.captacoes'
 import { Route as AppCaptacaoFilaRouteImport } from './routes/_app.captacao.fila'
 import { Route as AppCaptacaoFunilRouteImport } from './routes/_app.captacao.funil'
@@ -110,6 +111,7 @@ import { Route as AppLeadsFilaRouteImport } from './routes/_app.leads_.fila'
 import { Route as AppParceriasIdRouteImport } from './routes/_app.parcerias.$id'
 import { Route as AppParceriasImoveisRouteImport } from './routes/_app.parcerias.imoveis'
 import { Route as AppParceriasVisaoGeralRouteImport } from './routes/_app.parcerias.visao-geral'
+import { Route as AppSeguranca2faRouteImport } from './routes/_app.seguranca.2fa'
 import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.index'
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
 import { Route as PublicoEmpreendimentoIdRouteImport } from './routes/publico.empreendimento.$id'
@@ -471,6 +473,11 @@ const ProdutosSitesInstitucionaisRoute =
     path: '/produtos/sites-institucionais',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppAdministracao2faRoute = AppAdministracao2faRouteImport.update({
+  id: '/administracao/2fa',
+  path: '/administracao/2fa',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCaptacaoCaptacoesRoute = AppCaptacaoCaptacoesRouteImport.update({
   id: '/captacoes',
   path: '/captacoes',
@@ -644,6 +651,11 @@ const AppParceriasVisaoGeralRoute = AppParceriasVisaoGeralRouteImport.update({
   path: '/visao-geral',
   getParentRoute: () => AppParceriasRoute,
 } as any)
+const AppSeguranca2faRoute = AppSeguranca2faRouteImport.update({
+  id: '/seguranca/2fa',
+  path: '/seguranca/2fa',
+  getParentRoute: () => AppRoute,
+} as any)
 const PortalImoveisIndexRoute = PortalImoveisIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -796,6 +808,7 @@ export interface FileRoutesByFullPath {
   '/produtos/sites-institucionais': typeof ProdutosSitesInstitucionaisRoute
   '/parceiros/': typeof ParceirosIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/administracao/2fa': typeof AppAdministracao2faRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/captacao/fila': typeof AppCaptacaoFilaRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
@@ -828,6 +841,7 @@ export interface FileRoutesByFullPath {
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/seguranca/2fa': typeof AppSeguranca2faRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
@@ -910,6 +924,7 @@ export interface FileRoutesByTo {
   '/produtos/sites-institucionais': typeof ProdutosSitesInstitucionaisRoute
   '/parceiros': typeof ParceirosIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/administracao/2fa': typeof AppAdministracao2faRoute
   '/captacao/fila': typeof AppCaptacaoFilaRoute
   '/captacao/funil': typeof AppCaptacaoFunilRoute
   '/captacao/oportunidades': typeof AppCaptacaoOportunidadesRoute
@@ -938,6 +953,7 @@ export interface FileRoutesByTo {
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/seguranca/2fa': typeof AppSeguranca2faRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
@@ -1025,6 +1041,7 @@ export interface FileRoutesById {
   '/produtos/sites-institucionais': typeof ProdutosSitesInstitucionaisRoute
   '/parceiros/': typeof ParceirosIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/_app/administracao/2fa': typeof AppAdministracao2faRoute
   '/_app/captacao/captacoes': typeof AppCaptacaoCaptacoesRouteWithChildren
   '/_app/captacao/fila': typeof AppCaptacaoFilaRoute
   '/_app/captacao/funil': typeof AppCaptacaoFunilRoute
@@ -1057,6 +1074,7 @@ export interface FileRoutesById {
   '/_app/parcerias/$id': typeof AppParceriasIdRoute
   '/_app/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/_app/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/_app/seguranca/2fa': typeof AppSeguranca2faRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
@@ -1144,6 +1162,7 @@ export interface FileRouteTypes {
     | '/produtos/sites-institucionais'
     | '/parceiros/'
     | '/portal/'
+    | '/administracao/2fa'
     | '/captacao/captacoes'
     | '/captacao/fila'
     | '/captacao/funil'
@@ -1176,6 +1195,7 @@ export interface FileRouteTypes {
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
+    | '/seguranca/2fa'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
@@ -1258,6 +1278,7 @@ export interface FileRouteTypes {
     | '/produtos/sites-institucionais'
     | '/parceiros'
     | '/portal'
+    | '/administracao/2fa'
     | '/captacao/fila'
     | '/captacao/funil'
     | '/captacao/oportunidades'
@@ -1286,6 +1307,7 @@ export interface FileRouteTypes {
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
+    | '/seguranca/2fa'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
@@ -1372,6 +1394,7 @@ export interface FileRouteTypes {
     | '/produtos/sites-institucionais'
     | '/parceiros/'
     | '/portal/'
+    | '/_app/administracao/2fa'
     | '/_app/captacao/captacoes'
     | '/_app/captacao/fila'
     | '/_app/captacao/funil'
@@ -1404,6 +1427,7 @@ export interface FileRouteTypes {
     | '/_app/parcerias/$id'
     | '/_app/parcerias/imoveis'
     | '/_app/parcerias/visao-geral'
+    | '/_app/seguranca/2fa'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
@@ -1925,6 +1949,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosSitesInstitucionaisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/administracao/2fa': {
+      id: '/_app/administracao/2fa'
+      path: '/administracao/2fa'
+      fullPath: '/administracao/2fa'
+      preLoaderRoute: typeof AppAdministracao2faRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/captacao/captacoes': {
       id: '/_app/captacao/captacoes'
       path: '/captacoes'
@@ -2148,6 +2179,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/parcerias/visao-geral'
       preLoaderRoute: typeof AppParceriasVisaoGeralRouteImport
       parentRoute: typeof AppParceriasRoute
+    }
+    '/_app/seguranca/2fa': {
+      id: '/_app/seguranca/2fa'
+      path: '/seguranca/2fa'
+      fullPath: '/seguranca/2fa'
+      preLoaderRoute: typeof AppSeguranca2faRouteImport
+      parentRoute: typeof AppRoute
     }
     '/portal/imoveis/': {
       id: '/portal/imoveis/'
@@ -2461,8 +2499,10 @@ interface AppRouteChildren {
   AppUsuariosRoute: typeof AppUsuariosRoute
   AppVendasRoute: typeof AppVendasRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
+  AppAdministracao2faRoute: typeof AppAdministracao2faRoute
   AppImoveisIdRoute: typeof AppImoveisIdRoute
   AppLeadsFilaRoute: typeof AppLeadsFilaRoute
+  AppSeguranca2faRoute: typeof AppSeguranca2faRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -2509,8 +2549,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppUsuariosRoute: AppUsuariosRoute,
   AppVendasRoute: AppVendasRoute,
   AppWhatsappRoute: AppWhatsappRoute,
+  AppAdministracao2faRoute: AppAdministracao2faRoute,
   AppImoveisIdRoute: AppImoveisIdRoute,
   AppLeadsFilaRoute: AppLeadsFilaRoute,
+  AppSeguranca2faRoute: AppSeguranca2faRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

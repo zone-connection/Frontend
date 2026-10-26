@@ -68,6 +68,7 @@ export interface AuthUser {
   creciStatus?: string | null;
   avatar?: string | null;
   lastLoginAt?: string | null;
+  twoFactorStatus?: "nao_aplica" | "pendente" | "ativo" | "desativado";
   tenant?: TenantBranding | null;
 }
 
@@ -113,6 +114,7 @@ export async function signIn(
   password: string,
   tenantSlug?: string,
   captchaToken?: string,
+  totpCode?: string,
 ): Promise<AuthUser> {
   expireReadableCsrfCookies();
   const data = await apiFetch<LoginResponse>("/auth/login", {
@@ -123,6 +125,7 @@ export async function signIn(
       password,
       ...(tenantSlug ? { tenantSlug } : {}),
       ...(captchaToken ? { captchaToken } : {}),
+      ...(totpCode ? { totpCode } : {}),
     },
   });
 

@@ -7,6 +7,13 @@ import { CatalogProvider } from "@/lib/catalog-store";
 import { TenantThemeProvider } from "@/lib/tenant-theme";
 
 function guardUser(user: AuthUser, pathname: string) {
+  if (
+    user.role === "admin" &&
+    user.twoFactorStatus === "pendente" &&
+    pathname !== "/seguranca/2fa"
+  ) {
+    throw redirect({ to: "/seguranca/2fa" });
+  }
   const blockedComissao =
     pathname.includes("/financeiro/comissao") && !canSeeComissao(user);
   if (

@@ -40,6 +40,7 @@ import {
   BookMarked,
   GraduationCap,
   Receipt,
+  ShieldCheck,
   TriangleAlert,
   ClipboardCheck,
   KeyRound,
@@ -89,7 +90,9 @@ import {
 } from "@/lib/lembretes-api";
 import {
   fetchNotificacoes,
+  fetchAvisosPlataforma,
   markAllNotificacoesLidas,
+  markAvisoPlataformaLido,
   markNotificacaoLida,
   type Notificacao,
 } from "@/lib/notificacoes-api";
@@ -409,6 +412,14 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Configurações",
     icon: Settings,
   }),
+  {
+    ...leafSection("conta", {
+      to: "/seguranca/2fa",
+      label: "Autenticação 2FA",
+      icon: ShieldCheck,
+    }),
+    adminOnly: true,
+  },
   leafSection("conta", { to: "/novidades", label: "Novidades", icon: Sparkles }),
   {
     id: "plataforma",
@@ -418,6 +429,7 @@ const NAV_SECTIONS: NavSection[] = [
     platformOnly: true,
     items: [
       { to: "/tenants", label: "Clientes", icon: Building2 },
+      { to: "/administracao/2fa", label: "Autenticação 2FA", icon: ShieldCheck },
       { to: "/guia", label: "Guia", icon: BookOpen },
     ],
   },
@@ -520,6 +532,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const loadNotificacoes = useCallback(async () => {
     try {
+      if (getSession()?.role === "super_admin") {
+        setNotificacoes(await fetchAvisosPlataforma());
+        return;
+      }
       try {
         await syncLeadMonitoramento();
       } catch {
@@ -578,6 +594,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       });
     }
   }, [notificacoes, user?.role, analiseAlert]);
+
+  useEffect(() => {
+    if (user?.role !== "super_admin") return;
+    const unread = notificacoes.filter(
+      (n) => !n.lida && n.tipo === "two_factor_desativado",
+    );
+    if (unread.length === 0) return;
+    let shown: string[] = [];
+    try {
+      shown = JSON.parse(
+        sessionStorage.getItem("crm_2fa_alert_shown") || "[]",
+      ) as string[];
+      if (!Array.isArray(shown)) shown = [];
+    } catch {
+      shown = [];
+    }
+    const next = unread.find((n) => !shown.includes(n.id));
+    if (!next) return;
+    sessionStorage.setItem(
+      "crm_2fa_alert_shown",
+      JSON.stringify([...shown, next.id].slice(-40)),
+    );
+    toast.message(next.titulo, { description: next.corpo, duration: 12_000 });
+  }, [notificacoes, user?.role]);
 
   const loadAgendaBadge = useCallback(
     async (opts?: { showCard?: boolean }) => {
@@ -707,7 +747,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(id);
   }, [user, loadNotificacoes, loadAgendaBadge]);
 
-  // Presença: heartbeat a cada 60s com a aba visível (tempo logado no dia).
+  //
+  // ; Presença: heartbeat a cada 60s com a aba visível (tempo logado no dia).
   useEffect(() => {
     if (!user || user.role === "super_admin") return;
 
@@ -763,10 +804,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function handleOpenNotif(n: Notificacao) {
     try {
       if (!n.lida) {
-        const updated = await markNotificacaoLida(n.id);
-        setNotificacoes((prev) =>
-          prev.map((x) => (x.id === updated.id ? updated : x)),
-        );
+        if (
+          n.tipo === "two_factor_desativado" ||
+          n.tipo === "two_factor_ativado"
+        ) {
+          await markAvisoPlataformaLido(n.id);
+          setNotificacoes((prev) =>
+            prev.map((x) => (x.id === n.id ? { ...x, lida: true } : x)),
+          );
+        } else {
+          const updated = await markNotificacaoLida(n.id);
+          setNotificacoes((prev) =>
+            prev.map((x) => (x.id === updated.id ? updated : x)),
+          );
+        }
       }
     } catch (err) {
       toast.error(

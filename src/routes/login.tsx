@@ -204,6 +204,8 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const captchaRequired = turnstileSiteKey().length > 0;
@@ -221,10 +223,23 @@ function LoginPage() {
         password,
         undefined,
         captchaToken ?? undefined,
+        needsTotp ? totpCode : undefined,
       );
       toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+      if (user.role === "admin" && user.twoFactorStatus === "pendente") {
+        navigate({ to: "/seguranca/2fa" });
+        return;
+      }
       navigate({ to: defaultRouteForRole(user.role, user) });
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.message === "TWO_FACTOR_REQUIRED"
+      ) {
+        setNeedsTotp(true);
+        toast.message("Informe o código do autenticador.");
+        return;
+      }
       if (error instanceof ApiError && error.status === 401) {
         try {
           const me = await signInPortal(email, password);
@@ -367,10 +382,12 @@ function LoginPage() {
               <LoginBrandLogo size="md" />
               <div className="space-y-1">
                 <h2 className="text-2xl font-semibold text-[#0B3148]">
-                  Entrar na plataforma
+                  {needsTotp ? "Código de verificação" : "Entrar na plataforma"}
                 </h2>
                 <p className="text-sm leading-relaxed text-[#5C6B76]">
-                  Use suas credenciais para continuar na Zone Connection.
+                  {needsTotp
+                    ? "Digite o código de 6 dígitos do autenticador ou um código de recuperação."
+                    : "Use suas credenciais para continuar na Zone Connection."}
                 </p>
               </div>
             </div>
@@ -409,6 +426,18 @@ function LoginPage() {
                   </a>
                 }
               />
+
+              {needsTotp ? (
+                <LoginAuthField
+                  id="totp"
+                  label="Código de verificação"
+                  value={totpCode}
+                  onChange={setTotpCode}
+                  icon={Lock}
+                  placeholder="000000"
+                  required
+                />
+              ) : null}
 
               <TurnstileWidget resetKey={captchaReset} onToken={setCaptchaToken} />
 
