@@ -21,38 +21,12 @@ export function Decisao2faPage() {
   const [modo, setModo] = useState<"codigo" | "escolha" | "risco">("codigo");
   const [secret, setSecret] = useState("");
   const [otpauth, setOtpauth] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [code, setCode] = useState("");
   const [aceito, setAceito] = useState(false);
   const [termos, setTermos] = useState("");
   const [recovery, setRecovery] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [estado, setEstado] = useState<Estado | null>(null);
-
-  useEffect(() => {
-    if (!otpauth) {
-      setQrCodeUrl("");
-      return;
-    }
-    let cancelled = false;
-    void import("qrcode")
-      .then((QRCode) =>
-        QRCode.toDataURL(otpauth, {
-          width: 280,
-          margin: 2,
-          errorCorrectionLevel: "M",
-        }),
-      )
-      .then((url) => {
-        if (!cancelled) setQrCodeUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setQrCodeUrl("");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [otpauth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,23 +154,14 @@ export function Decisao2faPage() {
       {!recovery && modo === "codigo" ? (
         <section className="space-y-4 rounded-2xl border bg-card p-6">
           <p className="text-sm text-muted-foreground">
-            Abra o Google Authenticator, escaneie o QR code e informe o código de 6 dígitos.
-          </p>
-          {qrCodeUrl ? (
-            <img
-              src={qrCodeUrl}
-              alt="QR code para o Google Authenticator"
-              className="mx-auto h-56 w-56 rounded-xl border bg-white p-2"
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">Gerando QR code…</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Se a câmera não ler, cadastre esta chave manualmente:
+            Cadastre a chave no aplicativo autenticador e informe o código de 6 dígitos.
           </p>
           <p className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-sm">
             {secret || "Gerando chave…"}
           </p>
+          {otpauth ? (
+            <p className="break-all text-xs text-muted-foreground">{otpauth}</p>
+          ) : null}
           <label className="block text-sm font-medium">
             Código de confirmação
             <input
