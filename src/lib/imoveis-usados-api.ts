@@ -707,6 +707,8 @@ export type PosVendaUsado = {
   id: string;
   vendaUsadoId?: string | null;
   status: PosVendaStatus;
+  observacoes?: string;
+  tags?: string[];
   interessado: { id: string; nome: string };
   lead?: { id: string; nome: string; telefone?: string | null; email?: string | null };
   proprietario: { id: string; nome: string };

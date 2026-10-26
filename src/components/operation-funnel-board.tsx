@@ -45,6 +45,7 @@ export type OperationFunnelCard = {
   etapaId: string;
   title: string;
   subtitle?: string;
+  details?: string[];
   meta?: string;
   value?: number;
   href: string;
@@ -330,6 +331,14 @@ export function OperationFunnelBoard({
                             {card.subtitle}
                           </p>
                         ) : null}
+                        {card.details?.map((line) => (
+                          <p
+                            key={line}
+                            className="mb-0.5 truncate text-xs text-muted-foreground"
+                          >
+                            {line}
+                          </p>
+                        ))}
                         {phone ? (
                           <div className="grid grid-cols-[14px_minmax(0,1fr)_22px] items-center gap-1.5 text-xs text-muted-foreground">
                             <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
