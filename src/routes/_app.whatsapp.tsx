@@ -93,6 +93,17 @@ import {
   WhatsappMessageDetailsDialog,
   WhatsappMessageEditDialog,
 } from "@/components/whatsapp-message-bubble";
+import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
+import {
+  matchesInboxFilter,
+  WhatsappChatAvatar,
+  WhatsappConversationActions,
+  WhatsappLeadSidePanel,
+  WhatsappListFilters,
+  type InboxFilter,
+} from "@/components/whatsapp-lead-side-panel";
+import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
+import type { Lead } from "@/lib/crm-types";
 
 export const Route = createFileRoute("/_app/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — Zone Connection" }] }),
@@ -263,6 +274,9 @@ function WhatsappInboxPage() {
   const [sending, setSending] = useState(false);
   const [assuming, setAssuming] = useState(false);
   const [query, setQuery] = useState("");
+  const [listFilter, setListFilter] = useState<InboxFilter>("todas");
+  const [fichaLead, setFichaLead] = useState<Lead | null>(null);
+  const [leadPaneOpen, setLeadPaneOpen] = useState(false);
   const [equipeId, setEquipeId] = useState("__all__");
   const [corretorId, setCorretorId] = useState("__all__");
   const [tagId, setTagId] = useState<string | null>(null);
@@ -301,7 +315,7 @@ function WhatsappInboxPage() {
     user?.role === "admin" ||
     user?.role === "super_admin" ||
     user?.role === "gerente";
-  const cacheKey = `crm-whatsapp-inbox-chats-v4:${user?.id ?? "anon"}:${equipeId}:${corretorId}:${tagId ?? ""}`;
+  const cacheKey = `crm-whatsapp-inbox-chats-v5:${user?.id ?? "anon"}:${equipeId}:${corretorId}:${tagId ?? ""}`;
 
   const active = chats.find((chat) => chat.chatId === activeId) ?? null;
 
@@ -458,6 +472,7 @@ function WhatsappInboxPage() {
 
   useEffect(() => {
     if (!activeId) return;
+    setLeadPaneOpen(false);
     void loadMessages(activeId);
   }, [activeId]);
 
@@ -495,7 +510,7 @@ function WhatsappInboxPage() {
     );
   }, [equipes, equipeId]);
 
-  const filtered = useMemo(() => {
+  const searched = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return chats;
     return chats.filter((chat) =>
@@ -504,6 +519,33 @@ function WhatsappInboxPage() {
         .includes(q),
     );
   }, [chats, query]);
+
+  const filterCounts = useMemo(
+    () => ({
+      todas: searched.length,
+      nao_lidas: searched.filter((chat) => chat.unread > 0).length,
+      sem_resposta: searched.filter(
+        (chat) => chat.unread > 0 && !chat.aiPaused,
+      ).length,
+      aguardando: searched.filter((chat) => chat.aiPaused).length,
+    }),
+    [searched],
+  );
+
+  const filtered = useMemo(
+    () => searched.filter((chat) => matchesInboxFilter(chat, listFilter)),
+    [searched, listFilter],
+  );
+
+  async function openLeadFicha() {
+    if (!active?.leadId) return;
+    try {
+      const row = await fetchLeadById(active.leadId);
+      setFichaLead(mapApiLead(row));
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível abrir a ficha."));
+    }
+  }
 
   const threadMessages = useMemo(
     () => inferReadDelivery(messages),
@@ -706,7 +748,8 @@ function WhatsappInboxPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04] grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04]">
+        <div className="grid min-h-0 min-w-0 flex-1 overflow-hidden grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[20rem_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden border-b bg-primary/[0.03] lg:border-b-0 lg:border-r">
           <div className="shrink-0 space-y-2 border-b bg-primary/[0.04] p-3">
             <div className="flex items-center gap-2">
@@ -715,7 +758,7 @@ function WhatsappInboxPage() {
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar conversa"
+                  placeholder="Buscar por nome, telefone ou mensagem…"
                   className="h-9 pl-8"
                 />
               </div>
@@ -772,6 +815,11 @@ function WhatsappInboxPage() {
                 </Select>
               </div>
             ) : null}
+            <WhatsappListFilters
+              value={listFilter}
+              counts={filterCounts}
+              onChange={setListFilter}
+            />
             <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
               {tags.map((tag) => (
                 <button
@@ -823,9 +871,10 @@ function WhatsappInboxPage() {
                     className="flex min-w-0 flex-1 items-start gap-3 px-3 py-3 text-left"
                     onClick={() => setActiveId(chat.chatId)}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <FaWhatsapp className="h-5 w-5" />
-                    </span>
+                    <WhatsappChatAvatar
+                      name={chat.leadNome || chat.name}
+                      src={chat.avatarUrl}
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm font-medium">
@@ -905,13 +954,19 @@ function WhatsappInboxPage() {
         <section className="flex min-h-0 flex-col overflow-hidden">
           {active ? (
             <>
-              <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-primary/[0.04] px-4 py-3">
-                <div className="min-w-0">
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-background/80 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <WhatsappChatAvatar
+                    name={active.leadNome || active.name}
+                    src={active.avatarUrl}
+                  />
+                  <div className="min-w-0">
                   <p className="truncate font-medium">
                     {active.leadNome || active.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {active.phone || active.chatId}
+                    {active.leadId ? " · Lead" : ""}
                     {active.isGroup ? " · Grupo" : ""}
                     {active.aiPaused ? " · IA pausada" : " · IA ativa"}
                     {loadingMsgs && messages.length > 0 ? " · atualizando" : ""}
@@ -931,6 +986,7 @@ function WhatsappInboxPage() {
                       ))}
                     </div>
                   ) : null}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <ChatTagPicker
@@ -939,13 +995,6 @@ function WhatsappInboxPage() {
                     onToggle={(tag) => void toggleChatTag(active.chatId, tag)}
                     onManage={() => setTagDialog(true)}
                   />
-                  {active.leadId ? (
-                    <Button asChild variant="outline" size="sm">
-                      <Link to="/funil" search={{ lead: active.leadId }}>
-                        Ver lead
-                      </Link>
-                    </Button>
-                  ) : null}
                   {canSend ? (
                     <Button
                       type="button"
@@ -964,6 +1013,20 @@ function WhatsappInboxPage() {
                       {active.aiPaused ? "Religar IA" : "Assumir"}
                     </Button>
                   ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    title={leadPaneOpen ? "Fechar ficha do lead" : "Abrir ficha do lead"}
+                    onClick={() => setLeadPaneOpen((open) => !open)}
+                  >
+                    {leadPaneOpen ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <ChevronLeft className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </header>
               <div
@@ -1011,7 +1074,7 @@ function WhatsappInboxPage() {
               </div>
               {canSend ? (
                 <form
-                  className="flex shrink-0 items-end gap-2 border-t bg-primary/[0.04] p-3"
+                  className="flex shrink-0 items-end gap-2 border-t bg-background p-3"
                   onSubmit={(event) => {
                     event.preventDefault();
                     void send();
@@ -1044,10 +1107,14 @@ function WhatsappInboxPage() {
                   </Button>
                 </form>
               ) : (
-                <p className="shrink-0 border-t bg-primary/[0.04] px-4 py-3 text-xs text-muted-foreground">
+                <p className="shrink-0 border-t bg-background px-4 py-3 text-xs text-muted-foreground">
                   Seu perfil só visualiza as conversas dos seus leads.
                 </p>
               )}
+              <WhatsappConversationActions
+                leadId={active.leadId}
+                onOpenFicha={() => void openLeadFicha()}
+              />
             </>
           ) : (
             <div
@@ -1062,7 +1129,24 @@ function WhatsappInboxPage() {
             </div>
           )}
         </section>
+        </div>
+        {active && leadPaneOpen ? (
+          <WhatsappLeadSidePanel
+            leadId={active.leadId}
+            avatarUrl={active.avatarUrl}
+            name={active.leadNome || active.name}
+            onOpenFicha={() => void openLeadFicha()}
+          />
+        ) : null}
       </div>
+      <LeadDetalheDialog
+        lead={fichaLead}
+        open={Boolean(fichaLead)}
+        onOpenChange={(open) => {
+          if (!open) setFichaLead(null);
+        }}
+        onUpdated={setFichaLead}
+      />
       <Dialog
         open={tagDialog}
         onOpenChange={(open) => {

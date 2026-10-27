@@ -28,6 +28,7 @@ export type WhatsappInboxChat = {
   chatId: string;
   name: string;
   phone: string | null;
+  avatarUrl?: string | null;
   lastMessage: string | null;
   lastMessageAt: string | null;
   unread: number;
