@@ -951,7 +951,7 @@ function CriarCompromisso({
         <Section icon={CalendarDays} title="Tipo de compromisso" hint="Escolha qual é o tipo de compromisso.">
           <AgendamentoTipoPicker
             appearance="soft"
-            value={form.tipo ?? "tarefa"}
+            value={avisoEntrada ? ("" as AgendamentoTipo) : (form.tipo ?? "tarefa")}
             options={AGENDAMENTO_TIPOS.filter((item) => item !== "retirada_chave")}
             onChange={(tipo: AgendamentoTipo) => {
               setAvisoEntrada(false);
