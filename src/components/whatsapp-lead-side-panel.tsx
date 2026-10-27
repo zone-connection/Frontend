@@ -1,17 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Building2,
   CalendarPlus,
   ClipboardList,
-  FileText,
   Home,
   Loader2,
   Mail,
   MapPin,
   Pencil,
   Phone,
-  Sparkles,
   StickyNote,
   User,
 } from "lucide-react";
@@ -48,10 +46,27 @@ function initials(nome: string) {
 }
 
 function formatDay(iso?: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "";
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("pt-BR");
+}
+
+function prettyLabel(value: string | null | undefined) {
+  const clean = value?.trim() ?? "";
+  if (!clean || /^a definir$/i.test(clean) || clean === "—") return "";
+  if (clean === clean.toUpperCase() && /[A-ZÁÉÍÓÚÃÕÂÊÔÇ]/.test(clean)) {
+    return clean
+      .toLocaleLowerCase("pt-BR")
+      .replace(/(^|\s)\p{L}/gu, (letter) => letter.toLocaleUpperCase("pt-BR"));
+  }
+  return clean;
+}
+
+function visibleEmail(email: string | null | undefined) {
+  const shown = displayEmail(email);
+  if (!shown || /@whatsapp\.ozap\.local$/i.test(shown)) return "";
+  return shown;
 }
 
 export function WhatsappChatAvatar({
@@ -87,8 +102,10 @@ export function WhatsappLeadSidePanel({
   const { funnelStages } = useCatalog();
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<"cliente" | "imovel" | "atividades">("cliente");
 
   useEffect(() => {
+    setTab("cliente");
     if (!leadId) {
       setLead(null);
       return;
@@ -124,176 +141,157 @@ export function WhatsappLeadSidePanel({
     );
   }
 
-  const stageName =
-    funnelStages.find((item) => item.id === lead?.stage)?.name ??
-    lead?.stage ??
-    "—";
+  const stageName = prettyLabel(
+    funnelStages.find((item) => item.id === lead?.stage)?.name ?? lead?.stage,
+  );
   const interesses = interessesAtivos(lead?.interesses);
+  const place = [prettyLabel(lead?.cidade), prettyLabel(lead?.bairro)]
+    .filter(Boolean)
+    .join(" · ");
   const chips = [
     lead?.interesse,
     lead?.orcamentoMax ? `Até ${brl(lead.orcamentoMax)}` : null,
-    [lead?.cidade, lead?.bairro].filter(Boolean).join(" · ") || null,
+    place || null,
   ].filter(Boolean) as string[];
+  const email = visibleEmail(lead?.email);
+  const phone = lead ? formatPhone(lead.telefone) || lead.telefone : "";
+  const created = formatDay(lead?.createdAt);
+  const corretor = prettyLabel(lead?.corretor);
 
   return (
-    <aside className="flex min-h-0 w-[min(22rem,100%)] shrink-0 flex-col overflow-hidden border-l bg-background">
-      <div className="flex items-center gap-2 border-b px-4 py-2.5 text-xs font-medium text-muted-foreground">
-        <span className="rounded-md bg-primary/10 px-2 py-1 text-primary">
-          Cliente
-        </span>
-        <span className="px-2 py-1">Imóvel</span>
-        <span className="px-2 py-1">Atividades</span>
+    <aside className="flex min-h-0 w-[min(22rem,100%)] shrink-0 flex-col overflow-hidden border-l bg-muted/40">
+      <div className="grid grid-cols-3 gap-1 border-b bg-background p-2">
+        {(
+          [
+            ["cliente", "Cliente"],
+            ["imovel", "Imóvel"],
+            ["atividades", "Atividades"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={cn(
+              "rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+              tab === id
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted",
+            )}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:thin]">
         {loading && !lead ? (
           <p className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando ficha…
           </p>
         ) : lead ? (
-          <div className="space-y-5 p-4">
-            <div className="flex items-start gap-3">
-              <WhatsappChatAvatar
-                name={lead.nome || name || "Lead"}
-                src={avatarUrl}
-                className="h-12 w-12 text-sm"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{lead.nome}</p>
-                <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <FaWhatsapp className="h-3 w-3 text-primary" />
-                  {formatPhone(lead.telefone) || lead.telefone}
-                </p>
-                <span className="mt-1 inline-flex rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
-                  {lead.tipo === "cliente" ? "Cliente" : "Lead"}
-                </span>
+          <div className="space-y-3">
+            <div className="rounded-2xl border bg-card p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <WhatsappChatAvatar
+                  name={lead.nome || name || "Lead"}
+                  src={avatarUrl}
+                  className="h-14 w-14 text-base ring-4 ring-primary/10"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-semibold tracking-tight">
+                    {prettyLabel(lead.nome) || lead.nome}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <FaWhatsapp className="h-3.5 w-3.5 text-emerald-500" />
+                    {phone}
+                  </p>
+                  <span className="mt-2 inline-flex rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                    {lead.tipo === "cliente" ? "Cliente" : "Lead"}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Informações do lead
-                </p>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-primary hover:underline"
-                  onClick={onOpenFicha}
+            {tab === "cliente" ? (
+              <>
+                <PanelCard
+                  title="Informações"
+                  action="Editar"
+                  onAction={onOpenFicha}
                 >
-                  Editar
-                </button>
-              </div>
-              <dl className="space-y-2 text-sm">
-                <InfoRow icon={User} label="Nome" value={lead.nome} />
-                <InfoRow
-                  icon={Phone}
-                  label="Telefone"
-                  value={formatPhone(lead.telefone) || lead.telefone}
-                />
-                <InfoRow
-                  icon={Mail}
-                  label="E-mail"
-                  value={displayEmail(lead.email) || "—"}
-                />
-                <InfoRow
-                  icon={ClipboardList}
-                  label="Etapa do funil"
-                  value={stageName}
-                />
-                <InfoRow
-                  icon={User}
-                  label="Corretor responsável"
-                  value={lead.corretor || "—"}
-                />
-                <InfoRow
-                  icon={FileText}
-                  label="Criado em"
-                  value={formatDay(lead.createdAt)}
-                />
-              </dl>
-            </section>
+                  <div className="divide-y">
+                    <InfoRow icon={Phone} label="Telefone" value={phone} />
+                    {email ? (
+                      <InfoRow icon={Mail} label="E-mail" value={email} />
+                    ) : null}
+                    {stageName ? (
+                      <InfoRow
+                        icon={ClipboardList}
+                        label="Etapa do funil"
+                        value={stageName}
+                      />
+                    ) : null}
+                    {corretor ? (
+                      <InfoRow icon={User} label="Corretor" value={corretor} />
+                    ) : null}
+                    {created ? (
+                      <InfoRow icon={CalendarPlus} label="Criado em" value={created} />
+                    ) : null}
+                  </div>
+                </PanelCard>
+                <PanelCard title="Interesses">
+                  {chips.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 px-3 py-3">
+                      {chips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyLine text="Nenhum interesse preenchido." />
+                  )}
+                </PanelCard>
+              </>
+            ) : null}
 
-            <section>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Interesses
-              </p>
-              {chips.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {chips.map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Nenhum interesse preenchido.</p>
-              )}
-            </section>
+            {tab === "imovel" ? (
+              <PanelCard title="Imóveis de interesse" leadId={lead.id}>
+                {interesses.length === 0 && !lead.empreendimento ? (
+                  <EmptyLine text="Nenhum imóvel vinculado." />
+                ) : (
+                  <ul className="space-y-2 p-3">
+                    {lead.empreendimento ? (
+                      <PropertyCard
+                        title={lead.empreendimento.nome}
+                        place={prettyLabel(lead.empreendimento.cidade)}
+                        icon={Building2}
+                      />
+                    ) : null}
+                    {interesses.slice(0, 4).map((item) => (
+                      <PropertyCard
+                        key={item.id}
+                        title={rotuloInteresseAlvo(item)}
+                        icon={Home}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </PanelCard>
+            ) : null}
 
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Imóveis de interesse
+            {tab === "atividades" ? (
+              <PanelCard title="Notas" action="Abrir ficha" onAction={onOpenFicha}>
+                <p className="flex items-start gap-2 px-3 py-3 text-sm text-muted-foreground">
+                  <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  Anotações e triagem ficam na ficha completa do lead.
                 </p>
-                <Link
-                  to="/funil"
-                  search={{ lead: lead.id }}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Ver todos
-                </Link>
-              </div>
-              {interesses.length === 0 && !lead.empreendimento ? (
-                <p className="text-xs text-muted-foreground">Nenhum imóvel vinculado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {lead.empreendimento ? (
-                    <li className="rounded-xl border bg-muted/30 p-3">
-                      <p className="flex items-center gap-1.5 text-sm font-medium">
-                        <Building2 className="h-3.5 w-3.5 text-primary" />
-                        {lead.empreendimento.nome}
-                      </p>
-                      {lead.empreendimento.cidade ? (
-                        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {lead.empreendimento.cidade}
-                        </p>
-                      ) : null}
-                    </li>
-                  ) : null}
-                  {interesses.slice(0, 3).map((item) => (
-                    <li key={item.id} className="rounded-xl border bg-muted/30 p-3">
-                      <p className="flex items-center gap-1.5 text-sm font-medium">
-                        <Home className="h-3.5 w-3.5 text-primary" />
-                        {rotuloInteresseAlvo(item)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Notas internas
-                </p>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-primary hover:underline"
-                  onClick={onOpenFicha}
-                >
-                  Abrir ficha
-                </button>
-              </div>
-              <p className="flex items-start gap-2 rounded-xl border bg-muted/20 p-3 text-xs text-muted-foreground">
-                <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Anotações e triagem ficam na ficha completa do lead.
-              </p>
-            </section>
+              </PanelCard>
+            ) : null}
           </div>
         ) : (
           <p className="p-6 text-center text-sm text-muted-foreground">
@@ -303,6 +301,77 @@ export function WhatsappLeadSidePanel({
       </div>
     </aside>
   );
+}
+
+function PanelCard({
+  title,
+  action,
+  onAction,
+  leadId,
+  children,
+}: {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  leadId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="flex items-center justify-between px-3 pt-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </p>
+        {leadId ? (
+          <Link
+            to="/funil"
+            search={{ lead: leadId }}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Ver todos
+          </Link>
+        ) : action ? (
+          <button
+            type="button"
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={onAction}
+          >
+            {action}
+          </button>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PropertyCard({
+  title,
+  place,
+  icon: Icon,
+}: {
+  title: string;
+  place?: string;
+  icon: typeof Home;
+}) {
+  return (
+    <li className="rounded-xl bg-muted/40 px-3 py-2.5">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <Icon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="min-w-0 truncate">{title}</span>
+      </p>
+      {place ? (
+        <p className="mt-1 flex items-center gap-1 pl-6 text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3" />
+          {place}
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <p className="px-3 py-3 text-sm text-muted-foreground">{text}</p>;
 }
 
 function InfoRow({
@@ -333,16 +402,10 @@ export function WhatsappConversationActions({
   onOpenFicha?: () => void;
 }) {
   function soon(label: string) {
-    toast.message(`${label} entra na IA do CRM em seguida.`);
+    toast.message(`${label} ainda não está disponível nesta conversa.`);
   }
   return (
     <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t bg-background px-2 py-1.5 [scrollbar-width:none]">
-      <ActionChip
-        icon={Sparkles}
-        label="Sugerir resposta"
-        onClick={() => soon("Sugerir resposta")}
-      />
-      <ActionChip icon={FileText} label="Resumo" onClick={() => soon("Resumo")} />
       <ActionChip
         icon={Pencil}
         label="Atualizar lead"
@@ -399,7 +462,7 @@ function ActionChip({
   label,
   onClick,
 }: {
-  icon: typeof Sparkles;
+  icon: typeof Pencil;
   label: string;
   onClick: () => void;
 }) {
