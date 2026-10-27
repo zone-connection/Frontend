@@ -880,7 +880,7 @@ function Page() {
           emptyText="Nenhuma comissão a receber neste mês."
           items={pipeline.comissoes}
           tone="comissao"
-          total={comissoesMes}
+          total={pipeline.comissoes.reduce((s, item) => s + item.valor, 0)}
           hideValues={hideValues}
           onItemClick={(item) => setDetalhe({ item, tone: "comissao" })}
         />
