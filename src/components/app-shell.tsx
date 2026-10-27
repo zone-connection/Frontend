@@ -351,7 +351,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
   }),
-  leafSection("rotina", { to: "/tarefas", label: "Tarefas", icon: ListTodo }),
+  leafSection("rotina", { to: "/lembretes", label: "Tarefas", icon: ListTodo }),
   {
     id: "atendimento",
     grupo: "atendimento",
@@ -785,7 +785,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.tipo === "agenda_lembrete_2h" ||
       n.tipo === "agenda_lembrete_1h"
     ) {
-      void navigate({ to: "/tarefas", search: { aba: "semana" } });
+      void navigate({ to: "/lembretes", search: { aba: "semana" } });
       return;
     }
     if (n.tipo === "analise_resultado") {
@@ -2149,7 +2149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         informativo={user?.role === "admin"}
         onGoAgenda={() => {
           setLembretesOpen(false);
-          void navigate({ to: "/tarefas", search: { aba: "semana" } });
+          void navigate({ to: "/lembretes", search: { aba: "semana" } });
         }}
       />
 

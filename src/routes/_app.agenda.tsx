@@ -148,7 +148,7 @@ type AgendaSearch = {
 
 export const Route = createFileRoute("/_app/agenda")({
   beforeLoad: () => {
-    throw redirect({ to: "/tarefas", search: { aba: "semana" } });
+    throw redirect({ to: "/lembretes", search: { aba: "semana" } });
   },
   head: () => ({ meta: [{ title: "Agenda — Zone Connection" }] }),
   validateSearch: (search: Record<string, unknown>): AgendaSearch => {

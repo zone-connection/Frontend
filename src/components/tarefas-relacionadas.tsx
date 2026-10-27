@@ -31,7 +31,7 @@ export function TarefasRelacionadas({
     <div className="rounded-xl border p-3">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs font-medium text-muted-foreground">Próximas tarefas</p>
-        <Link to="/tarefas" className="text-xs underline">
+        <Link to="/lembretes" className="text-xs underline">
           Ver todas
         </Link>
       </div>

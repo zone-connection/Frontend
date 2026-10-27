@@ -151,7 +151,7 @@ function UsadosVisaoGeralPage() {
                 icon={Calendar}
                 format="number"
                 detail="Prévia"
-                href="/tarefas"
+                href="/lembretes"
               />
               <FinanceKpiCard
                 label="Visitas realizadas"
@@ -160,7 +160,7 @@ function UsadosVisaoGeralPage() {
                 icon={Calendar}
                 format="number"
                 detail="Prévia"
-                href="/tarefas"
+                href="/lembretes"
               />
               <FinanceKpiCard
                 label="Propostas recebidas"

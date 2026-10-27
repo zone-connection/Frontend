@@ -437,7 +437,7 @@ export const NOVIDADES: Novidade[] = [
     summary:
       "Agenda e tarefas viraram um módulo só, com dia, semana e mês. Visitas, chaves e captação aparecem na lista. Anexos e a documentação do lead ficam na ficha da tarefa.",
     where: "Menu → Tarefas.",
-    href: "/tarefas",
+    href: "/lembretes",
     hrefLabel: "Abrir tarefas",
     status: "Nos planos Prata e Ouro e quando o extra estiver ligado",
     agora: [
@@ -446,8 +446,8 @@ export const NOVIDADES: Novidade[] = [
       "Etiqueta, anexos e documentos do lead ou cliente.",
       "Admin e gerente veem e atribuem tarefas da equipe.",
     ],
-    navPaths: ["/tarefas"],
-    pagePaths: ["/tarefas"],
+    navPaths: ["/lembretes"],
+    pagePaths: ["/lembretes"],
   },
   {
     id: "documentos-no-lead",
@@ -832,7 +832,7 @@ export const NOVIDADES: Novidade[] = [
     summary:
       "Ao agendar visita, o imóvel ou empreendimento fica reservado. A agenda mostra horários ocupados, tolerância de 2 horas e a chave livre já vinculada.",
     where: "Tarefas e agenda da operação.",
-    href: "/tarefas",
+    href: "/lembretes",
     hrefLabel: "Abrir tarefas",
     status: "Disponível no agendamento de visita",
     agora: [

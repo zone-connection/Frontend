@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -81,6 +81,15 @@ import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
 
 export const Route = createFileRoute("/_app/tarefas")({
+  beforeLoad: ({ search }) => {
+    throw redirect({
+      to: "/lembretes",
+      search: {
+        ...(search.aba ? { aba: search.aba } : {}),
+        ...(search.origem ? { origem: search.origem } : {}),
+      },
+    });
+  },
   head: () => ({ meta: [{ title: "Tarefas — Zone Connection" }] }),
   validateSearch: (
     search: Record<string, unknown>,
@@ -123,10 +132,15 @@ function emptyForm(userId: string): TarefaInput {
   };
 }
 
-function TarefasPage() {
+export function TarefasModulo({
+  aba,
+  origem,
+}: {
+  aba?: "mes" | "semana";
+  origem?: "captacao";
+}) {
   const session = getSession();
   const navigate = useNavigate();
-  const { aba, origem } = Route.useSearch();
   const [enabled, setEnabled] = useState<boolean | null>(
     session?.tenant?.plano === "prata" ||
       session?.tenant?.plano === "ouro" ||
@@ -393,7 +407,7 @@ function TarefasPage() {
               type="button"
               variant="outline"
               onClick={() => {
-                void navigate({ to: "/tarefas", search: aba ? { aba } : {} });
+                void navigate({ to: "/lembretes", search: aba ? { aba } : {} });
               }}
             >
               Voltar às tarefas
@@ -412,7 +426,7 @@ function TarefasPage() {
         onVisao={(next) => {
           setVisao(next);
           void navigate({
-            to: "/tarefas",
+            to: "/lembretes",
             search: { aba: next === "semana" ? "semana" : next === "mes" ? "mes" : undefined },
             replace: true,
           });
@@ -495,6 +509,11 @@ function TarefasPage() {
 
     </div>
   );
+}
+
+function TarefasPage() {
+  const { aba, origem } = Route.useSearch();
+  return <TarefasModulo aba={aba} origem={origem} />;
 }
 
 const PRIORIDADE_CHIP: Record<TarefaPrioridade, string> = {

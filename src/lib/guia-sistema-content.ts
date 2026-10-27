@@ -241,7 +241,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
       {
         id: "agenda",
         title: "Agenda",
-        href: "/tarefas",
+        href: "/lembretes",
         who: "Todo o comercial. Analista não usa este módulo. Admin vê o time; corretor vê o próprio + itens compartilhados da equipe.",
         summary:
           "A Agenda fica dentro de Tarefas, na aba Agenda. Compromissos pessoais e de equipe: visita, ligação, reunião, bloqueio. O sino avisa o que está perto.",

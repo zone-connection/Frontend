@@ -298,7 +298,7 @@ export function TarefasPainel({
           <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F4F7] px-3 py-3">
             <div className="flex gap-1">
             <Link
-              to="/tarefas"
+              to="/lembretes"
               search={{ origem: "captacao" }}
               className="inline-flex shrink-0 items-center rounded-lg bg-secondary px-3 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent"
             >

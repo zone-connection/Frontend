@@ -37,7 +37,7 @@ type FiltroStatus = "todos" | "paradas" | "critico" | "atencao";
 
 export const Route = createFileRoute("/_app/captacao/fila")({
   beforeLoad: () => {
-    throw redirect({ to: "/tarefas", search: { origem: "captacao" } });
+    throw redirect({ to: "/lembretes", search: { origem: "captacao" } });
   },
 });
 
