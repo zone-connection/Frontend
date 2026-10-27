@@ -69,6 +69,7 @@ export function AgendamentoTipoPicker({
   disabled,
   className,
   appearance = "solid",
+  extra,
 }: {
   value: AgendamentoTipo;
   options: readonly AgendamentoTipo[];
@@ -76,6 +77,14 @@ export function AgendamentoTipoPicker({
   disabled?: boolean;
   className?: string;
   appearance?: "solid" | "soft";
+  extra?: {
+    label: string;
+    icon: LucideIcon;
+    selected: boolean;
+    onSelect: () => void;
+    softClass: string;
+    wellClass: string;
+  };
 }) {
   const soft = appearance === "soft";
   return (
@@ -126,6 +135,37 @@ export function AgendamentoTipoPicker({
           </button>
         );
       })}
+      {extra ? (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={extra.onSelect}
+          className={cn(
+            "flex min-h-14 items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition",
+            extra.selected
+              ? "border-primary bg-background shadow-sm"
+              : cn(extra.softClass, "border-transparent hover:brightness-[0.98]"),
+            disabled && "cursor-not-allowed",
+          )}
+        >
+          <span
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-sm",
+              extra.wellClass,
+            )}
+          >
+            <extra.icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1 text-sm font-semibold leading-tight">
+            {extra.label}
+          </span>
+          {soft && extra.selected ? (
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground">
+              <Check className="h-3 w-3" />
+            </span>
+          ) : null}
+        </button>
+      ) : null}
     </div>
   );
 }

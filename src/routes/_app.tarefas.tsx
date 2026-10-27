@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
+  Bell,
   Building2,
   CalendarDays,
   Clock3,
@@ -79,6 +80,15 @@ import { cn } from "@/lib/utils";
 import { fetchImoveisCaptados, fetchVendasUsado } from "@/lib/imoveis-usados-api";
 import { fetchCaptacaoImoveis } from "@/lib/captacao-api";
 import { fetchMuralChaves, type MuralChave } from "@/lib/mural-chaves-api";
+import {
+  createLembrete,
+  deleteLembrete,
+  fetchLembretes,
+  LEMBRETE_RECORRENCIA_LABEL,
+  LEMBRETE_RECORRENCIAS,
+  type LembretePessoal,
+  type LembreteRecorrencia,
+} from "@/lib/lembretes-api";
 
 export const Route = createFileRoute("/_app/tarefas")({
   beforeLoad: ({ search }) => {
@@ -806,6 +816,9 @@ function CriarCompromisso({
   const [repetir, setRepetir] = useState<AgendamentoRecurrenceFreq>("unica");
   const [repetirAte, setRepetirAte] = useState("");
   const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [avisoEntrada, setAvisoEntrada] = useState(false);
+  const [recorrenciaEntrada, setRecorrenciaEntrada] = useState<LembreteRecorrencia>("sempre");
+  const [avisosEntrada, setAvisosEntrada] = useState<LembretePessoal[]>([]);
   const role = getSession()?.role;
   const gestor = role === "admin" || role === "super_admin" || role === "gerente";
   const comPessoa = tipo === "tarefa" || tipo === "ligacao" || tipo === "reuniao" || tipo === "visita";
@@ -878,6 +891,34 @@ function CriarCompromisso({
     if (!gestor) return;
     void fetchEquipes().then(setEquipes).catch(() => setEquipes([]));
   }, [gestor]);
+
+  useEffect(() => {
+    if (!avisoEntrada) return;
+    void fetchLembretes()
+      .then(setAvisosEntrada)
+      .catch(() => setAvisosEntrada([]));
+  }, [avisoEntrada]);
+
+  async function salvarAvisoEntrada() {
+    const nome = form.titulo.trim();
+    if (nome.length < 2) {
+      toast.error("Informe o título do lembrete.");
+      return;
+    }
+    try {
+      await createLembrete({
+        titulo: nome,
+        descricao: descricao.trim(),
+        recorrencia: recorrenciaEntrada,
+      });
+      toast.success("Lembrete criado. Ele aparece ao entrar no sistema.");
+      setForm({ ...form, titulo: "", descricao: "" });
+      setAvisosEntrada(await fetchLembretes().catch(() => []));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar o lembrete.");
+    }
+  }
+
   return (
     <div className="w-full space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -887,10 +928,16 @@ function CriarCompromisso({
           </span>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {editing ? "Editar compromisso" : "Criar compromisso"}
+              {avisoEntrada
+                ? "Criar lembrete"
+                : editing
+                  ? "Editar compromisso"
+                  : "Criar compromisso"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Agende um novo compromisso e mantenha seu time organizado.
+              {avisoEntrada
+                ? "Este aviso aparece quando você entra no sistema."
+                : "Agende um novo compromisso e mantenha seu time organizado."}
             </p>
           </div>
         </div>
@@ -906,9 +953,94 @@ function CriarCompromisso({
             appearance="soft"
             value={form.tipo ?? "tarefa"}
             options={AGENDAMENTO_TIPOS.filter((item) => item !== "retirada_chave")}
-            onChange={(tipo: AgendamentoTipo) => setForm({ ...form, tipo })}
+            onChange={(tipo: AgendamentoTipo) => {
+              setAvisoEntrada(false);
+              setForm({ ...form, tipo });
+            }}
+            extra={
+              editing
+                ? undefined
+                : {
+                    label: "Lembrete",
+                    icon: Bell,
+                    selected: avisoEntrada,
+                    onSelect: () => setAvisoEntrada(true),
+                    softClass: "bg-[#079ED4]/12 text-[#067eaa] border-[#079ED4]/30",
+                    wellClass: "bg-[#079ED4] text-white",
+                  }
+            }
           />
         </Section>
+
+        {avisoEntrada ? (
+          <>
+            <Section icon={Type} title="Título" hint="O texto que aparece ao entrar.">
+              <Input
+                className={selectClass}
+                value={form.titulo}
+                onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              />
+            </Section>
+            <Section icon={FileText} title="Descrição">
+              <Textarea
+                value={descricao}
+                rows={4}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              />
+            </Section>
+            <Section icon={Repeat} title="Quando mostrar">
+              <select
+                className={selectClass}
+                value={recorrenciaEntrada}
+                onChange={(e) => setRecorrenciaEntrada(e.target.value as LembreteRecorrencia)}
+              >
+                {LEMBRETE_RECORRENCIAS.map((opcao) => (
+                  <option key={opcao} value={opcao}>
+                    {LEMBRETE_RECORRENCIA_LABEL[opcao]}
+                  </option>
+                ))}
+              </select>
+            </Section>
+            {avisosEntrada.length > 0 ? (
+              <ul className="space-y-2">
+                {avisosEntrada.map((item) => (
+                  <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm">
+                    <span>
+                      <span className="font-medium">{item.titulo}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {LEMBRETE_RECORRENCIA_LABEL[item.recorrencia]}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void deleteLembrete(item.id).then(() =>
+                          setAvisosEntrada((atual) => atual.filter((row) => row.id !== item.id)),
+                        )
+                      }
+                    >
+                      Excluir
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="flex items-center justify-between gap-3 border-t pt-4">
+              <Button type="button" variant="outline" onClick={onBack}>
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button type="button" onClick={() => void salvarAvisoEntrada()}>
+                <Save className="h-4 w-4" />
+                Salvar lembrete
+              </Button>
+            </div>
+          </>
+        ) : null}
+
+        <div className={avisoEntrada ? "hidden" : "contents"}>
 
         <Section icon={Type} title="Título" hint="Descreva rapidamente o compromisso.">
           <Input
@@ -1235,6 +1367,7 @@ function CriarCompromisso({
             <Save className="h-4 w-4" />
             Salvar
           </Button>
+        </div>
         </div>
       </div>
     </div>

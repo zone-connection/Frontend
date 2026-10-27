@@ -5,7 +5,6 @@ import {
   Kanban,
   Funnel,
   Crosshair,
-  ListTodo,
   BellRing,
   Building2,
   HardHat,
@@ -351,7 +350,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
   }),
-  leafSection("rotina", { to: "/lembretes", label: "Tarefas", icon: ListTodo }),
   {
     id: "atendimento",
     grupo: "atendimento",
