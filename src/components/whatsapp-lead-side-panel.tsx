@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  Building2,
   CalendarPlus,
   ClipboardList,
   Home,
@@ -132,7 +131,7 @@ export function WhatsappLeadSidePanel({
 
   if (!leadId) {
     return (
-      <aside className="flex min-h-0 w-[min(22rem,100%)] shrink-0 flex-col border-l bg-background">
+      <aside className="flex min-h-0 w-[min(26rem,100%)] shrink-0 flex-col border-l bg-background">
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
           <User className="h-8 w-8 opacity-50" />
           <p>Esta conversa ainda não está ligada a um lead do CRM.</p>
@@ -159,8 +158,8 @@ export function WhatsappLeadSidePanel({
   const corretor = prettyLabel(lead?.corretor);
 
   return (
-    <aside className="flex min-h-0 w-[min(22rem,100%)] shrink-0 flex-col overflow-hidden border-l bg-muted/40">
-      <div className="grid grid-cols-3 gap-1 border-b bg-background p-2">
+    <aside className="flex min-h-0 w-[min(26rem,100%)] shrink-0 flex-col overflow-hidden border-l bg-background">
+      <div className="flex gap-6 border-b px-5">
         {(
           [
             ["cliente", "Cliente"],
@@ -172,10 +171,10 @@ export function WhatsappLeadSidePanel({
             key={id}
             type="button"
             className={cn(
-              "rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+              "-mb-px border-b-2 px-0.5 py-3.5 text-sm font-medium",
               tab === id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted",
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setTab(id)}
           >
@@ -183,114 +182,114 @@ export function WhatsappLeadSidePanel({
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:thin]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 [scrollbar-width:thin]">
         {loading && !lead ? (
           <p className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando ficha…
           </p>
         ) : lead ? (
-          <div className="space-y-3">
-            <div className="rounded-2xl border bg-card p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <WhatsappChatAvatar
-                  name={lead.nome || name || "Lead"}
-                  src={avatarUrl}
-                  className="h-14 w-14 text-base ring-4 ring-primary/10"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold tracking-tight">
+          <div className="space-y-8">
+            <div className="flex items-center gap-4">
+              <WhatsappChatAvatar
+                name={lead.nome || name || "Lead"}
+                src={avatarUrl}
+                className="h-16 w-16 text-lg"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-lg font-semibold">
                     {prettyLabel(lead.nome) || lead.nome}
                   </p>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <FaWhatsapp className="h-3.5 w-3.5 text-emerald-500" />
-                    {phone}
-                  </p>
-                  <span className="mt-2 inline-flex rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                     {lead.tipo === "cliente" ? "Cliente" : "Lead"}
                   </span>
                 </div>
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <FaWhatsapp className="h-3.5 w-3.5 text-primary" />
+                  {phone}
+                </p>
               </div>
             </div>
 
             {tab === "cliente" ? (
-              <>
-                <PanelCard
-                  title="Informações"
-                  action="Editar"
-                  onAction={onOpenFicha}
-                >
-                  <div className="divide-y">
+              <div className="space-y-8">
+                <section className="space-y-1">
+                  <SectionTitle title="Informações do lead" action="Editar" onAction={onOpenFicha} />
+                  <div className="space-y-1 pt-2">
                     <InfoRow icon={Phone} label="Telefone" value={phone} />
-                    {email ? (
-                      <InfoRow icon={Mail} label="E-mail" value={email} />
-                    ) : null}
+                    {email ? <InfoRow icon={Mail} label="E-mail" value={email} /> : null}
                     {stageName ? (
-                      <InfoRow
-                        icon={ClipboardList}
-                        label="Etapa do funil"
-                        value={stageName}
-                      />
+                      <InfoRow icon={ClipboardList} label="Etapa do funil">
+                        <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground">
+                          {stageName}
+                        </span>
+                      </InfoRow>
                     ) : null}
                     {corretor ? (
-                      <InfoRow icon={User} label="Corretor" value={corretor} />
+                      <InfoRow icon={User} label="Corretor responsável">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                            {initials(corretor).slice(0, 1)}
+                          </span>
+                          {corretor}
+                        </span>
+                      </InfoRow>
                     ) : null}
                     {created ? (
                       <InfoRow icon={CalendarPlus} label="Criado em" value={created} />
                     ) : null}
                   </div>
-                </PanelCard>
-                <PanelCard title="Interesses">
+                </section>
+                <section className="space-y-3">
+                  <SectionTitle title="Interesses" />
                   {chips.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-3 py-3">
+                    <div className="flex flex-wrap gap-2">
                       {chips.map((chip) => (
                         <span
                           key={chip}
-                          className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+                          className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
                         >
                           {chip}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <EmptyLine text="Nenhum interesse preenchido." />
+                    <p className="text-sm text-muted-foreground">Nenhum interesse preenchido.</p>
                   )}
-                </PanelCard>
-              </>
+                </section>
+              </div>
             ) : null}
 
             {tab === "imovel" ? (
-              <PanelCard title="Imóveis de interesse" leadId={lead.id}>
+              <section className="space-y-3">
+                <SectionTitle title="Imóveis de interesse" leadId={lead.id} />
                 {interesses.length === 0 && !lead.empreendimento ? (
-                  <EmptyLine text="Nenhum imóvel vinculado." />
+                  <p className="text-sm text-muted-foreground">Nenhum imóvel vinculado.</p>
                 ) : (
-                  <ul className="space-y-2 p-3">
+                  <ul className="space-y-3">
                     {lead.empreendimento ? (
                       <PropertyCard
                         title={lead.empreendimento.nome}
                         place={prettyLabel(lead.empreendimento.cidade)}
-                        icon={Building2}
                       />
                     ) : null}
                     {interesses.slice(0, 4).map((item) => (
-                      <PropertyCard
-                        key={item.id}
-                        title={rotuloInteresseAlvo(item)}
-                        icon={Home}
-                      />
+                      <PropertyCard key={item.id} title={rotuloInteresseAlvo(item)} />
                     ))}
                   </ul>
                 )}
-              </PanelCard>
+              </section>
             ) : null}
 
             {tab === "atividades" ? (
-              <PanelCard title="Notas" action="Abrir ficha" onAction={onOpenFicha}>
-                <p className="flex items-start gap-2 px-3 py-3 text-sm text-muted-foreground">
+              <section className="space-y-3">
+                <SectionTitle title="Notas internas" action="Abrir ficha" onAction={onOpenFicha} />
+                <div className="flex gap-3 rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">
                   <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  Anotações e triagem ficam na ficha completa do lead.
-                </p>
-              </PanelCard>
+                  <p>Anotações e triagem ficam na ficha completa do lead.</p>
+                </div>
+              </section>
             ) : null}
           </div>
         ) : (
@@ -303,93 +302,80 @@ export function WhatsappLeadSidePanel({
   );
 }
 
-function PanelCard({
+function SectionTitle({
   title,
   action,
   onAction,
   leadId,
-  children,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
   leadId?: string;
-  children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-      <div className="flex items-center justify-between px-3 pt-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </p>
-        {leadId ? (
-          <Link
-            to="/funil"
-            search={{ lead: leadId }}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            Ver todos
-          </Link>
-        ) : action ? (
-          <button
-            type="button"
-            className="text-xs font-medium text-primary hover:underline"
-            onClick={onAction}
-          >
-            {action}
-          </button>
+    <div className="flex items-center justify-between">
+      <p className="text-sm font-semibold">{title}</p>
+      {leadId ? (
+        <Link
+          to="/funil"
+          search={{ lead: leadId }}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Ver todos
+        </Link>
+      ) : action ? (
+        <button
+          type="button"
+          className="text-sm font-medium text-primary hover:underline"
+          onClick={onAction}
+        >
+          {action}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function PropertyCard({ title, place }: { title: string; place?: string }) {
+  return (
+    <li className="flex items-center gap-3 rounded-2xl bg-muted/40 p-3">
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Home className="h-6 w-6" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{title}</p>
+        {place ? (
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            {place}
+          </p>
         ) : null}
       </div>
-      {children}
-    </section>
-  );
-}
-
-function PropertyCard({
-  title,
-  place,
-  icon: Icon,
-}: {
-  title: string;
-  place?: string;
-  icon: typeof Home;
-}) {
-  return (
-    <li className="rounded-xl bg-muted/40 px-3 py-2.5">
-      <p className="flex items-center gap-2 text-sm font-medium">
-        <Icon className="h-4 w-4 shrink-0 text-primary" />
-        <span className="min-w-0 truncate">{title}</span>
-      </p>
-      {place ? (
-        <p className="mt-1 flex items-center gap-1 pl-6 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3" />
-          {place}
-        </p>
-      ) : null}
     </li>
   );
-}
-
-function EmptyLine({ text }: { text: string }) {
-  return <p className="px-3 py-3 text-sm text-muted-foreground">{text}</p>;
 }
 
 function InfoRow({
   icon: Icon,
   label,
   value,
+  children,
 }: {
   icon: typeof User;
   label: string;
-  value: string;
+  value?: string;
+  children?: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground">{label}</p>
-        <p className="truncate font-medium">{value}</p>
-      </div>
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <span className="flex shrink-0 items-center gap-2.5 text-sm text-muted-foreground">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+      <span className="min-w-0 truncate text-right text-sm font-medium">
+        {children ?? value}
+      </span>
     </div>
   );
 }
