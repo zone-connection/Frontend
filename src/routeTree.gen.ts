@@ -45,6 +45,9 @@ import { Route as AppLocacaoRouteImport } from './routes/_app.locacao'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppMuralChavesRouteImport } from './routes/_app.mural-chaves'
 import { Route as AppNovidadesRouteImport } from './routes/_app.novidades'
+import { Route as AppOnboardingRouteImport } from './routes/_app.onboarding'
+import { Route as AppSuporteRouteImport } from './routes/_app.suporte'
+import { Route as AppMelhoriasRouteImport } from './routes/_app.melhorias'
 import { Route as AppOruloOauthCallbackRouteImport } from './routes/_app.orulo-oauth-callback'
 import { Route as AppParceriasRouteImport } from './routes/_app.parcerias'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
@@ -353,6 +356,21 @@ const AppTarefasRoute = AppTarefasRouteImport.update({
 const AppTaxaConversaoRoute = AppTaxaConversaoRouteImport.update({
   id: '/taxa-conversao',
   path: '/taxa-conversao',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMelhoriasRoute = AppMelhoriasRouteImport.update({
+  id: '/melhorias',
+  path: '/melhorias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSuporteRoute = AppSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOnboardingRoute = AppOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTenantsRoute = AppTenantsRouteImport.update({
@@ -773,6 +791,9 @@ export interface FileRoutesByFullPath {
   '/resultado': typeof AppResultadoRoute
   '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
+  '/melhorias': typeof AppMelhoriasRoute
+  '/suporte': typeof AppSuporteRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/tenants': typeof AppTenantsRoute
   '/treinamento': typeof AppTreinamentoRoute
   '/triagem': typeof AppTriagemRoute
@@ -888,6 +909,9 @@ export interface FileRoutesByTo {
   '/resultado': typeof AppResultadoRoute
   '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
+  '/melhorias': typeof AppMelhoriasRoute
+  '/suporte': typeof AppSuporteRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/tenants': typeof AppTenantsRoute
   '/treinamento': typeof AppTreinamentoRoute
   '/triagem': typeof AppTriagemRoute
@@ -1002,6 +1026,9 @@ export interface FileRoutesById {
   '/_app/resultado': typeof AppResultadoRoute
   '/_app/tarefas': typeof AppTarefasRoute
   '/_app/taxa-conversao': typeof AppTaxaConversaoRoute
+  '/_app/melhorias': typeof AppMelhoriasRoute
+  '/_app/suporte': typeof AppSuporteRoute
+  '/_app/onboarding': typeof AppOnboardingRoute
   '/_app/tenants': typeof AppTenantsRoute
   '/_app/treinamento': typeof AppTreinamentoRoute
   '/_app/triagem': typeof AppTriagemRoute
@@ -1121,6 +1148,9 @@ export interface FileRouteTypes {
     | '/resultado'
     | '/tarefas'
     | '/taxa-conversao'
+    | '/melhorias'
+    | '/suporte'
+    | '/onboarding'
     | '/tenants'
     | '/treinamento'
     | '/triagem'
@@ -1236,6 +1266,9 @@ export interface FileRouteTypes {
     | '/resultado'
     | '/tarefas'
     | '/taxa-conversao'
+    | '/melhorias'
+    | '/suporte'
+    | '/onboarding'
     | '/tenants'
     | '/treinamento'
     | '/triagem'
@@ -1349,6 +1382,9 @@ export interface FileRouteTypes {
     | '/_app/resultado'
     | '/_app/tarefas'
     | '/_app/taxa-conversao'
+    | '/_app/melhorias'
+    | '/_app/suporte'
+    | '/_app/onboarding'
     | '/_app/tenants'
     | '/_app/treinamento'
     | '/_app/triagem'
@@ -1762,6 +1798,27 @@ declare module '@tanstack/react-router' {
       path: '/taxa-conversao'
       fullPath: '/taxa-conversao'
       preLoaderRoute: typeof AppTaxaConversaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/melhorias': {
+      id: '/_app/melhorias'
+      path: '/melhorias'
+      fullPath: '/melhorias'
+      preLoaderRoute: typeof AppMelhoriasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/suporte': {
+      id: '/_app/suporte'
+      path: '/suporte'
+      fullPath: '/suporte'
+      preLoaderRoute: typeof AppSuporteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/onboarding': {
+      id: '/_app/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AppOnboardingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/tenants': {
@@ -2455,6 +2512,9 @@ interface AppRouteChildren {
   AppResultadoRoute: typeof AppResultadoRoute
   AppTarefasRoute: typeof AppTarefasRoute
   AppTaxaConversaoRoute: typeof AppTaxaConversaoRoute
+  AppMelhoriasRoute: typeof AppMelhoriasRoute
+  AppSuporteRoute: typeof AppSuporteRoute
+  AppOnboardingRoute: typeof AppOnboardingRoute
   AppTenantsRoute: typeof AppTenantsRoute
   AppTreinamentoRoute: typeof AppTreinamentoRoute
   AppTriagemRoute: typeof AppTriagemRoute
@@ -2503,6 +2563,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppResultadoRoute: AppResultadoRoute,
   AppTarefasRoute: AppTarefasRoute,
   AppTaxaConversaoRoute: AppTaxaConversaoRoute,
+  AppMelhoriasRoute: AppMelhoriasRoute,
+  AppSuporteRoute: AppSuporteRoute,
+  AppOnboardingRoute: AppOnboardingRoute,
   AppTenantsRoute: AppTenantsRoute,
   AppTreinamentoRoute: AppTreinamentoRoute,
   AppTriagemRoute: AppTriagemRoute,

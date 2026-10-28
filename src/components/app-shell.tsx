@@ -35,6 +35,7 @@ import {
   Menu,
   X,
   Headset,
+  Lightbulb,
   BookOpen,
   BookMarked,
   GraduationCap,
@@ -417,6 +418,9 @@ const NAV_SECTIONS: NavSection[] = [
     platformOnly: true,
     items: [
       { to: "/tenants", label: "Clientes", icon: Building2 },
+      { to: "/onboarding", label: "Implantação", icon: ClipboardList },
+      { to: "/suporte", label: "Suporte", icon: Headset },
+      { to: "/melhorias", label: "Melhorias", icon: Lightbulb },
       { to: "/guia", label: "Guia", icon: BookOpen },
     ],
   },
