@@ -59,6 +59,8 @@ import {
   SlidersHorizontal,
   TrendingUp,
   UserRound,
+  Building2,
+  Plus,
   UserX,
   UsersRound,
   Wallet,
@@ -75,6 +77,11 @@ import { Progress } from "@/components/ui/progress";
 import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 import { FILTER_CONTROL, FILTER_LABEL } from "@/lib/filter-bar";
+import { brl } from "@/lib/crm-types";
+import {
+  fetchDashboardPlataforma,
+  type PlataformaDashboard,
+} from "@/lib/dashboard-api";
 
 function buildFunnelChartData(
   funil: { etapa: string; total: number }[],
@@ -437,6 +444,183 @@ function agoraBrasil() {
   };
 }
 
+const PLANO_LABEL: Record<string, string> = {
+  solo: "Solo",
+  bronze: "Bronze",
+  prata: "Prata",
+  ouro: "Ouro",
+};
+
+function DashboardPlataformaView() {
+  const agora = useMemo(() => agoraBrasil(), []);
+  const [mes, setMes] = useState(agora.mes);
+  const [ano, setAno] = useState(agora.ano);
+  const [data, setData] = useState<PlataformaDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setErro(null);
+    void fetchDashboardPlataforma({ mes, ano })
+      .then((resumo) => {
+        if (!active) return;
+        setData(resumo);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setData(null);
+        setErro(error instanceof ApiError ? error.message : "Não foi possível carregar o dashboard.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [mes, ano]);
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Dashboard"
+        description="Comercial, carteira e receita contratada da Zone Connection."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={String(mes)} onValueChange={(value) => setMes(Number(value))}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((nome, index) => (
+                  <SelectItem key={nome} value={String(index + 1)}>{nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={String(ano)} onValueChange={(value) => setAno(Number(value))}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[agora.ano, agora.ano - 1, agora.ano - 2].map((value) => (
+                  <SelectItem key={value} value={String(value)}>{value}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button asChild size="sm" className="gap-2">
+              <Link to="/tenants">
+                <Plus className="h-4 w-4" />
+                Novo cliente
+              </Link>
+            </Button>
+          </div>
+        }
+      />
+      {loading ? (
+        <InlineSpinner />
+      ) : erro || !data ? (
+        <p className="text-sm text-destructive">{erro ?? "Sem dados."}</p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FinanceKpiCard label="Leads no mês" value={data.comercial.novos} format="number" icon={UsersRound} tone="blue" href="/leads" />
+            <FinanceKpiCard label="Em andamento" value={data.comercial.emAndamento} format="number" icon={Building2} tone="teal" href="/funil" />
+            <FinanceKpiCard label="Convertidos no mês" value={data.comercial.convertidos} format="number" icon={Plus} tone="emerald" href="/tenants" />
+            <FinanceKpiCard
+              label="Conversão"
+              value={data.comercial.taxaConversao == null ? 0 : Math.round(data.comercial.taxaConversao * 1000) / 10}
+              format="percent"
+              icon={Wallet}
+              tone="violet"
+              href="/funil"
+              valueLabel={data.comercial.taxaConversao == null ? "—" : undefined}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FinanceKpiCard label="Imobiliárias" value={data.carteira.total} format="number" icon={Building2} tone="blue" href="/tenants" />
+            <FinanceKpiCard label="Cadastros ativos" value={data.carteira.ativos} format="number" icon={Building2} tone="teal" href="/tenants" />
+            <FinanceKpiCard label="Cadastros inativos" value={data.carteira.inativos} format="number" icon={UsersRound} tone="orange" href="/tenants" />
+            <FinanceKpiCard label="MRR contratado" value={data.receita.mrr} icon={Banknote} tone="emerald" href="/financeiro/visao-geral" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FinanceKpiCard label="Adesões contratadas" value={data.receita.adesoesContratadas} icon={Wallet} tone="blue" href="/financeiro/contas-a-receber" />
+            <FinanceKpiCard label="Recebido no mês" value={data.receita.recebido} icon={Banknote} tone="teal" href="/financeiro/contas-a-receber" />
+            <FinanceKpiCard label="A receber em aberto" value={data.receita.aReceberAberto} icon={Wallet} tone="orange" href="/financeiro/contas-a-receber" />
+            <FinanceKpiCard label="Vencido" value={data.receita.vencido} icon={Banknote} tone="red" href="/financeiro/contas-a-receber" />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-3">
+            <PagePanel>
+              <h2 className="mb-1 text-sm font-semibold">Planos</h2>
+              <p className="mb-3 text-xs text-muted-foreground">{data.comercial.total} leads no total da plataforma.</p>
+              {data.carteira.porPlano.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma imobiliária cadastrada.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {data.carteira.porPlano.map((item) => (
+                    <li key={item.plano} className="flex justify-between gap-3">
+                      <span>{PLANO_LABEL[item.plano] ?? item.plano}</span>
+                      <span className="font-medium">{item.total}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PagePanel>
+            <PagePanel>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Leads sem movimento há 7 dias</h2>
+                <Button asChild variant="ghost" size="sm"><Link to="/funil">Funil</Link></Button>
+              </div>
+              {data.acompanhamento.leadsSemMovimento.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum lead parado.</p>
+              ) : (
+                <ul className="divide-y text-sm">
+                  {data.acompanhamento.leadsSemMovimento.map((lead) => (
+                    <li key={lead.id} className="py-2">{lead.nome}</li>
+                  ))}
+                </ul>
+              )}
+            </PagePanel>
+            <PagePanel>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Assinaturas atrasadas ou suspensas</h2>
+                <Button asChild variant="ghost" size="sm"><Link to="/financeiro/contas-a-receber">Títulos</Link></Button>
+              </div>
+              {data.acompanhamento.assinaturasAtencao.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma assinatura nesses status.</p>
+              ) : (
+                <ul className="divide-y text-sm">
+                  {data.acompanhamento.assinaturasAtencao.map((item) => (
+                    <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                      <span className="min-w-0 truncate">{item.tenantNome}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{item.status} · {brl(item.valorMensalidade)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PagePanel>
+          </div>
+          <PagePanel>
+            <h2 className="mb-3 text-sm font-semibold">Clientes convertidos recentemente</h2>
+            {data.carteira.recemConvertidos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma conversão registrada.</p>
+            ) : (
+              <ul className="divide-y text-sm">
+                {data.carteira.recemConvertidos.map((item) => (
+                  <li key={item.leadId} className="flex items-center justify-between gap-3 py-2">
+                    <span className="truncate">{item.nome}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{new Date(item.criadoEm).toLocaleDateString("pt-BR")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </PagePanel>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Page() {
   const user = getSession();
   const dashboardLiberado = Boolean(
@@ -448,6 +632,10 @@ function Page() {
         user.tenant?.plano,
       ),
   );
+
+  if (user?.role === "super_admin") {
+    return <DashboardPlataformaView />;
+  }
 
   if (isCorretorLike(user?.role)) {
     return <DashboardCorretorView />;

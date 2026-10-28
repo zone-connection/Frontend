@@ -981,6 +981,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 });
                 return children.length ? { ...item, children } : null;
               }
+              if (
+                user.role === "super_admin" &&
+                (item.to === "/lembretes" || item.to === "/presenca")
+              ) {
+                return null;
+              }
               if (hiddenMenuPaths.has(item.to)) return null;
               if (!moduleMenuAllows(item.to)) return null;
               if (item.to === "/imoveis" && hideImoveisFromSidebar) {

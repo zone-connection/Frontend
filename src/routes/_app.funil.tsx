@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { ConverterLeadButton } from "@/components/converter-lead-button";
 import { FiltrosPainel, FILTRO_CAMPO } from "@/components/filtros-painel";
 import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
@@ -1693,7 +1694,7 @@ export function ComercialFunilBoard({
                     <EmpreendimentosInteresseChips interesses={l.interesses} />
                     <div className="flex items-center justify-between mt-2 pt-2 border-t text-[11px] text-muted-foreground">
                       {isPlatformAdmin ? (
-                        <span />
+                        <ConverterLeadButton leadId={l.id} leadNome={l.nome} />
                       ) : (
                         <div className="flex min-w-0 items-center gap-1">
                           <User className="w-3 h-3 shrink-0" />

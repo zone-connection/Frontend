@@ -50,7 +50,6 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/despesas",
     "/financeiro/fluxo-caixa",
     "/financeiro/movimentacao",
-    "/presenca",
     "/mural-chaves",
   ],
   admin: [
@@ -258,7 +257,7 @@ export function canAccessRoute(
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
   }
   if (path === "/novidades") return true;
-  if (path === "/lembretes") return true;
+  if (path === "/lembretes") return role !== "super_admin";
   if (path === "/caca-lead") return true;
   if (path === "/whatsapp") {
     const routes = getAllowedRoutes(role);

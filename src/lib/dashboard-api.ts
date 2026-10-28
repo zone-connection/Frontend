@@ -460,3 +460,52 @@ export async function fetchDashboardEsteiraCorretor(
     `/dashboard/corretor/${corretorId}/esteira${query.size ? `?${query}` : ""}`,
   );
 }
+
+export type PlataformaDashboard = {
+  periodo: { mes: number; ano: number };
+  comercial: {
+    total: number;
+    novos: number;
+    emAndamento: number;
+    convertidos: number;
+    taxaConversao: number | null;
+  };
+  carteira: {
+    total: number;
+    ativos: number;
+    inativos: number;
+    porPlano: Array<{ plano: string; total: number }>;
+    recemConvertidos: Array<{
+      leadId: string;
+      nome: string;
+      tenantId: string;
+      criadoEm: string;
+    }>;
+  };
+  receita: {
+    mrr: number;
+    adesoesContratadas: number;
+    recebido: number;
+    aReceberAberto: number;
+    vencido: number;
+  };
+  acompanhamento: {
+    leadsSemMovimento: Array<{ id: string; nome: string; ultimaMovimentacao: string }>;
+    assinaturasAtencao: Array<{
+      id: string;
+      titulo: string;
+      status: string;
+      tenantNome: string;
+      valorMensalidade: number;
+    }>;
+  };
+};
+
+export function fetchDashboardPlataforma(params?: { mes?: number; ano?: number }) {
+  const query = new URLSearchParams();
+  if (params?.mes) query.set("mes", String(params.mes));
+  if (params?.ano) query.set("ano", String(params.ano));
+  return apiFetch<PlataformaDashboard>(
+    `/dashboard/plataforma${query.size ? `?${query}` : ""}`,
+  );
+}
