@@ -49,13 +49,6 @@ const STATUS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
-const SITUACOES: Array<[string, string]> = [
-  ["abertas", "Em andamento"],
-  ["atrasadas", "Atrasadas"],
-  ["concluidas", "Concluídas"],
-  ["todas", "Todas"],
-];
-
 const COLUNAS = [
   { id: "contrato", titulo: "Contrato", ate: 2, color: "#079ED4" },
   { id: "acessos", titulo: "Acessos", ate: 3, color: "#0B7CAD" },
@@ -76,7 +69,6 @@ function diasEmAndamento(inicio: string) {
 }
 
 function OnboardingPage() {
-  const [situacao, setSituacao] = useState("abertas");
   const [items, setItems] = useState<OnboardingItem[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [aberto, setAberto] = useState<OnboardingDetalhe | null>(null);
@@ -88,25 +80,24 @@ function OnboardingPage() {
   const [criando, setCriando] = useState(false);
   const [exemplo, setExemplo] = useState(false);
 
-  async function load(next = situacao) {
+  async function load() {
     setLoading(true);
     try {
-      const rows = await fetchOnboardings(next);
+      const rows = await fetchOnboardings("todas");
       setExemplo(rows.length === 0);
-      setItems(rows.length ? rows : onboardingsMock(next));
+      setItems(rows.length ? rows : onboardingsMock("todas"));
     } catch {
       setExemplo(true);
-      setItems(onboardingsMock(next));
+      setItems(onboardingsMock("todas"));
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load(situacao);
+    void load();
     void fetchTenants().then(setTenants).catch(() => setTenants([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [situacao]);
+  }, []);
 
   async function abrir(id: string) {
     if (isMockId(id)) {
@@ -179,25 +170,7 @@ function OnboardingPage() {
         description="Acompanhe a entrada de cada imobiliária, do contrato até o treinamento."
       />
       <section className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 overflow-x-auto">
-            {SITUACOES.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={cn(
-                  "flex shrink-0 items-center gap-2 border-b-2 px-3 pb-2 text-[13px]",
-                  situacao === id ? "border-[#079ED4] font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => setSituacao(id)}
-              >
-                {label}
-                {situacao === id ? (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-bold text-white">{loading ? "…" : items.length}</span>
-                ) : null}
-              </button>
-            ))}
-          </div>
+        <div className="flex justify-end">
           <Button type="button" className="h-9 shrink-0" onClick={() => setCriando((v) => !v)}>
             <Plus className="size-3.5" /> Nova implantação
           </Button>
