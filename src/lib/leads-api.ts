@@ -163,7 +163,7 @@ export function mapApiLead(api: ApiLead): Lead {
     nome: api.nome,
     telefone: api.telefone,
     email: api.email,
-    origem: api.origem,
+    origem: origemLeadExibicao(api),
     interesse: api.interesse,
     cidade: api.cidade,
     bairro: api.bairro,
@@ -230,6 +230,33 @@ export function mapApiLead(api: ApiLead): Lead {
   };
 }
 
+function tagCampanha(tags: string[] | undefined): string | null {
+  for (const tag of tags ?? []) {
+    const campanha = tag.match(/^Campanha:\s*(.+)$/i)?.[1]?.trim();
+    if (campanha) return campanha;
+    const form = tag.match(/^Form:\s*(.+)$/i)?.[1]?.trim();
+    if (form && !/^\d+$/.test(form)) return form;
+  }
+  return null;
+}
+
+function origemLeadExibicao(api: ApiLead): string {
+  const aquisicao = (() => {
+    try {
+      return mapLeadAquisicao(api);
+    } catch {
+      return null;
+    }
+  })();
+  return (
+    aquisicao?.campanha ||
+    aquisicao?.formulario ||
+    tagCampanha(api.tags) ||
+    api.origem ||
+    "—"
+  );
+}
+
 function mapLeadAquisicao(api: ApiLead): LeadAquisicao | null {
   if (api.metaLink) {
     const cost = Number(api.metaLink.costPerLead);
@@ -237,9 +264,13 @@ function mapLeadAquisicao(api: ApiLead): LeadAquisicao | null {
     const instagram = `${api.origem ?? ""} ${(api.tags ?? []).join(" ")}`
       .toLowerCase()
       .includes("instagram");
+    const campanha =
+      api.metaLink.campaignName?.trim() ||
+      api.metaLink.formName?.trim() ||
+      tagCampanha(api.tags);
     return {
       canal: instagram ? "Instagram" : "Facebook",
-      campanha: api.metaLink.campaignName ?? null,
+      campanha,
       anuncio: api.metaLink.adName ?? null,
       formulario: api.metaLink.formName ?? null,
       custo: hasCost ? cost : null,

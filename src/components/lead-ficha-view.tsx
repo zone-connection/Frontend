@@ -373,7 +373,16 @@ export function LeadFichaView({
         <Fact icon={Mail} label="E-mail" value={email || "—"} />
         <Fact icon={Wallet} label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} />
         <Fact icon={FileText} label="Interesse" value={local || lead.interesse} />
-        <Fact icon={Users} label="Origem" value={lead.origem || "—"} />
+        <Fact
+          icon={Users}
+          label="Origem"
+          value={
+            lead.aquisicao?.campanha ||
+            lead.aquisicao?.formulario ||
+            lead.origem ||
+            "—"
+          }
+        />
         <Fact icon={Clock} label="Cadastro" value={created || "—"} />
         {lead.aquisicao ? (
           <>
@@ -524,7 +533,15 @@ export function LeadFichaView({
               <Data label="Nome" value={lead.nome} />
               <Data label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
               <Data label="E-mail" value={email || "—"} />
-              <Data label="Origem" value={lead.origem || "—"} />
+              <Data
+                label="Origem"
+                value={
+                  lead.aquisicao?.campanha ||
+                  lead.aquisicao?.formulario ||
+                  lead.origem ||
+                  "—"
+                }
+              />
               {lead.aquisicao ? (
                 <>
                   <Data label="Canal do anúncio" value={lead.aquisicao.canal} />
