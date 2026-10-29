@@ -61,10 +61,26 @@ const COLUNAS = [
   { id: "acessos", titulo: "Acessos", ate: 3, color: nextCatalogColor(1) },
   { id: "configuracao", titulo: "Configuração", ate: 5, color: nextCatalogColor(2) },
   { id: "treinamento", titulo: "Treinamento", ate: 8, color: nextCatalogColor(3) },
+  { id: "implantada", titulo: "Implantada", ate: 8, color: nextCatalogColor(14) },
 ] as const;
 
+const PERCENTUAL_COR: Record<(typeof COLUNAS)[number]["id"], string> = {
+  contrato: "text-slate-600",
+  acessos: "text-blue-600",
+  configuracao: "text-indigo-600",
+  treinamento: "text-violet-600",
+  implantada: "text-green-600",
+};
+
+const PLANO_COR: Record<string, string> = {
+  solo: "bg-sky-100 text-sky-800",
+  bronze: "bg-amber-100 text-amber-900",
+  prata: "bg-slate-200 text-slate-700",
+  ouro: "bg-yellow-200 text-yellow-900",
+};
+
 function colunaId(item: OnboardingItem) {
-  if (item.status === "concluido" || item.progresso >= 100) return "treinamento";
+  if (item.status === "concluido" || item.progresso >= 100) return "implantada";
   const atual = item.etapas.find((etapa) => etapa.obrigatoria && etapa.status !== "concluida");
   const ordem = atual?.ordem ?? 1;
   return COLUNAS.find((coluna) => ordem <= coluna.ate)?.id ?? "treinamento";
@@ -121,21 +137,30 @@ function OnboardingPage() {
         }));
         const obrigatorias = etapas.filter((etapa) => etapa.obrigatoria);
         const feitas = obrigatorias.filter((etapa) => etapa.status === "concluida").length;
+        const progresso = destino === "implantada" || obrigatorias.length === 0
+          ? 100
+          : Math.round((feitas / obrigatorias.length) * 100);
         return {
           ...row,
           etapas,
-          progresso: obrigatorias.length === 0 ? 0 : Math.round((feitas / obrigatorias.length) * 100),
-          status: feitasAte === 0 ? "nao_iniciado" : "em_andamento",
+          progresso,
+          status: destino === "implantada" ? "concluido" : feitasAte === 0 ? "nao_iniciado" : "em_andamento",
         };
       }));
       return;
     }
     try {
+      if (destino !== "implantada" && item.status === "concluido") {
+        await updateOnboarding(id, { status: "em_andamento" });
+      }
       for (const etapa of item.etapas) {
         const status = etapa.ordem <= feitasAte ? "concluida" : "pendente";
         if (etapa.status !== status) {
           await updateOnboardingEtapa(id, etapa.id, { status });
         }
+      }
+      if (destino === "implantada") {
+        await updateOnboarding(id, { status: "concluido" });
       }
       await load();
     } catch (error) {
@@ -255,7 +280,14 @@ function OnboardingPage() {
                       <p className="table-person-name min-w-0 flex-1 break-words text-sm leading-snug">{item.tenantNome}</p>
                       <span className={cn("mt-1 size-1.5 shrink-0 rounded-full", item.atrasado ? "bg-destructive" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-warning")} />
                     </div>
-                    <p className="mt-1.5 text-sm font-semibold capitalize text-primary">{item.tenantPlano} · {item.progresso}%</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-semibold capitalize", PLANO_COR[item.tenantPlano] ?? "bg-muted text-muted-foreground")}>
+                        {item.tenantPlano}
+                      </span>
+                      <span className={cn("text-sm font-semibold", PERCENTUAL_COR[coluna.id])}>
+                        {coluna.id === "implantada" ? 100 : item.progresso}%
+                      </span>
+                    </div>
                     <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Phone className="size-3.5 shrink-0" />
                       <span className="truncate">{item.tenantTelefone || item.tenantEmail || "Sem contato"}</span>
