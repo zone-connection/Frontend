@@ -100,6 +100,20 @@ describe("applyPresencaFiltros", () => {
     assert.equal(view.usuarios.length, 1);
     assert.equal(view.usuarios[0]?.nome, "Ana");
     assert.equal(view.resumo.mediaVieram, 0.5);
+  });
+
+  it("tira o domingo da média de presentes por dia", () => {
+    const comDomingo = mes([ana]);
+    comDomingo.dias = ["2026-09-05", "2026-09-06", "2026-09-07"];
+    comDomingo.usuarios = [
+      user("a", "Ana", {
+        "2026-09-05": ana.dias["2026-09-01"]!,
+        "2026-09-06": ana.dias["2026-09-01"]!,
+        "2026-09-07": null,
+      }),
+    ];
+    const view = applyPresencaFiltros(comDomingo, [], "todos");
+    assert.equal(view.resumo.mediaVieram, 0.5);
     assert.equal(view.comparativoUsuarios.length, 1);
   });
 

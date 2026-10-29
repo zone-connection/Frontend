@@ -44,6 +44,11 @@ export function weekdayLabel(iso: string) {
   ]!;
 }
 
+/** Segunda a sábado. Domingo fica de fora da média diária. */
+export function isDiaUtil(iso: string) {
+  return new Date(`${iso}T12:00:00`).getDay() !== 0;
+}
+
 export function avatarTone(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -131,12 +136,13 @@ export function buildResumoFromGrid(
     }
     return { data: d, vieram, equivalente, faltas, justificadas };
   });
-  const n = dias.length || 1;
+  const uteis = porDia.filter((x) => isDiaUtil(x.data));
+  const n = uteis.length || 1;
   return {
     porDia,
-    mediaVieram: round2(porDia.reduce((s, x) => s + x.vieram, 0) / n),
+    mediaVieram: round2(uteis.reduce((s, x) => s + x.vieram, 0) / n),
     mediaEquivalente: round2(
-      porDia.reduce((s, x) => s + x.equivalente, 0) / n,
+      uteis.reduce((s, x) => s + x.equivalente, 0) / n,
     ),
     totalVieramDia: porDia.reduce((s, x) => s + x.vieram, 0),
   };
@@ -146,12 +152,16 @@ function resumoAnteriorFiltrado(
   data: PresencaMes,
   comparativo: PresencaComparativoUsuario[],
 ) {
-  const nAnt = data.resumoAnterior.porDia.length || 1;
-  const presentes = comparativo.reduce((s, c) => s + c.anterior.presentes, 0);
-  const equivalente = comparativo.reduce(
-    (s, c) => s + c.anterior.equivalente,
-    0,
-  );
+  const uteis = data.resumoAnterior.porDia.filter((d) => isDiaUtil(d.data));
+  const nAnt = uteis.length || 1;
+  const equipeCompleta =
+    comparativo.length === (data.comparativoUsuarios ?? []).length;
+  const presentes = equipeCompleta
+    ? uteis.reduce((s, d) => s + d.vieram, 0)
+    : comparativo.reduce((s, c) => s + c.anterior.presentes, 0);
+  const equivalente = equipeCompleta
+    ? uteis.reduce((s, d) => s + d.equivalente, 0)
+    : comparativo.reduce((s, c) => s + c.anterior.equivalente, 0);
   return {
     ...data.resumoAnterior,
     mediaVieram: round2(presentes / nAnt),
