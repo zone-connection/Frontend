@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import {
   CENTRAL_AREA,
@@ -54,14 +54,24 @@ const SITUACOES: Array<[string, string]> = [
   ["todas", "Todas"],
 ];
 
-const STATUS_DOT: Record<string, string> = {
-  nao_iniciado: "bg-[#ADB5BD]",
-  em_andamento: "bg-[#3B82F6]",
-  aguardando_cliente: "bg-[#F59F00]",
-  aguardando_equipe: "bg-[#F59F00]",
-  concluido: "bg-[#12B886]",
-  cancelado: "bg-[#ADB5BD]",
-};
+const COLUNAS = [
+  { id: "contrato", titulo: "Contrato", ate: 2 },
+  { id: "acessos", titulo: "Acessos", ate: 3 },
+  { id: "configuracao", titulo: "Configuração", ate: 5 },
+  { id: "treinamento", titulo: "Treinamento", ate: 8 },
+] as const;
+
+function colunaId(item: OnboardingItem) {
+  if (item.status === "concluido" || item.progresso >= 100) return "treinamento";
+  const atual = item.etapas.find((etapa) => etapa.obrigatoria && etapa.status !== "concluida");
+  const ordem = atual?.ordem ?? 1;
+  return COLUNAS.find((coluna) => ordem <= coluna.ate)?.id ?? "treinamento";
+}
+
+function diasEmAndamento(inicio: string) {
+  const dias = Math.max(0, Math.round((Date.now() - new Date(inicio).getTime()) / 86_400_000));
+  return `${dias}d em andamento`;
+}
 
 function OnboardingPage() {
   const [situacao, setSituacao] = useState("abertas");
@@ -222,49 +232,40 @@ function OnboardingPage() {
             </div>
           </div>
         ) : null}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-[13px]">
-            <thead className="bg-[#F8F9FA] text-[12px] text-[#868E96]">
-              <tr>
-                <th className="px-4 py-3 font-medium">Imobiliária</th>
-                <th className="px-3 py-3 font-medium">Progresso</th>
-                <th className="px-3 py-3 font-medium">Responsável</th>
-                <th className="px-3 py-3 font-medium">Prazo</th>
-                <th className="px-3 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!loading && items.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-14 text-center text-[#868E96]">Nenhuma implantação neste recorte.</td></tr>
-              ) : items.map((item) => (
-                <tr key={item.id} className={cn("border-t border-[#F1F3F5]", aberto?.id === item.id && "bg-[#F4FBF8]")}>
-                  <td className="px-4 py-3.5 font-medium text-[#1A1D23] dark:text-[#f8fafc]">
-                    <span className="block max-w-[240px] truncate">{item.tenantNome}</span>
-                    <span className="block text-[12px] font-normal text-[#868E96]">{item.tenantPlano}{item.contratoCodigo ? ` · ${item.contratoCodigo}` : ""}</span>
-                  </td>
-                  <td className="px-3 py-3.5">
-                    <span className="mb-1 block text-[12px] font-medium tabular-nums text-[#495057]">{item.progresso}%</span>
-                    <span className="block h-1.5 w-24 overflow-hidden rounded-full bg-[#E9ECEF]">
-                      <span className="block h-full rounded-full bg-[#12B886]" style={{ width: `${item.progresso}%` }} />
-                    </span>
-                  </td>
-                  <td className="px-3 py-3.5 text-[#495057]">{item.responsavelNome ?? "—"}</td>
-                  <td className="px-3 py-3.5 text-[#495057]">{new Date(item.prazoPrevisto).toLocaleDateString("pt-BR")}</td>
-                  <td className="px-3 py-3.5">
-                    <span className="inline-flex items-center gap-1.5 text-[13px] text-[#495057]">
-                      <span className={cn("size-1.5 rounded-full", item.atrasado ? "bg-[#E03131]" : STATUS_DOT[item.status] ?? "bg-[#ADB5BD]")} />
-                      {item.atrasado ? "Atrasada" : STATUS_LABEL[item.status] ?? item.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <Button type="button" variant="outline" className="h-8 rounded-lg border-[#DEE2E6] px-3 text-[12px]" onClick={() => void abrir(item.id)}>Abrir</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-4 overflow-x-auto p-4 md:grid-cols-2 xl:grid-cols-4">
+          {COLUNAS.map((coluna) => {
+            const cards = items.filter((item) => colunaId(item) === coluna.id);
+            return (
+              <div key={coluna.id} className="min-w-[220px]">
+                <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
+                  {coluna.titulo}
+                  <span className="font-medium text-[#868E96]">{cards.length}</span>
+                </h3>
+                <div className="space-y-3">
+                  {cards.map((item) => (
+                    <article key={item.id} className="rounded-xl border border-[#E6E8EC] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-card">
+                      <p className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
+                        <span className={cn("size-2 shrink-0 rounded-full", item.atrasado ? "bg-[#E03131]" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-[#F59F00]")} />
+                        <span className="truncate">{item.tenantNome}</span>
+                      </p>
+                      <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#868E96]">
+                        <UserRound className="size-3.5" />
+                        {item.responsavelNome ?? "Sem responsável"}
+                      </p>
+                      <p className="mt-1 text-[12px] text-[#868E96]">{diasEmAndamento(item.inicio)}</p>
+                      <Button type="button" variant="outline" className="mt-3 h-8 w-full rounded-lg border-[#E6E8EC] text-[12px]" onClick={() => void abrir(item.id)}>
+                        Ver fluxo
+                      </Button>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
+        {!loading && items.length === 0 ? (
+          <p className="px-4 pb-8 text-center text-sm text-[#868E96]">Nenhuma implantação neste recorte.</p>
+        ) : null}
         <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} implantação(ões)${exemplo ? " · exemplos de visualização" : ""}`}</p>
       </section>
       {aberto ? (

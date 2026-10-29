@@ -146,12 +146,23 @@ function impl(
   atrasado: boolean,
   _grupo: string,
 ): OnboardingDetalhe {
-  const etapas = ["Contrato", "Acesso", "Imóveis", "Equipe", "Treinamento"].map((titulo, index) => ({
+  const etapasBase = [
+    "Confirmar dados da imobiliária",
+    "Confirmar plano e condições contratadas",
+    "Validar os acessos e a configuração inicial",
+    "Configurar os módulos contratados",
+    "Configurar integrações aplicáveis",
+    "Realizar treinamento",
+    "Validar o funcionamento com a imobiliária",
+    "Confirmar a conclusão da implantação",
+  ];
+  const feitas = Math.round((progresso / 100) * etapasBase.length);
+  const etapas = etapasBase.map((titulo, index) => ({
     id: `mock-etapa-${n}-${index}`,
     ordem: index + 1,
     titulo,
     obrigatoria: true,
-    status: index < Math.round(progresso / 20) ? "concluida" as const : "pendente" as const,
+    status: index < feitas ? "concluida" as const : "pendente" as const,
     pendencia: "",
     observacao: "",
     concluidaEm: null,
