@@ -1407,8 +1407,10 @@ function DocumentacaoPage() {
       form.dataVenda ||
       (vgv != null && vgv > 0 ? todayDateInput() : null);
 
+    const leadVinculado =
+      leads.some((item) => item.id === form.leadId) ? form.leadId : "";
     return {
-      ...(form.leadId ? { leadId: form.leadId } : { leadId: null }),
+      ...(leadVinculado ? { leadId: leadVinculado } : { leadId: null }),
       nome,
       construtoraId: form.origem === "usado" ? null : form.construtoraId || null,
       empreendimentoId: form.empreendimentoId || null,
