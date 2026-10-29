@@ -47,6 +47,7 @@ export function LeadReatribuirDialog({
         assignee.id !== lead?.corretorId &&
         (!assignee.role ||
           isCorretorLike(assignee.role) ||
+          assignee.role === "gerente" ||
           assignee.id === user?.id),
     );
     return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -67,7 +68,7 @@ export function LeadReatribuirDialog({
       const updated = await updateLead(lead.id, { corretorId });
       const name =
         options.find((item) => item.id === corretorId)?.name ??
-        "o novo corretor";
+        "o novo responsável";
       toast.success(`${lead.nome} reatribuído para ${name}.`);
       onReassigned?.(updated);
       onOpenChange(false);
@@ -99,15 +100,15 @@ export function LeadReatribuirDialog({
                   ? `${lead?.nome ?? "Este lead"} já é venda ou tem VGV e não pode ser redistribuído.`
                   : lead
                   ? atual
-                    ? `${lead.nome} está com ${atual}. Escolha o novo corretor.`
+                    ? `${lead.nome} está com ${atual}. Escolha quem vai assumir.`
                     : `${lead.nome} está sem corretor. Escolha quem vai assumir.`
-                  : "Escolha o novo corretor."}
+                  : "Escolha quem vai assumir."}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Novo corretor</Label>
+          <Label className="text-xs text-muted-foreground">Novo responsável</Label>
           <Select
             value={corretorId || undefined}
             onValueChange={setCorretorId}
@@ -117,8 +118,8 @@ export function LeadReatribuirDialog({
               <SelectValue
                 placeholder={
                   options.length === 0
-                    ? "Nenhum corretor disponível"
-                    : "Selecione o corretor"
+                    ? "Nenhum responsável disponível"
+                    : "Selecione o corretor ou gerente"
                 }
               />
             </SelectTrigger>
