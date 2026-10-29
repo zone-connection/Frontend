@@ -272,12 +272,12 @@ function OnboardingPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="table-person-name break-words text-sm leading-snug">{item.tenantNome}</p>
-                        <p className={cn("mt-0.5 text-[11px] font-medium capitalize", {
-                          solo: "text-sky-700",
-                          bronze: "text-amber-700",
-                          prata: "text-slate-500",
-                          ouro: "text-amber-600",
-                        }[item.tenantPlano] ?? "text-muted-foreground")}>{item.tenantPlano}</p>
+                        <p className={cn("mt-1 inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-medium capitalize", {
+                          solo: "bg-sky-100 text-sky-800",
+                          bronze: "bg-amber-100 text-amber-800",
+                          prata: "bg-slate-200 text-slate-700",
+                          ouro: "bg-amber-200 text-amber-900",
+                        }[item.tenantPlano] ?? "bg-muted text-muted-foreground")}>{item.tenantPlano}</p>
                       </div>
                       <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold text-white", PERCENTUAL_COR[coluna.id])}>
                         {coluna.id === "implantada" ? 100 : item.progresso}%
