@@ -16,6 +16,9 @@ export type OnboardingItem = {
   tenantId: string;
   tenantNome: string;
   tenantPlano: string;
+  tenantTelefone: string;
+  tenantEmail: string;
+  tenantEndereco: string;
   contratoCodigo: string | null;
   contratoStatus: string | null;
   responsavelNome: string | null;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Clock, Plus } from "lucide-react";
+import { Clock, MapPin, Phone, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
@@ -222,7 +222,15 @@ function OnboardingPage() {
                       <p className="table-person-name min-w-0 flex-1 break-words text-sm leading-snug">{item.tenantNome}</p>
                       <span className={cn("mt-1 size-1.5 shrink-0 rounded-full", item.atrasado ? "bg-destructive" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-warning")} />
                     </div>
-                    <p className="mt-1.5 text-sm font-semibold text-primary">{item.progresso}%</p>
+                    <p className="mt-1.5 text-sm font-semibold capitalize text-primary">{item.tenantPlano} · {item.progresso}%</p>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Phone className="size-3.5 shrink-0" />
+                      <span className="truncate">{item.tenantTelefone || item.tenantEmail || "Sem contato"}</span>
+                    </div>
+                    <div className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="mt-0.5 size-3.5 shrink-0" />
+                      <span className="line-clamp-2">{item.tenantEndereco || "Sem endereço"}</span>
+                    </div>
                     <div className="mt-2 flex items-center justify-between border-t pt-2 text-[11px] text-muted-foreground">
                       <span className="truncate">{item.responsavelNome ?? "Sem responsável"}</span>
                       <span className="flex shrink-0 items-center gap-1">
