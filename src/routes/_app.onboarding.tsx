@@ -124,92 +124,96 @@ function OnboardingPage() {
       <PageHeader
         title="Implantação"
         description="Acompanhe a entrada de cada imobiliária, do contrato até o treinamento."
+        actions={
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              ["abertas", "Em andamento"],
+              ["atrasadas", "Atrasadas"],
+              ["concluidas", "Concluídas"],
+              ["todas", "Todas"],
+            ].map(([id, label]) => (
+              <Button
+                key={id}
+                type="button"
+                size="sm"
+                variant={situacao === id ? "default" : "outline"}
+                onClick={() => setSituacao(id)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        }
       />
-      <div className="flex flex-wrap gap-2">
-        {[
-          ["abertas", "Em andamento"],
-          ["atrasadas", "Atrasadas"],
-          ["concluidas", "Concluídas"],
-          ["todas", "Todas"],
-        ].map(([id, label]) => (
-          <Button
-            key={id}
-            type="button"
-            size="sm"
-            variant={situacao === id ? "default" : "outline"}
-            onClick={() => setSituacao(id)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <PagePanel>
-          <h2 className="mb-3 text-sm font-semibold">Nova implantação</h2>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Imobiliária</Label>
-              <Select value={tenantId} onValueChange={setTenantId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {tenants.map((tenant) => (
-                    <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Início</Label>
-              <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Prazo</Label>
-              <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Justificativa de novo ciclo</Label>
-              <Textarea value={justificativa} onChange={(e) => setJustificativa(e.target.value)} />
-            </div>
-            <Button type="button" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
+      <PagePanel title="Nova implantação" description="Escolha a imobiliária e o prazo. A justificativa só entra num novo ciclo.">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_10rem_10rem_auto]">
+          <div className="space-y-1.5">
+            <Label>Imobiliária</Label>
+            <Select value={tenantId} onValueChange={setTenantId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {tenants.map((tenant) => (
+                  <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Início</Label>
+            <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Prazo</Label>
+            <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+          </div>
+          <div className="flex items-end">
+            <Button type="button" className="w-full xl:w-auto" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
               Abrir implantação
             </Button>
           </div>
-        </PagePanel>
-        <PagePanel>
-          {loading ? <p className="text-sm text-muted-foreground">Carregando...</p> : null}
-          {!loading && items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma implantação neste recorte.</p>
-          ) : (
-            <ul className="divide-y">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <button type="button" className="flex w-full items-center justify-between gap-3 py-3 text-left" onClick={() => void abrir(item.id)}>
-                    <span>
-                      <span className="block text-sm font-medium">{item.tenantNome}</span>
-                      <span className="text-xs text-muted-foreground">
+          <div className="space-y-1.5 md:col-span-2 xl:col-span-4">
+            <Label>Justificativa de novo ciclo</Label>
+            <Textarea rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Opcional, se esta imobiliária já teve uma implantação" />
+          </div>
+        </div>
+      </PagePanel>
+      <PagePanel title="Implantações" description={loading ? "Carregando..." : `${items.length} neste recorte`}>
+        {!loading && items.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma implantação neste recorte.</p>
+        ) : (
+          <ul className="grid gap-2 md:grid-cols-2">
+            {items.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-black/5 bg-muted/30 px-3 py-3 text-left transition-colors hover:bg-muted/60"
+                  onClick={() => void abrir(item.id)}
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">{item.tenantNome}</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
                         {STATUS_LABEL[item.status] ?? item.status}
                         {item.atrasado ? " · Atrasada" : ""}
                         {item.responsavelNome ? ` · ${item.responsavelNome}` : ""}
-                        {item.contratoCodigo ? ` · ${item.contratoCodigo}` : ""}
                       </span>
                     </span>
-                    <span className="text-sm font-semibold">{item.progresso}%</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PagePanel>
-      </div>
+                    <span className="text-sm font-semibold tabular-nums text-[#0678a8]">{item.progresso}%</span>
+                  </span>
+                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white">
+                    <span className="block h-full rounded-full bg-[#079ED4]" style={{ width: `${item.progresso}%` }} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PagePanel>
       {aberto ? (
-        <PagePanel>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold">{aberto.tenantNome}</h2>
-              <p className="text-xs text-muted-foreground">
-                Prazo {new Date(aberto.prazoPrevisto).toLocaleDateString("pt-BR")} · {aberto.progresso}% das etapas obrigatórias
-              </p>
-            </div>
+        <PagePanel
+          title={aberto.tenantNome}
+          description={`Prazo ${new Date(aberto.prazoPrevisto).toLocaleDateString("pt-BR")} · ${aberto.progresso}% das etapas obrigatórias`}
+          action={
             <Select value={aberto.status} onValueChange={(value) => void mudarStatus(value)}>
               <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -218,14 +222,18 @@ function OnboardingPage() {
                 ))}
               </SelectContent>
             </Select>
+          }
+        >
+          <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-[#079ED4]" style={{ width: `${aberto.progresso}%` }} />
           </div>
-          <ul className="divide-y">
+          <ul className="grid gap-2">
             {aberto.etapas.map((etapa) => (
-              <li key={etapa.id} className="space-y-2 py-3">
+              <li key={etapa.id} className="rounded-xl border border-black/5 px-3 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm">
+                  <span className="text-sm font-medium">
                     {etapa.ordem}. {etapa.titulo}
-                    {etapa.obrigatoria ? "" : " (opcional)"}
+                    {etapa.obrigatoria ? "" : " · opcional"}
                   </span>
                   <Button
                     type="button"
@@ -237,7 +245,8 @@ function OnboardingPage() {
                   </Button>
                 </div>
                 <Input
-                  placeholder="Pendência"
+                  className="mt-2"
+                  placeholder="Pendência desta etapa"
                   defaultValue={etapa.pendencia}
                   onBlur={(event) => {
                     if (event.target.value === etapa.pendencia) return;
@@ -252,7 +261,7 @@ function OnboardingPage() {
             ))}
           </ul>
           {aberto.historico?.length ? (
-            <ul className="mt-4 space-y-1 text-xs text-muted-foreground">
+            <ul className="mt-4 space-y-1 border-t pt-3 text-xs text-muted-foreground">
               {aberto.historico.map((evento) => (
                 <li key={evento.id}>{evento.autor?.name ?? "Sistema"} · {evento.detalhe}</li>
               ))}

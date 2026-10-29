@@ -549,49 +549,54 @@ function DashboardPlataformaView() {
             <FinanceKpiCard label="A receber em aberto" value={data.receita.aReceberAberto} icon={Wallet} tone="orange" href="/financeiro/contas-a-receber" />
             <FinanceKpiCard label="Vencido" value={data.receita.vencido} icon={Banknote} tone="red" href="/financeiro/contas-a-receber" />
           </div>
-          <div className="grid gap-3 lg:grid-cols-3">
-            <PagePanel>
-              <h2 className="mb-1 text-sm font-semibold">Planos</h2>
-              <p className="mb-3 text-xs text-muted-foreground">{data.comercial.total} leads no total da plataforma.</p>
+          <div className="grid gap-3 xl:grid-cols-[16rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <PagePanel title="Planos" description={`${data.comercial.total} leads no total da plataforma.`}>
               {data.carteira.porPlano.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhuma imobiliária cadastrada.</p>
               ) : (
-                <ul className="space-y-2 text-sm">
-                  {data.carteira.porPlano.map((item) => (
-                    <li key={item.plano} className="flex justify-between gap-3">
-                      <span>{PLANO_LABEL[item.plano] ?? item.plano}</span>
-                      <span className="font-medium">{item.total}</span>
-                    </li>
-                  ))}
+                <ul className="space-y-2.5">
+                  {data.carteira.porPlano.map((item) => {
+                    const max = Math.max(...data.carteira.porPlano.map((row) => row.total), 1);
+                    return (
+                      <li key={item.plano}>
+                        <div className="mb-1 flex justify-between gap-3 text-sm">
+                          <span>{PLANO_LABEL[item.plano] ?? item.plano}</span>
+                          <span className="font-semibold tabular-nums">{item.total}</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-[#079ED4]" style={{ width: `${(item.total / max) * 100}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </PagePanel>
-            <PagePanel>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">Leads sem movimento há 7 dias</h2>
-                <Button asChild variant="ghost" size="sm"><Link to="/funil">Funil</Link></Button>
-              </div>
+            <PagePanel
+              title="Leads sem movimento há 7 dias"
+              action={<Button asChild variant="ghost" size="sm"><Link to="/funil">Funil</Link></Button>}
+            >
               {data.acompanhamento.leadsSemMovimento.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum lead parado.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">Nenhum lead parado.</p>
               ) : (
-                <ul className="divide-y text-sm">
+                <ul className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-1">
                   {data.acompanhamento.leadsSemMovimento.map((lead) => (
-                    <li key={lead.id} className="py-2">{lead.nome}</li>
+                    <li key={lead.id} className="truncate rounded-lg bg-muted/40 px-3 py-2 text-sm">{lead.nome}</li>
                   ))}
                 </ul>
               )}
             </PagePanel>
-            <PagePanel>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">Assinaturas atrasadas ou suspensas</h2>
-                <Button asChild variant="ghost" size="sm"><Link to="/financeiro/contas-a-receber">Títulos</Link></Button>
-              </div>
+            <PagePanel
+              title="Assinaturas em atenção"
+              description="Atrasadas ou suspensas."
+              action={<Button asChild variant="ghost" size="sm"><Link to="/financeiro/contas-a-receber">Títulos</Link></Button>}
+            >
               {data.acompanhamento.assinaturasAtencao.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma assinatura nesses status.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma assinatura nesses status.</p>
               ) : (
-                <ul className="divide-y text-sm">
+                <ul className="space-y-1.5 text-sm">
                   {data.acompanhamento.assinaturasAtencao.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                    <li key={item.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2">
                       <span className="min-w-0 truncate">{item.tenantNome}</span>
                       <span className="shrink-0 text-xs text-muted-foreground">{item.status} · {brl(item.valorMensalidade)}</span>
                     </li>
@@ -600,16 +605,15 @@ function DashboardPlataformaView() {
               )}
             </PagePanel>
           </div>
-          <PagePanel>
-            <h2 className="mb-3 text-sm font-semibold">Clientes convertidos recentemente</h2>
+          <PagePanel title="Clientes convertidos recentemente">
             {data.carteira.recemConvertidos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma conversão registrada.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma conversão registrada.</p>
             ) : (
-              <ul className="divide-y text-sm">
+              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {data.carteira.recemConvertidos.map((item) => (
-                  <li key={item.leadId} className="flex items-center justify-between gap-3 py-2">
-                    <span className="truncate">{item.nome}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{new Date(item.criadoEm).toLocaleDateString("pt-BR")}</span>
+                  <li key={item.leadId} className="rounded-xl border border-black/5 bg-muted/30 px-3 py-3">
+                    <span className="block truncate text-sm font-medium">{item.nome}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(item.criadoEm).toLocaleDateString("pt-BR")}</span>
                   </li>
                 ))}
               </ul>
