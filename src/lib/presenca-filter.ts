@@ -3,6 +3,7 @@ import type {
   PresencaMes,
   PresencaNatureza,
   PresencaResumo,
+  PresencaResumoDia,
   PresencaUsuario,
 } from "@/lib/presenca-api";
 
@@ -239,6 +240,30 @@ export function rankPresenca(
         b.valor - a.valor || a.nome.localeCompare(b.nome, "pt-BR"),
     )
     .slice(0, limit);
+}
+
+/** Dia do mês com mais gente presente (presença integral + meio período). */
+export function picoPresentesMes(porDia: PresencaResumoDia[]) {
+  let best: PresencaResumoDia | null = null;
+  for (const dia of porDia) {
+    if (dia.vieram <= 0) continue;
+    if (
+      !best ||
+      dia.vieram > best.vieram ||
+      (dia.vieram === best.vieram && dia.equivalente > best.equivalente)
+    ) {
+      best = dia;
+    }
+  }
+  return best;
+}
+
+export function labelDiaPicoPresentes(dataIso: string) {
+  const parts = dataIso.split("-");
+  const day = Number(parts[2]);
+  const month = parts[1];
+  if (!Number.isFinite(day) || !month) return dataIso;
+  return `${day}/${month}`;
 }
 
 export function labelPresencaFiltros(

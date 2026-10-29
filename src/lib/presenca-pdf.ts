@@ -3,7 +3,9 @@ import autoTable from "jspdf-autotable";
 import type { PresencaCelula, PresencaMes, PresencaTipo } from "@/lib/presenca-api";
 import {
   avatarTone,
+  labelDiaPicoPresentes,
   monthRangeLabel,
+  picoPresentesMes,
   PRESENCA_ROLE_LABEL,
   presencaInitials,
   weekdayLabel,
@@ -512,7 +514,7 @@ function drawKpis(
     0,
   );
   const dVieram = data.resumo.mediaVieram - data.resumoAnterior.mediaVieram;
-  const dEq = data.resumo.mediaEquivalente - data.resumoAnterior.mediaEquivalente;
+  const pico = picoPresentesMes(data.resumo.porDia);
   const dFalta = faltas - faltasAnt;
   const cards = [
     {
@@ -526,10 +528,12 @@ function drawKpis(
     {
       wash: mix(theme.accent, WHITE, 0.88),
       icon: theme.accent,
-      label: "Equivalente (dias)",
-      value: num(data.resumo.mediaEquivalente),
-      hint: `${signed(dEq)} vs. mês anterior`,
-      hintRgb: dEq >= 0 ? theme.success : theme.danger,
+      label: "Dia com mais presentes",
+      value: pico ? labelDiaPicoPresentes(pico.data) : "—",
+      hint: pico
+        ? `${pico.vieram} ${pico.vieram === 1 ? "pessoa" : "pessoas"} (P e MP)`
+        : "Nenhuma presença no mês",
+      hintRgb: MUTED,
     },
     {
       wash: mix(theme.info, WHITE, 0.88),

@@ -8,6 +8,8 @@ import type {
 import {
   applyPresencaFiltros,
   labelPresencaFiltros,
+  labelDiaPicoPresentes,
+  picoPresentesMes,
   rankPorNatureza,
   rankPresenca,
 } from "./presenca-filter.ts";
@@ -208,6 +210,20 @@ describe("rankPorNatureza", () => {
         ["Ana", 1],
       ],
     );
+  });
+});
+
+describe("picoPresentesMes", () => {
+  it("escolhe o dia com mais presente e meio período", () => {
+    const pico = picoPresentesMes([
+      { data: "2026-10-01", vieram: 2, equivalente: 2, faltas: 0, justificadas: 0 },
+      { data: "2026-10-15", vieram: 5, equivalente: 4, faltas: 1, justificadas: 0 },
+      { data: "2026-10-16", vieram: 5, equivalente: 4.5, faltas: 0, justificadas: 0 },
+      { data: "2026-10-20", vieram: 0, equivalente: 0, faltas: 3, justificadas: 0 },
+    ]);
+    assert.equal(pico?.data, "2026-10-16");
+    assert.equal(pico?.vieram, 5);
+    assert.equal(labelDiaPicoPresentes("2026-10-16"), "16/10");
   });
 });
 

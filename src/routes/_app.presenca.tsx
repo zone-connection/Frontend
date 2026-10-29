@@ -67,8 +67,10 @@ import {
 import {
   applyPresencaFiltros,
   avatarTone,
+  labelDiaPicoPresentes,
   labelPresencaFiltros,
   monthRangeLabel,
+  picoPresentesMes,
   PRESENCA_FILTRO_NATUREZA,
   PRESENCA_ROLE_LABEL,
   presencaInitials,
@@ -265,6 +267,8 @@ function Page() {
       ),
     );
   };
+
+  const pico = picoPresentesMes(view?.resumo.porDia ?? []);
 
   const totalFaltas = (view?.comparativoUsuarios ?? []).reduce(
     (s, c) => s + c.atual.faltas,
@@ -617,10 +621,16 @@ function Page() {
             />
             <ReportKpi
               icon={CalendarDays}
-              label="Equivalente (dias)"
-              value={fmt2(view.resumo.mediaEquivalente)}
-              delta={
-                view.resumo.mediaEquivalente - view.resumoAnterior.mediaEquivalente
+              label="Dia com mais presentes"
+              value={
+                pico
+                  ? labelDiaPicoPresentes(pico.data)
+                  : "—"
+              }
+              hint={
+                pico
+                  ? `${pico.vieram} ${pico.vieram === 1 ? "pessoa" : "pessoas"} (presente e meio período)`
+                  : "Nenhuma presença no mês"
               }
               tone="blue"
             />
