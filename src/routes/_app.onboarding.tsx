@@ -40,7 +40,6 @@ import { fetchTenants, updateTenant, type Tenant } from "@/lib/tenants-api";
 import { PLANO_LABELS, type TenantPlano } from "@/lib/tenant-modules";
 import { isMockId, MOCK_ONBOARDINGS, onboardingsMock } from "@/lib/centrais-mock";
 import { nextCatalogColor } from "@/lib/catalog-colors";
-import { FLOW_BAR_GRADIENTS } from "@/components/flow-bar";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/onboarding")({
@@ -64,23 +63,6 @@ const COLUNAS = [
   { id: "treinamento", titulo: "Treinamento", ate: 8, color: nextCatalogColor(3) },
   { id: "implantada", titulo: "Implantada", ate: 8, color: nextCatalogColor(14) },
 ] as const;
-
-const PLANO_COR: Record<string, string> = {
-  solo: "bg-sky-100 text-sky-800",
-  bronze: "bg-amber-100 text-amber-900",
-  prata: "bg-slate-200 text-slate-700",
-  ouro: "",
-};
-
-function planoStyle(plano: string): { className: string; style?: { background: string } } {
-  if (plano === "ouro") {
-    return {
-      className: "text-amber-950 shadow-sm shadow-amber-500/30",
-      style: { background: FLOW_BAR_GRADIENTS.amber },
-    };
-  }
-  return { className: PLANO_COR[plano] ?? "bg-muted text-muted-foreground" };
-}
 
 function colunaId(item: OnboardingItem) {
   if (item.status === "concluido" || item.progresso >= 100) return "implantada";
@@ -280,20 +262,11 @@ function OnboardingPage() {
                     onClick={() => void abrir(item.id)}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="table-person-name min-w-0 flex-1 break-words text-sm leading-snug">{item.tenantNome}</p>
-                      <span className={cn("mt-1 size-1.5 shrink-0 rounded-full", item.atrasado ? "bg-destructive" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-warning")} />
-                    </div>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <span
-                        className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-semibold capitalize", planoStyle(item.tenantPlano).className)}
-                        style={planoStyle(item.tenantPlano).style}
-                      >
-                        {item.tenantPlano}
-                      </span>
-                      <span
-                        className="rounded-md px-1.5 py-0.5 text-sm font-semibold text-emerald-950 shadow-sm shadow-emerald-500/25"
-                        style={{ background: FLOW_BAR_GRADIENTS.emerald }}
-                      >
+                      <div className="min-w-0">
+                        <p className="table-person-name break-words text-sm leading-snug">{item.tenantNome}</p>
+                        <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">{item.tenantPlano}</p>
+                      </div>
+                      <span className="shrink-0 rounded-md bg-green-600 px-1.5 py-0.5 text-xs font-semibold text-white">
                         {coluna.id === "implantada" ? 100 : item.progresso}%
                       </span>
                     </div>
