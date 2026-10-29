@@ -13,6 +13,7 @@ export type SuporteItem = {
   responsavelNome: string | null;
   prazoEm: string | null;
   atrasado: boolean;
+  createdAt?: string;
 };
 
 export type SuporteDetalhe = SuporteItem & {

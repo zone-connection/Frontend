@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import {
   CENTRAL_AREA,
@@ -47,6 +48,22 @@ const STATUS: Record<string, string> = {
   fechado: "Fechado",
 };
 
+const STATUS_DOT: Record<string, string> = {
+  aberto: "bg-[#12B886]",
+  em_atendimento: "bg-[#3B82F6]",
+  aguardando_cliente: "bg-[#F59F00]",
+  aguardando_equipe: "bg-[#F59F00]",
+  resolvido: "bg-[#12B886]",
+  fechado: "bg-[#ADB5BD]",
+};
+
+const PRIORIDADE_PILL: Record<string, string> = {
+  urgente: "bg-[#FFE3E3] text-[#E03131]",
+  alta: "bg-[#FFE3E3] text-[#E03131]",
+  normal: "bg-[#FFF3BF] text-[#E67700]",
+  baixa: "bg-[#D3F9D8] text-[#2B8A3E]",
+};
+
 function SuportePage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("todos");
@@ -61,14 +78,15 @@ function SuportePage() {
   const [texto, setTexto] = useState("");
   const [interna, setInterna] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [criando, setCriando] = useState(false);
 
-  async function load() {
+  async function load(statusFiltro = status) {
     setLoading(true);
     try {
       const eu = getSession();
       setItems(await fetchSuportes({
         q,
-        status: status === "todos" ? undefined : status,
+        status: statusFiltro === "todos" ? undefined : statusFiltro,
         tenantId: tenantId === "todas" ? undefined : tenantId,
         prioridade: prioridade === "todas" ? undefined : prioridade,
         categoria: categoria.trim() || undefined,
@@ -107,6 +125,7 @@ function SuportePage() {
       });
       toast.success("Chamado aberto.");
       setForm({ ...form, titulo: "", descricao: "" });
+      setCriando(false);
       await load();
       await abrir(created.id);
     } catch (error) {
@@ -117,112 +136,156 @@ function SuportePage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Suporte" description="Chamados das imobiliárias. Notas internas não aparecem para o cliente." />
-      <CentralCard title="Filtros">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6 xl:items-end">
-          <Input className={CENTRAL_FIELD} placeholder="Título ou código" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={tenantId} onValueChange={setTenantId}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as imobiliárias</SelectItem>
-              {tenants.map((tenant) => (
-                <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {Object.entries(STATUS).map(([id, label]) => (
-                <SelectItem key={id} value={id}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={prioridade} onValueChange={setPrioridade}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Prioridades</SelectItem>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="urgente">Urgente</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input className={CENTRAL_FIELD} placeholder="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} />
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-[#153047]">
-              <input className="size-4 accent-[#008FD0]" type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
-              Meus
-            </label>
-            <Button type="button" variant="outline" className="h-11 rounded-[16px] border-[#DCE5EC]" onClick={() => void load()}>Filtrar</Button>
-          </div>
-        </div>
-      </CentralCard>
-      <CentralCard title="Novo chamado" description="A categoria descreve o tipo do pedido. O prazo é opcional.">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <CentralLabel>Imobiliária</CentralLabel>
-            <Select value={form.tenantId} onValueChange={(value) => setForm({ ...form, tenantId: value })}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
-            <SelectContent>
-              {tenants.map((tenant) => (
-                <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          </div>
-          <div>
-            <CentralLabel>Título</CentralLabel>
-            <Input className={CENTRAL_FIELD} placeholder="Título" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
-          </div>
-          <div>
-            <CentralLabel>Categoria</CentralLabel>
-            <Input className={CENTRAL_FIELD} placeholder="Categoria" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
-          </div>
-          <div>
-            <CentralLabel>Prioridade</CentralLabel>
-          <Select value={form.prioridade} onValueChange={(value) => setForm({ ...form, prioridade: value })}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="urgente">Urgente</SelectItem>
-            </SelectContent>
-          </Select>
-          </div>
-          <div>
-            <CentralLabel>Prazo, se houver</CentralLabel>
-            <Input className={CENTRAL_FIELD} type="date" value={form.prazoEm} onChange={(e) => setForm({ ...form, prazoEm: e.target.value })} />
-          </div>
-          <div className="md:col-span-2">
-            <CentralLabel>Descrição</CentralLabel>
-            <Textarea className={CENTRAL_AREA} placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-          </div>
-          <div>
-            <Button type="button" className={CENTRAL_BTN} disabled={!form.tenantId || form.titulo.length < 3 || form.descricao.length < 3} onClick={() => void criar()}>
-              Abrir chamado
-            </Button>
-          </div>
-        </div>
-      </CentralCard>
-      <CentralCard title="Chamados" description={loading ? "Carregando..." : `${items.length} neste filtro`}>
-        {!loading && items.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Nenhum chamado neste filtro.</p> : null}
-        <ul className="grid gap-4 md:grid-cols-2">
-          {items.map((item) => (
-            <li key={item.id}>
-              <button type="button" className="w-full rounded-[22px] border border-[#DCE5EC] bg-[#F6F8FA] px-5 py-4 text-left hover:border-[#79CCE7] dark:border-white/10 dark:bg-white/5" onClick={() => void abrir(item.id)}>
-                <span className="block truncate text-sm font-semibold">{item.codigo} · {item.titulo}</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {item.tenantNome} · {STATUS[item.status] ?? item.status} · {item.prioridade}
-                  {item.responsavelNome ? ` · ${item.responsavelNome}` : ""}
-                  {item.atrasado ? " · Atrasado" : ""}
-                </span>
-              </button>
-            </li>
+      <section className="overflow-hidden rounded-2xl border border-[#E9ECEF] bg-white dark:border-white/10 dark:bg-card">
+        <div className="flex gap-1 overflow-x-auto border-b border-[#F1F3F5] px-4 pt-3">
+          {[["todos", "Todos"], ...Object.entries(STATUS)].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={cn(
+                "mb-[-1px] flex shrink-0 items-center gap-2 border-b-2 px-3 pb-3 text-[13px]",
+                status === id ? "border-[#12B886] font-semibold text-[#1A1D23]" : "border-transparent text-[#868E96] hover:text-[#1A1D23]",
+              )}
+              onClick={() => {
+                setStatus(id);
+                void load(id);
+              }}
+            >
+              {label}
+              {status === id ? (
+                <span className="rounded-full bg-[#12B886] px-1.5 text-[11px] font-semibold text-white">{loading ? "…" : items.length}</span>
+              ) : null}
+            </button>
           ))}
-        </ul>
-      </CentralCard>
+        </div>
+        <div className="flex flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center">
+          <Select value={prioridade} onValueChange={setPrioridade}>
+            <SelectTrigger className="h-9 w-40 rounded-full border-[#DEE2E6] text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Prioridade: todas</SelectItem>
+              <SelectItem value="baixa">Baixa</SelectItem>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="alta">Alta</SelectItem>
+              <SelectItem value="urgente">Urgente</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={tenantId} onValueChange={setTenantId}>
+            <SelectTrigger className="h-9 w-44 rounded-full border-[#DEE2E6] text-[13px] shadow-none"><SelectValue placeholder="Imobiliária" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Imobiliárias</SelectItem>
+              {tenants.map((tenant) => (
+                <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input className="h-9 w-36 rounded-full border-[#DEE2E6] text-[13px] shadow-none" placeholder="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} />
+          <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#DEE2E6] px-3 text-[13px]">
+            <input className="size-3.5 accent-[#12B886]" type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
+            Meus
+          </label>
+          <button type="button" className="text-[13px] font-medium text-[#E03131]" onClick={() => { setPrioridade("todas"); setTenantId("todas"); setCategoria(""); setSoMeus(false); setQ(""); }}>
+            Limpar
+          </button>
+          <div className="relative lg:ml-auto">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#ADB5BD]" />
+            <Input className="h-9 w-full rounded-lg border-[#DEE2E6] pl-9 text-[13px] shadow-none lg:w-56" placeholder="Buscar chamado" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void load(); }} />
+          </div>
+          <Button type="button" variant="outline" className="h-9 rounded-lg border-[#DEE2E6]" onClick={() => void load()}>Filtrar</Button>
+          <Button type="button" className="h-9 rounded-lg border-0 bg-[#12B886] px-3 text-white hover:bg-[#0CA678]" onClick={() => setCriando((v) => !v)}>
+            <Plus className="size-3.5" /> Novo chamado
+          </Button>
+        </div>
+        {criando ? (
+          <div className="grid gap-4 border-t border-[#F1F3F5] bg-[#F8F9FA] px-4 py-4 md:grid-cols-2">
+            <div>
+              <CentralLabel>Imobiliária</CentralLabel>
+              <Select value={form.tenantId} onValueChange={(value) => setForm({ ...form, tenantId: value })}>
+                <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
+                <SelectContent>
+                  {tenants.map((tenant) => (
+                    <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <CentralLabel>Título</CentralLabel>
+              <Input className={CENTRAL_FIELD} placeholder="Título" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
+            </div>
+            <div>
+              <CentralLabel>Categoria</CentralLabel>
+              <Input className={CENTRAL_FIELD} placeholder="Categoria" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+            </div>
+            <div>
+              <CentralLabel>Prioridade</CentralLabel>
+              <Select value={form.prioridade} onValueChange={(value) => setForm({ ...form, prioridade: value })}>
+                <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="urgente">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <CentralLabel>Prazo, se houver</CentralLabel>
+              <Input className={CENTRAL_FIELD} type="date" value={form.prazoEm} onChange={(e) => setForm({ ...form, prazoEm: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <CentralLabel>Descrição</CentralLabel>
+              <Textarea className={CENTRAL_AREA} placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+            </div>
+            <div>
+              <Button type="button" className="h-9 rounded-lg border-0 bg-[#12B886] text-white hover:bg-[#0CA678]" disabled={!form.tenantId || form.titulo.length < 3 || form.descricao.length < 3} onClick={() => void criar()}>
+                Abrir chamado
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left text-[13px]">
+            <thead className="bg-[#F8F9FA] text-[12px] text-[#868E96]">
+              <tr>
+                <th className="px-4 py-3 font-medium">Assunto</th>
+                <th className="px-3 py-3 font-medium">Prioridade</th>
+                <th className="px-3 py-3 font-medium">Responsável</th>
+                <th className="px-3 py-3 font-medium">Aberto em</th>
+                <th className="px-3 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!loading && items.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-14 text-center text-[#868E96]">Nenhum chamado neste filtro.</td></tr>
+              ) : items.map((item) => (
+                <tr key={item.id} className={cn("border-t border-[#F1F3F5]", aberto?.id === item.id && "bg-[#F4FBF8]")}>
+                  <td className="px-4 py-3.5 font-medium text-[#1A1D23] dark:text-[#f8fafc]">
+                    <span className="block max-w-[280px] truncate">{item.titulo}</span>
+                    <span className="block text-[12px] font-normal text-[#868E96]">{item.codigo} · {item.tenantNome}</span>
+                  </td>
+                  <td className="px-3 py-3.5">
+                    <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[12px] font-medium capitalize", PRIORIDADE_PILL[item.prioridade] ?? "bg-[#F1F3F5] text-[#495057]")}>{item.prioridade}</span>
+                  </td>
+                  <td className="px-3 py-3.5 text-[#495057]">{item.responsavelNome ?? "—"}</td>
+                  <td className="px-3 py-3.5 text-[#495057]">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td className="px-3 py-3.5">
+                    <span className="inline-flex items-center gap-1.5 text-[13px] text-[#495057]">
+                      <span className={cn("size-1.5 rounded-full", STATUS_DOT[item.status] ?? "bg-[#ADB5BD]")} />
+                      {STATUS[item.status] ?? item.status}
+                      {item.atrasado ? " · atrasado" : ""}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Button type="button" variant="outline" className="h-8 rounded-lg border-[#DEE2E6] px-3 text-[12px]" onClick={() => void abrir(item.id)}>Abrir</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} chamado(s)`}</p>
+      </section>
       {aberto ? (
         <CentralCard
           title={`${aberto.codigo} · ${aberto.titulo}`}
