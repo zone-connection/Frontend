@@ -64,6 +64,14 @@ const COLUNAS = [
   { id: "implantada", titulo: "Implantada", ate: 8, color: nextCatalogColor(14) },
 ] as const;
 
+const PERCENTUAL_COR: Record<(typeof COLUNAS)[number]["id"], string> = {
+  contrato: "bg-slate-500",
+  acessos: "bg-blue-500",
+  configuracao: "bg-indigo-500",
+  treinamento: "bg-violet-500",
+  implantada: "bg-green-600",
+};
+
 function colunaId(item: OnboardingItem) {
   if (item.status === "concluido" || item.progresso >= 100) return "implantada";
   const atual = item.etapas.find((etapa) => etapa.obrigatoria && etapa.status !== "concluida");
@@ -266,7 +274,7 @@ function OnboardingPage() {
                         <p className="table-person-name break-words text-sm leading-snug">{item.tenantNome}</p>
                         <p className="mt-0.5 text-[11px] capitalize text-muted-foreground">{item.tenantPlano}</p>
                       </div>
-                      <span className="shrink-0 rounded-md bg-green-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+                      <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold text-white", PERCENTUAL_COR[coluna.id])}>
                         {coluna.id === "implantada" ? 100 : item.progresso}%
                       </span>
                     </div>
