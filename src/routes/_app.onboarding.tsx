@@ -39,6 +39,7 @@ import {
 import { fetchTenants, updateTenant, type Tenant } from "@/lib/tenants-api";
 import { PLANO_LABELS, type TenantPlano } from "@/lib/tenant-modules";
 import { isMockId, MOCK_ONBOARDINGS, onboardingsMock } from "@/lib/centrais-mock";
+import { nextCatalogColor } from "@/lib/catalog-colors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/onboarding")({
@@ -56,10 +57,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const COLUNAS = [
-  { id: "contrato", titulo: "Contrato", ate: 2, color: "#079ED4" },
-  { id: "acessos", titulo: "Acessos", ate: 3, color: "#0B7CAD" },
-  { id: "configuracao", titulo: "Configuração", ate: 5, color: "#16324A" },
-  { id: "treinamento", titulo: "Treinamento", ate: 8, color: "#05749E" },
+  { id: "contrato", titulo: "Contrato", ate: 2, color: nextCatalogColor(0) },
+  { id: "acessos", titulo: "Acessos", ate: 3, color: nextCatalogColor(1) },
+  { id: "configuracao", titulo: "Configuração", ate: 5, color: nextCatalogColor(2) },
+  { id: "treinamento", titulo: "Treinamento", ate: 8, color: nextCatalogColor(3) },
 ] as const;
 
 function colunaId(item: OnboardingItem) {
@@ -105,6 +106,42 @@ function OnboardingPage() {
     void load();
     void fetchTenants().then(setTenants).catch(() => setTenants([]));
   }, []);
+
+  async function mover(id: string, destino: (typeof COLUNAS)[number]["id"]) {
+    const item = items.find((row) => row.id === id);
+    if (!item || colunaId(item) === destino) return;
+    const indice = COLUNAS.findIndex((coluna) => coluna.id === destino);
+    const feitasAte = indice <= 0 ? 0 : COLUNAS[indice - 1].ate;
+    if (isMockId(id)) {
+      setItems((prev) => prev.map((row) => {
+        if (row.id !== id) return row;
+        const etapas = row.etapas.map((etapa) => ({
+          ...etapa,
+          status: (etapa.ordem <= feitasAte ? "concluida" : "pendente") as "concluida" | "pendente",
+        }));
+        const obrigatorias = etapas.filter((etapa) => etapa.obrigatoria);
+        const feitas = obrigatorias.filter((etapa) => etapa.status === "concluida").length;
+        return {
+          ...row,
+          etapas,
+          progresso: obrigatorias.length === 0 ? 0 : Math.round((feitas / obrigatorias.length) * 100),
+          status: feitasAte === 0 ? "nao_iniciado" : "em_andamento",
+        };
+      }));
+      return;
+    }
+    try {
+      for (const etapa of item.etapas) {
+        const status = etapa.ordem <= feitasAte ? "concluida" : "pendente";
+        if (etapa.status !== status) {
+          await updateOnboardingEtapa(id, etapa.id, { status });
+        }
+      }
+      await load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível mover a implantação.");
+    }
+  }
 
   async function abrir(id: string) {
     if (isMockId(id)) {
@@ -190,11 +227,28 @@ function OnboardingPage() {
           {COLUNAS.map((coluna) => {
             const cards = items.filter((item) => colunaId(item) === coluna.id);
             return (
-              <FunilColumnShell key={coluna.id} title={coluna.titulo} count={cards.length} color={coluna.color}>
+              <FunilColumnShell
+                key={coluna.id}
+                title={coluna.titulo}
+                count={cards.length}
+                color={coluna.color}
+                data-funnel-stage={coluna.id}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const id = event.dataTransfer.getData("text/plain");
+                  if (id) void mover(id, coluna.id);
+                }}
+              >
                 {cards.map((item) => (
                   <Card
                     key={item.id}
-                    className="cursor-pointer rounded-xl border-black/5 p-3 shadow-sm transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md"
+                    className="cursor-grab rounded-xl border-black/5 p-3 shadow-sm transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing"
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("text/plain", item.id);
+                      event.dataTransfer.effectAllowed = "move";
+                    }}
                     onClick={() => void abrir(item.id)}
                   >
                     <div className="flex items-start justify-between gap-2">
