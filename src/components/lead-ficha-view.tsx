@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
+  Banknote,
   Check,
   ChevronRight,
   ClipboardList,
@@ -9,6 +10,7 @@ import {
   Eye,
   FileText,
   Mail,
+  Megaphone,
   MoreHorizontal,
   Phone,
   Send,
@@ -373,6 +375,28 @@ export function LeadFichaView({
         <Fact icon={FileText} label="Interesse" value={local || lead.interesse} />
         <Fact icon={Users} label="Origem" value={lead.origem || "—"} />
         <Fact icon={Clock} label="Cadastro" value={created || "—"} />
+        {lead.aquisicao ? (
+          <>
+            <Fact
+              icon={Megaphone}
+              label="Campanha"
+              value={
+                lead.aquisicao.campanha ||
+                lead.aquisicao.anuncio ||
+                lead.aquisicao.canal
+              }
+            />
+            <Fact
+              icon={Banknote}
+              label="Custo do lead"
+              value={
+                lead.aquisicao.custoDisponivel && lead.aquisicao.custo != null
+                  ? brl(lead.aquisicao.custo)
+                  : "—"
+              }
+            />
+          </>
+        ) : null}
       </div>
 
       <div className="mx-6 mt-4 flex flex-wrap gap-2">
@@ -501,6 +525,34 @@ export function LeadFichaView({
               <Data label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
               <Data label="E-mail" value={email || "—"} />
               <Data label="Origem" value={lead.origem || "—"} />
+              {lead.aquisicao ? (
+                <>
+                  <Data label="Canal do anúncio" value={lead.aquisicao.canal} />
+                  <Data
+                    label="Campanha"
+                    value={lead.aquisicao.campanha || "—"}
+                  />
+                  <Data
+                    label="Anúncio"
+                    value={lead.aquisicao.anuncio || "—"}
+                  />
+                  {lead.aquisicao.formulario ? (
+                    <Data
+                      label="Formulário"
+                      value={lead.aquisicao.formulario}
+                    />
+                  ) : null}
+                  <Data
+                    label="Custo do lead"
+                    value={
+                      lead.aquisicao.custoDisponivel &&
+                      lead.aquisicao.custo != null
+                        ? brl(lead.aquisicao.custo)
+                        : lead.aquisicao.custoNota || "—"
+                    }
+                  />
+                </>
+              ) : null}
               <Data label="Prioridade" value={lead.prioridade} />
               <Data label="Cidade" value={lead.cidade || "—"} />
               <Data label="Bairro" value={lead.bairro || "—"} />

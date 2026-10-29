@@ -3,6 +3,7 @@ import type {
   AnaliseStatus,
   ContatoTipo,
   Lead,
+  LeadAquisicao,
   LeadEmpreendimentoInteresse,
   StageId,
 } from "@/lib/crm-types";
@@ -89,6 +90,22 @@ export interface ApiLead {
   createdAt: string;
   updatedAt: string;
   monitoramento?: LeadMonitoramento | null;
+  metaLink?: {
+    campaignId?: string | null;
+    campaignName?: string | null;
+    adId?: string | null;
+    adName?: string | null;
+    formId?: string | null;
+    formName?: string | null;
+    costPerLead?: string | number | null;
+    costCurrency?: string | null;
+  } | null;
+  grupoZapLink?: {
+    leadOrigin?: string | null;
+    originListingId?: string | null;
+    clientListingId?: string | null;
+    leadType?: string | null;
+  } | null;
 }
 
 export interface PaginatedLeads {
@@ -203,7 +220,45 @@ export function mapApiLead(api: ApiLead): Lead {
       api.documentacaoVgv ?? api.documentacoes?.[0]?.vgv ?? null,
     podeRedistribuir: api.podeRedistribuir,
     monitoramento: api.monitoramento ?? null,
+    aquisicao: mapLeadAquisicao(api),
   };
+}
+
+function mapLeadAquisicao(api: ApiLead): LeadAquisicao | null {
+  if (api.metaLink) {
+    const cost = Number(api.metaLink.costPerLead);
+    const hasCost = Number.isFinite(cost) && cost > 0;
+    const instagram = `${api.origem ?? ""} ${(api.tags ?? []).join(" ")}`
+      .toLowerCase()
+      .includes("instagram");
+    return {
+      canal: instagram ? "Instagram" : "Facebook",
+      campanha: api.metaLink.campaignName ?? null,
+      anuncio: api.metaLink.adName ?? null,
+      formulario: api.metaLink.formName ?? null,
+      custo: hasCost ? cost : null,
+      custoMoeda: api.metaLink.costCurrency ?? "BRL",
+      custoDisponivel: hasCost,
+      custoNota: hasCost
+        ? "Custo médio por lead nesta campanha (Meta Ads)."
+        : "A Meta não devolveu o custo desta campanha.",
+    };
+  }
+  if (api.grupoZapLink) {
+    const listing =
+      api.grupoZapLink.originListingId || api.grupoZapLink.clientListingId;
+    return {
+      canal: "OLX",
+      campanha: api.grupoZapLink.leadOrigin || "Grupo OLX",
+      anuncio: listing ? `Anúncio ${listing}` : null,
+      formulario: api.grupoZapLink.leadType || null,
+      custo: null,
+      custoMoeda: null,
+      custoDisponivel: false,
+      custoNota: "A OLX não envia o valor pago no anúncio.",
+    };
+  }
+  return null;
 }
 
 export type LeadAssignee = {

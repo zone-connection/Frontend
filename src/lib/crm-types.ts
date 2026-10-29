@@ -202,7 +202,20 @@ export interface Lead {
   /** false quando o lead virou venda ou já tem VGV. */
   podeRedistribuir?: boolean;
   monitoramento?: LeadMonitoramento | null;
+  /** Campanha/anúncio de origem (Facebook, Instagram ou OLX). */
+  aquisicao?: LeadAquisicao | null;
 }
+
+export type LeadAquisicao = {
+  canal: "Facebook" | "Instagram" | "OLX";
+  campanha: string | null;
+  anuncio: string | null;
+  formulario: string | null;
+  custo: number | null;
+  custoMoeda: string | null;
+  custoDisponivel: boolean;
+  custoNota: string | null;
+};
 
 /** Lead da carteira pessoal do usuário (ex.: gerente), não da equipe. */
 export function isLeadCarteiraPropria(
