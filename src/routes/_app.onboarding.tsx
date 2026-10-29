@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus, UserRound } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { FunilColumnShell } from "@/components/funil-column-shell";
+import { Card } from "@/components/ui/card";
 import {
   CENTRAL_AREA,
   CENTRAL_FIELD,
@@ -55,10 +57,10 @@ const SITUACOES: Array<[string, string]> = [
 ];
 
 const COLUNAS = [
-  { id: "contrato", titulo: "Contrato", ate: 2 },
-  { id: "acessos", titulo: "Acessos", ate: 3 },
-  { id: "configuracao", titulo: "Configuração", ate: 5 },
-  { id: "treinamento", titulo: "Treinamento", ate: 8 },
+  { id: "contrato", titulo: "Contrato", ate: 2, color: "#079ED4" },
+  { id: "acessos", titulo: "Acessos", ate: 3, color: "#0B7CAD" },
+  { id: "configuracao", titulo: "Configuração", ate: 5, color: "#16324A" },
+  { id: "treinamento", titulo: "Treinamento", ate: 8, color: "#05749E" },
 ] as const;
 
 function colunaId(item: OnboardingItem) {
@@ -176,27 +178,27 @@ function OnboardingPage() {
         title="Implantação"
         description="Acompanhe a entrada de cada imobiliária, do contrato até o treinamento."
       />
-      <section className="overflow-hidden rounded-2xl border border-[#E9ECEF] bg-white dark:border-white/10 dark:bg-card">
-        <div className="flex gap-1 overflow-x-auto border-b border-[#F1F3F5] px-4 pt-3">
-          {SITUACOES.map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={cn(
-                "mb-[-1px] flex shrink-0 items-center gap-2 border-b-2 px-3 pb-3 text-[13px]",
-                situacao === id ? "border-[#12B886] font-semibold text-[#1A1D23]" : "border-transparent text-[#868E96] hover:text-[#1A1D23]",
-              )}
-              onClick={() => setSituacao(id)}
-            >
-              {label}
-              {situacao === id ? (
-                <span className="rounded-full bg-[#12B886] px-1.5 text-[11px] font-semibold text-white">{loading ? "…" : items.length}</span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-        <div className="flex justify-end px-4 py-3">
-          <Button type="button" className="h-9 rounded-lg border-0 bg-[#12B886] px-3 text-white hover:bg-[#0CA678]" onClick={() => setCriando((v) => !v)}>
+      <section className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-1 overflow-x-auto">
+            {SITUACOES.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={cn(
+                  "flex shrink-0 items-center gap-2 border-b-2 px-3 pb-2 text-[13px]",
+                  situacao === id ? "border-[#079ED4] font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => setSituacao(id)}
+              >
+                {label}
+                {situacao === id ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#079ED4] px-1.5 text-[11px] font-bold text-white">{loading ? "…" : items.length}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <Button type="button" className="h-9 shrink-0" onClick={() => setCriando((v) => !v)}>
             <Plus className="size-3.5" /> Nova implantação
           </Button>
         </div>
@@ -226,47 +228,55 @@ function OnboardingPage() {
               <Textarea className={CENTRAL_AREA} rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Opcional, se esta imobiliária já teve uma implantação" />
             </div>
             <div>
-              <Button type="button" className="h-9 rounded-lg border-0 bg-[#12B886] text-white hover:bg-[#0CA678]" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
+              <Button type="button" className="h-9" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
                 Abrir implantação
               </Button>
             </div>
           </div>
         ) : null}
-        <div className="grid gap-4 overflow-x-auto p-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex gap-3 overflow-x-auto pb-4">
           {COLUNAS.map((coluna) => {
             const cards = items.filter((item) => colunaId(item) === coluna.id);
             return (
-              <div key={coluna.id} className="min-w-[220px]">
-                <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
-                  {coluna.titulo}
-                  <span className="font-medium text-[#868E96]">{cards.length}</span>
-                </h3>
-                <div className="space-y-3">
-                  {cards.map((item) => (
-                    <article key={item.id} className="rounded-xl border border-[#E6E8EC] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-card">
-                      <p className="flex items-center gap-2 text-[13px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
-                        <span className={cn("size-2 shrink-0 rounded-full", item.atrasado ? "bg-[#E03131]" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-[#F59F00]")} />
-                        <span className="truncate">{item.tenantNome}</span>
-                      </p>
-                      <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#868E96]">
-                        <UserRound className="size-3.5" />
-                        {item.responsavelNome ?? "Sem responsável"}
-                      </p>
-                      <p className="mt-1 text-[12px] text-[#868E96]">{diasEmAndamento(item.inicio)}</p>
-                      <Button type="button" variant="outline" className="mt-3 h-8 w-full rounded-lg border-[#E6E8EC] text-[12px]" onClick={() => void abrir(item.id)}>
-                        Ver fluxo
-                      </Button>
-                    </article>
-                  ))}
-                </div>
-              </div>
+              <FunilColumnShell key={coluna.id} title={coluna.titulo} count={cards.length} color={coluna.color}>
+                {cards.map((item) => (
+                  <Card
+                    key={item.id}
+                    className="cursor-pointer rounded-xl border-black/5 p-3 shadow-sm transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md"
+                    onClick={() => void abrir(item.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="table-person-name min-w-0 flex-1 break-words text-sm leading-snug">{item.tenantNome}</p>
+                      <span className={cn("mt-1 size-1.5 shrink-0 rounded-full", item.atrasado ? "bg-destructive" : item.progresso >= 100 ? "bg-[#12B886]" : "bg-warning")} />
+                    </div>
+                    <p className="mt-1.5 text-sm font-semibold text-primary">{item.progresso}%</p>
+                    <div className="mt-2 flex items-center justify-between border-t pt-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">{item.responsavelNome ?? "Sem responsável"}</span>
+                      <span className="flex shrink-0 items-center gap-1">
+                        <Clock className="size-3" />
+                        {diasEmAndamento(item.inicio)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-2 flex h-7 w-full items-center justify-center rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium hover:border-primary/30 hover:bg-muted/60"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void abrir(item.id);
+                      }}
+                    >
+                      Ver fluxo
+                    </button>
+                  </Card>
+                ))}
+              </FunilColumnShell>
             );
           })}
         </div>
         {!loading && items.length === 0 ? (
-          <p className="px-4 pb-8 text-center text-sm text-[#868E96]">Nenhuma implantação neste recorte.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma implantação neste recorte.</p>
         ) : null}
-        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} implantação(ões)${exemplo ? " · exemplos de visualização" : ""}`}</p>
+        <p className="text-[12px] text-muted-foreground">{loading ? "Carregando..." : `${items.length} implantação(ões)${exemplo ? " · exemplos de visualização" : ""}`}</p>
       </section>
       {aberto ? (
         <CentralCard
