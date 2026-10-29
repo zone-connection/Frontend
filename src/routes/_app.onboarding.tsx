@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Clock, MapPin, Phone, Plus } from "lucide-react";
+import { ClipboardList, Clock, MapPin, Phone, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import {
+  FormDialogActions,
+  FormDialogBody,
+  FormDialogShell,
+} from "@/components/form-dialog";
 import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
 import {
@@ -31,7 +36,8 @@ import {
   type OnboardingDetalhe,
   type OnboardingItem,
 } from "@/lib/onboarding-api";
-import { fetchTenants, type Tenant } from "@/lib/tenants-api";
+import { fetchTenants, updateTenant, type Tenant } from "@/lib/tenants-api";
+import { PLANO_LABELS, type TenantPlano } from "@/lib/tenant-modules";
 import { isMockId, MOCK_ONBOARDINGS, onboardingsMock } from "@/lib/centrais-mock";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +79,7 @@ function OnboardingPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [aberto, setAberto] = useState<OnboardingDetalhe | null>(null);
   const [tenantId, setTenantId] = useState("");
+  const [plano, setPlano] = useState<TenantPlano>("bronze");
   const [inicio, setInicio] = useState("");
   const [prazo, setPrazo] = useState("");
   const [justificativa, setJustificativa] = useState("");
@@ -113,6 +120,10 @@ function OnboardingPage() {
 
   async function criar() {
     try {
+      const cliente = tenants.find((item) => item.id === tenantId);
+      if (cliente && cliente.plano !== plano) {
+        await updateTenant(tenantId, { plano });
+      }
       const created = await createOnboarding({
         tenantId,
         inicio,
@@ -171,42 +182,10 @@ function OnboardingPage() {
       />
       <section className="space-y-3">
         <div className="flex justify-end">
-          <Button type="button" className="h-9 shrink-0" onClick={() => setCriando((v) => !v)}>
+          <Button type="button" className="h-9 shrink-0" onClick={() => setCriando(true)}>
             <Plus className="size-3.5" /> Nova implantação
           </Button>
         </div>
-        {criando ? (
-          <div className="grid gap-4 border-t border-[#F1F3F5] bg-[#F8F9FA] px-4 py-4 md:grid-cols-2">
-            <div>
-              <CentralLabel>Imobiliária</CentralLabel>
-              <Select value={tenantId} onValueChange={setTenantId}>
-                <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {tenants.map((tenant) => (
-                    <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <CentralLabel>Início</CentralLabel>
-              <Input className={CENTRAL_FIELD} type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
-            </div>
-            <div>
-              <CentralLabel>Prazo</CentralLabel>
-              <Input className={CENTRAL_FIELD} type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
-            </div>
-            <div className="md:col-span-2">
-              <CentralLabel>Justificativa de novo ciclo</CentralLabel>
-              <Textarea className={CENTRAL_AREA} rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Opcional, se esta imobiliária já teve uma implantação" />
-            </div>
-            <div>
-              <Button type="button" className="h-9" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
-                Abrir implantação
-              </Button>
-            </div>
-          </div>
-        ) : null}
         <div className="flex gap-3 overflow-x-auto pb-4">
           {COLUNAS.map((coluna) => {
             const cards = items.filter((item) => colunaId(item) === coluna.id);
@@ -319,6 +298,69 @@ function OnboardingPage() {
           ) : null}
         </CentralCard>
       ) : null}
+      <FormDialogShell
+        open={criando}
+        onOpenChange={setCriando}
+        icon={<ClipboardList className="size-5" />}
+        title="Nova implantação"
+        description="Escolha o cliente da plataforma, o plano e o prazo."
+        footer={
+          <FormDialogActions>
+            <Button type="button" variant="outline" onClick={() => setCriando(false)}>Cancelar</Button>
+            <Button type="button" disabled={!tenantId || !inicio || !prazo} onClick={() => void criar()}>
+              Abrir implantação
+            </Button>
+          </FormDialogActions>
+        }
+      >
+        <FormDialogBody>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <CentralLabel>Cliente</CentralLabel>
+              <Select
+                value={tenantId}
+                onValueChange={(value) => {
+                  setTenantId(value);
+                  const cliente = tenants.find((item) => item.id === value);
+                  if (cliente) setPlano(cliente.plano);
+                }}
+              >
+                <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                <SelectContent>
+                  {tenants.filter((item) => !item.isTest).map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <CentralLabel>Plano</CentralLabel>
+              <Select value={plano} onValueChange={(value) => setPlano(value as TenantPlano)}>
+                <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PLANO_LABELS) as TenantPlano[]).map((id) => (
+                    <SelectItem key={id} value={id}>{PLANO_LABELS[id]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <CentralLabel>Início</CentralLabel>
+              <Input className={CENTRAL_FIELD} type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+            </div>
+            <div>
+              <CentralLabel>Prazo</CentralLabel>
+              <Input className={CENTRAL_FIELD} type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+            </div>
+            <div className="md:col-span-2">
+              <CentralLabel>Justificativa de novo ciclo</CentralLabel>
+              <Textarea className={CENTRAL_AREA} rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Opcional, se este cliente já teve uma implantação" />
+            </div>
+          </div>
+        </FormDialogBody>
+      </FormDialogShell>
     </div>
   );
 }
