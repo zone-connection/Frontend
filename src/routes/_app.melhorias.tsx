@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
-import {
-  CENTRAL_AREA,
-  CENTRAL_BTN,
-  CENTRAL_FIELD,
-  CentralCard,
-  CentralLabel,
-} from "@/components/central-card";
+import { CENTRAL_AREA, CENTRAL_BTN, CENTRAL_FIELD, CentralCard, CentralLabel } from "@/components/central-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +44,17 @@ const STATUS: Record<string, string> = {
   arquivada: "Arquivada",
 };
 
+const STATUS_PILL: Record<string, string> = {
+  recebida: "bg-[#E8EEFF] text-[#3B5BDB]",
+  em_avaliacao: "bg-[#E7F6FF] text-[#0B7285]",
+  aprovada: "bg-[#F3E8FF] text-[#7C3AED]",
+  planejada: "bg-[#F3E8FF] text-[#7C3AED]",
+  em_desenvolvimento: "bg-[#E7F8EF] text-[#0F7A45]",
+  entregue: "bg-[#E7F8EF] text-[#0F7A45]",
+  recusada: "bg-[#F1F3F5] text-[#495057]",
+  arquivada: "bg-[#F1F3F5] text-[#495057]",
+};
+
 const CATEGORIAS: Record<string, string> = {
   funcionalidade_nova: "Funcionalidade nova",
   melhoria_existente: "Melhoria existente",
@@ -78,6 +84,7 @@ function MelhoriasPage() {
   });
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
+  const [criando, setCriando] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -143,57 +150,73 @@ function MelhoriasPage() {
         title="Melhorias"
         description="Sugestões de evolução do produto. A prioridade é interna e não promete prazo ao cliente."
       />
-      <CentralCard title="Filtros">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6 xl:items-end">
-          <Input className={CENTRAL_FIELD} placeholder="Título ou código" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={tenantId} onValueChange={setTenantId}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as imobiliárias</SelectItem>
-              {tenants.map((tenant) => (
-                <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {Object.entries(STATUS).map(([id, label]) => (
-                <SelectItem key={id} value={id}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={prioridade} onValueChange={setPrioridade}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Prioridades</SelectItem>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="urgente">Urgente</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoria} onValueChange={setCategoria}>
-            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Categorias</SelectItem>
-              {Object.entries(CATEGORIAS).map(([id, label]) => (
-                <SelectItem key={id} value={id}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input className="size-4 accent-[#008FD0]" type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
+      <section className="overflow-hidden rounded-2xl border border-[#E6E8EC] bg-white dark:border-white/10 dark:bg-card">
+        <div className="flex flex-col gap-3 border-b border-[#EEF0F3] px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+          <h2 className="text-[15px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
+            Solicitações
+            <span className="ml-1.5 font-medium text-[#8B919A]">({loading ? "…" : items.length})</span>
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#8B919A]" />
+              <Input
+                className="h-9 w-44 rounded-lg border-[#E6E8EC] bg-white pl-8 text-[13px] shadow-none"
+                placeholder="Buscar"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void load(); }}
+              />
+            </div>
+            <Select value={tenantId} onValueChange={setTenantId}>
+              <SelectTrigger className="h-9 w-[9.5rem] rounded-lg border-[#E6E8EC] text-[13px] shadow-none"><SelectValue placeholder="Imobiliária" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Imobiliárias</SelectItem>
+                {tenants.map((tenant) => (
+                  <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-9 w-36 rounded-lg border-[#E6E8EC] text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Status</SelectItem>
+                {Object.entries(STATUS).map(([id, label]) => (
+                  <SelectItem key={id} value={id}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={prioridade} onValueChange={setPrioridade}>
+              <SelectTrigger className="h-9 w-32 rounded-lg border-[#E6E8EC] text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Prioridade</SelectItem>
+                <SelectItem value="baixa">Baixa</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="urgente">Urgente</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoria} onValueChange={setCategoria}>
+              <SelectTrigger className="h-9 w-40 rounded-lg border-[#E6E8EC] text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Categoria</SelectItem>
+                {Object.entries(CATEGORIAS).map(([id, label]) => (
+                  <SelectItem key={id} value={id}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <label className="flex h-9 items-center gap-1.5 rounded-lg border border-[#E6E8EC] px-2.5 text-[13px] text-[#3C4149]">
+              <input className="size-3.5 accent-[#6D5EF7]" type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
               Meus
             </label>
-            <Button type="button" variant="outline" className="h-11 rounded-[16px] border-[#DCE5EC]" onClick={() => void load()}>Filtrar</Button>
+            <Button type="button" variant="outline" className="h-9 rounded-lg border-[#E6E8EC] px-3 text-[13px]" onClick={() => void load()}>Filtrar</Button>
+            <Button type="button" className="h-9 rounded-lg border-0 bg-[#6D5EF7] px-3 text-[13px] text-white hover:bg-[#5B4DE0]" onClick={() => setCriando((v) => !v)}>
+              Nova solicitação
+            </Button>
           </div>
         </div>
-      </CentralCard>
-      <CentralCard title="Nova solicitação" description="A ideia fica ligada à imobiliária que pediu.">
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {criando ? (
+        <div className="border-b border-[#EEF0F3] bg-[#FAFBFC] px-4 py-4 sm:px-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
             <CentralLabel>Imobiliária</CentralLabel>
           <Select value={form.tenantId} onValueChange={(value) => setForm({ ...form, tenantId: value })}>
@@ -239,12 +262,13 @@ function MelhoriasPage() {
           <div className="flex items-end">
             <Button
               type="button"
-              className={CENTRAL_BTN}
+              className="h-9 rounded-lg border-0 bg-[#6D5EF7] px-3 text-[13px] text-white hover:bg-[#5B4DE0]"
               disabled={!form.tenantId || form.titulo.length < 3 || form.descricao.length < 3}
               onClick={() => {
                 void createMelhoria(form).then(async (created) => {
                   toast.success("Solicitação registrada.");
                   setForm({ ...form, titulo: "", descricao: "" });
+                  setCriando(false);
                   await load();
                   await abrir(created.id);
                 }).catch((error: unknown) => {
@@ -256,26 +280,40 @@ function MelhoriasPage() {
             </Button>
           </div>
         </div>
-      </CentralCard>
-      <CentralCard title="Solicitações" description={loading ? "Carregando..." : erro ? erro : `${items.length} neste filtro`}>
-        {!loading && !erro && items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma solicitação neste filtro.</p>
+        </div>
         ) : null}
-        <ul className="grid gap-4 md:grid-cols-2">
+        {erro ? <p className="px-5 py-8 text-center text-sm text-[#8B919A]">{erro}</p> : null}
+        {!loading && !erro && items.length === 0 ? (
+          <p className="px-5 py-16 text-center text-sm text-[#8B919A]">Nenhuma solicitação neste filtro.</p>
+        ) : null}
+        <ul>
           {items.map((item) => (
-            <li key={item.id}>
-              <button type="button" className="w-full rounded-[22px] border border-[#DCE5EC] bg-[#F6F8FA] px-5 py-4 text-left hover:border-[#79CCE7] dark:border-white/10 dark:bg-white/5" onClick={() => void abrir(item.id)}>
-                <span className="block truncate text-sm font-semibold">{item.codigo} · {item.titulo}</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {item.tenantNome} · {STATUS[item.status] ?? item.status} · {item.prioridade}
-                  {item.responsavelNome ? ` · ${item.responsavelNome}` : ""}
-                  {` · ${new Date(item.updatedAt).toLocaleDateString("pt-BR")}`}
+            <li key={item.id} className="border-b border-[#F1F2F4] last:border-0">
+              <button
+                type="button"
+                className={cn(
+                  "flex w-full flex-col gap-2 px-4 py-3.5 text-left hover:bg-[#F7F8FA] sm:flex-row sm:items-center sm:gap-4 sm:px-5",
+                  aberto?.id === item.id && "bg-[#F7F5FF]",
+                )}
+                onClick={() => void abrir(item.id)}
+              >
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#1A1D23] dark:text-[#f8fafc]">
+                  {item.titulo}
+                </span>
+                <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#6B7280]">
+                  <span className="rounded-md bg-[#F3F4F6] px-2 py-0.5">{item.tenantNome}</span>
+                  <span className="rounded-md bg-[#F3F4F6] px-2 py-0.5">{item.prioridade}</span>
+                  <span className="rounded-md bg-[#F3F4F6] px-2 py-0.5">{CATEGORIAS[item.categoria] ?? item.categoria}</span>
+                  <span>{new Date(item.updatedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+                </span>
+                <span className={cn("inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[12px] font-medium", STATUS_PILL[item.status] ?? "bg-[#F1F3F5] text-[#495057]")}>
+                  {STATUS[item.status] ?? item.status}
                 </span>
               </button>
             </li>
           ))}
         </ul>
-      </CentralCard>
+      </section>
       {aberto ? (
         <CentralCard
           title={`${aberto.codigo} · ${aberto.titulo}`}
