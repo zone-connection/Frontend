@@ -220,7 +220,13 @@ export function mapApiLead(api: ApiLead): Lead {
       api.documentacaoVgv ?? api.documentacoes?.[0]?.vgv ?? null,
     podeRedistribuir: api.podeRedistribuir,
     monitoramento: api.monitoramento ?? null,
-    aquisicao: mapLeadAquisicao(api),
+    aquisicao: (() => {
+      try {
+        return mapLeadAquisicao(api);
+      } catch {
+        return null;
+      }
+    })(),
   };
 }
 
