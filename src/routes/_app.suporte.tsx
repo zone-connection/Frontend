@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { isMockId, MOCK_SUPORTES, suportesMock } from "@/lib/centrais-mock";
 import { fetchTenants, type Tenant } from "@/lib/tenants-api";
 import { cn } from "@/lib/utils";
 import {
@@ -79,21 +80,28 @@ function SuportePage() {
   const [interna, setInterna] = useState(false);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
+  const [exemplo, setExemplo] = useState(false);
 
   async function load(statusFiltro = status) {
     setLoading(true);
+    const filtro = {
+      q,
+      status: statusFiltro === "todos" ? undefined : statusFiltro,
+      prioridade: prioridade === "todas" ? undefined : prioridade,
+      categoria: categoria.trim() || undefined,
+    };
     try {
       const eu = getSession();
-      setItems(await fetchSuportes({
-        q,
-        status: statusFiltro === "todos" ? undefined : statusFiltro,
+      const rows = await fetchSuportes({
+        ...filtro,
         tenantId: tenantId === "todas" ? undefined : tenantId,
-        prioridade: prioridade === "todas" ? undefined : prioridade,
-        categoria: categoria.trim() || undefined,
         responsavelId: soMeus ? eu?.id : undefined,
-      }));
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Não foi possível listar os chamados.");
+      });
+      setExemplo(rows.length === 0);
+      setItems(rows.length ? rows : suportesMock(filtro));
+    } catch {
+      setExemplo(true);
+      setItems(suportesMock(filtro));
     } finally {
       setLoading(false);
     }
@@ -106,6 +114,10 @@ function SuportePage() {
   }, []);
 
   async function abrir(id: string) {
+    if (isMockId(id)) {
+      setAberto(MOCK_SUPORTES.find((item) => item.id === id) ?? null);
+      return;
+    }
     try {
       setAberto(await fetchSuporte(id));
     } catch (error) {
@@ -284,7 +296,7 @@ function SuportePage() {
             </tbody>
           </table>
         </div>
-        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} chamado(s)`}</p>
+        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} chamado(s)${exemplo ? " · exemplos de visualização" : ""}`}</p>
       </section>
       {aberto ? (
         <CentralCard
@@ -293,6 +305,10 @@ function SuportePage() {
           action={
             <div className="flex flex-wrap gap-2">
               <Select value={aberto.status} onValueChange={(value) => {
+                if (isMockId(aberto.id)) {
+                  toast.message("Exemplo visual. O chamado não é gravado.");
+                  return;
+                }
                 void updateSuporteChamado(aberto.id, { status: value }).then(() => abrir(aberto.id)).catch((error: unknown) => {
                   toast.error(error instanceof ApiError ? error.message : "Não foi possível atualizar.");
                 });
@@ -306,7 +322,7 @@ function SuportePage() {
               </Select>
               <Button type="button" variant="outline" onClick={() => {
                 const eu = getSession();
-                if (!eu) return;
+                if (!eu || isMockId(aberto.id)) return;
                 void updateSuporteChamado(aberto.id, { responsavelId: eu.id }).then(() => abrir(aberto.id)).catch((error: unknown) => {
                   toast.error(error instanceof ApiError ? error.message : "Não foi possível atribuir.");
                 });
@@ -328,6 +344,10 @@ function SuportePage() {
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <Textarea className={CENTRAL_AREA} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Resposta ou nota" />
             <Button type="button" className={CENTRAL_BTN} disabled={!texto.trim()} onClick={() => {
+              if (isMockId(aberto.id)) {
+                toast.message("Exemplo visual. A resposta não é gravada.");
+                return;
+              }
               void addSuporteMensagem(aberto.id, { texto, interna }).then((detalhe) => {
                 setAberto(detalhe);
                 setTexto("");

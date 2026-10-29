@@ -30,6 +30,7 @@ import {
   type OnboardingItem,
 } from "@/lib/onboarding-api";
 import { fetchTenants, type Tenant } from "@/lib/tenants-api";
+import { isMockId, MOCK_ONBOARDINGS, onboardingsMock } from "@/lib/centrais-mock";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/onboarding")({
@@ -73,13 +74,17 @@ function OnboardingPage() {
   const [justificativa, setJustificativa] = useState("");
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
+  const [exemplo, setExemplo] = useState(false);
 
   async function load(next = situacao) {
     setLoading(true);
     try {
-      setItems(await fetchOnboardings(next));
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Não foi possível listar as implantações.");
+      const rows = await fetchOnboardings(next);
+      setExemplo(rows.length === 0);
+      setItems(rows.length ? rows : onboardingsMock(next));
+    } catch {
+      setExemplo(true);
+      setItems(onboardingsMock(next));
     } finally {
       setLoading(false);
     }
@@ -92,6 +97,10 @@ function OnboardingPage() {
   }, [situacao]);
 
   async function abrir(id: string) {
+    if (isMockId(id)) {
+      setAberto(MOCK_ONBOARDINGS.find((item) => item.id === id) ?? null);
+      return;
+    }
     try {
       setAberto(await fetchOnboarding(id));
     } catch (error) {
@@ -120,6 +129,10 @@ function OnboardingPage() {
 
   async function mudarStatus(status: string) {
     if (!aberto) return;
+    if (isMockId(aberto.id)) {
+      toast.message("Exemplo visual. A implantação não é gravada.");
+      return;
+    }
     try {
       await updateOnboarding(aberto.id, { status });
       await abrir(aberto.id);
@@ -131,6 +144,10 @@ function OnboardingPage() {
 
   async function concluirEtapa(etapaId: string, feita: boolean) {
     if (!aberto) return;
+    if (isMockId(aberto.id)) {
+      toast.message("Exemplo visual. A implantação não é gravada.");
+      return;
+    }
     try {
       setAberto(
         await updateOnboardingEtapa(aberto.id, etapaId, {
@@ -248,7 +265,7 @@ function OnboardingPage() {
             </tbody>
           </table>
         </div>
-        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} implantação(ões)`}</p>
+        <p className="border-t border-[#F1F3F5] px-4 py-3 text-[12px] text-[#868E96]">{loading ? "Carregando..." : `${items.length} implantação(ões)${exemplo ? " · exemplos de visualização" : ""}`}</p>
       </section>
       {aberto ? (
         <CentralCard
