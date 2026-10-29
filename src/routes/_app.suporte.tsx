@@ -2,10 +2,15 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
-import { PagePanel } from "@/components/page-panel";
+import {
+  CENTRAL_AREA,
+  CENTRAL_BTN,
+  CENTRAL_FIELD,
+  CentralCard,
+  CentralLabel,
+} from "@/components/central-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -17,6 +22,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { fetchTenants, type Tenant } from "@/lib/tenants-api";
+import { cn } from "@/lib/utils";
 import {
   addSuporteMensagem,
   createSuporteChamado,
@@ -111,11 +117,11 @@ function SuportePage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Suporte" description="Chamados das imobiliárias. Notas internas não aparecem para o cliente." />
-      <PagePanel title="Filtros">
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
-          <Input placeholder="Título ou código" value={q} onChange={(e) => setQ(e.target.value)} />
+      <CentralCard title="Filtros">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6 xl:items-end">
+          <Input className={CENTRAL_FIELD} placeholder="Título ou código" value={q} onChange={(e) => setQ(e.target.value)} />
           <Select value={tenantId} onValueChange={setTenantId}>
-            <SelectTrigger><SelectValue placeholder="Imobiliária" /></SelectTrigger>
+            <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as imobiliárias</SelectItem>
               {tenants.map((tenant) => (
@@ -124,7 +130,7 @@ function SuportePage() {
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
               {Object.entries(STATUS).map(([id, label]) => (
@@ -133,7 +139,7 @@ function SuportePage() {
             </SelectContent>
           </Select>
           <Select value={prioridade} onValueChange={setPrioridade}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Prioridades</SelectItem>
               <SelectItem value="baixa">Baixa</SelectItem>
@@ -142,30 +148,41 @@ function SuportePage() {
               <SelectItem value="urgente">Urgente</SelectItem>
             </SelectContent>
           </Select>
-          <Input placeholder="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} />
+          <Input className={CENTRAL_FIELD} placeholder="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} />
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
+            <label className="flex items-center gap-2 text-sm text-[#153047]">
+              <input className="size-4 accent-[#008FD0]" type="checkbox" checked={soMeus} onChange={(e) => setSoMeus(e.target.checked)} />
               Meus
             </label>
-            <Button type="button" variant="outline" onClick={() => void load()}>Filtrar</Button>
+            <Button type="button" variant="outline" className="h-11 rounded-[16px] border-[#DCE5EC]" onClick={() => void load()}>Filtrar</Button>
           </div>
         </div>
-      </PagePanel>
-      <PagePanel title="Novo chamado" description="A categoria descreve o tipo do pedido. O prazo é opcional.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Select value={form.tenantId} onValueChange={(value) => setForm({ ...form, tenantId: value })}>
-            <SelectTrigger><SelectValue placeholder="Imobiliária" /></SelectTrigger>
+      </CentralCard>
+      <CentralCard title="Novo chamado" description="A categoria descreve o tipo do pedido. O prazo é opcional.">
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <CentralLabel>Imobiliária</CentralLabel>
+            <Select value={form.tenantId} onValueChange={(value) => setForm({ ...form, tenantId: value })}>
+            <SelectTrigger className={CENTRAL_FIELD}><SelectValue placeholder="Imobiliária" /></SelectTrigger>
             <SelectContent>
               {tenants.map((tenant) => (
                 <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Input placeholder="Título" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
-          <Input placeholder="Categoria" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+          </div>
+          <div>
+            <CentralLabel>Título</CentralLabel>
+            <Input className={CENTRAL_FIELD} placeholder="Título" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
+          </div>
+          <div>
+            <CentralLabel>Categoria</CentralLabel>
+            <Input className={CENTRAL_FIELD} placeholder="Categoria" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+          </div>
+          <div>
+            <CentralLabel>Prioridade</CentralLabel>
           <Select value={form.prioridade} onValueChange={(value) => setForm({ ...form, prioridade: value })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className={CENTRAL_FIELD}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="baixa">Baixa</SelectItem>
               <SelectItem value="normal">Normal</SelectItem>
@@ -173,24 +190,28 @@ function SuportePage() {
               <SelectItem value="urgente">Urgente</SelectItem>
             </SelectContent>
           </Select>
-          <div className="space-y-1.5">
-            <Label>Prazo, se houver</Label>
-            <Input type="date" value={form.prazoEm} onChange={(e) => setForm({ ...form, prazoEm: e.target.value })} />
           </div>
-          <Textarea className="md:col-span-2 xl:col-span-2" placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-          <div className="flex items-end">
-            <Button type="button" disabled={!form.tenantId || form.titulo.length < 3 || form.descricao.length < 3} onClick={() => void criar()}>
+          <div>
+            <CentralLabel>Prazo, se houver</CentralLabel>
+            <Input className={CENTRAL_FIELD} type="date" value={form.prazoEm} onChange={(e) => setForm({ ...form, prazoEm: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <CentralLabel>Descrição</CentralLabel>
+            <Textarea className={CENTRAL_AREA} placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+          </div>
+          <div>
+            <Button type="button" className={CENTRAL_BTN} disabled={!form.tenantId || form.titulo.length < 3 || form.descricao.length < 3} onClick={() => void criar()}>
               Abrir chamado
             </Button>
           </div>
         </div>
-      </PagePanel>
-      <PagePanel title="Chamados" description={loading ? "Carregando..." : `${items.length} neste filtro`}>
+      </CentralCard>
+      <CentralCard title="Chamados" description={loading ? "Carregando..." : `${items.length} neste filtro`}>
         {!loading && items.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Nenhum chamado neste filtro.</p> : null}
-        <ul className="grid gap-2 md:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2">
           {items.map((item) => (
             <li key={item.id}>
-              <button type="button" className="w-full rounded-xl border border-black/5 bg-muted/30 px-3 py-3 text-left hover:bg-muted/60" onClick={() => void abrir(item.id)}>
+              <button type="button" className="w-full rounded-[22px] border border-[#DCE5EC] bg-[#F6F8FA] px-5 py-4 text-left hover:border-[#79CCE7] dark:border-white/10 dark:bg-white/5" onClick={() => void abrir(item.id)}>
                 <span className="block truncate text-sm font-semibold">{item.codigo} · {item.titulo}</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
                   {item.tenantNome} · {STATUS[item.status] ?? item.status} · {item.prioridade}
@@ -201,9 +222,9 @@ function SuportePage() {
             </li>
           ))}
         </ul>
-      </PagePanel>
+      </CentralCard>
       {aberto ? (
-        <PagePanel
+        <CentralCard
           title={`${aberto.codigo} · ${aberto.titulo}`}
           description={`${aberto.tenantNome}${aberto.prazoEm ? ` · prazo ${new Date(aberto.prazoEm).toLocaleDateString("pt-BR")}` : ""}${aberto.atrasado ? " · atrasado" : ""}`}
           action={
@@ -213,7 +234,7 @@ function SuportePage() {
                   toast.error(error instanceof ApiError ? error.message : "Não foi possível atualizar.");
                 });
               }}>
-                <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={cn(CENTRAL_FIELD, "w-52")}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(STATUS).map(([id, label]) => (
                     <SelectItem key={id} value={id}>{label}</SelectItem>
@@ -232,18 +253,18 @@ function SuportePage() {
             </div>
           }
         >
-          <p className="mb-4 rounded-xl bg-muted/40 px-3 py-3 text-sm">{aberto.descricao}</p>
+          <p className="mb-4 rounded-lg border border-[#E2E8EC] bg-[#F3FAFD] px-3 py-3 text-sm text-[#0B3148] dark:border-white/10 dark:bg-white/5 dark:text-[#f8fafc]">{aberto.descricao}</p>
           <ul className="mb-4 space-y-2">
             {aberto.mensagens.map((mensagem) => (
-              <li key={mensagem.id} className={mensagem.interna ? "rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30" : "rounded-xl border border-black/5 px-3 py-3 text-sm"}>
+              <li key={mensagem.id} className={mensagem.interna ? "rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30" : "rounded-lg border border-[#E2E8EC] bg-white px-3 py-3 text-sm dark:border-white/10 dark:bg-transparent"}>
                 <span className="text-xs font-medium text-muted-foreground">{mensagem.interna ? "Nota interna" : "Resposta"} · {mensagem.autorNome ?? "Sistema"}</span>
                 <p className="mt-1">{mensagem.texto}</p>
               </li>
             ))}
           </ul>
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-            <Textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Resposta ou nota" />
-            <Button type="button" disabled={!texto.trim()} onClick={() => {
+            <Textarea className={CENTRAL_AREA} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Resposta ou nota" />
+            <Button type="button" className={CENTRAL_BTN} disabled={!texto.trim()} onClick={() => {
               void addSuporteMensagem(aberto.id, { texto, interna }).then((detalhe) => {
                 setAberto(detalhe);
                 setTexto("");
@@ -265,7 +286,7 @@ function SuportePage() {
               ))}
             </ul>
           ) : null}
-        </PagePanel>
+        </CentralCard>
       ) : null}
     </div>
   );
