@@ -73,6 +73,7 @@ export type TenantOzapConnection = {
   tenantId: string;
   instanceId: number;
   hasOpenaiApiKey?: boolean;
+  hasOzapApiKey?: boolean;
   ativo: boolean;
   createdAt: string;
   updatedAt: string;
@@ -136,11 +137,13 @@ export type CreateOzapConnectionInput = {
   instanceId: number;
   ativo?: boolean;
   openaiApiKey?: string;
+  ozapApiKey?: string;
 };
 
 export type UpdateOzapConnectionInput = {
   ativo?: boolean;
   openaiApiKey?: string;
+  ozapApiKey?: string;
 };
 
 export type DemoDataCounts = {

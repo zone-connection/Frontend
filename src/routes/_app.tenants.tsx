@@ -181,9 +181,13 @@ function TenantsPage() {
   const [metaToken, setMetaToken] = useState("");
   const [ozapInstanceId, setOzapInstanceId] = useState("");
   const [ozapOpenaiKey, setOzapOpenaiKey] = useState("");
+  const [ozapApiKey, setOzapApiKey] = useState("");
   const [ozapKeyDrafts, setOzapKeyDrafts] = useState<Record<string, string>>(
     {},
   );
+  const [ozapApiKeyDrafts, setOzapApiKeyDrafts] = useState<
+    Record<string, string>
+  >({});
   const [oruloClientId, setOruloClientId] = useState("");
   const [oruloClientSecret, setOruloClientSecret] = useState("");
   const [savingConnection, setSavingConnection] = useState(false);
@@ -722,9 +726,11 @@ function TenantsPage() {
         ...(ozapOpenaiKey.trim()
           ? { openaiApiKey: ozapOpenaiKey.trim() }
           : {}),
+        ...(ozapApiKey.trim() ? { ozapApiKey: ozapApiKey.trim() } : {}),
       });
       setOzapInstanceId("");
       setOzapOpenaiKey("");
+      setOzapApiKey("");
       toast.success("Conexão OZap adicionada.");
       await reloadDetail(detail.id);
     } catch (err) {
@@ -774,6 +780,32 @@ function TenantsPage() {
         err instanceof ApiError
           ? err.message
           : "Falha ao salvar a chave OpenAI.",
+      );
+    } finally {
+      setSavingConnection(false);
+    }
+  }
+
+  async function saveOzapApiKey(connection: TenantOzapConnection) {
+    if (!detail) return;
+    const key = (ozapApiKeyDrafts[connection.id] ?? "").trim();
+    if (!key) {
+      toast.error("Cole a chave de API da OZap desta instância.");
+      return;
+    }
+    setSavingConnection(true);
+    try {
+      await updateOzapConnection(detail.id, connection.id, {
+        ozapApiKey: key,
+      });
+      setOzapApiKeyDrafts((prev) => ({ ...prev, [connection.id]: "" }));
+      toast.success("Chave da OZap salva nesta imobiliária.");
+      await reloadDetail(detail.id);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Falha ao salvar a chave da OZap.",
       );
     } finally {
       setSavingConnection(false);
@@ -1802,11 +1834,12 @@ function TenantsPage() {
 
               <FormSection title="OZap / WhatsApp">
                 <p className="text-sm text-muted-foreground">
-                  A chave OpenAI é a do agente desta instância. O CRM usa só
-                  para transcrever áudios do inbox, sem chave geral no Render.
+                  A chave da API OZap lê e envia as conversas desta instância.
+                  Sem ela, o CRM usa a chave geral do servidor. A chave OpenAI
+                  só transcreve áudios.
                 </p>
                 <form
-                  className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+                  className="grid gap-3 sm:grid-cols-2"
                   onSubmit={(e) => void handleAddOzap(e)}
                 >
                   <div className="space-y-1.5">
@@ -1817,6 +1850,17 @@ function TenantsPage() {
                       onChange={(e) => setOzapInstanceId(e.target.value)}
                       placeholder="1143"
                       inputMode="numeric"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ozap-api">Chave da API OZap</Label>
+                    <Input
+                      id="ozap-api"
+                      type="password"
+                      autoComplete="off"
+                      value={ozapApiKey}
+                      onChange={(e) => setOzapApiKey(e.target.value)}
+                      placeholder="Chave desta conta da OZap"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1864,6 +1908,10 @@ function TenantsPage() {
                               {connection.ativo ? "Ativa" : "Inativa"}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
+                              {connection.hasOzapApiKey
+                                ? "API OZap desta imobiliária"
+                                : "API OZap do servidor"}
+                              {" · "}
                               {connection.hasOpenaiApiKey
                                 ? "OpenAI cadastrada"
                                 : "Sem chave OpenAI"}
@@ -1893,8 +1941,35 @@ function TenantsPage() {
                             type="password"
                             autoComplete="off"
                             placeholder={
+                              connection.hasOzapApiKey
+                                ? "Nova chave da API OZap"
+                                : "Chave da API OZap"
+                            }
+                            value={ozapApiKeyDrafts[connection.id] ?? ""}
+                            onChange={(e) =>
+                              setOzapApiKeyDrafts((prev) => ({
+                                ...prev,
+                                [connection.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={savingConnection}
+                            onClick={() => void saveOzapApiKey(connection)}
+                          >
+                            Salvar API
+                          </Button>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Input
+                            type="password"
+                            autoComplete="off"
+                            placeholder={
                               connection.hasOpenaiApiKey
-                                ? "Nova chave (opcional)"
+                                ? "Nova chave OpenAI"
                                 : "sk-... do agente"
                             }
                             value={ozapKeyDrafts[connection.id] ?? ""}
