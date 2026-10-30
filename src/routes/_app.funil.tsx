@@ -389,6 +389,13 @@ export function ComercialFunilBoard({
     const etapaInicialId =
       funnelStages.find((stage) => stage.papel === "inicial")?.id ?? null;
     let list = allLeads.filter((l) => {
+      if (
+        l.stage === lostStageSlug ||
+        l.stage === LOST_STAGE_SLUG_FALLBACK ||
+        funnelStages.find((s) => s.id === l.stage)?.papel === "perdido"
+      ) {
+        return false;
+      }
       const aprovadoNaEntrada =
         etapaInicialId != null &&
         l.stage === etapaInicialId &&
@@ -467,6 +474,7 @@ export function ComercialFunilBoard({
   }, [
     allLeads,
     funnelStages,
+    lostStageSlug,
     filterCorretorId,
     filterEquipeId,
     filterMeusLeads,

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -166,6 +167,12 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wanted, setWanted] = useState(false);
+  const lostIdsRef = useRef(new Set<string>());
+
+  const withoutLost = useCallback(
+    (rows: Lead[]) => rows.filter((lead) => !lostIdsRef.current.has(lead.id)),
+    [],
+  );
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -179,14 +186,14 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       setAssignees(
         [...team].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
       );
-      setLeads(first.data.map(mapApiLead));
+      setLeads(withoutLost(first.data.map(mapApiLead)));
       setLoading(false);
 
       const totalPages = Math.max(1, first.meta.totalPages);
       const rest = await fetchRemainingLeadPages(totalPages);
       const all = [...first.data];
       for (const page of rest) all.push(...(page?.data ?? []));
-      setLeads(all.map(mapApiLead));
+      setLeads(withoutLost(all.map(mapApiLead)));
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -195,7 +202,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       setError(message);
       setLoading(false);
     }
-  }, []);
+  }, [withoutLost]);
 
   const requestLeads = useCallback(() => {
     setWanted(true);
@@ -341,6 +348,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
 
   const markLeadLost = useCallback(async (id: string, motivo: string) => {
     let previous: Lead | undefined;
+    lostIdsRef.current.add(id);
     setLeads((prev) => {
       previous = prev.find((l) => l.id === id);
       return prev.filter((l) => l.id !== id);
@@ -354,6 +362,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
         prependLostLeadToCache(api);
       }
     } catch (err) {
+      lostIdsRef.current.delete(id);
       if (previous) {
         setLeads((prev) => [previous!, ...prev]);
       }
@@ -365,6 +374,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     const unique = [...new Set(ids)];
     if (unique.length === 0) return { updated: 0, skipped: 0 };
     const drop = new Set(unique);
+    for (const id of unique) lostIdsRef.current.add(id);
     const removed: Lead[] = [];
     setLeads((prev) => {
       const keep: Lead[] = [];
@@ -380,6 +390,9 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       invalidateLostLeadsCache();
       invalidateLostClientesCache();
       const done = new Set(result.ids);
+      for (const id of unique) {
+        if (!done.has(id)) lostIdsRef.current.delete(id);
+      }
       if (result.skipped > 0) {
         const restore = removed.filter((l) => !done.has(l.id));
         if (restore.length > 0) {
@@ -388,6 +401,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       }
       return { updated: result.updated, skipped: result.skipped };
     } catch (err) {
+      for (const id of unique) lostIdsRef.current.delete(id);
       setLeads((prev) => {
         const existing = new Set(prev.map((l) => l.id));
         return [...removed.filter((l) => !existing.has(l.id)), ...prev];
