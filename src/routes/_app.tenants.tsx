@@ -1774,13 +1774,13 @@ function TenantsPage() {
                   </div>
                 </form>
 
-                {detail.metaConnections.length === 0 ? (
+                {(detail.metaConnections ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma página Meta vinculada.
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {detail.metaConnections.map((connection) => (
+                    {(detail.metaConnections ?? []).map((connection) => (
                       <li
                         key={connection.id}
                         className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
@@ -1882,13 +1882,13 @@ function TenantsPage() {
                   </div>
                 </form>
 
-                {detail.ozapConnections.length === 0 ? (
+                {(detail.ozapConnections ?? []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma instância OZap vinculada.
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {detail.ozapConnections.map((connection) => (
+                    {(detail.ozapConnections ?? []).map((connection) => (
                       <li
                         key={connection.id}
                         className="space-y-2 rounded-md border px-3 py-2"
