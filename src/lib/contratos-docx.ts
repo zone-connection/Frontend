@@ -32,6 +32,28 @@ function field(values: Values, key: string) {
   return (values[key] ?? "").trim() || "____________________";
 }
 
+function formaPagamentoFrase(values: Values) {
+  const atoForma = (values.formaPagamentoAto ?? "").trim();
+  const atoValor = (values.valorPagamentoAto ?? "").trim();
+  const parcelas = (values.parcelasPagamento ?? "").trim();
+  const parcelasForma = (values.formaPagamentoParcelas ?? "").trim();
+  const parcelaValor = (values.valorParcela ?? "").trim();
+  const partes: string[] = [];
+  if (atoForma || atoValor) {
+    partes.push(
+      `no ato${atoForma ? `, via ${atoForma}` : ""}${atoValor ? `, o valor de R$ ${atoValor}` : ""}`,
+    );
+  }
+  if (parcelas || parcelaValor || parcelasForma) {
+    const qtd = parcelas ? `${parcelas} parcelas` : "parcelas";
+    const valor = parcelaValor ? ` de R$ ${parcelaValor}` : "";
+    const via = parcelasForma ? ` via ${parcelasForma}` : "";
+    partes.push(`${qtd}${valor}${via}`);
+  }
+  if (!partes.length) return "";
+  return `3.3 O pagamento será realizado da seguinte forma: ${partes.join(", e ")}.`;
+}
+
 function longDate(iso: string) {
   const months = [
     "janeiro",
@@ -401,6 +423,7 @@ export async function downloadContratoDocx(
           paragraph(
             "3.2 O pagamento dos honorários à CONTRATADA ocorrerá no momento em que o CONTRATANTE assinar o contrato de compra e venda com o PROPRIETÁRIO do imóvel em questão.",
           ),
+          ...(formaPagamentoFrase(values) ? [paragraph(formaPagamentoFrase(values))] : []),
           sheet([
             [cell("DADOS PARA PAGAMENTO", { bold: true, color: accent, fill, size: 20 })],
             [cell(`Banco: ${field(values, "banco")}`, { size: 20 })],

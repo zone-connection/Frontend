@@ -9,6 +9,28 @@ function v(values: Values, key: string) {
   return (values[key] ?? "").trim() || "____________";
 }
 
+function formaPagamentoFrase(values: Values) {
+  const atoForma = (values.formaPagamentoAto ?? "").trim();
+  const atoValor = (values.valorPagamentoAto ?? "").trim();
+  const parcelas = (values.parcelasPagamento ?? "").trim();
+  const parcelasForma = (values.formaPagamentoParcelas ?? "").trim();
+  const parcelaValor = (values.valorParcela ?? "").trim();
+  const partes: string[] = [];
+  if (atoForma || atoValor) {
+    partes.push(
+      `no ato${atoForma ? `, via ${atoForma}` : ""}${atoValor ? `, o valor de R$ ${atoValor}` : ""}`,
+    );
+  }
+  if (parcelas || parcelaValor || parcelasForma) {
+    const qtd = parcelas ? `${parcelas} parcelas` : "parcelas";
+    const valor = parcelaValor ? ` de R$ ${parcelaValor}` : "";
+    const via = parcelasForma ? ` via ${parcelasForma}` : "";
+    partes.push(`${qtd}${valor}${via}`);
+  }
+  if (!partes.length) return "";
+  return `3.3 O pagamento será realizado da seguinte forma: ${partes.join(", e ")}.`;
+}
+
 function formatDateBr(iso: string) {
   if (!iso) return "____/____/________";
   const [y, m, d] = iso.slice(0, 10).split("-");
@@ -1563,6 +1585,8 @@ async function pdfIntermediacao(
     y,
     "3.2 O pagamento dos honorários à CONTRATADA ocorrerá no momento em que o CONTRATANTE assinar o contrato de compra e venda com o PROPRIETÁRIO do imóvel em questão.",
   );
+  const formaPagamento = formaPagamentoFrase(values);
+  if (formaPagamento) y = writeParagraph(doc, y, formaPagamento);
   y = drawSheet(doc, y, [
     [
       {

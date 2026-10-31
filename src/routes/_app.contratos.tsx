@@ -7,7 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { SlidingNav, navItemClass } from "@/components/operacao-ui";
+import { NavActivePill, SlidingNav, navItemClass } from "@/components/operacao-ui";
 import { PagePanel } from "@/components/page-panel";
 import {
   FormDialogActions,
@@ -194,6 +194,11 @@ const INTERMEDIACAO_SECTIONS = [
     keys: [
       "valorIntermediacao",
       "valorIntermediacaoExtenso",
+      "formaPagamentoAto",
+      "valorPagamentoAto",
+      "parcelasPagamento",
+      "formaPagamentoParcelas",
+      "valorParcela",
       "banco",
       "agencia",
       "conta",
@@ -1100,6 +1105,7 @@ function ContratosPage() {
             onClick={() => setSecao(item.id)}
             className={navItemClass(secao === item.id)}
           >
+            {secao === item.id ? <NavActivePill /> : null}
             {item.label}
             <span
               className={cn(
