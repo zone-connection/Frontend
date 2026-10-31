@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, Eye, Home, Key, KeyRound, Landmark, MessageCircle, Users } from "lucide-react";
+import { Building2, ClipboardList, Eye, Home, Key, KeyRound, Landmark, MessageCircle, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,7 @@ export function ConfigModulosOperacaoPanel() {
   const [adminVerClientes, setAdminVerClientes] = useState(false);
   const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
   const [whatsappStaffCanSend, setWhatsappStaffCanSend] = useState(false);
+  const [fichaAnaliseGuiada, setFichaAnaliseGuiada] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -87,6 +88,7 @@ export function ConfigModulosOperacaoPanel() {
       setAdminVerClientes(data.adminVerClientesCorretor === true);
       setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
       setWhatsappStaffCanSend(data.whatsappStaffCanSend === true);
+      setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -159,6 +161,34 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar o Mural de Chaves.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleFichaAnaliseGuiada(checked: boolean) {
+    if (!isAdmin) return;
+    setFichaAnaliseGuiada(checked);
+    setSavingKey("fichaAnaliseGuiada");
+    try {
+      const data = await updateTenantOperationModules({
+        fichaAnaliseGuiada: checked,
+      });
+      setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      toast.success(
+        checked
+          ? "Ao levar um lead para análise, a ficha de documentação passa a ser obrigatória."
+          : "A análise volta ao jeito de hoje, sem exigir a ficha na hora.",
+      );
+    } catch (err) {
+      setFichaAnaliseGuiada(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar a ficha da análise.",
       );
     } finally {
       setSavingKey(null);
@@ -467,6 +497,40 @@ export function ConfigModulosOperacaoPanel() {
                   void toggleGerenteVerLeadsGerais(checked)
                 }
                 aria-label="Gerentes veem os novos leads sem equipe"
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin ? (
+          <Card>
+            <CardHeader className="flex-row items-start gap-3 space-y-0">
+              <div className="rounded-lg border bg-muted/40 p-2">
+                <ClipboardList className="h-5 w-5 text-brand-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base">
+                  Ficha ao entrar na análise
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Quando ativo, levar um lead para análise pede construtora e
+                  empreendimento e abre a ficha de documentação. Aprovado,
+                  reprovado e venda atualizam essa mesma ficha. Desligado, a
+                  análise continua do jeito de hoje.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Exigir a ficha na análise</p>
+                <p className="text-xs text-muted-foreground">
+                  Cada pessoa edita só a ficha que ela mesma abriu.
+                </p>
+              </div>
+              <Switch
+                checked={fichaAnaliseGuiada}
+                disabled={savingKey === "fichaAnaliseGuiada"}
+                onCheckedChange={(checked) => void toggleFichaAnaliseGuiada(checked)}
+                aria-label="Exigir ficha de documentação na análise"
               />
             </CardContent>
           </Card>

@@ -27,13 +27,25 @@ export const FONTE_LABELS: Record<string, string> = {
 /** Defaults de Status 1 (crédito/análise). */
 export const DEFAULT_STATUS1 = [
   "Em análise",
+  "Análise",
   "Aprovado",
+  "Aprovado condicionado",
   "Aprovado c/ restrição",
   "Reprovado",
 ] as const;
 
 /** Defaults de Status 2 (andamento comercial). */
-export const DEFAULT_STATUS2 = ["Vendido", "Bacen", "Andamento"] as const;
+export const DEFAULT_STATUS2 = [
+  "Vendido",
+  "Andamento",
+  "Margem comprometida",
+  "Desistência",
+  "Rating",
+  "Restrição",
+  "Bance",
+  "Bacen",
+  "SPC/Serasa",
+] as const;
 
 export interface Documentacao {
   id: string;
@@ -144,6 +156,18 @@ export async function fetchDocumentacaoCorretores(): Promise<
   DocumentacaoCorretor[]
 > {
   return apiFetch<DocumentacaoCorretor[]>("/documentacao/corretores");
+}
+
+export async function abrirFichaGuiada(input: {
+  leadId: string;
+  nome: string;
+  construtoraId: string;
+  empreendimentoId: string;
+}): Promise<Documentacao> {
+  return apiFetch<Documentacao>("/documentacao/ficha-guiada", {
+    method: "POST",
+    body: input,
+  });
 }
 
 export async function createDocumentacao(

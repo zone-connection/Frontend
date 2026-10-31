@@ -85,6 +85,7 @@ export type TenantModulesResponse = {
   whatsappStaffCanSend: boolean;
   corretoresCriamPropostas: boolean;
   muralChaves: boolean;
+  fichaAnaliseGuiada: boolean;
 };
 
 export async function fetchTenantOperationModules(): Promise<TenantModulesResponse> {
@@ -102,6 +103,7 @@ export async function updateTenantOperationModules(input: {
   whatsappStaffCanSend?: boolean;
   corretoresCriamPropostas?: boolean;
   muralChavesOptIn?: boolean;
+  fichaAnaliseGuiada?: boolean;
 }): Promise<TenantModulesResponse> {
   return apiFetch<TenantModulesResponse>("/tenant/modules", {
     method: "PATCH",
