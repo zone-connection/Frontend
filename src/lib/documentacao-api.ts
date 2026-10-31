@@ -163,6 +163,7 @@ export async function abrirFichaGuiada(input: {
   nome: string;
   construtoraId: string;
   empreendimentoId: string;
+  fonte: string;
 }): Promise<Documentacao> {
   return apiFetch<Documentacao>("/documentacao/ficha-guiada", {
     method: "POST",

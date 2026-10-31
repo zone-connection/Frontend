@@ -101,6 +101,8 @@ const PAPEL_OPTIONS: Array<{
   { value: "captado", label: "Captado" },
   { value: "perdido", label: "Perdido / Cancelado" },
   { value: "concluido", label: "Concluído" },
+  { value: "aprovado", label: "Aprovados" },
+  { value: "reprovado", label: "Reprovado" },
 ];
 
 const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
@@ -110,6 +112,8 @@ const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
   captado: "Captado",
   perdido: "Perdido",
   concluido: "Concluído",
+  aprovado: "Aprovados",
+  reprovado: "Reprovado",
 };
 
 type FiltroFunil = FunilTipo | "sem_tipo";

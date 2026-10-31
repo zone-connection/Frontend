@@ -6,7 +6,9 @@ export type FunilEtapaPapel =
   | "venda"
   | "captado"
   | "perdido"
-  | "concluido";
+  | "concluido"
+  | "aprovado"
+  | "reprovado";
 
 export type FunilTipo =
   | "comercial"

@@ -273,6 +273,7 @@ export function ComercialFunilBoard({
     applyFunnelEtapas,
     documentacaoStatus1,
     documentacaoStatus2,
+    documentacaoFontes,
   } = useCatalog();
   const lostStageSlug = stageByPapel("perdido") ?? LOST_STAGE_SLUG_FALLBACK;
 
@@ -299,6 +300,7 @@ export function ComercialFunilBoard({
   } | null>(null);
   const [fichaConstrutoraId, setFichaConstrutoraId] = useState("");
   const [fichaEmpreendimentoId, setFichaEmpreendimentoId] = useState("");
+  const [fichaFonte, setFichaFonte] = useState("");
   const [fichaSaving, setFichaSaving] = useState(false);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
@@ -311,6 +313,13 @@ export function ComercialFunilBoard({
   const [vendaObs, setVendaObs] = useState("");
   const [vendaStatus1, setVendaStatus1] = useState("");
   const [vendaStatus2, setVendaStatus2] = useState("Vendido");
+  const [statusEtapa, setStatusEtapa] = useState<{
+    lead: Lead;
+    stage: StageId;
+    doc: Documentacao;
+  } | null>(null);
+  const [statusEtapa1, setStatusEtapa1] = useState("");
+  const [statusEtapa2, setStatusEtapa2] = useState("");
   const [visibleByStage, setVisibleByStage] = useState<Record<string, number>>(
     {},
   );
@@ -1131,8 +1140,8 @@ export function ComercialFunilBoard({
 
   async function confirmarEntradaAnalise() {
     if (!fichaEntrada) return;
-    if (!fichaConstrutoraId || !fichaEmpreendimentoId) {
-      toast.error("Informe a construtora e o empreendimento.");
+    if (!fichaConstrutoraId || !fichaEmpreendimentoId || !fichaFonte) {
+      toast.error("Informe a construtora, o empreendimento e a fonte.");
       return;
     }
     setFichaSaving(true);
@@ -1142,6 +1151,7 @@ export function ComercialFunilBoard({
         nome: fichaEntrada.lead.nome,
         construtoraId: fichaConstrutoraId,
         empreendimentoId: fichaEmpreendimentoId,
+        fonte: fichaFonte,
       });
       await updateLeadStage(fichaEntrada.lead.id, fichaEntrada.stage);
       toast.success(`${fichaEntrada.lead.nome} entrou em análise e a ficha foi aberta.`);
@@ -1211,6 +1221,65 @@ export function ComercialFunilBoard({
     }
   }
 
+  async function abrirStatusEtapa(lead: Lead, stage: StageId) {
+    const papel = funnelStages.find((s) => s.id === stage)?.papel;
+    try {
+      const docs = await fetchDocumentacoes();
+      const doc = docs.find((item) => item.leadId === lead.id);
+      if (!doc) {
+        toast.error("Este lead ainda não tem ficha de documentação.");
+        return;
+      }
+      if (doc.autor.id !== getSession()?.id) {
+        toast.error("Só quem abriu a ficha pode atualizar os status.");
+        return;
+      }
+      const preferido = papel === "reprovado" ? "Reprovado" : "Aprovado";
+      setStatusEtapa1(
+        documentacaoStatus1.includes(preferido) ? preferido : doc.status1,
+      );
+      setStatusEtapa2(doc.status2 || "Andamento");
+      setStatusEtapa({ lead, stage, doc });
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível abrir a ficha.",
+      );
+    }
+  }
+
+  async function confirmarStatusEtapa() {
+    if (!statusEtapa) return;
+    if (!statusEtapa1 || !statusEtapa2) {
+      toast.error("Informe o status da análise e o status do andamento.");
+      return;
+    }
+    setFichaSaving(true);
+    try {
+      await updateDocumentacao(statusEtapa.doc.id, {
+        status1: statusEtapa1,
+        status2: statusEtapa2,
+      });
+      await updateLeadStage(
+        statusEtapa.lead.id,
+        statusEtapa.stage,
+        isCorretor ? { omitTriagem: true } : undefined,
+      );
+      const stageName =
+        funnelStages.find((s) => s.id === statusEtapa.stage)?.name ??
+        statusEtapa.stage;
+      toast.success(`${statusEtapa.lead.nome} foi para ${stageName}.`);
+      setStatusEtapa(null);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível atualizar a ficha.",
+      );
+    } finally {
+      setFichaSaving(false);
+    }
+  }
+
   async function dropLeadOnStage(leadId: string, stage: StageId) {
     const lead = allLeads.find((l) => l.id === leadId);
     if (!lead || lead.stage === stage) return;
@@ -1228,12 +1297,17 @@ export function ComercialFunilBoard({
     if (fichaGuiada && papel === "analise") {
       setFichaConstrutoraId(lead.construtoraId ?? "");
       setFichaEmpreendimentoId(lead.empreendimentoId ?? "");
+      setFichaFonte("");
       setFichaEntrada({ lead, stage });
       void loadCatalogoFicha();
       return;
     }
     if (fichaGuiada && papel === "venda") {
       void abrirConferenciaVenda(lead, stage);
+      return;
+    }
+    if (fichaGuiada && (papel === "aprovado" || papel === "reprovado")) {
+      void abrirStatusEtapa(lead, stage);
       return;
     }
 
@@ -1354,6 +1428,7 @@ export function ComercialFunilBoard({
       setDetailLead(null);
       setFichaConstrutoraId(target.construtoraId ?? "");
       setFichaEmpreendimentoId(target.empreendimentoId ?? "");
+      setFichaFonte("");
       setFichaEntrada({ lead: target, stage });
       void loadCatalogoFicha();
       return;
@@ -1362,6 +1437,12 @@ export function ComercialFunilBoard({
       const target = detailLead;
       setDetailLead(null);
       void abrirConferenciaVenda(target, stage);
+      return;
+    }
+    if (fichaGuiada && (papelDetalhe === "aprovado" || papelDetalhe === "reprovado")) {
+      const target = detailLead;
+      setDetailLead(null);
+      void abrirStatusEtapa(target, stage);
       return;
     }
 
@@ -2115,7 +2196,7 @@ export function ComercialFunilBoard({
             <DialogTitle>Entrar em análise</DialogTitle>
             <DialogDescription>
               {fichaEntrada
-                ? `Informe a construtora e o empreendimento de ${fichaEntrada.lead.nome}. Os dois são obrigatórios.`
+                ? `Informe a construtora, o empreendimento e a fonte de ${fichaEntrada.lead.nome}. Os três são obrigatórios.`
                 : null}
             </DialogDescription>
           </DialogHeader>
@@ -2144,6 +2225,17 @@ export function ComercialFunilBoard({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label>Fonte</Label>
+              <Select value={fichaFonte} onValueChange={setFichaFonte}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {documentacaoFontes.map((label) => (
+                    <SelectItem key={label} value={label}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" disabled={fichaSaving} onClick={() => setFichaEntrada(null)}>
@@ -2151,6 +2243,55 @@ export function ComercialFunilBoard({
             </Button>
             <Button type="button" disabled={fichaSaving} onClick={() => void confirmarEntradaAnalise()}>
               Abrir ficha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statusEtapa} onOpenChange={(open) => !open && !fichaSaving && setStatusEtapa(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {funnelStages.find((s) => s.id === statusEtapa?.stage)?.papel === "reprovado"
+                ? "Reprovado"
+                : "Aprovados"}
+            </DialogTitle>
+            <DialogDescription>
+              {statusEtapa
+                ? `Escolha o status da análise e o status do andamento de ${statusEtapa.lead.nome}.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Status da análise</Label>
+              <Select value={statusEtapa1} onValueChange={setStatusEtapa1}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {documentacaoStatus1.map((label) => (
+                    <SelectItem key={label} value={label}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status do andamento</Label>
+              <Select value={statusEtapa2} onValueChange={setStatusEtapa2}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {documentacaoStatus2.map((label) => (
+                    <SelectItem key={label} value={label}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={fichaSaving} onClick={() => setStatusEtapa(null)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={fichaSaving} onClick={() => void confirmarStatusEtapa()}>
+              Salvar status
             </Button>
           </DialogFooter>
         </DialogContent>
