@@ -777,6 +777,8 @@ function ContratosPage() {
     "catalogo",
   );
   const openedFromQuery = useRef("");
+  const documentosRequest = useRef(0);
+  const formSession = useRef(0);
   const [leadPrefill, setLeadPrefill] = useState<{
     nome: string;
     telefone: string;
@@ -831,8 +833,12 @@ function ContratosPage() {
   }, [logoUrl, tenant?.primaryColor]);
 
   useEffect(() => {
+    const request = ++documentosRequest.current;
     void fetchContratoDocumentos()
-      .then(setDocumentos)
+      .then((items) => {
+        if (request !== documentosRequest.current) return;
+        setDocumentos(items);
+      })
       .catch(() => undefined);
   }, []);
 
@@ -841,16 +847,27 @@ function ContratosPage() {
       toast.error("Seu perfil não tem acesso a este modelo.");
       return;
     }
+    const session = ++formSession.current;
     setEditingId(null);
     setSelected(template);
     setIntermediacaoSection("contratante");
-    const apply = (company: TenantBranding | null) => {
+    const seed = (company: TenantBranding | null) => {
       const base = prefillFromTenant(template, company);
-      setForm(leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base);
+      return leadPrefill ? applyLeadToContratoForm(base, leadPrefill) : base;
     };
-    apply(tenant);
+    setForm(seed(tenant));
     void fetchTenantCompany()
-      .then((fresh) => apply({ ...(tenant ?? {}), ...fresh }))
+      .then((fresh) => {
+        if (session !== formSession.current) return;
+        const company = seed({ ...(tenant ?? {}), ...fresh });
+        setForm((prev) => {
+          const next = { ...company };
+          for (const [key, value] of Object.entries(prev)) {
+            if (value.trim()) next[key] = value;
+          }
+          return next;
+        });
+      })
       .catch(() => undefined);
   };
 
@@ -912,6 +929,7 @@ function ContratosPage() {
       toast.error("Este modelo não está disponível para o seu perfil.");
       return;
     }
+    const session = ++formSession.current;
     setEditingId(item.id);
     setSelected(template);
     setIntermediacaoSection("contratante");
@@ -922,17 +940,26 @@ function ContratosPage() {
       for (const [key, value] of Object.entries(saved)) {
         if (typeof value === "string" && value.trim()) merged[key] = value;
       }
-      setForm(merged);
+      return merged;
     };
-    apply(tenant);
+    setForm(apply(tenant));
     void fetchTenantCompany()
-      .then((fresh) => apply({ ...(tenant ?? {}), ...fresh }))
+      .then((fresh) => {
+        if (session !== formSession.current) return;
+        const company = apply({ ...(tenant ?? {}), ...fresh });
+        setForm((prev) => {
+          const next = { ...company };
+          for (const [key, value] of Object.entries(prev)) {
+            if (value.trim()) next[key] = value;
+          }
+          return next;
+        });
+      })
       .catch(() => undefined);
   }
 
   async function persistDocumento(status: "rascunho" | "baixado") {
     if (!selected) return null;
-    const atual = documentos.find((item) => item.id === editingId);
     const saved = await saveContratoDocumento(
       {
         templateId: selected.id,
@@ -941,12 +968,11 @@ function ContratosPage() {
           form.nome?.trim() ||
           form.contratanteNome?.trim() ||
           selected.titulo,
-        ...(status === "baixado" || atual?.status !== "baixado"
-          ? { status }
-          : {}),
+        status,
       },
       editingId ?? undefined,
     );
+    documentosRequest.current += 1;
     upsertLocal(saved);
     return saved;
   }
