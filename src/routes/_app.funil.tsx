@@ -1295,8 +1295,8 @@ export function ComercialFunilBoard({
 
     const papel = funnelStages.find((s) => s.id === stage)?.papel;
     if (fichaGuiada && papel === "analise") {
-      setFichaConstrutoraId(lead.construtoraId ?? "");
-      setFichaEmpreendimentoId(lead.empreendimentoId ?? "");
+      setFichaConstrutoraId("");
+      setFichaEmpreendimentoId("");
       setFichaFonte("");
       setFichaEntrada({ lead, stage });
       void loadCatalogoFicha();
@@ -1426,8 +1426,8 @@ export function ComercialFunilBoard({
     if (fichaGuiada && papelDetalhe === "analise") {
       const target = detailLead;
       setDetailLead(null);
-      setFichaConstrutoraId(target.construtoraId ?? "");
-      setFichaEmpreendimentoId(target.empreendimentoId ?? "");
+      setFichaConstrutoraId("");
+      setFichaEmpreendimentoId("");
       setFichaFonte("");
       setFichaEntrada({ lead: target, stage });
       void loadCatalogoFicha();
@@ -2200,10 +2200,16 @@ export function ComercialFunilBoard({
                 : null}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3" key={fichaEntrada?.lead.id ?? "ficha"}>
             <div className="space-y-1.5">
               <Label>Construtora</Label>
-              <Select value={fichaConstrutoraId} onValueChange={setFichaConstrutoraId}>
+              <Select
+                value={fichaConstrutoraId}
+                onValueChange={(id) => {
+                  setFichaConstrutoraId(id);
+                  setFichaEmpreendimentoId("");
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {construtoras.map((item) => (
