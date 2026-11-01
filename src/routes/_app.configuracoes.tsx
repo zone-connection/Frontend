@@ -62,16 +62,13 @@ import { ConfigFunisPanel } from "@/components/config-funis-panel";
 import { ConfigAutomacoesPanel } from "@/components/config-automacoes-panel";
 import { ConfigModulosOperacaoPanel } from "@/components/config-modulos-operacao-panel";
 import { ConfigEmpresaPanel } from "@/components/config-empresa-panel";
-import { ConfigCreciPanel } from "@/components/config-creci-panel";
 import { ConfigConexoesPanel } from "@/components/config-conexoes-panel";
 import { ConfigHideClientesMenuCard } from "@/components/config-hide-clientes-menu-card";
 import { ConfigMenuVisibilidadePanel } from "@/components/config-menu-visibilidade-panel";
 import { ConfigUsuarioExtraPanel } from "@/components/config-usuario-extra-panel";
 import { ConfigSettingsLayout } from "@/components/config-settings-layout";
-import { userCanInformarCreci } from "@/lib/users-api";
 import { CorPicker } from "@/components/cor-picker";
 import { CONSTRUTORA_CORES_PRESET } from "@/lib/construtoras-api";
-import { updateTenantCompany } from "@/lib/tenant-company-api";
 import {
   buildConfigModules,
   defaultConfigSelection,
@@ -315,7 +312,6 @@ function Config() {
   const isTreinee = user?.role === "treinee";
   const isCorretor = user?.role === "corretor";
   const isAdmin = user?.role === "admin";
-  const showCreci = Boolean(user && userCanInformarCreci(user) && !isPlatformAdmin);
   const isSolo = user?.tenant?.plano === "solo";
   const showOpsTabs = !isAnalista && !isTreinee && !isCorretor && !isPlatformAdmin;
   const showFunil = !isAnalista && !isTreinee && !isCorretor;
@@ -362,7 +358,6 @@ function Config() {
 
   const navFlags = useMemo(
     () => ({
-      showCreci,
       showOps: showOpsTabs,
       showFunil,
       showAutomacoes,
@@ -375,7 +370,6 @@ function Config() {
       isSolo,
     }),
     [
-      showCreci,
       showOpsTabs,
       showFunil,
       showAutomacoes,
@@ -637,25 +631,6 @@ function Config() {
         selection={selection}
         onChange={goTo}
       >
-        {selection.item === "creci" ? (
-          <ConfigCreciPanel
-            solo={isSolo}
-            onSaved={
-              isSolo
-                ? async (updated) => {
-                    try {
-                      await updateTenantCompany({
-                        creci: updated.creci?.trim() ?? "",
-                      });
-                    } catch {
-                      // Cadastro pessoal já salvou; contrato pode sincronizar depois.
-                    }
-                  }
-                : undefined
-            }
-          />
-        ) : null}
-
         {selection.item === "menu" ? <ConfigMenuVisibilidadePanel /> : null}
 
         {selection.item === "conexoes" ? (

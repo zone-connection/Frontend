@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Clock, Crosshair, Loader2, Timer, UserCheck, Workflow } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +26,10 @@ import {
   type PrazoUnidade,
 } from "@/lib/lead-monitoramento";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
+import {
+  DEFAULT_CATALOG_COLOR,
+  catalogColorSwatchStyle,
+} from "@/lib/catalog-colors";
 import { cn } from "@/lib/utils";
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -78,6 +81,9 @@ export function ConfigAutomacoesPanel() {
   );
   const [funis, setFunis] = useState<Funil[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [painel, setPainel] = useState<
+    "inatividade" | "atraso" | "distribuicao" | "prazos"
+  >("inatividade");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingEtapaId, setSavingEtapaId] = useState<string | null>(null);
@@ -287,16 +293,23 @@ export function ConfigAutomacoesPanel() {
     );
   }
 
+  const comercial = selected != null && funilTipoOf(selected) === "comercial";
+  const paineis = [
+    { id: "inatividade" as const, label: "Inatividade" },
+    ...(comercial
+      ? [
+          { id: "atraso" as const, label: "Após atraso" },
+          { id: "distribuicao" as const, label: "Distribuição" },
+        ]
+      : []),
+    { id: "prazos" as const, label: "Prazos das etapas" },
+  ];
+  const painelAtivo = paineis.some((item) => item.id === painel)
+    ? painel
+    : "inatividade";
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">Automações</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Regras que o sistema aplica sozinho: alertas, prazos e liberação de
-          leads. Integrações (Meta, Órulo, WhatsApp) continuam em Conexões.
-        </p>
-      </div>
-
       <Tabs
         value={tipoFiltro}
         onValueChange={(v) => setTipoFiltro(v as FunilTipo)}
@@ -346,24 +359,33 @@ export function ConfigAutomacoesPanel() {
           </CardContent>
         </Card>
       ) : (
-        <>
-          <Card>
-            <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-              <div className="flex items-start gap-2">
-                <Clock className="mt-0.5 h-4 w-4 text-primary" />
-                <div>
-                  <CardTitle className="text-base">
-                    Alerta de inatividade
-                  </CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Sem movimento neste período, o card fica vermelho e gera
-                    aviso no funil.
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary">Sempre ativa</Badge>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center gap-2">
+        <div className="grid items-start gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
+          <nav className="flex gap-1 overflow-x-auto lg:flex-col">
+            {paineis.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setPainel(item.id)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap",
+                  painelAtivo === item.id
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        <Card>
+          <div className={cn("flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between", painelAtivo !== "inatividade" && "hidden")}>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Alerta de inatividade</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Sem movimento neste período, o card fica vermelho. Sempre ativo.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Input
                 type="number"
                 min={1}
@@ -395,38 +417,25 @@ export function ConfigAutomacoesPanel() {
               >
                 Salvar
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {funilTipoOf(selected) === "comercial" ? (
-            <Card>
-              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-                <div className="flex items-start gap-2">
-                  <Crosshair className="mt-0.5 h-4 w-4 text-primary" />
-                  <div>
-                    <CardTitle className="text-base">
-                      Liberação após atraso
-                    </CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Retrabalho desvincula o corretor e devolve o lead ao pool
-                      para redistribuir (botão Distribuir ou automático para
-                      quem estiver online).
-                    </p>
-                  </div>
+            <div className={cn("space-y-3 p-4", painelAtivo !== "atraso" && "hidden")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Liberação após atraso</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Depois do prazo, o lead vai para Caça-lead ou volta ao pool como Retrabalho.
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={atrasoAtiva ? "default" : "secondary"}>
-                    {atrasoAtiva ? "Ligada" : "Desligada"}
-                  </Badge>
-                  <Switch
-                    checked={atrasoAtiva}
-                    onCheckedChange={setAtrasoAtiva}
-                    disabled={!canManageCacaLead}
-                    aria-label="Ativar automação após atraso"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
+                <Switch
+                  checked={atrasoAtiva}
+                  onCheckedChange={setAtrasoAtiva}
+                  disabled={!canManageCacaLead}
+                  aria-label="Ativar automação após atraso"
+                />
+              </div>
                 {!canManageCacaLead ? (
                   <p className="text-xs text-muted-foreground">
                     Somente o administrador pode ativar ou desativar o
@@ -505,72 +514,39 @@ export function ConfigAutomacoesPanel() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tempo contado a partir do momento em que o lead fica atrasado.
-                  Zero = desvincula na hora. O interruptor só vale depois de
-                  salvar.
+                  Zero desvincula na hora. O interruptor só vale depois de salvar.
                 </p>
-              </CardContent>
-            </Card>
+            </div>
           ) : null}
 
           {funilTipoOf(selected) === "comercial" ? (
-            <Card>
-              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-                <div className="flex items-start gap-2">
-                  <UserCheck className="mt-0.5 h-4 w-4 text-primary" />
-                  <div>
-                    <CardTitle className="text-base">
-                      Distribuição para corretores online
-                    </CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Leads do pool sem equipe e sem corretor — inclusive
-                      Retrabalho — vão sozinhos para corretores e trainees
-                      ativos que estiverem online no CRM. Quem tem menos leads
-                      na carteira recebe primeiro.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={distribuicaoAutoAtiva ? "default" : "secondary"}
-                  >
-                    {distribuicaoAutoAtiva ? "Ligada" : "Desligada"}
-                  </Badge>
-                  <Switch
-                    checked={distribuicaoAutoAtiva}
-                    onCheckedChange={(next) =>
-                      void handleToggleDistribuicaoAuto(next)
-                    }
-                    disabled={!canManageCacaLead || saving}
-                    aria-label="Ligar ou desligar distribuição automática"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
+            <div className={cn("flex items-center justify-between gap-3 p-4", painelAtivo !== "distribuicao" && "hidden")}>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Distribuir para quem está online</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {canManageCacaLead
-                    ? "Ligue ou desligue quando quiser. Vale na hora: leads de Chegaram só são enviados enquanto estiver ligada e houver corretor online."
-                    : "Somente o administrador da imobiliária pode ligar ou desligar esta automação."}
+                    ? "Leads sem corretor vão para quem tem a menor carteira. Vale na hora."
+                    : "Somente o administrador pode ligar ou desligar."}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+              <Switch
+                checked={distribuicaoAutoAtiva}
+                onCheckedChange={(next) =>
+                  void handleToggleDistribuicaoAuto(next)
+                }
+                disabled={!canManageCacaLead || saving}
+                aria-label="Ligar ou desligar distribuição automática"
+              />
+            </div>
           ) : null}
 
-          <Card>
-            <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-              <div className="flex items-start gap-2">
-                <Timer className="mt-0.5 h-4 w-4 text-primary" />
-                <div>
-                  <CardTitle className="text-base">Prazos por etapa</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    SLA de cada coluna do funil. O alerta laranja dispara quando
-                    resta este % do prazo. Etapas finais não são monitoradas.
-                  </p>
-                </div>
-              </div>
-              <Workflow className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <div className={cn("space-y-2 p-4", painelAtivo !== "prazos" && "hidden")}>
+            <div>
+              <p className="text-sm font-medium">Prazos por etapa</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                A cor é a da coluna no funil. O alerta dispara quando resta o % do prazo. Campo vazio não monitora a etapa.
+              </p>
+            </div>
               {etapas.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Este funil ainda não tem etapas ativas.
@@ -579,24 +555,29 @@ export function ConfigAutomacoesPanel() {
                 etapas.map((etapa) => {
                   const draft = etapaDraft[etapa.id];
                   const terminal = isEtapaTerminal(etapa);
+                  const color = etapa.color || DEFAULT_CATALOG_COLOR;
                   return (
                     <div
                       key={etapa.id}
-                      className="flex flex-col gap-2 rounded-xl border bg-muted/20 px-3 py-2 sm:flex-row sm:items-center"
+                      className="flex flex-col gap-2 rounded-xl border bg-background px-3 py-2 sm:flex-row sm:items-center"
+                      style={{ borderLeftWidth: 4, borderLeftColor: color }}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {etapa.label}
-                        </p>
-                        {terminal ? (
-                          <p className="text-[11px] text-muted-foreground">
-                            Etapa final — sem monitoramento.
+                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={catalogColorSwatchStyle(color)}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {etapa.label}
                           </p>
-                        ) : (
-                          <p className="text-[11px] text-muted-foreground">
-                            Em branco = sem prazo nesta etapa.
-                          </p>
-                        )}
+                          {terminal ? (
+                            <p className="text-[11px] text-muted-foreground">
+                              Etapa final — sem monitoramento.
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                       {terminal ? null : (
                         <div className="flex flex-wrap items-center gap-2">
@@ -691,9 +672,9 @@ export function ConfigAutomacoesPanel() {
                 </Link>
                 .
               </p>
-            </CardContent>
-          </Card>
-        </>
+          </div>
+        </Card>
+        </div>
       )}
     </div>
   );

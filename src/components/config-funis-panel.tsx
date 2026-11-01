@@ -70,7 +70,7 @@ import {
   type FunilEtapaPapel,
   type FunilTipo,
 } from "@/lib/funis-api";
-import { ArrowRightLeft, Check, GripVertical, Loader2, ListRestart, LifeBuoy, MoreHorizontal, Pencil, Plus, Tags, Trash2, Workflow } from "lucide-react";
+import { ArrowRightLeft, Check, GripVertical, Loader2, ListRestart, LifeBuoy, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,7 +85,6 @@ import {
 } from "@/lib/lead-monitoramento";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@tanstack/react-router";
 import { getSession } from "@/lib/auth";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
@@ -667,45 +666,59 @@ export function ConfigFunisPanel() {
     <TooltipProvider delayDuration={200}>
       <div className="grid gap-4 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
         <Card>
-          <CardHeader className="flex-row justify-between items-center gap-2 flex-wrap space-y-0">
-            <div>
+          <CardHeader className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base">Funis</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                Passe o cursor para ver as etapas. Ative o funil em uso neste
-                tipo de operação. O kanban comercial usa só o tipo Comercial.
-              </p>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setCreateTipo(
+                    tipoFiltro === "sem_tipo" ? "comercial" : tipoFiltro,
+                  );
+                  setCreateOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
             </div>
-            <Button
-              size="sm"
-              onClick={() => {
-                setCreateTipo(
-                  tipoFiltro === "sem_tipo" ? "comercial" : tipoFiltro,
-                );
-                setCreateOpen(true);
-              }}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Novo funil
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Tabs
-              value={tipoFiltro}
-              onValueChange={(v) => setTipoFiltro(v as FiltroFunil)}
-            >
-              <TabsList className="w-full h-auto flex-wrap justify-start">
-                {tiposVisiveis.map((tipo) => (
-                  <TabsTrigger key={tipo} value={tipo} className="text-xs">
+            <div className="flex flex-col gap-0.5">
+              {tiposVisiveis.map((tipo) => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => setTipoFiltro(tipo)}
+                  className={cn(
+                    "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm",
+                    tipoFiltro === tipo
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <span>
                     {FUNIL_TIPO_LABEL[tipo]}
                     {!funilTipoVisivel(tipo, tenantModules) ? " *" : ""}
-                  </TabsTrigger>
-                ))}
-                <TabsTrigger value="sem_tipo" className="text-xs">
+                  </span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setTipoFiltro("sem_tipo")}
+                className={cn(
+                  "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm",
+                  tipoFiltro === "sem_tipo"
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <span>
                   Sem tipo
                   {funisSemTipo.length > 0 ? ` (${funisSemTipo.length})` : ""}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+                </span>
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {tiposVisiveis.some((t) => !funilTipoVisivel(t, tenantModules)) ? (
               <p className="text-xs text-muted-foreground">
                 * Operação desativada em Módulos. O funil permanece cadastrado.
@@ -963,14 +976,14 @@ export function ConfigFunisPanel() {
               </p>
             )}
             {selected ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border bg-muted/20 p-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Tags className="h-3.5 w-3.5 text-primary" />
-                    <p className="text-xs font-medium">Tipo de operação</p>
-                  </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Label htmlFor="funil-tipo" className="shrink-0 text-xs">
+                    Tipo
+                  </Label>
                   <select
-                    className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                    id="funil-tipo"
+                    className="h-9 min-w-40 rounded-md border bg-background px-2 text-sm"
                     value={funilTipoOf(selected) ?? ""}
                     disabled={saving}
                     onChange={(e) => {
@@ -980,7 +993,7 @@ export function ConfigFunisPanel() {
                     }}
                   >
                     {funilTipoOf(selected) === null && (
-                      <option value="">Sem tipo — vincular</option>
+                      <option value="">Sem tipo</option>
                     )}
                     {FUNIL_TIPOS.map((tipo) => (
                       <option key={tipo} value={tipo}>
@@ -988,23 +1001,13 @@ export function ConfigFunisPanel() {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                    O kanban de vendas usa apenas o tipo Comercial.
-                  </p>
                 </div>
                 <Link
                   to="/configuracoes"
                   search={{ secao: "operacao", item: "automacoes" }}
-                  className="rounded-xl border bg-muted/20 p-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                  className="text-sm text-primary hover:underline"
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <Workflow className="h-3.5 w-3.5 text-primary" />
-                    <p className="text-xs font-medium">Automações</p>
-                  </div>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Inatividade, prazos das etapas e liberação após atraso
-                    ficam juntos em Automações.
-                  </p>
+                  Prazos e automações
                 </Link>
               </div>
             ) : null}

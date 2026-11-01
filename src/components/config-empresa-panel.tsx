@@ -17,7 +17,7 @@ import {
   ImageUploadField,
   assertImageFile,
 } from "@/components/image-upload-field";
-import { Building2, Loader2, UserRound } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type FormState = {
@@ -70,6 +70,7 @@ export function ConfigEmpresaPanel() {
   const isAdmin = session?.role === "admin";
   const isSolo = session?.tenant?.plano === "solo";
   const [form, setForm] = useState<FormState>(() => formFromCompany({}));
+  const [savedForm, setSavedForm] = useState<FormState>(() => formFromCompany({}));
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -118,7 +119,9 @@ export function ConfigEmpresaPanel() {
     void fetchTenantCompany()
       .then((company) => {
         if (cancelled) return;
-        setForm(formFromCompany(company));
+        const next = formFromCompany(company);
+        setForm(next);
+        setSavedForm(next);
         setLogoUrl(company.logoUrl);
       })
       .catch((err) => {
@@ -211,7 +214,9 @@ export function ConfigEmpresaPanel() {
         pix: form.pix.trim(),
         representanteLegal: form.representanteLegal.trim(),
       });
-      setForm(formFromCompany(updated));
+      const next = formFromCompany(updated);
+      setForm(next);
+      setSavedForm(next);
       await fetchMe().catch(() => null);
       toast.success(copy.saved);
     } catch (err) {
@@ -234,48 +239,53 @@ export function ConfigEmpresaPanel() {
     );
   }
 
-  const TitleIcon = isSolo ? UserRound : Building2;
+  const locked = !isAdmin || saving;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TitleIcon className="h-4 w-4 text-primary" />
-          {copy.title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="mb-4 text-sm text-muted-foreground">{copy.blurb}</p>
-        <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-          <ImageUploadField
-            images={logoUrl ? [logoUrl] : []}
-            max={1}
-            label="Logo"
-            hint="Aparece no menu, contratos e propostas. JPG, PNG ou WebP, máx. 5 MB."
-            recommendedSize="800 × 400"
-            disabled={!isAdmin}
-            busy={logoBusy}
-            shape="logo"
-            onAdd={(files) => void handleAddLogo(files)}
-            onRemove={() => void handleRemoveLogo()}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+    <form onSubmit={(e) => void handleSubmit(e)}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="flex h-full flex-col">
+          <CardContent className="flex flex-1 flex-col p-6">
+            <ImageUploadField
+              images={logoUrl ? [logoUrl] : []}
+              max={1}
+              label="Logo"
+              hint="Aparece no menu, contratos e propostas. JPG, PNG ou WebP, máx. 5 MB."
+              recommendedSize="800 × 400"
+              disabled={!isAdmin}
+              busy={logoBusy}
+              shape="logo"
+              onAdd={(files) => void handleAddLogo(files)}
+              onRemove={() => void handleRemoveLogo()}
+            />
+            <div className="mt-4 text-center">
+              <div className="font-semibold">{form.name || copy.title}</div>
+              <p className="mt-1 text-xs text-muted-foreground">{copy.blurb}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">{copy.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1.5 md:col-span-2">
               <Label htmlFor="empresa-nome">{copy.nameLabel}</Label>
               <Input
                 id="empresa-nome"
                 value={form.name}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder={copy.namePlaceholder}
                 onChange={(e) => setField("name", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-cnpj">{copy.documentoLabel}</Label>
               <Input
                 id="empresa-cnpj"
                 value={form.documento}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="00.000.000/0000-00"
                 onChange={(e) =>
                   setField("documento", formatCpfCnpj(e.target.value))
@@ -283,133 +293,149 @@ export function ConfigEmpresaPanel() {
               />
             </div>
             {isSolo ? null : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="empresa-creci">CRECI</Label>
                 <Input
                   id="empresa-creci"
                   value={form.creci}
-                  disabled={!isAdmin || saving}
+                  disabled={locked}
                   placeholder="Ex.: 18937-J"
                   onChange={(e) => setField("creci", e.target.value)}
                 />
               </div>
             )}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-email">E-mail</Label>
               <Input
                 id="empresa-email"
                 type="email"
                 value={form.email}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder={copy.emailPlaceholder}
                 onChange={(e) => setField("email", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-telefone">Telefone</Label>
               <Input
                 id="empresa-telefone"
                 value={form.telefone}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="(81) 99999-9999"
                 onChange={(e) =>
                   setField("telefone", formatPhone(e.target.value))
                 }
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5 md:col-span-2">
               <Label htmlFor="empresa-endereco">Endereço</Label>
               <Input
                 id="empresa-endereco"
                 value={form.endereco}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Ex.: AV CAXANGÁ, 5405 — Várzea, Recife-PE"
                 onChange={(e) => setField("endereco", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-cidade">Cidade do contrato</Label>
               <Input
                 id="empresa-cidade"
                 value={form.cidade}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Ex.: Recife/PE"
                 onChange={(e) => setField("cidade", e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Usada na data/local do contrato de intermediação.
               </p>
             </div>
-            <div className="sm:col-span-2 pt-1">
-              <p className="text-sm font-medium">Dados para pagamento</p>
-              <p className="text-xs text-muted-foreground">
-                Entram automaticamente na aba Pagamento do contrato de intermediação.
-              </p>
-            </div>
-            <div className="space-y-2">
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-base">Dados para pagamento</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              Entram automaticamente na aba Pagamento do contrato de intermediação.
+            </p>
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-banco">Banco</Label>
               <Input
                 id="empresa-banco"
                 value={form.banco}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Ex.: Inter"
                 onChange={(e) => setField("banco", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-agencia">Agência</Label>
               <Input
                 id="empresa-agencia"
                 value={form.agencia}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Ex.: 0001-9"
                 onChange={(e) => setField("agencia", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-conta">Conta</Label>
               <Input
                 id="empresa-conta"
                 value={form.contaBancaria}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Ex.: 1902391-0"
                 onChange={(e) => setField("contaBancaria", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="empresa-pix">PIX (CNPJ ou chave)</Label>
               <Input
                 id="empresa-pix"
                 value={form.pix}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="CNPJ da conta ou chave PIX"
                 onChange={(e) => setField("pix", e.target.value)}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="empresa-representante">Representante legal (conta)</Label>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="empresa-representante">
+                Representante legal (conta)
+              </Label>
               <Input
                 id="empresa-representante"
                 value={form.representanteLegal}
-                disabled={!isAdmin || saving}
+                disabled={locked}
                 placeholder="Nome de quem assina pela imobiliária"
                 onChange={(e) => setField("representanteLegal", e.target.value)}
               />
             </div>
-          </div>
-
-          {isAdmin ? (
-            <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                Salvar
-              </Button>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">{copy.readOnly}</p>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+            {isAdmin ? (
+              <div className="flex justify-end gap-2 md:col-span-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => setForm(savedForm)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? <Loader2 className="animate-spin" /> : null}
+                  Salvar alterações
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground md:col-span-2">
+                {copy.readOnly}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </form>
   );
 }

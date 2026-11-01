@@ -23,7 +23,6 @@ export const CONFIG_ITEMS = [
 export type ConfigItem = (typeof CONFIG_ITEMS)[number];
 
 export type ConfigNavFlags = {
-  showCreci: boolean;
   showOps: boolean;
   showFunil: boolean;
   showAutomacoes: boolean;
@@ -118,9 +117,6 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
       label: flags.isSolo ? "Meus dados" : "Imobiliária",
     });
   }
-  if (flags.showCreci) {
-    contaItems.push({ id: "creci", label: "CRECI" });
-  }
   contaItems.push({ id: "conexoes", label: "Conexões" });
   contaItems.push({ id: "menu", label: "Menu" });
   if (flags.showUsuarioExtra) {
@@ -131,8 +127,8 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
       id: "conta",
       label: "Conta",
       description: flags.isSolo
-        ? "Seus dados, CRECI e conexões."
-        : "Imobiliária, CRECI e conexões.",
+        ? "Seus dados e conexões."
+        : "Imobiliária e conexões.",
       icon: Building2,
       items: contaItems,
     });
@@ -220,9 +216,6 @@ export function defaultConfigSelection(
   };
   if (flags.showOps && findItem(modules, "conta", "empresa")) {
     return { secao: "conta", item: "empresa" };
-  }
-  if (flags.showCreci && findItem(modules, "conta", "creci")) {
-    return { secao: "conta", item: "creci" };
   }
   if (flags.showDocumentacao && findItem(modules, "catalogos", "documentacao")) {
     return { secao: "catalogos", item: "documentacao" };

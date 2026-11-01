@@ -26,37 +26,32 @@ const CARDS: Array<{
   {
     key: "comercial",
     title: "Comercial",
-    description:
-      "CRM de lançamentos: leads, funil e triagem. Entra no seletor de operação do menu. Fechamento fica fora da operação.",
+    description: "Leads, funil e triagem. Fica sempre no seletor do menu.",
     icon: Building2,
     locked: true,
   },
   {
     key: "captacao",
     title: "Captação de Imóveis",
-    description:
-      "Proprietários, imóveis e o funil de captação. Vira a operação Captação no seletor do menu.",
+    description: "Proprietários, imóveis e o funil de captação.",
     icon: Home,
   },
   {
     key: "imoveisUsados",
     title: "Venda de Imóveis Usados",
-    description:
-      "Estoque, visitas, propostas e interessados. Vira a operação Venda de Usados no seletor do menu.",
+    description: "Estoque, visitas, propostas e interessados.",
     icon: Landmark,
   },
   {
     key: "locacao",
     title: "Locação",
-    description:
-      "Vira a operação Locação no seletor do menu. A visão geral já está disponível; funil, carteira e contratos ainda não têm telas.",
+    description: "Visão geral de locação no seletor do menu.",
     icon: KeyRound,
   },
   {
     key: "parcerias",
     title: "Corretores parceiros",
-    description:
-      "Convide corretores de outras imobiliárias para ver estoque, indicar clientes e acompanhar o repasse. Aparece dentro da operação Venda de Usados.",
+    description: "Estoque e repasse com corretores de outras imobiliárias.",
     icon: Users,
   },
 ];
@@ -288,13 +283,15 @@ export function ConfigModulosOperacaoPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Escolha quais operações esta imobiliária utiliza. Lançamentos fica
-        sempre no seletor do menu. Captação, venda de usados e locação entram
-        nesse seletor quando estão ligadas. Dashboard, agenda, imóveis,
-        treinamento e fechamento ficam fora da operação. Desativar esconde o acesso; funis e dados permanecem salvos.
-      </p>
+    <div className="space-y-8">
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">Operações</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            O que aparece no seletor do menu. Desativar só esconde o acesso;
+            funis e dados continuam salvos.
+          </p>
+        </div>
       {loading && (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       )}
@@ -361,9 +358,8 @@ export function ConfigModulosOperacaoPanel() {
             <div className="min-w-0 flex-1">
               <CardTitle className="text-base">Mural de Chaves</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                Controle de quem está com cada chave. Só aparece em Gestão se
-                Captação, Locação ou Venda de usados estiver ativo, e o mural
-                estiver ligado.
+                Quem está com cada chave. Só aparece em Gestão com Captação,
+                Locação ou Venda de usados ligado.
               </p>
             </div>
           </CardHeader>
@@ -392,6 +388,17 @@ export function ConfigModulosOperacaoPanel() {
             </div>
           </CardContent>
         </Card>
+      </div>
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">Preferências</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ajustes da operação que não criam um item novo no seletor do menu.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
         {!isSolo ? <ConfigHideClientesMenuCard /> : null}
         {isAdmin && !isSolo ? (
           <Card>
@@ -535,7 +542,8 @@ export function ConfigModulosOperacaoPanel() {
             </CardContent>
           </Card>
         ) : null}
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

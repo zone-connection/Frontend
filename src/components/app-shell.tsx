@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { getSession, sendHeartbeat, signOut, type AuthUser } from "@/lib/auth";
 import { canAccessRoute, canSeeComissao, canUserAccessRoute } from "@/lib/permissions";
 import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
@@ -439,6 +440,9 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [collapsedFlyout, setCollapsedFlyout] = useState<string | null>(null);
+  const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
+  const flyoutCloseTimer = useRef<number | null>(null);
   useEffect(() => {
     document.documentElement.style.setProperty(
       "--app-sidebar",
@@ -1237,16 +1241,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function renderAccountFooter(collapsedView: boolean) {
     return (
       <div className="relative z-10 border-t border-sidebar-border bg-sidebar/80">
-        {canSettings ? (
-          <Link
-            to="/configuracoes"
-            title="Configurações"
-            className="flex w-full items-center gap-2 p-3 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!collapsedView ? <span>Configurações</span> : null}
-          </Link>
-        ) : null}
         <a
           href={SUPPORT_WHATSAPP_URL}
           target="_blank"
@@ -1419,6 +1413,92 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Renderiza as seções de navegação. Reaproveitado tanto pelo <aside> fixo
   // do desktop quanto pelo drawer mobile, para não duplicar a lógica.
+  function openCollapsedFlyout(id: string, el: HTMLElement) {
+    if (flyoutCloseTimer.current) window.clearTimeout(flyoutCloseTimer.current);
+    setCollapsedFlyout(id);
+    setCollapsedFlyoutTop(el.getBoundingClientRect().top);
+  }
+
+  function scheduleCloseFlyout() {
+    if (flyoutCloseTimer.current) window.clearTimeout(flyoutCloseTimer.current);
+    flyoutCloseTimer.current = window.setTimeout(() => setCollapsedFlyout(null), 140);
+  }
+
+  function renderCollapsedFlyout(id: string, label: string, items: NavItem[]) {
+    if (!collapsedFlyout || collapsedFlyout !== id) return null;
+
+    function renderFlyoutLink(leaf: NavLeaf) {
+      const active = pathname === leaf.to || pathname.startsWith(`${leaf.to}/`);
+      const Icon = leaf.icon;
+      return (
+        <Link
+          key={leaf.to}
+          to={leaf.to}
+          preload="intent"
+          onClick={() => setCollapsedFlyout(null)}
+          className={cn(
+            "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors",
+            active
+              ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
+          )}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{leaf.label}</span>
+        </Link>
+      );
+    }
+
+    return createPortal(
+      <div
+        className="fixed z-[80] min-w-52"
+        style={{ top: collapsedFlyoutTop, left: "4.25rem" }}
+        onMouseEnter={() => {
+          if (flyoutCloseTimer.current) window.clearTimeout(flyoutCloseTimer.current);
+        }}
+        onMouseLeave={scheduleCloseFlyout}
+      >
+        <div
+          className={cn(
+            "relative max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-sidebar text-sidebar-foreground shadow-[0_12px_40px_rgba(8,20,32,0.28)]",
+            items.length === 0 ? "px-3 py-2" : "p-2",
+          )}
+        >
+          <span className="absolute top-3 -left-1 size-2 rotate-45 border-b border-l border-white/10 bg-sidebar" />
+          {items.length === 0 ? (
+            <p className="text-sm font-medium">{label}</p>
+          ) : (
+            <>
+              <p className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/50">
+                {label}
+              </p>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  if (isNavGroup(item)) {
+                    const GroupIcon = item.icon;
+                    return (
+                      <div key={item.id} className="pt-1">
+                        <p className="flex items-center gap-2 px-2 py-1 text-[11px] font-medium text-sidebar-foreground/45">
+                          <GroupIcon className="h-3.5 w-3.5" />
+                          {item.label}
+                        </p>
+                        {item.children.map((child) =>
+                          renderFlyoutLink(child),
+                        )}
+                      </div>
+                    );
+                  }
+                  return renderFlyoutLink(item);
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   function renderNavSections(collapsedView: boolean, onNavigate?: () => void) {
     const sections = navSections.filter((section) => section.id !== "agenda");
     const ordem = [
@@ -1518,13 +1598,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               pathname.startsWith(`${standaloneLeaf.to}/`);
             const isAgenda = standaloneLeaf.to === "/agenda";
             return (
-              <div key={section.id}>
+              <div
+                key={section.id}
+                onMouseEnter={
+                  collapsedView
+                    ? (event) => openCollapsedFlyout(section.id, event.currentTarget)
+                    : undefined
+                }
+                onMouseLeave={collapsedView ? scheduleCloseFlyout : undefined}
+              >
               {tituloGrupo}
+              {collapsedView
+                ? renderCollapsedFlyout(section.id, section.label, [])
+                : null}
               <Link
                 to={standaloneLeaf.to}
                 preload="intent"
                 onClick={onNavigate}
-                title={collapsedView ? section.label : undefined}
                 className={cn(
                   "flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
                   active
@@ -1570,12 +1660,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div
               key={section.id}
               className="space-y-0.5"
+              onMouseEnter={
+                collapsedView
+                  ? (event) => openCollapsedFlyout(section.id, event.currentTarget)
+                  : undefined
+              }
+              onMouseLeave={collapsedView ? scheduleCloseFlyout : undefined}
             >
               {tituloGrupo}
+              {collapsedView
+                ? renderCollapsedFlyout(section.id, section.label, section.items)
+                : null}
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
-                title={collapsedView ? section.label : undefined}
                 className={cn(
                   "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold tracking-wide transition-colors",
                   sectionActive
