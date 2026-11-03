@@ -712,6 +712,7 @@ export type LeadAtribuicaoItem = {
   acao: string;
   criadoEm: string;
   ator: string | null;
+  atorPerfil: string | null;
   deCorretor: string | null;
   paraCorretor: string | null;
   deEquipe: string | null;

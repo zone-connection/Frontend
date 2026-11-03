@@ -17,6 +17,25 @@ import {
 import { formatDateTimePt } from "@/lib/lead-monitoramento";
 import { cn } from "@/lib/utils";
 
+const PERFIL: Record<string, string> = {
+  admin: "Administrador",
+  gerente: "Gerente",
+  super_admin: "Super admin",
+  corretor: "Corretor",
+  treinee: "Treinee",
+  analista: "Analista",
+};
+
+function quemFez(item: LeadAtribuicaoItem) {
+  if (!item.ator) {
+    return item.acao === "roleta" || item.acao === "redistribuicao"
+      ? "Fila automática"
+      : "Responsável não registrado";
+  }
+  const perfil = item.atorPerfil ? PERFIL[item.atorPerfil] : null;
+  return perfil ? `${perfil} · ${item.ator}` : item.ator;
+}
+
 const ACAO: Record<string, string> = {
   entrada: "Entrou no sistema",
   distribuicao: "Distribuição",
@@ -165,8 +184,8 @@ export function LeadAtribuicaoHistorico({ leadId }: { leadId: string }) {
                         {formatDateTimePt(item.criadoEm)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {item.ator ? item.ator : "Fila automática"}
+                    <p className="mt-2 text-sm font-medium text-foreground">
+                      {quemFez(item)}
                     </p>
                     <div className="mt-2 space-y-1.5">
                       {item.deCorretor || item.paraCorretor ? (
