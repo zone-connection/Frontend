@@ -6,6 +6,7 @@ import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CampoCep, linhaDeEndereco } from "@/lib/cep-lookup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -1897,7 +1898,14 @@ function ConstrutorasPage() {
                     maxLength={15}
                   />
                 </div>
-                <div className="space-y-2">
+                <CampoCep
+                  id="construtora-cep"
+                  disabled={readOnly}
+                  onEncontrado={(endereco) =>
+                    setField("endereco", linhaDeEndereco(endereco))
+                  }
+                />
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="endereco">Endereço</Label>
                   <Input
                     id="endereco"

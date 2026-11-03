@@ -11,6 +11,7 @@ import {
   updateTenantCompany,
   uploadTenantCompanyLogo,
 } from "@/lib/tenant-company-api";
+import { CampoCep, linhaDeEndereco } from "@/lib/cep-lookup";
 import { formatPhone } from "@/lib/phone";
 import { formatCpfCnpj } from "@/lib/utils";
 import {
@@ -327,6 +328,20 @@ export function ConfigEmpresaPanel() {
                 }
               />
             </div>
+            <CampoCep
+              id="empresa-cep"
+              disabled={locked}
+              onEncontrado={(endereco) =>
+                setForm((prev) => ({
+                  ...prev,
+                  endereco: linhaDeEndereco(endereco) || prev.endereco,
+                  cidade:
+                    endereco.cidade && endereco.uf
+                      ? `${endereco.cidade}/${endereco.uf}`
+                      : prev.cidade,
+                }))
+              }
+            />
             <div className="space-y-1.5 md:col-span-2">
               <Label htmlFor="empresa-endereco">Endereço</Label>
               <Input

@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CampoCep, linhaDeEndereco } from "@/lib/cep-lookup";
 import { AgendamentoTipoPicker } from "@/components/agenda-tipo-option";
 import { AGENDAMENTO_TIPOS, AGENDAMENTO_TIPO_LABEL, type AgendamentoTipo } from "@/lib/agenda-api";
 import { TarefasCaptacaoPainel } from "@/routes/_app.captacao.fila";
@@ -1040,7 +1041,7 @@ function CriarCompromisso({
           </>
         ) : null}
 
-        <div className={avisoEntrada ? "hidden" : "contents"}>
+        <div className={avisoEntrada ? "hidden" : "space-y-8"}>
 
         <Section icon={Type} title="Título" hint="Descreva rapidamente o compromisso.">
           <Input
@@ -1051,7 +1052,7 @@ function CriarCompromisso({
           />
         </Section>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
           <Section icon={CalendarDays} title="Data">
             <Input className={selectClass} type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
           </Section>
@@ -1060,7 +1061,7 @@ function CriarCompromisso({
           </Section>
         </div>
 
-        <div className={tipo === "tarefa" ? "grid gap-4 sm:grid-cols-2" : undefined}>
+        <div className={tipo === "tarefa" ? "grid gap-x-6 gap-y-8 sm:grid-cols-2" : undefined}>
         <Section icon={UserRound} title="Responsável">
           <select className={selectClass} value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}>
             {atribuiveis.map((u) => (
@@ -1098,7 +1099,7 @@ function CriarCompromisso({
         ) : null}
 
         {gestor && tipo !== "bloqueio" ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
             <Section icon={Users} title="Quem pode ver">
               <select className={selectClass} value={alvoTipo} onChange={(e) => setAlvoTipo(e.target.value as AgendamentoAlvo)}>
                 {AGENDAMENTO_ALVOS.map((alvo) => (
@@ -1144,6 +1145,10 @@ function CriarCompromisso({
 
         {tipo === "visita" || tipo === "reuniao" || tipo === "outro" ? (
           <Section icon={Building2} title="Local">
+            <CampoCep
+              id="tarefa-cep"
+              onEncontrado={(endereco) => setLocal(linhaDeEndereco(endereco))}
+            />
             <Input className={selectClass} value={local} placeholder="Endereço ou sala" onChange={(e) => setLocal(e.target.value)} />
           </Section>
         ) : null}
@@ -1156,7 +1161,7 @@ function CriarCompromisso({
         ) : null}
 
         {tipo === "bloqueio" ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
             <Section icon={Repeat} title="Repetir bloqueio">
               <select className={selectClass} value={repetir} onChange={(e) => setRepetir(e.target.value as AgendamentoRecurrenceFreq)}>
                 <option value="unica">Não repetir</option>
@@ -1173,7 +1178,7 @@ function CriarCompromisso({
         ) : null}
 
         {comPessoa ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
           <Section icon={Users} title="Cliente">
             <IdSearchSelect
               value={clientes.some((item) => item.id === form.leadId) ? form.leadId ?? "" : ""}

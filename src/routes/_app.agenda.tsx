@@ -19,6 +19,7 @@ import {
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CampoCep, linhaDeEndereco } from "@/lib/cep-lookup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -2554,14 +2555,22 @@ function AgendaPage() {
 
               {form.tipo !== "bloqueio" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="local">Local</Label>
-                  <Input
-                    id="local"
-                    value={form.local}
-                    onChange={(e) => setField("local", e.target.value)}
-                    placeholder="Endereço ou ponto de encontro"
-                    maxLength={160}
+                  <CampoCep
+                    id="agenda-cep"
+                    onEncontrado={(endereco) =>
+                      setField("local", linhaDeEndereco(endereco))
+                    }
                   />
+                  <div className="space-y-2">
+                    <Label htmlFor="local">Local</Label>
+                    <Input
+                      id="local"
+                      value={form.local}
+                      onChange={(e) => setField("local", e.target.value)}
+                      placeholder="Endereço ou ponto de encontro"
+                      maxLength={160}
+                    />
+                  </div>
                 </div>
               ) : null}
 

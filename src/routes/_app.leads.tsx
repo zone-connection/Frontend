@@ -168,6 +168,7 @@ import { toast } from "sonner";
 import { cn, userFacingError } from "@/lib/utils";
 import { ArquivosDialog } from "@/components/arquivos-dialog";
 import { ContatoContratoFields } from "@/components/contato-contrato-fields";
+import { CampoCep } from "@/lib/cep-lookup";
 import { DocumentosPanel } from "@/components/documentos-panel";
 import {
   FormDialogActions,
@@ -2140,6 +2141,17 @@ function LeadsPage() {
                       />
                     </div>
                   </div>
+                  <CampoCep
+                    id="lead-prospeccao-cep"
+                    onEncontrado={(endereco) => {
+                      setProspeccao(
+                        "endereco",
+                        endereco.endereco || form.prospeccao.endereco,
+                      );
+                      if (endereco.bairro) setField("bairro", endereco.bairro);
+                      if (endereco.cidade) setField("cidade", endereco.cidade);
+                    }}
+                  />
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="lead-endereco"

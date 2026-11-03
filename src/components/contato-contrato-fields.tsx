@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { linhaDeEndereco, useConsultaCep } from "@/lib/cep-lookup";
 import { formatCep, formatCpfCnpj, formatRg } from "@/lib/utils";
 
 export type ContatoContratoValues = {
@@ -17,6 +18,8 @@ type Props = {
 
 /** Campos opcionais usados para preencher contratos. */
 export function ContatoContratoFields({ idPrefix, values, onChange }: Props) {
+  const { loading, buscar } = useConsultaCep();
+
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="space-y-1.5">
@@ -79,8 +82,18 @@ export function ContatoContratoFields({ idPrefix, values, onChange }: Props) {
           id={`${idPrefix}-cep`}
           inputMode="numeric"
           value={values.cep}
+          disabled={loading}
           onChange={(e) => onChange({ cep: formatCep(e.target.value) })}
-          placeholder="00000-000"
+          onBlur={() => {
+            void buscar(values.cep).then((endereco) => {
+              if (!endereco) return;
+              onChange({
+                cep: formatCep(endereco.cep || values.cep),
+                endereco: linhaDeEndereco(endereco) || values.endereco,
+              });
+            });
+          }}
+          placeholder={loading ? "Consultando..." : "00000-000"}
           className="h-10 bg-background"
           maxLength={9}
         />

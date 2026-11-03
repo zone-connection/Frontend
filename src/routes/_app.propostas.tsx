@@ -1836,6 +1836,36 @@ function Page() {
     }
   }
 
+  async function buscarCepComercial() {
+    const digits = form.clienteCepComercial.replace(/\D/g, "");
+    if (digits.length !== 8 || cepLoading) return;
+
+    setCepLoading(true);
+    try {
+      const endereco = await fetchEnderecoPorCep(digits);
+      setForm((current) => ({
+        ...current,
+        clienteCepComercial: endereco.cep || current.clienteCepComercial,
+        clienteEnderecoComercial:
+          endereco.endereco || current.clienteEnderecoComercial,
+        clienteBairroComercial:
+          endereco.bairro || current.clienteBairroComercial,
+        clienteCidadeComercial:
+          endereco.cidade || current.clienteCidadeComercial,
+        clienteUfComercial: endereco.uf || current.clienteUfComercial,
+      }));
+      toast.success("Endereço preenchido a partir do CEP.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível consultar o CEP.",
+      );
+    } finally {
+      setCepLoading(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const valor = parseMoney(form.valor);
@@ -3386,11 +3416,19 @@ function Page() {
                     }
                   />
                   <OptionalField
-                    label="CEP comercial"
+                    label={cepLoading ? "CEP comercial — consultando..." : "CEP comercial"}
                     value={form.clienteCepComercial}
                     onChange={(clienteCepComercial) =>
-                      setForm((f) => ({ ...f, clienteCepComercial }))
+                      setForm((f) => ({
+                        ...f,
+                        clienteCepComercial: digitsOnly(
+                          clienteCepComercial,
+                          8,
+                        ).replace(/^(\d{5})(\d)/, "$1-$2"),
+                      }))
                     }
+                    onBlur={() => void buscarCepComercial()}
+                    placeholder="00000-000"
                   />
                   <OptionalField
                     label="Site"

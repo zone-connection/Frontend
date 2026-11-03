@@ -36,6 +36,8 @@ import {
   Camera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatCep } from "@/lib/utils";
+import { useConsultaCep } from "@/lib/cep-lookup";
 import {
   type ImovelCadastroFields,
   type ImovelFichaValues,
@@ -46,6 +48,84 @@ const fieldInput =
 
 const imovelSelectClass =
   "flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
+function EnderecoSection({ cadastro }: { cadastro: ImovelCadastroFields }) {
+  const { loading, buscar } = useConsultaCep();
+
+  return (
+    <FormSection
+      icon={<MapPin className="h-3.5 w-3.5" />}
+      title="Endereço"
+      description="Digite o CEP para preencher rua, bairro, cidade e UF."
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={loading ? "CEP — consultando..." : "CEP"}>
+          <Input
+            className={fieldInput}
+            inputMode="numeric"
+            maxLength={9}
+            value={cadastro.cep}
+            placeholder="00000-000"
+            onChange={(e) =>
+              cadastro.onChange({ cep: formatCep(e.target.value) })
+            }
+            onBlur={() => {
+              void buscar(cadastro.cep).then((endereco) => {
+                if (!endereco) return;
+                cadastro.onChange({
+                  cep: formatCep(endereco.cep || cadastro.cep),
+                  logradouro: endereco.endereco || cadastro.logradouro,
+                  bairro: endereco.bairro || cadastro.bairro,
+                  cidade: endereco.cidade || cadastro.cidade,
+                  estado: endereco.uf || cadastro.estado,
+                });
+              });
+            }}
+          />
+        </Field>
+        <Field label="UF">
+          <Input
+            className={fieldInput}
+            value={cadastro.estado}
+            maxLength={2}
+            onChange={(e) => cadastro.onChange({ estado: e.target.value })}
+          />
+        </Field>
+        <Field label="Logradouro" className="sm:col-span-2">
+          <Input
+            className={fieldInput}
+            value={cadastro.logradouro}
+            onChange={(e) =>
+              cadastro.onChange({ logradouro: e.target.value })
+            }
+          />
+        </Field>
+        <Field label="Número">
+          <Input
+            className={fieldInput}
+            value={cadastro.numero}
+            onChange={(e) => cadastro.onChange({ numero: e.target.value })}
+          />
+        </Field>
+        <Field label="Bairro">
+          <Input
+            className={fieldInput}
+            value={cadastro.bairro}
+            onChange={(e) => cadastro.onChange({ bairro: e.target.value })}
+            placeholder="Muro Alto"
+          />
+        </Field>
+        <Field label="Cidade" className="sm:col-span-2">
+          <Input
+            className={fieldInput}
+            value={cadastro.cidade}
+            onChange={(e) => cadastro.onChange({ cidade: e.target.value })}
+          />
+        </Field>
+      </div>
+    </FormSection>
+  );
+}
 
 function Field({
   label,
@@ -313,60 +393,7 @@ export function ImovelFichaFields({
       ) : null}
 
       {section === "endereco" && cadastro ? (
-        <FormSection
-          icon={<MapPin className="h-3.5 w-3.5" />}
-          title="Endereço"
-          description="Localização do imóvel."
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="CEP">
-              <Input
-                className={fieldInput}
-                value={cadastro.cep}
-                onChange={(e) => cadastro.onChange({ cep: e.target.value })}
-              />
-            </Field>
-            <Field label="UF">
-              <Input
-                className={fieldInput}
-                value={cadastro.estado}
-                maxLength={2}
-                onChange={(e) => cadastro.onChange({ estado: e.target.value })}
-              />
-            </Field>
-            <Field label="Logradouro" className="sm:col-span-2">
-              <Input
-                className={fieldInput}
-                value={cadastro.logradouro}
-                onChange={(e) =>
-                  cadastro.onChange({ logradouro: e.target.value })
-                }
-              />
-            </Field>
-            <Field label="Número">
-              <Input
-                className={fieldInput}
-                value={cadastro.numero}
-                onChange={(e) => cadastro.onChange({ numero: e.target.value })}
-              />
-            </Field>
-            <Field label="Bairro">
-              <Input
-                className={fieldInput}
-                value={cadastro.bairro}
-                onChange={(e) => cadastro.onChange({ bairro: e.target.value })}
-                placeholder="Muro Alto"
-              />
-            </Field>
-            <Field label="Cidade" className="sm:col-span-2">
-              <Input
-                className={fieldInput}
-                value={cadastro.cidade}
-                onChange={(e) => cadastro.onChange({ cidade: e.target.value })}
-              />
-            </Field>
-          </div>
-        </FormSection>
+        <EnderecoSection cadastro={cadastro} />
       ) : null}
 
       {section === "foto" && foto ? (

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { SkeletonPropertyCards } from "@/components/skeletons";
 import { useDeferredLoading } from "@/hooks/use-deferred-loading";
+import { nomeEstado, useConsultaCep } from "@/lib/cep-lookup";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import {
@@ -115,7 +116,7 @@ import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { CatalogItem } from "@/lib/catalog-api";
-import { cn } from "@/lib/utils";
+import { cn, formatCep } from "@/lib/utils";
 import {
   createConstrutora,
   fetchConstrutoras,
@@ -657,6 +658,7 @@ export function ImoveisPage({
   const canCreateCatalog = canManage;
   const { catalog, addItem, updateItem, removeItem, colorByLabel } =
     useCatalog();
+  const { loading: cepLoading, buscar: buscarCep } = useConsultaCep();
   const tipoOptions = catalog.empreendimento_tipo;
   const statusOptions = catalog.empreendimento_status;
   const tagOptions = catalog.empreendimento_tag;
@@ -3147,15 +3149,32 @@ export function ImoveisPage({
                   maxLength={40}
                 />
               </FormField>
-              <FormField label="CEP" htmlFor="imovel-vitrine-cep">
+              <FormField
+                label={cepLoading ? "CEP — consultando..." : "CEP"}
+                htmlFor="imovel-vitrine-cep"
+              >
                 <Input
                   id="imovel-vitrine-cep"
+                  inputMode="numeric"
                   value={form.vitrineCep}
                   onChange={(event) =>
-                    setField("vitrineCep", event.target.value)
+                    setField("vitrineCep", formatCep(event.target.value))
                   }
-                  placeholder="50741-430"
-                  maxLength={12}
+                  onBlur={() => {
+                    void buscarCep(form.vitrineCep).then((endereco) => {
+                      if (!endereco) return;
+                      setForm((prev) => ({
+                        ...prev,
+                        vitrineCep: formatCep(endereco.cep || prev.vitrineCep),
+                        endereco: endereco.endereco || prev.endereco,
+                        vitrineBairro: endereco.bairro || prev.vitrineBairro,
+                        vitrineEstado:
+                          nomeEstado(endereco.uf) || prev.vitrineEstado,
+                      }));
+                    });
+                  }}
+                  placeholder="00000-000"
+                  maxLength={9}
                 />
               </FormField>
               <FormField label="Latitude" htmlFor="imovel-lat">

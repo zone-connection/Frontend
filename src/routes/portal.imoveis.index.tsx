@@ -34,6 +34,8 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import { toast } from "sonner";
+import { formatCep } from "@/lib/utils";
+import { useConsultaCep } from "@/lib/cep-lookup";
 
 export const Route = createFileRoute("/portal/imoveis/")({
   ssr: false,
@@ -52,6 +54,7 @@ function PortalImoveisPage() {
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [cep, setCep] = useState("");
+  const { loading: cepLoading, buscar: buscarCep } = useConsultaCep(true);
   const [valor, setValor] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
   const [fotoPreviews, setFotoPreviews] = useState<string[]>([]);
@@ -217,8 +220,25 @@ function PortalImoveisPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="cep">CEP</Label>
-                <Input id="cep" value={cep} onChange={(e) => setCep(e.target.value)} />
+                <Label htmlFor="cep">{cepLoading ? "CEP — consultando..." : "CEP"}</Label>
+                <Input
+                  id="cep"
+                  inputMode="numeric"
+                  maxLength={9}
+                  placeholder="00000-000"
+                  value={cep}
+                  onChange={(e) => setCep(formatCep(e.target.value))}
+                  onBlur={() => {
+                    void buscarCep(cep).then((endereco) => {
+                      if (!endereco) return;
+                      setCep(formatCep(endereco.cep || cep));
+                      if (endereco.endereco) setLogradouro(endereco.endereco);
+                      if (endereco.bairro) setBairro(endereco.bairro);
+                      if (endereco.cidade) setCidade(endereco.cidade);
+                      if (endereco.uf) setEstado(endereco.uf);
+                    });
+                  }}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="valor">Valor pretendido</Label>
