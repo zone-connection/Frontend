@@ -532,13 +532,13 @@ export function LeadFichaView({
             )
           ) : null}
 
-          {tab === "Distribuição" && isAdmin ? (
-            <>
+          {isAdmin ? (
+            <div className={tab === "Distribuição" ? undefined : "hidden"}>
               <h2 className="text-sm font-semibold">Histórico de distribuição</h2>
               <div className="mt-3">
                 <LeadAtribuicaoHistorico leadId={lead.id} />
               </div>
-            </>
+            </div>
           ) : null}
 
           {tab === "Dados" ? (

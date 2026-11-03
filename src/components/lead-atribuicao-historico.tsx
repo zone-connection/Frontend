@@ -29,20 +29,43 @@ function equipe(de: string | null, para: string | null) {
   return `${de ?? "sem equipe"} → ${para ?? "sem equipe"}`;
 }
 
+const cache = new Map<
+  string,
+  { itens: LeadAtribuicaoItem[]; cadastradoEm: string }
+>();
+
 export function LeadAtribuicaoHistorico({ leadId }: { leadId: string }) {
-  const [itens, setItens] = useState<LeadAtribuicaoItem[] | null>(null);
-  const [cadastradoEm, setCadastradoEm] = useState<string | null>(null);
+  const salvo = cache.get(leadId);
+  const [itens, setItens] = useState<LeadAtribuicaoItem[] | null>(
+    salvo?.itens ?? null,
+  );
+  const [cadastradoEm, setCadastradoEm] = useState<string | null>(
+    salvo?.cadastradoEm ?? null,
+  );
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
+    const pronto = cache.get(leadId);
+    if (pronto) {
+      setItens(pronto.itens);
+      setCadastradoEm(pronto.cadastradoEm);
+      return;
+    }
     let ativo = true;
-    setItens(null);
-    setErro(null);
+    const timer = window.setTimeout(() => {
+      if (!ativo) return;
+      setErro("O histórico demorou para responder. Feche e abra o lead de novo.");
+    }, 8000);
     void fetchLeadAtribuicoes(leadId)
       .then((data) => {
         if (!ativo) return;
+        cache.set(leadId, {
+          itens: data.itens,
+          cadastradoEm: data.cadastradoEm,
+        });
         setItens(data.itens);
         setCadastradoEm(data.cadastradoEm);
+        setErro(null);
       })
       .catch((error) => {
         if (!ativo) return;
@@ -51,9 +74,11 @@ export function LeadAtribuicaoHistorico({ leadId }: { leadId: string }) {
             ? error.message
             : "Não foi possível carregar o histórico.",
         );
-      });
+      })
+      .finally(() => window.clearTimeout(timer));
     return () => {
       ativo = false;
+      window.clearTimeout(timer);
     };
   }, [leadId]);
 
