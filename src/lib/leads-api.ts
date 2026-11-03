@@ -707,6 +707,25 @@ export async function fetchLostClientes(params?: {
 }
 
 /** Exclusão definitiva (admin). */
+export type LeadAtribuicaoItem = {
+  id: string;
+  acao: string;
+  criadoEm: string;
+  ator: string | null;
+  deCorretor: string | null;
+  paraCorretor: string | null;
+  deEquipe: string | null;
+  paraEquipe: string | null;
+};
+
+export async function fetchLeadAtribuicoes(id: string): Promise<{
+  leadId: string;
+  cadastradoEm: string;
+  itens: LeadAtribuicaoItem[];
+}> {
+  return apiFetch(`/leads/${id}/atribuicoes`);
+}
+
 export async function deleteLeadApi(id: string): Promise<void> {
   await apiFetch<void>(`/leads/${id}`, { method: "DELETE" });
 }

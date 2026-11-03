@@ -46,6 +46,8 @@ import { formatDateTimePt } from "@/lib/lead-monitoramento";
 import { formatPhone } from "@/lib/phone";
 import type { TriagemEvent } from "@/lib/triagem-api";
 import { cn } from "@/lib/utils";
+import { getSession } from "@/lib/auth";
+import { LeadAtribuicaoHistorico } from "@/components/lead-atribuicao-historico";
 
 type FichaAction = {
   label: string;
@@ -55,7 +57,7 @@ type FichaAction = {
   disabled?: boolean;
 };
 
-const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Documentações"] as const;
+const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Documentações", "Distribuição"] as const;
 
 const FILTERS = [
   { id: "todos", label: "Todos" },
@@ -193,6 +195,8 @@ export function LeadFichaView({
   onArquivosActivity: () => void;
   hasWhatsapp: boolean;
 }) {
+  const isAdmin = getSession()?.role === "admin";
+  const tabs = TABS.filter((item) => item !== "Distribuição" || isAdmin);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [pendingStage, setPendingStage] = useState<string | null>(null);
   const [filter, setFilter] = useState<HistoryKind>("todos");
@@ -409,7 +413,7 @@ export function LeadFichaView({
       </div>
 
       <div className="mx-6 mt-4 flex flex-wrap gap-2">
-        {TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item}
             type="button"
@@ -526,6 +530,15 @@ export function LeadFichaView({
                 </Button>
               </div>
             )
+          ) : null}
+
+          {tab === "Distribuição" && isAdmin ? (
+            <>
+              <h2 className="text-sm font-semibold">Histórico de distribuição</h2>
+              <div className="mt-3">
+                <LeadAtribuicaoHistorico leadId={lead.id} />
+              </div>
+            </>
           ) : null}
 
           {tab === "Dados" ? (
