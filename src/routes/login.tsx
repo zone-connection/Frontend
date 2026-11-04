@@ -19,7 +19,13 @@ import { MfaLoginPanel } from "@/components/mfa-login-panel";
 import { TurnstileWidget, turnstileSiteKey } from "@/components/turnstile-widget";
 import { signInPortal } from "@/lib/portal-auth";
 import { signInParceiro } from "@/lib/parceiros-auth";
-import { getWhatsAppUrl } from "@/lib/env";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { defaultRouteForRole } from "@/lib/permissions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -208,6 +214,7 @@ function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
+  const [pedirAcesso, setPedirAcesso] = useState(false);
   const [mfaStep, setMfaStep] = useState<Exclude<LoginResult, { kind: "session" }> | null>(null);
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -579,22 +586,47 @@ function LoginPage() {
               </p>
               <p className="px-4 py-3 text-[#5C6B76]">
                 Ainda não tem conta?{" "}
-                <a
-                  href={getWhatsAppUrl(
-                    "Olá! Vim pela tela de login da Zone Connection e gostaria de saber mais.",
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   className="font-semibold text-[#079ED4] hover:text-[#05749E]"
+                  onClick={() => setPedirAcesso(true)}
                 >
-                  Fale conosco
-                </a>
+                  Solicite ao administrador
+                </button>
               </p>
             </div>
             </div>
           </div>
         </div>
       </main>
+
+      <Dialog open={pedirAcesso} onOpenChange={setPedirAcesso}>
+        <DialogContent className="border-0 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar acesso</DialogTitle>
+            <DialogDescription>
+              Quem ainda não tem conta pede o usuário ao gerente ou ao administrador da própria imobiliária. Eles criam o acesso no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <button
+            type="button"
+            className="w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white"
+            onClick={() => {
+              const texto = email.trim()
+                ? `Olá, ainda não tenho acesso à Zone Connection. Pode criar meu usuário? Meu e-mail é ${email.trim()}.`
+                : "Olá, ainda não tenho acesso à Zone Connection. Pode criar meu usuário?";
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(texto)}`,
+                "_blank",
+                "noopener,noreferrer",
+              );
+              setPedirAcesso(false);
+            }}
+          >
+            Enviar pedido no WhatsApp
+          </button>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes login-fade {
