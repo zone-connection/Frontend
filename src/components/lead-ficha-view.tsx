@@ -24,6 +24,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -42,12 +43,26 @@ import {
 } from "@/components/triagem-history-timeline";
 import type { ArquivoHistoricoItem } from "@/lib/arquivos-api";
 import { brl, type Lead } from "@/lib/crm-types";
+import { formatMoneyInput } from "@/lib/money-input";
 import { formatDateTimePt } from "@/lib/lead-monitoramento";
 import { formatPhone } from "@/lib/phone";
 import type { TriagemEvent } from "@/lib/triagem-api";
 import { cn } from "@/lib/utils";
 import { getSession } from "@/lib/auth";
 import { LeadAtribuicaoHistorico } from "@/components/lead-atribuicao-historico";
+
+export type LeadFieldKey =
+  | "nome"
+  | "telefone"
+  | "email"
+  | "origem"
+  | "cidade"
+  | "bairro"
+  | "renda"
+  | "tipoRenda"
+  | "estadoCivil"
+  | "orcamentoMax"
+  | "cpf";
 
 type FichaAction = {
   label: string;
@@ -151,6 +166,7 @@ export function LeadFichaView({
   onBack,
   onSelectStage,
   onChangePrioridade,
+  onSaveField,
   onCall,
   onWhatsApp,
   perdaAction,
@@ -179,6 +195,7 @@ export function LeadFichaView({
   onBack: () => void;
   onSelectStage?: (stageId: string) => void;
   onChangePrioridade?: (prioridade: Lead["prioridade"]) => void;
+  onSaveField?: (field: LeadFieldKey, value: string) => Promise<void>;
   onCall: () => void;
   onWhatsApp: () => void;
   perdaAction?: FichaAction;
@@ -402,10 +419,29 @@ export function LeadFichaView({
       </div>
 
       <div className="mx-6 mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
-        <Fact icon={Phone} label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
-        <Fact icon={Mail} label="E-mail" value={email || "—"} />
-        <Fact icon={Wallet} label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} />
-        <Fact icon={FileText} label="Interesse" value={local || lead.interesse} />
+        <Fact icon={Phone} label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} editValue={lead.telefone || ""} onSave={onSaveField ? (value) => onSaveField("telefone", value) : undefined} />
+        <Fact icon={Mail} label="E-mail" value={email || "—"} editValue={email} onSave={onSaveField ? (value) => onSaveField("email", value) : undefined} />
+        <Fact icon={Wallet} label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} editValue={lead.renda != null ? formatMoneyInput(lead.renda) : ""} onSave={onSaveField ? (value) => onSaveField("renda", value) : undefined} />
+        <Fact
+          icon={FileText}
+          label="Interesse"
+          value={local || lead.interesse}
+          editValue={local || lead.interesse || ""}
+          onSave={
+            onSaveField
+              ? async (value) => {
+                  const [bairro, ...rest] = value.split(",");
+                  const cidade = rest.join(",").trim();
+                  if (cidade) {
+                    await onSaveField("bairro", bairro.trim());
+                    await onSaveField("cidade", cidade);
+                    return;
+                  }
+                  await onSaveField("cidade", bairro.trim());
+                }
+              : undefined
+          }
+        />
         <Fact
           icon={Users}
           label="Origem"
@@ -415,6 +451,8 @@ export function LeadFichaView({
             lead.origem ||
             "—"
           }
+          editValue={lead.origem || ""}
+          onSave={lead.aquisicao || !onSaveField ? undefined : (value) => onSaveField("origem", value)}
         />
         <Fact icon={Clock} label="Cadastro" value={created || "—"} />
         {lead.aquisicao ? (
@@ -572,9 +610,9 @@ export function LeadFichaView({
 
           {tab === "Dados" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Data label="Nome" value={lead.nome} />
-              <Data label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} />
-              <Data label="E-mail" value={email || "—"} />
+              <Data label="Nome" value={lead.nome} onSave={onSaveField ? (value) => onSaveField("nome", value) : undefined} />
+              <Data label="Telefone" value={lead.telefone ? formatPhone(lead.telefone) : "—"} editValue={lead.telefone || ""} onSave={onSaveField ? (value) => onSaveField("telefone", value) : undefined} />
+              <Data label="E-mail" value={email || "—"} editValue={email} onSave={onSaveField ? (value) => onSaveField("email", value) : undefined} />
               <Data
                 label="Origem"
                 value={
@@ -583,6 +621,8 @@ export function LeadFichaView({
                   lead.origem ||
                   "—"
                 }
+                editValue={lead.origem || ""}
+                onSave={lead.aquisicao || !onSaveField ? undefined : (value) => onSaveField("origem", value)}
               />
               {lead.aquisicao ? (
                 <>
@@ -613,13 +653,13 @@ export function LeadFichaView({
                 </>
               ) : null}
               <Data label="Prioridade" value={lead.prioridade} />
-              <Data label="Cidade" value={lead.cidade || "—"} />
-              <Data label="Bairro" value={lead.bairro || "—"} />
-              <Data label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} />
-              <Data label="Tipo de renda" value={lead.tipoRenda || "—"} />
-              <Data label="Estado civil" value={lead.estadoCivil || "—"} />
-              <Data label="Orçamento" value={lead.orcamentoMax != null ? brl(lead.orcamentoMax) : "—"} />
-              <Data label="CPF" value={lead.cpf || "—"} />
+              <Data label="Cidade" value={lead.cidade || "—"} editValue={lead.cidade || ""} onSave={onSaveField ? (value) => onSaveField("cidade", value) : undefined} />
+              <Data label="Bairro" value={lead.bairro || "—"} editValue={lead.bairro || ""} onSave={onSaveField ? (value) => onSaveField("bairro", value) : undefined} />
+              <Data label="Renda" value={lead.renda != null ? brl(lead.renda) : "—"} editValue={lead.renda != null ? formatMoneyInput(lead.renda) : ""} onSave={onSaveField ? (value) => onSaveField("renda", value) : undefined} />
+              <Data label="Tipo de renda" value={lead.tipoRenda || "—"} editValue={lead.tipoRenda || ""} onSave={onSaveField ? (value) => onSaveField("tipoRenda", value) : undefined} />
+              <Data label="Estado civil" value={lead.estadoCivil || "—"} editValue={lead.estadoCivil || ""} onSave={onSaveField ? (value) => onSaveField("estadoCivil", value) : undefined} />
+              <Data label="Orçamento" value={lead.orcamentoMax != null ? brl(lead.orcamentoMax) : "—"} editValue={lead.orcamentoMax != null ? formatMoneyInput(lead.orcamentoMax) : ""} onSave={onSaveField ? (value) => onSaveField("orcamentoMax", value) : undefined} />
+              <Data label="CPF" value={lead.cpf || "—"} editValue={lead.cpf || ""} onSave={onSaveField ? (value) => onSaveField("cpf", value) : undefined} />
               <Data label="Corretor" value={lead.corretor || "—"} />
               <Data label="Equipe" value={equipe || lead.equipe || "—"} />
               {lead.empreendimento?.nome ? <Data label="Empreendimento" value={lead.empreendimento.nome} /> : null}
@@ -700,20 +740,160 @@ export function LeadFichaView({
   );
 }
 
-function Fact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+function Fact({
+  icon: Icon,
+  label,
+  value,
+  editValue,
+  onSave,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  editValue?: string;
+  onSave?: (next: string) => Promise<void>;
+}) {
+  const current = (editValue ?? (value === "—" ? "" : value)).trim();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(current);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(current);
+  }, [current, editing]);
+
+  async function commit() {
+    const next = draft.trim();
+    if (next === current || !onSave) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(next);
+      setEditing(false);
+    } catch {
+      setDraft(current);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card px-3 py-2.5 text-card-foreground shadow-sm">
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Icon className="h-3.5 w-3.5 text-[#079ED4]" /> {label}</p>
-      <p className="mt-1 truncate text-sm font-medium text-foreground">{value}</p>
+      {editing ? (
+        <Input
+          autoFocus
+          value={draft}
+          disabled={saving}
+          className="mt-1 h-8 text-sm"
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => void commit()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void commit();
+            }
+            if (event.key === "Escape") {
+              setDraft(current);
+              setEditing(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          disabled={!onSave}
+          onClick={() => onSave && setEditing(true)}
+          className={cn(
+            "mt-1 block w-full truncate text-left text-sm font-medium text-foreground",
+            onSave && "cursor-text",
+          )}
+        >
+          {value || "—"}
+        </button>
+      )}
     </div>
   );
 }
 
-function Data({ label, value }: { label: string; value: string }) {
+function Data({
+  label,
+  value,
+  editValue,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  editValue?: string;
+  onSave?: (next: string) => Promise<void>;
+}) {
+  const current = (editValue ?? (value === "—" ? "" : value)).trim();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(current);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(current);
+  }, [current, editing]);
+
+  async function commit() {
+    const next = draft.trim();
+    if (next === current) {
+      setEditing(false);
+      return;
+    }
+    if (!onSave) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(next);
+      setEditing(false);
+    } catch {
+      setDraft(current);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="rounded-xl bg-muted px-3 py-2.5">
       <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
+      {editing ? (
+        <Input
+          autoFocus
+          value={draft}
+          disabled={saving}
+          className="mt-1 h-8 bg-background text-sm"
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => void commit()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void commit();
+            }
+            if (event.key === "Escape") {
+              setDraft(current);
+              setEditing(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          disabled={!onSave}
+          onClick={() => onSave && setEditing(true)}
+          className={cn(
+            "mt-0.5 block w-full truncate text-left text-sm font-medium text-foreground",
+            onSave && "cursor-text rounded-sm hover:bg-background/70",
+          )}
+        >
+          {value || "—"}
+        </button>
+      )}
     </div>
   );
 }

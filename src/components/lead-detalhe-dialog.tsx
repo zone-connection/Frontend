@@ -791,6 +791,19 @@ export function LeadDetalheDialog({
               equipe={equipe}
               onBack={() => onOpenChange(false)}
               onSelectStage={(stageId) => void moverEtapa(stageId)}
+              onSaveField={async (field, value) => {
+                const money = field === "renda" || field === "orcamentoMax";
+                try {
+                  await saveText(field as keyof UpdateLeadInput, value, {
+                    phone: field === "telefone",
+                    money,
+                    required: field === "nome" || field === "telefone",
+                  });
+                } catch (err) {
+                  toast.error(errorMessage(err, "Não foi possível salvar."));
+                  throw err;
+                }
+              }}
               onChangePrioridade={(prioridade) => {
                 void patch({ prioridade })
                   .then(() => toast.success("Prioridade atualizada."))
