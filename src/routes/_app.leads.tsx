@@ -118,6 +118,7 @@ import {
   STATUS_CHIP_CLASS,
 } from "@/lib/catalog-colors";
 import { getSession } from "@/lib/auth";
+import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { getGerenteVerLeadsGerais } from "@/lib/clientes-nav-prefs";
 import { canAccessRoute } from "@/lib/permissions";
 import { contratoTemplatesForRole } from "@/lib/contratos-templates";
@@ -151,7 +152,11 @@ import {
   type ImportExistingIndex,
   type ParsedImportLead,
 } from "@/lib/leads-io";
-import { LeadOrigemLiberacaoBadge, LeadRoletaBadge } from "@/components/lead-origem-liberacao-badge";
+import {
+  LeadOrigemLiberacaoBadge,
+  LeadRoletaBadge,
+  resolveLeadOrigemLiberacao,
+} from "@/components/lead-origem-liberacao-badge";
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LeadsDistribuirDialog } from "@/components/leads-distribuir-dialog";
 import {
@@ -197,7 +202,13 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 
-type DistribuicaoFilter = "all" | "chegaram" | "retrabalho" | "distribuidos" | "meus";
+type DistribuicaoFilter =
+  | "all"
+  | "chegaram"
+  | "retrabalho"
+  | "distribuidos"
+  | "reatribuidos"
+  | "meus";
 
 type LeadsSearch = {
   distribuicao?: DistribuicaoFilter;
@@ -237,6 +248,7 @@ export const Route = createFileRoute("/_app/leads")({
       d === "chegaram" ||
       d === "retrabalho" ||
       d === "distribuidos" ||
+      d === "reatribuidos" ||
       d === "all" ||
       d === "meus"
     ) {
@@ -632,7 +644,7 @@ function LeadsPage() {
   const [contratoLead, setContratoLead] = useState<Lead | null>(null);
   const [arquivosLead, setArquivosLead] = useState<Lead | null>(null);
   const showTeamColumns = !isCorretor && !isPlatformAdmin;
-  const leadTableColSpan = showTeamColumns ? 12 : 10;
+  const leadTableColSpan = isPlatformAdmin ? 9 : showTeamColumns ? 7 : 6;
   /** Só admin/analista filtram entre várias equipes. Gerente não filtra por outras. */
   const canFilterEquipe = user?.role === "admin" || user?.role === "analista";
 
@@ -860,6 +872,9 @@ function LeadsPage() {
     (isGerente ? true : !l.equipeId);
   const isLeadDistribuido = (l: Lead) =>
     isGerente ? Boolean(l.corretorId) : Boolean(l.corretorId || l.equipeId);
+  const isLeadReatribuido = (l: Lead) =>
+    resolveLeadOrigemLiberacao(l)?.kind === "reatribuido" ||
+    Boolean(l.roletaRedistribuido);
 
   // Filtra no cliente sobre a lista já carregada no store — evita round-trip
   // ao Postgres remoto a cada mudança de filtro.
@@ -930,6 +945,12 @@ function LeadsPage() {
       )
         return false;
       if (
+        !isCorretor &&
+        distribuicaoFilter === "reatribuidos" &&
+        !isLeadReatribuido(l)
+      )
+        return false;
+      if (
         isGerente &&
         distribuicaoFilter === "meus" &&
         !isLeadCarteiraPropria(l, user?.id)
@@ -989,14 +1010,23 @@ function LeadsPage() {
     let chegaram = 0;
     let retrabalho = 0;
     let distribuidos = 0;
+    let reatribuidos = 0;
     let meus = 0;
     for (const l of leads) {
       if (isLeadRetrabalho(l)) retrabalho += 1;
       else if (isLeadChegou(l)) chegaram += 1;
       else if (isLeadDistribuido(l)) distribuidos += 1;
+      if (isLeadReatribuido(l)) reatribuidos += 1;
       if (isLeadCarteiraPropria(l, user?.id)) meus += 1;
     }
-    return { chegaram, retrabalho, distribuidos, meus, todos: leads.length };
+    return {
+      chegaram,
+      retrabalho,
+      distribuidos,
+      reatribuidos,
+      meus,
+      todos: leads.length,
+    };
   }, [leads, user?.id, isGerente]);
 
   const kpiCounts = useMemo(() => {
@@ -1014,6 +1044,7 @@ function LeadsPage() {
       chegaram: distribuicaoCounts.chegaram,
       retrabalho: distribuicaoCounts.retrabalho,
       distribuidos: distribuicaoCounts.distribuidos,
+      reatribuidos: distribuicaoCounts.reatribuidos,
       meus: distribuicaoCounts.meus,
     };
   }, [leads, funnelStages, distribuicaoCounts]);
@@ -3438,8 +3469,8 @@ function LeadsPage() {
           isPlatformAdmin
             ? "lg:grid-cols-2"
             : isGerente
-              ? "xl:grid-cols-6"
-              : "xl:grid-cols-5",
+              ? "xl:grid-cols-7"
+              : "xl:grid-cols-6",
         )}
       >
         <LeadKpi
@@ -3511,6 +3542,23 @@ function LeadsPage() {
                 void navigate({
                   to: "/leads",
                   search: { distribuicao: "distribuidos" },
+                  replace: true,
+                });
+              }}
+            />
+            <LeadKpi
+              label="Reatribuídos"
+              value={kpiCounts.reatribuidos}
+              icon={UserRoundCog}
+              tone="blue-4"
+              active={distribuicaoFilter === "reatribuidos"}
+              onClick={() => {
+                setDistribuicaoFilter("reatribuidos");
+                setPrioridadeFilter("all");
+                setParadosFilter(false);
+                void navigate({
+                  to: "/leads",
+                  search: { distribuicao: "reatribuidos" },
                   replace: true,
                 });
               }}
@@ -3731,9 +3779,9 @@ function LeadsPage() {
         </FiltrosPainel>
       </div>
 
-      {showTeamColumns && (
+      {!isCorretor ? (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-0.5 dark:border-white/15 dark:bg-[#0b0f14]">
+          <div className="inline-flex flex-wrap rounded-lg border border-border/60 bg-card p-1">
             {(
               [
                 {
@@ -3760,6 +3808,12 @@ function LeadsPage() {
                   count: distribuicaoCounts.distribuidos,
                   icon: UserCheck,
                 },
+                {
+                  id: "reatribuidos" as const,
+                  label: "Reatribuídos",
+                  count: distribuicaoCounts.reatribuidos,
+                  icon: UserRoundCog,
+                },
                 ...(isGerente
                   ? [
                       {
@@ -3785,14 +3839,22 @@ function LeadsPage() {
                   type="button"
                   onClick={() => {
                     setDistribuicaoFilter(opt.id);
+                    setPrioridadeFilter("all");
+                    setParadosFilter(false);
                     if (opt.id === "meus") setCorretorFilter("all");
+                    void navigate({
+                      to: "/leads",
+                      search: opt.id === "all" ? {} : { distribuicao: opt.id },
+                      replace: true,
+                    });
                   }}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                     selected
-                      ? "bg-[#079ED4] text-white"
-                      : "text-[#5C6B76] hover:bg-white hover:text-[#0B3148] dark:text-[#94a3b8] dark:hover:bg-[#1c2430] dark:hover:text-[#f8fafc]",
+                      ? "border-0 bg-transparent text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
+                  style={selected ? BRAND_GRADIENT_STYLE : undefined}
                 >
                   {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
                   {opt.label}
@@ -3811,27 +3873,14 @@ function LeadsPage() {
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {paradosFilter
-              ? `Somente leads sem atualização há ${DIAS_PARADO} dias ou mais.`
-              : distribuicaoFilter === "chegaram"
-                ? "Leads no pool, ainda sem equipe nem corretor."
-                : distribuicaoFilter === "retrabalho"
-                  ? "Leads em retrabalho no funil — só gerente e admin veem e reatribuem."
-                  : distribuicaoFilter === "distribuidos"
-                  ? "Leads já atribuídos a uma equipe ou corretor."
-                  : distribuicaoFilter === "meus"
-                    ? "Somente leads da sua carteira, não os da equipe."
-                    : "Visão completa do funil."}
-          </p>
         </div>
-      )}
+      ) : null}
 
       <Card className={cn("min-w-0", TABLE_SHELL)}>
         <Table
           containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
           className={cn(
-            "w-full min-w-280 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle",
+            "w-full min-w-[52rem] table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle",
             TABLE_LUX,
           )}
         >
@@ -3847,18 +3896,20 @@ function LeadsPage() {
                   disabled={filteredLeads.length === 0 || bulkDeleting}
                 />
               </TableHead>
-              <TableHead className="w-[16%]">{isPlatformAdmin ? "Empresa" : "Lead"}</TableHead>
-              <TableHead className="w-32">Origem</TableHead>
-              <TableHead className="w-22 pr-4 text-center!">
-                {isPlatformAdmin ? "Produto" : "Tipo de renda"}
-              </TableHead>
-              <TableHead className="w-36">Etapa</TableHead>
-              {showTeamColumns && <TableHead className="w-28">Equipe</TableHead>}
+              <TableHead className="w-[34%]">{isPlatformAdmin ? "Empresa" : "Lead"}</TableHead>
+              {isPlatformAdmin ? (
+                <TableHead className="w-22 pr-4 text-center!">Produto</TableHead>
+              ) : null}
+              <TableHead className="w-40">Etapa</TableHead>
               {showTeamColumns && (
-                <TableHead className="w-[14%]">Corretor</TableHead>
+                <TableHead className="w-[22%]">Corretor</TableHead>
               )}
-              <TableHead className="w-[7%]">{isPlatformAdmin ? "Fit" : "Renda"}</TableHead>
-              <TableHead className="w-[8%]">{isPlatformAdmin ? "Município" : "Estado civil"}</TableHead>
+              {isPlatformAdmin ? (
+                <>
+                  <TableHead className="w-[7%]">Fit</TableHead>
+                  <TableHead className="w-[8%]">Município</TableHead>
+                </>
+              ) : null}
               <TableHead className="w-19">Prioridade</TableHead>
               <TableHead className="w-28">Atualizado</TableHead>
               <TableHead className="sticky right-0 z-20 w-16 text-right">
@@ -3899,7 +3950,6 @@ function LeadsPage() {
                   stage.papel === "inicial" ||
                   stage.id === "novo" ||
                   l.stage === "novo";
-                const equipe = equipeLabel(l);
                 return (
                   <TableRow
                     key={l.id}
@@ -3958,35 +4008,13 @@ function LeadsPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="overflow-visible">
-                      {l.origem ? (
-                        <Badge
-                          className={cn(
-                            catalogColorBadgeClass(
-                              colorByLabel("origem", l.origem),
-                            ),
-                            "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
-                          )}
-                          style={catalogColorBadgeStyle(
-                            colorByLabel("origem", l.origem),
-                          )}
-                          title={l.origem}
-                        >
-                          {l.origem}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="truncate pr-4 text-center!">
-                      {isPlatformAdmin
-                        ? l.prospeccao?.produtoIndicado || (
-                            <span className="text-muted-foreground">—</span>
-                          )
-                        : l.tipoRenda || (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
+                    {isPlatformAdmin ? (
+                      <TableCell className="truncate pr-4 text-center!">
+                        {l.prospeccao?.produtoIndicado || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <Badge
                         className={cn(
@@ -4005,15 +4033,6 @@ function LeadsPage() {
                       </Badge>
                     </TableCell>
                     {showTeamColumns && (
-                      <TableCell className="truncate">
-                        {equipe === "—" ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          equipe
-                        )}
-                      </TableCell>
-                    )}
-                    {showTeamColumns && (
                       <TableCell className="table-person-name truncate text-sm leading-snug">
                         {l.corretor || (
                           <span className="text-[11px] font-normal text-muted-foreground">
@@ -4022,28 +4041,22 @@ function LeadsPage() {
                         )}
                       </TableCell>
                     )}
-                    <TableCell className="truncate font-medium tabular-nums">
-                      {isPlatformAdmin ? (
-                        l.prospeccao?.fit != null ? (
-                          l.prospeccao.fit
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )
-                      ) : l.renda != null ? (
-                        brl(l.renda)
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="truncate">
-                      {isPlatformAdmin
-                        ? l.cidade || (
+                    {isPlatformAdmin ? (
+                      <>
+                        <TableCell className="truncate font-medium tabular-nums">
+                          {l.prospeccao?.fit != null ? (
+                            l.prospeccao.fit
+                          ) : (
                             <span className="text-muted-foreground">—</span>
-                          )
-                        : l.estadoCivil || (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
+                          )}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {l.cidade || (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </>
+                    ) : null}
                     <TableCell className="truncate">
                       <Badge
                         className={cn(
