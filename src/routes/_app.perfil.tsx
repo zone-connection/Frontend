@@ -17,7 +17,6 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 import { assertImageFile } from "@/components/image-upload-field";
-import { MfaSegurancaCard } from "@/components/mfa-seguranca-card";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/empreendimentos-api";
 import { userCanInformarCreci } from "@/lib/users-api";
 import { ConfigCreciPanel } from "@/components/config-creci-panel";
@@ -356,7 +355,6 @@ function Perfil() {
             </div>
           </CardContent>
         </Card>
-        <MfaSegurancaCard />
         {user && userCanInformarCreci(user) ? (
           <div className="lg:col-span-3">
             <ConfigCreciPanel onSaved={setUser} />

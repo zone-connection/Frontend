@@ -1,8 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { ensureSession, getSession, type AuthUser } from "@/lib/auth";
-import { MfaDecisaoGate } from "@/components/mfa-decisao-gate";
-import { useState } from "react";
 import { canSeeComissao, canUserAccessRoute, defaultRouteForRole } from "@/lib/permissions";
 import { LeadsProvider } from "@/lib/leads-store";
 import { CatalogProvider } from "@/lib/catalog-store";
@@ -65,7 +63,6 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const { user } = Route.useRouteContext();
-  const [pending, setPending] = useState(user.mfaDecisionPending === true);
   return (
     <TenantThemeProvider user={user}>
       <CatalogProvider>
@@ -73,7 +70,6 @@ function AppLayout() {
           <AppShell>
             <Outlet />
           </AppShell>
-          {pending ? <MfaDecisaoGate onDone={() => setPending(false)} /> : null}
         </LeadsProvider>
       </CatalogProvider>
     </TenantThemeProvider>
