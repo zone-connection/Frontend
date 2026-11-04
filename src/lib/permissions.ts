@@ -30,22 +30,6 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   super_admin: [
     "/perfil",
     "/tenants",
-    "/usuarios",
-    "/guia",
-    "/onboarding",
-    "/suporte",
-    "/melhorias",
-    "/dashboard",
-    "/leads",
-    "/whatsapp",
-    "/caca-lead",
-    "/funil",
-    "/agenda",
-    "/metas",
-    "/treinamento",
-    "/contratos",
-    "/vendas",
-    "/configuracoes",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
     "/financeiro/contas-a-receber",
@@ -53,7 +37,8 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/despesas",
     "/financeiro/fluxo-caixa",
     "/financeiro/movimentacao",
-    "/mural-chaves",
+    "/financeiro/comissao",
+    "/financeiro/funcionarios",
   ],
   admin: [
     "/dashboard",
@@ -250,6 +235,12 @@ export function canAccessRoute(
   options?: { hasOzapConnection?: boolean | null },
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
+  if (role === "super_admin") {
+    if (path === "/perfil" || path.startsWith("/perfil/")) return true;
+    if (path === "/tenants" || path.startsWith("/tenants/")) return true;
+    if (path === "/financeiro" || path.startsWith("/financeiro/")) return true;
+    return false;
+  }
   if (path === "/whatsapp" && options?.hasOzapConnection !== true) {
     return false;
   }
@@ -260,7 +251,7 @@ export function canAccessRoute(
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
   }
   if (path === "/novidades") return true;
-  if (path === "/lembretes") return role !== "super_admin";
+  if (path === "/lembretes") return true;
   if (path === "/caca-lead") return true;
   if (path === "/whatsapp") {
     const routes = getAllowedRoutes(role);
@@ -297,7 +288,6 @@ export function canAccessRoute(
       if (!isTenantOperationEnabled(resolvedModules, permKey)) return false;
       if (
         role === "admin" ||
-        role === "super_admin" ||
         role === "gerente" ||
         role === "corretor" ||
         role === "treinee"
@@ -305,7 +295,7 @@ export function canAccessRoute(
         return true;
       }
     }
-  if (permKey && role !== "super_admin") {
+  if (permKey) {
     const effective = effectivePermissions(role, userPermissions, plano);
     if (permKey === "comissao") {
       const allowed =

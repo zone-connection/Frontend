@@ -952,6 +952,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navSections = useMemo(() => {
     if (!user) return [];
+    if (user.role === "super_admin") {
+      return NAV_SECTIONS.filter(
+        (section) =>
+          section.id === "financeiro" ||
+          section.id === "plataforma" ||
+          section.id === "conta",
+      )
+        .map((section) => ({
+          ...section,
+          items: section.items.filter(
+            (item) =>
+              !isNavGroup(item) &&
+              (section.id === "financeiro" ||
+                item.to === "/tenants" ||
+                item.to === "/perfil"),
+          ),
+        }))
+        .filter((section) => section.items.length > 0);
+    }
     return NAV_SECTIONS.filter((section) => {
       if (section.platformOnly) return user.role === "super_admin";
       if (section.adminOnly) return user.role === "admin";
