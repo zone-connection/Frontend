@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowDown,
   ArrowUp,
   Plus,
@@ -379,38 +386,50 @@ function ProspeccaoPage() {
         </div>
       ) : null}
 
-      {config ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="max-h-[85vh] w-full max-w-lg space-y-4 overflow-y-auto p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-base font-semibold">Etapas do funil</p>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfig(false)}>
-                Fechar
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {etapas.map((etapa, index) => (
-                <div key={etapa.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-2">
+      <Dialog open={config} onOpenChange={setConfig}>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="border-b bg-gradient-to-r from-primary/10 via-sky-50 to-background px-5 py-4 text-left dark:via-[#141a22]">
+            <DialogTitle>Etapas do funil</DialogTitle>
+            <DialogDescription>
+              Nome, cor e a etapa que abre o cadastro do cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto px-5 py-4">
+            {etapas.map((etapa, index) => (
+              <div
+                key={etapa.id}
+                className="flex items-center gap-2 rounded-xl border bg-card px-2.5 py-2 shadow-sm"
+              >
+                <label className="relative h-8 w-8 shrink-0 cursor-pointer">
+                  <span
+                    className="absolute inset-0 rounded-lg"
+                    style={{ background: etapa.color }}
+                  />
                   <input
                     type="color"
                     aria-label={`Cor de ${etapa.nome}`}
                     value={etapa.color}
                     onChange={(e) => atualizarEtapa(etapa.id, { color: e.target.value })}
-                    className="h-8 w-8 cursor-pointer rounded border bg-transparent"
+                    className="absolute inset-0 cursor-pointer opacity-0"
                   />
-                  <Input
-                    value={etapa.nome}
-                    onChange={(e) => atualizarEtapa(etapa.id, { nome: e.target.value })}
-                    className="h-8 min-w-32 flex-1"
-                  />
-                  <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={etapa.fecha}
-                      onChange={(e) => atualizarEtapa(etapa.id, { fecha: e.target.checked })}
-                    />
-                    Fechamento
-                  </label>
+                </label>
+                <Input
+                  value={etapa.nome}
+                  onChange={(e) => atualizarEtapa(etapa.id, { nome: e.target.value })}
+                  className="h-8 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => atualizarEtapa(etapa.id, { fecha: !etapa.fecha })}
+                  className={
+                    etapa.fecha
+                      ? "shrink-0 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                      : "shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                  }
+                >
+                  Fechamento
+                </button>
+                <div className="flex shrink-0">
                   <Button
                     type="button"
                     size="icon"
@@ -442,45 +461,52 @@ function ProspeccaoPage() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1">
-                <Label>Nova etapa</Label>
-                <Input
-                  value={novaEtapa}
-                  onChange={(e) => setNovaEtapa(e.target.value)}
-                  placeholder="Nome da etapa"
-                  className="w-48"
-                />
               </div>
-              <input
-                type="color"
+            ))}
+          </div>
+          <div className="space-y-3 border-t bg-muted/30 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="h-9 w-9 shrink-0 rounded-lg border"
+                style={{ background: novaCor }}
                 aria-label="Cor da nova etapa"
-                value={novaCor}
-                onChange={(e) => setNovaCor(e.target.value)}
-                className="h-9 w-10 cursor-pointer rounded border bg-transparent"
+                onClick={() => {
+                  const index = CORES.indexOf(novaCor);
+                  setNovaCor(CORES[(index + 1) % CORES.length]);
+                }}
+              />
+              <Input
+                value={novaEtapa}
+                onChange={(e) => setNovaEtapa(e.target.value)}
+                placeholder="Nome da nova etapa"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") adicionarEtapa();
+                }}
               />
               <Button type="button" onClick={adicionarEtapa}>
                 <Plus className="mr-1 h-4 w-4" />
-                Adicionar etapa
+                Adicionar
               </Button>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {CORES.map((cor) => (
                 <button
                   key={cor}
                   type="button"
                   aria-label={cor}
-                  className="h-6 w-6 rounded-full border"
-                  style={{ background: cor }}
+                  className="h-5 w-5 rounded-full ring-offset-2"
+                  style={{
+                    background: cor,
+                    boxShadow: novaCor === cor ? `0 0 0 2px white, 0 0 0 4px ${cor}` : undefined,
+                  }}
                   onClick={() => setNovaCor(cor)}
                 />
               ))}
             </div>
-          </Card>
-        </div>
-      ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
