@@ -150,6 +150,7 @@ export function LeadFichaView({
   equipe,
   onBack,
   onSelectStage,
+  onChangePrioridade,
   onCall,
   onWhatsApp,
   perdaAction,
@@ -177,6 +178,7 @@ export function LeadFichaView({
   equipe?: string | null;
   onBack: () => void;
   onSelectStage?: (stageId: string) => void;
+  onChangePrioridade?: (prioridade: Lead["prioridade"]) => void;
   onCall: () => void;
   onWhatsApp: () => void;
   perdaAction?: FichaAction;
@@ -273,14 +275,41 @@ export function LeadFichaView({
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {lead.tipo === "cliente" ? "Cliente" : "Lead"}
                 </span>
                 {lead.origem ? <span className="rounded-full bg-secondary px-2 py-1 text-secondary-foreground">{lead.origem}</span> : null}
-                <span className={cn(
-                  "rounded-full px-2 py-1 font-medium",
-                  lead.prioridade === "Alta" && "bg-rose-50 text-rose-700",
-                  lead.prioridade === "Média" && "bg-amber-50 text-amber-800",
-                  lead.prioridade === "Baixa" && "bg-sky-50 text-sky-700",
-                )}>
-                  Prioridade {lead.prioridade}
-                </span>
+                {onChangePrioridade ? (
+                  <Select
+                    value={lead.prioridade}
+                    onValueChange={(value) => {
+                      if (value === "Alta" || value === "Média" || value === "Baixa") {
+                        onChangePrioridade(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        "h-7 w-[9.5rem] rounded-full border-0 px-2 text-xs font-medium shadow-none",
+                        lead.prioridade === "Alta" && "bg-rose-50 text-rose-700",
+                        lead.prioridade === "Média" && "bg-amber-50 text-amber-800",
+                        lead.prioridade === "Baixa" && "bg-sky-50 text-sky-700",
+                      )}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Alta">Prioridade Alta</SelectItem>
+                      <SelectItem value="Média">Prioridade Média</SelectItem>
+                      <SelectItem value="Baixa">Prioridade Baixa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className={cn(
+                    "rounded-full px-2 py-1 font-medium",
+                    lead.prioridade === "Alta" && "bg-rose-50 text-rose-700",
+                    lead.prioridade === "Média" && "bg-amber-50 text-amber-800",
+                    lead.prioridade === "Baixa" && "bg-sky-50 text-sky-700",
+                  )}>
+                    Prioridade {lead.prioridade}
+                  </span>
+                )}
               </div>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {lead.origem ? <span>Origem: {lead.origem}</span> : null}

@@ -791,6 +791,13 @@ export function LeadDetalheDialog({
               equipe={equipe}
               onBack={() => onOpenChange(false)}
               onSelectStage={(stageId) => void moverEtapa(stageId)}
+              onChangePrioridade={(prioridade) => {
+                void patch({ prioridade })
+                  .then(() => toast.success("Prioridade atualizada."))
+                  .catch((err) =>
+                    toast.error(errorMessage(err, "Não foi possível atualizar a prioridade.")),
+                  );
+              }}
               onCall={ligar}
               onWhatsApp={abrirWhatsApp}
               perdaAction={perdaAction}
