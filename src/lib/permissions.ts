@@ -30,6 +30,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   super_admin: [
     "/perfil",
     "/tenants",
+    "/prospeccao",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
     "/financeiro/contas-a-receber",
@@ -238,6 +239,7 @@ export function canAccessRoute(
   if (role === "super_admin") {
     if (path === "/perfil" || path.startsWith("/perfil/")) return true;
     if (path === "/tenants" || path.startsWith("/tenants/")) return true;
+    if (path === "/prospeccao" || path.startsWith("/prospeccao/")) return true;
     if (path === "/financeiro" || path.startsWith("/financeiro/")) return true;
     return false;
   }

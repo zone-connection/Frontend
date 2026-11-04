@@ -111,6 +111,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PROSPECCAO_CADASTRO_KEY } from "@/lib/prospeccao";
 
 export const Route = createFileRoute("/_app/tenants")({
   head: () => ({ meta: [{ title: "Clientes — Zone Connection" }] }),
@@ -297,17 +298,30 @@ function TenantsPage() {
     );
   }
 
-  function openCreate() {
+  function openCreate(nomeInicial?: string) {
     setFormMode("create");
     setEditingId(null);
     setEditingAdmin(null);
     setEditingUserCount(null);
-    setForm(emptyTenantForm());
+    const base = emptyTenantForm();
+    const nome = nomeInicial?.trim() ?? "";
+    setForm(
+      nome
+        ? { ...base, name: nome, slug: slugifyTenantName(nome) }
+        : base,
+    );
     clearPendingLogo();
     setSlugTouched(false);
     setTenantFormTab("dados");
     setFormOpen(true);
   }
+
+  useEffect(() => {
+    const nome = sessionStorage.getItem(PROSPECCAO_CADASTRO_KEY);
+    if (!nome) return;
+    sessionStorage.removeItem(PROSPECCAO_CADASTRO_KEY);
+    openCreate(nome);
+  }, []);
 
   async function openEdit(item: Tenant) {
     setFormMode("edit");
