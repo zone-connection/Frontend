@@ -11,10 +11,13 @@ import {
   ArrowUp,
   Plus,
   RotateCcw,
+  Phone,
   Settings2,
   Trash2,
 } from "lucide-react";
+import { getWhatsAppUrl } from "@/lib/env";
 import { PROSPECCAO_CADASTRO_KEY } from "@/lib/prospeccao";
+import { FunilColumnShell } from "@/components/funil-column-shell";
 
 export const Route = createFileRoute("/_app/prospeccao")({
   head: () => ({ meta: [{ title: "Prospecção — Zone Connection" }] }),
@@ -240,78 +243,87 @@ function ProspeccaoPage() {
 
           <div className="flex gap-3 overflow-x-auto pb-2">
             {etapas.map((col) => (
-              <div
+              <FunilColumnShell
                 key={col.id}
+                title={col.nome}
+                count={ativos.filter((item) => item.stage === col.id).length}
+                color={col.color}
+                data-drop-active={over === col.id ? "" : undefined}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setOver(col.id);
                 }}
-                onDragLeave={() => setOver((current) => (current === col.id ? null : current))}
+                onDragLeave={() =>
+                  setOver((current) => (current === col.id ? null : current))
+                }
                 onDrop={(e) => {
                   e.preventDefault();
                   const id = e.dataTransfer.getData("text/plain");
                   setOver(null);
                   if (id) mover(id, col.id);
                 }}
-                className="w-72 shrink-0 rounded-xl bg-muted/40 p-2"
-                style={{
-                  boxShadow:
-                    over === col.id ? `inset 0 0 0 2px ${col.color}` : undefined,
-                }}
               >
-                <p className="mb-2 flex items-center gap-2 px-1 text-sm font-medium">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: col.color }}
-                  />
-                  {col.nome}
-                  <span className="text-muted-foreground">
-                    {ativos.filter((item) => item.stage === col.id).length}
-                  </span>
-                </p>
-                <div className="space-y-2">
-                  {ativos
-                    .filter((item) => item.stage === col.id)
-                    .map((item) => (
-                      <Card
-                        key={item.id}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", item.id);
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        className="cursor-grab space-y-2 rounded-xl border-black/5 p-3 shadow-sm active:cursor-grabbing"
-                        style={{ borderTop: `3px solid ${col.color}` }}
-                      >
-                        <p className="text-sm font-medium leading-snug">{item.nome}</p>
-                        {item.contato ? (
-                          <p className="text-xs text-muted-foreground">{item.contato}</p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-1">
-                          {col.fecha ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => cadastrar(item)}
-                            >
-                              Cadastrar cliente
-                            </Button>
-                          ) : null}
+                {ativos
+                  .filter((item) => item.stage === col.id)
+                  .map((item) => (
+                    <Card
+                      key={item.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", item.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      className="cursor-grab space-y-2 rounded-xl border-black/5 bg-white p-3 shadow-sm active:cursor-grabbing dark:bg-card"
+                    >
+                      <p className="text-sm font-medium leading-snug">{item.nome}</p>
+                      <div className="grid grid-cols-[14px_minmax(0,1fr)_22px] items-center gap-1.5 text-xs text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span className="truncate">{item.contato || "—"}</span>
+                        <button
+                          type="button"
+                          title="Abrir WhatsApp"
+                          aria-label="Abrir WhatsApp"
+                          disabled={item.contato.replace(/\D/g, "").length < 10}
+                          className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full text-[#25D366] hover:bg-[#25D366]/15 disabled:pointer-events-none disabled:opacity-40"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const digits = item.contato.replace(/\D/g, "");
+                            if (digits.length < 10) return;
+                            const e164 = digits.startsWith("55") ? digits : `55${digits}`;
+                            window.open(
+                              getWhatsAppUrl(undefined, e164),
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
+                          }}
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {col.fecha ? (
                           <Button
                             type="button"
                             size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs text-destructive"
-                            onClick={() => mover(item.id, PERDIDO)}
+                            className="h-7 px-2 text-xs"
+                            onClick={() => cadastrar(item)}
                           >
-                            Perda
+                            Cadastrar cliente
                           </Button>
-                        </div>
-                      </Card>
-                    ))}
-                </div>
-              </div>
+                        ) : null}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-destructive"
+                          onClick={() => mover(item.id, PERDIDO)}
+                        >
+                          Perda
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+              </FunilColumnShell>
             ))}
           </div>
         </TabsContent>
