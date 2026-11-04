@@ -69,6 +69,8 @@ export interface AuthUser {
   avatar?: string | null;
   lastLoginAt?: string | null;
   tenant?: TenantBranding | null;
+  mfaDecisionPending?: boolean;
+  mfaSetupPending?: boolean;
 }
 
 interface LoginResponse {
@@ -261,6 +263,13 @@ function notifySessionUpdated() {
 }
 
 /** Atualiza `tenant.modules` na sessão sem esperar outro /auth/me. */
+export function clearMfaDecisionPending() {
+  const current = getSession();
+  if (!current) return;
+  sessionCache.setUser({ ...current, mfaDecisionPending: false });
+  notifySessionUpdated();
+}
+
 export function patchSessionTenantModules(modules: Record<string, boolean>) {
   const current = getSession();
   if (!current?.tenant) return;
