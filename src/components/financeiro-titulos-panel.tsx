@@ -153,6 +153,8 @@ import {
   Eye,
   FileText,
   Layers,
+  LayoutGrid,
+  LayoutList,
   ListOrdered,
   Pencil,
   Percent,
@@ -639,6 +641,7 @@ export function FinanceiroTitulosPanel({
   const [vistaParcelas, setVistaParcelasState] = useState<VistaParcelas>(() =>
     getVistaParcelas(),
   );
+  const [vistaLista, setVistaLista] = useState<"tabela" | "cards">("tabela");
   const [expandedGrupos, setExpandedGrupos] = useState<Set<string>>(
     () => new Set(),
   );
@@ -1673,6 +1676,28 @@ export function FinanceiroTitulosPanel({
         description={description}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border bg-background p-0.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={vistaLista === "tabela" ? "secondary" : "ghost"}
+                className="h-8 px-2.5"
+                title="Tabela"
+                onClick={() => setVistaLista("tabela")}
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={vistaLista === "cards" ? "secondary" : "ghost"}
+                className="h-8 px-2.5"
+                title="Cards"
+                onClick={() => setVistaLista("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
             <HideFinanceValuesButton />
             {canCreateFin ? (
               <>
@@ -1888,6 +1913,216 @@ export function FinanceiroTitulosPanel({
       </div>
 
       <Card className="overflow-hidden rounded-2xl">
+        {vistaLista === "cards" ? (
+          displayRows.length === 0 ? (
+            <p className="px-6 py-16 text-center text-sm text-muted-foreground">
+              Nenhum título no filtro.
+            </p>
+          ) : (
+            <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+              {pager.pageItems.map((row) => {
+                if (row.kind === "single") {
+                  const t = row.titulo;
+                  return (
+                    <Card
+                      key={t.id}
+                      className="space-y-2 rounded-xl border-black/5 p-3 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 text-sm font-medium leading-snug">
+                          {t.descricao}
+                        </p>
+                        <StatusPill
+                          status={t.status}
+                          label={statusLabel(t.status)}
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <ComissaoOrigemBadge titulo={t} />
+                        {tipo === "pagar" && despesaNaturezaLabel(t.natureza) ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold text-amber-950">
+                            {despesaNaturezaLabel(t.natureza)}
+                          </span>
+                        ) : null}
+                        {t.platformContratoId ? (
+                          <span className="inline-flex items-center rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Contrato
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {t.parceiro || "Sem parceiro"}
+                      </p>
+                      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span>{t.categoria || t.centro || "—"}</span>
+                        <span className="tabular-nums">
+                          {formatDate(t.vencimento)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {t.parcela || "Parcela única"}
+                        </span>
+                        <TituloValorCell t={t} />
+                      </div>
+                      <div className="flex justify-end">{renderTituloActions(t)}</div>
+                    </Card>
+                  );
+                }
+                const summary = groupSummary(row.titulos);
+                const expanded = expandedGrupos.has(row.grupoId);
+                const isContrato = row.titulos.some((titulo) =>
+                  Boolean(titulo.platformContratoId),
+                );
+                return (
+                  <Card
+                    key={row.grupoId}
+                    className="space-y-2 rounded-xl border-black/5 p-3 shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      className="w-full space-y-2 text-left"
+                      onClick={() => toggleGrupo(row.grupoId)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 text-sm font-medium leading-snug">
+                          {summary.descricao}
+                        </p>
+                        <StatusPill
+                          status={summary.statusResumo}
+                          label={
+                            summary.pagas === summary.n
+                              ? statusLabel("pago")
+                              : `${summary.pagas}/${summary.n} pagas`
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {row.titulos.some((titulo) => titulo.comissaoId) ? (
+                          <span className="inline-flex items-center rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Comissão
+                          </span>
+                        ) : null}
+                        {isContrato ? (
+                          <span className="inline-flex items-center rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Contrato
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {summary.parceiro || "Sem parceiro"}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {row.titulos.some((titulo) => titulo.recorrenciaIndeterminada)
+                            ? "Mensal contínuo"
+                            : `${summary.n} parcela${summary.n === 1 ? "" : "s"}`}
+                        </span>
+                        <span className="text-sm font-semibold tabular-nums text-foreground">
+                          {brl(summary.total)}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="flex justify-end gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={expanded ? "Recolher" : "Expandir"}
+                        onClick={() => toggleGrupo(row.grupoId)}
+                      >
+                        {expanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Ver parcelas"
+                        onClick={() => void openGrupo(row.titulos[0])}
+                      >
+                        <ListOrdered className="w-4 h-4" />
+                      </Button>
+                      {canEditFin ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Editar todas as parcelas"
+                          onClick={() => void openEditGrupo(row.titulos)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                      {canDeleteFin ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          title="Excluir todas as parcelas"
+                          onClick={() =>
+                            setDeleteGrupoTarget({
+                              grupoId: row.grupoId,
+                              descricao: summary.descricao,
+                              n: summary.n,
+                              pagas: summary.pagas,
+                            })
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      ) : null}
+                    </div>
+                    {expanded
+                      ? row.titulos.map((t) => (
+                          <div
+                            key={`${row.grupoId}-${t.id}`}
+                            className="space-y-1 rounded-lg bg-muted/40 p-2"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span>Parcela {t.parcela || "—"}</span>
+                              <StatusPill
+                                status={t.status}
+                                label={statusLabel(t.status)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span className="tabular-nums">
+                                {formatDate(t.vencimento)}
+                              </span>
+                              <TituloValorCell t={t} />
+                            </div>
+                            <div className="flex items-center justify-end gap-1">
+                              {canEditFin &&
+                              t.status !== "pago" &&
+                              t.status !== "cancelado" ? (
+                                <Button
+                                  size="sm"
+                                  className="h-8"
+                                  onClick={() => openBaixar(t)}
+                                >
+                                  <Banknote className="w-3.5 h-3.5 mr-1" />
+                                  Pagar
+                                </Button>
+                              ) : null}
+                              {renderTituloActions(t, {
+                                hideGrupo: true,
+                                hideGrupoEdit: true,
+                                hideBaixar: true,
+                              })}
+                            </div>
+                          </div>
+                        ))
+                      : null}
+                  </Card>
+                );
+              })}
+            </div>
+          )
+        ) : (
         <Table className={TABLE_LUX}>
           <TableHeader>
             <TableRow>
@@ -2144,6 +2379,7 @@ export function FinanceiroTitulosPanel({
             )}
           </TableBody>
         </Table>
+        )}
         <TablePager
           page={pager.page}
           totalPages={pager.totalPages}
