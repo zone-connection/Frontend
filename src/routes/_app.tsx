@@ -65,9 +65,7 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const { user } = Route.useRouteContext();
-  const [pending, setPending] = useState(
-    user.mfaDecisionPending === true || user.mfaSetupPending === true,
-  );
+  const [pending, setPending] = useState(user.mfaDecisionPending === true);
   return (
     <TenantThemeProvider user={user}>
       <CatalogProvider>
@@ -75,12 +73,7 @@ function AppLayout() {
           <AppShell>
             <Outlet />
           </AppShell>
-          {pending ? (
-            <MfaDecisaoGate
-              startWithQr={user.mfaSetupPending === true && user.mfaDecisionPending !== true}
-              onDone={() => setPending(false)}
-            />
-          ) : null}
+          {pending ? <MfaDecisaoGate onDone={() => setPending(false)} /> : null}
         </LeadsProvider>
       </CatalogProvider>
     </TenantThemeProvider>
