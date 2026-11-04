@@ -1676,28 +1676,6 @@ export function FinanceiroTitulosPanel({
         description={description}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg border bg-background p-0.5">
-              <Button
-                type="button"
-                size="sm"
-                variant={vistaLista === "tabela" ? "secondary" : "ghost"}
-                className="h-8 px-2.5"
-                title="Tabela"
-                onClick={() => setVistaLista("tabela")}
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={vistaLista === "cards" ? "secondary" : "ghost"}
-                className="h-8 px-2.5"
-                title="Cards"
-                onClick={() => setVistaLista("cards")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
             <HideFinanceValuesButton />
             {canCreateFin ? (
               <>
@@ -1787,6 +1765,28 @@ export function FinanceiroTitulosPanel({
             placeholder="Buscar título, parceiro…"
             className={cn("pl-9", FILTER_CONTROL)}
           />
+        </div>
+        <div className="inline-flex shrink-0 rounded-lg border bg-background p-0.5">
+          <Button
+            type="button"
+            size="sm"
+            variant={vistaLista === "tabela" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 px-2.5"
+            onClick={() => setVistaLista("tabela")}
+          >
+            <LayoutList className="h-4 w-4" />
+            Tabela
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={vistaLista === "cards" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 px-2.5"
+            onClick={() => setVistaLista("cards")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Cards
+          </Button>
         </div>
         <FiltrosPainel
           kicker={tipo === "receber" ? "Contas a receber" : "Contas a pagar"}
