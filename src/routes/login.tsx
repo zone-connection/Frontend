@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   Eye,
   EyeOff,
@@ -14,7 +14,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError } from "@/lib/api";
-import { signIn } from "@/lib/auth";
+import { forgotPassword, resetPassword, signIn, type LoginResult } from "@/lib/auth";
+import { MfaLoginPanel } from "@/components/mfa-login-panel";
 import { TurnstileWidget, turnstileSiteKey } from "@/components/turnstile-widget";
 import { signInPortal } from "@/lib/portal-auth";
 import { signInParceiro } from "@/lib/parceiros-auth";
@@ -206,7 +207,19 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+  const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
+  const [mfaStep, setMfaStep] = useState<Exclude<LoginResult, { kind: "session" }> | null>(null);
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const captchaRequired = turnstileSiteKey().length > 0;
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (token) {
+      setResetToken(token);
+      setMode("reset");
+    }
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -216,14 +229,18 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const user = await signIn(
+      const result = await signIn(
         email,
         password,
         undefined,
         captchaToken ?? undefined,
       );
-      toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
-      navigate({ to: defaultRouteForRole(user.role, user) });
+      if (result.kind !== "session") {
+        setMfaStep(result);
+        return;
+      }
+      toast.success(`Bem-vindo(a), ${result.user.name.split(" ")[0]}!`);
+      navigate({ to: defaultRouteForRole(result.user.role, result.user) });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -375,6 +392,105 @@ function LoginPage() {
               </div>
             </div>
 
+            {mode === "forgot" ? (
+              <form
+                className="space-y-5"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  setLoading(true);
+                  try {
+                    await forgotPassword(email);
+                    toast.success(
+                      "Se este e-mail tiver conta, enviamos o link para redefinir a senha.",
+                    );
+                    setMode("login");
+                  } catch (error) {
+                    toast.error(
+                      error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível enviar o e-mail.",
+                    );
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <LoginAuthField
+                  id="email-recuperacao"
+                  label="E-mail"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  icon={Mail}
+                  placeholder="seu@email.com"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {loading ? "Enviando..." : "Enviar link"}
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-sm text-[#5C6B76]"
+                  onClick={() => setMode("login")}
+                >
+                  Voltar ao login
+                </button>
+              </form>
+            ) : mode === "reset" ? (
+              <form
+                className="space-y-5"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  setLoading(true);
+                  try {
+                    await resetPassword(resetToken, newPassword);
+                    toast.success("Senha atualizada. Entre com a nova senha.");
+                    setPassword("");
+                    setMode("login");
+                  } catch (error) {
+                    toast.error(
+                      error instanceof ApiError
+                        ? error.message
+                        : "Link inválido ou expirado.",
+                    );
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <LoginAuthField
+                  id="nova-senha"
+                  label="Nova senha"
+                  type="password"
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  icon={Lock}
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {loading ? "Salvando..." : "Salvar nova senha"}
+                </button>
+              </form>
+            ) : mfaStep ? (
+              <MfaLoginPanel
+                step={mfaStep}
+                password={password}
+                onStep={setMfaStep}
+                onAuthenticated={(user) => {
+                  toast.success(`Bem-vindo(a), ${user.name.split(" ")[0]}!`);
+                  navigate({ to: defaultRouteForRole(user.role, user) });
+                }}
+              />
+            ) : (
             <form onSubmit={onSubmit} className="space-y-5">
               <LoginAuthField
                 id="email"
@@ -397,16 +513,13 @@ function LoginPage() {
                 placeholder="••••••••"
                 required
                 labelExtra={
-                  <a
-                    href={getWhatsAppUrl(
-                      "Olá! Esqueci minha senha da Zone Connection e preciso de ajuda para recuperar o acesso.",
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
                     className="text-xs font-medium text-brand-accent transition-colors hover:text-brand-dark"
+                    onClick={() => setMode("forgot")}
                   >
                     Esqueci minha senha
-                  </a>
+                  </button>
                 }
               />
 
@@ -441,6 +554,7 @@ function LoginPage() {
                 )}
               </button>
             </form>
+            )}
 
             <div className="mt-6 divide-y divide-[#E6EDF2] rounded-2xl border border-[#E2E8EC] bg-[#F8FBFC] text-sm">
               <p className="px-4 py-3 text-[#5C6B76]">

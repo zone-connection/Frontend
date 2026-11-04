@@ -72,9 +72,22 @@ export interface AuthUser {
 }
 
 interface LoginResponse {
-  user: AuthUser;
+  user?: AuthUser;
   csrfToken?: string;
+  mfaRequired?: boolean;
+  mfaToken?: string;
+  mfaSetupRequired?: boolean;
+  setupToken?: string;
+  mfaDecisionRequired?: boolean;
+  decisionToken?: string;
+  recoveryCodes?: string[];
 }
+
+export type LoginResult =
+  | { kind: "session"; user: AuthUser }
+  | { kind: "mfa"; mfaToken: string }
+  | { kind: "setup"; setupToken: string }
+  | { kind: "decision"; decisionToken: string };
 
 /** Intervalo entre revalidações em background de /auth/me. */
 const SESSION_MAX_AGE_MS = 2 * 60_000;
@@ -113,7 +126,7 @@ export async function signIn(
   password: string,
   tenantSlug?: string,
   captchaToken?: string,
-): Promise<AuthUser> {
+): Promise<LoginResult> {
   expireReadableCsrfCookies();
   const data = await apiFetch<LoginResponse>("/auth/login", {
     method: "POST",
@@ -125,6 +138,14 @@ export async function signIn(
       ...(captchaToken ? { captchaToken } : {}),
     },
   });
+  if (data.mfaRequired && data.mfaToken) return { kind: "mfa", mfaToken: data.mfaToken };
+  if (data.mfaSetupRequired && data.setupToken) {
+    return { kind: "setup", setupToken: data.setupToken };
+  }
+  if (data.mfaDecisionRequired && data.decisionToken) {
+    return { kind: "decision", decisionToken: data.decisionToken };
+  }
+  if (!data.user) throw new Error("Resposta de login incompleta.");
 
   sessionCache.setUser(data.user);
   storeCsrfToken(data.csrfToken);
@@ -137,7 +158,77 @@ export async function signIn(
   lastValidatedAt = Date.now();
   writeValidatedAt(lastValidatedAt);
   validatedThisDocument = true;
+  return { kind: "session", user: data.user };
+}
+
+function storeSession(data: LoginResponse): AuthUser {
+  if (!data.user) throw new Error("Resposta de login incompleta.");
+  sessionCache.setUser(data.user);
+  storeCsrfToken(data.csrfToken);
+  try {
+    sessionStorage.setItem(LOGIN_LEMBRETES_FLAG, "1");
+  } catch {
+    // ignore
+  }
+  reiniciarNovidadeAnuncio();
+  lastValidatedAt = Date.now();
+  writeValidatedAt(lastValidatedAt);
+  validatedThisDocument = true;
   return data.user;
+}
+
+export async function verifyMfa(mfaToken: string, code: string): Promise<AuthUser> {
+  const data = await apiFetch<LoginResponse>("/auth/mfa/verify", {
+    method: "POST",
+    skipAuth: true,
+    body: { mfaToken, code },
+  });
+  return storeSession(data);
+}
+
+export async function recoverMfa(mfaToken: string, recoveryCode: string): Promise<AuthUser> {
+  const data = await apiFetch<LoginResponse>("/auth/mfa/recover", {
+    method: "POST",
+    skipAuth: true,
+    body: { mfaToken, recoveryCode },
+  });
+  return storeSession(data);
+}
+
+export async function startMfaSetup(setupToken: string): Promise<{ qrDataUrl: string }> {
+  return apiFetch("/auth/mfa/setup", {
+    method: "POST",
+    skipAuth: true,
+    body: { setupToken },
+  });
+}
+
+export async function confirmMfaSetup(
+  setupToken: string,
+  code: string,
+): Promise<{ user: AuthUser; recoveryCodes: string[] }> {
+  const data = await apiFetch<LoginResponse>("/auth/mfa/setup/confirm", {
+    method: "POST",
+    skipAuth: true,
+    body: { setupToken, code },
+  });
+  return { user: storeSession(data), recoveryCodes: data.recoveryCodes ?? [] };
+}
+
+export async function decideMfa(
+  decisionToken: string,
+  choice: "manter" | "recusar",
+  password: string,
+): Promise<LoginResult> {
+  const data = await apiFetch<LoginResponse>("/auth/mfa/decision", {
+    method: "POST",
+    skipAuth: true,
+    body: { decisionToken, choice, password },
+  });
+  if (data.mfaSetupRequired && data.setupToken) {
+    return { kind: "setup", setupToken: data.setupToken };
+  }
+  return { kind: "session", user: storeSession(data) };
 }
 
 export async function signOut(): Promise<void> {
