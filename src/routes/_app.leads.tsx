@@ -91,6 +91,7 @@ import {
   UserCheck,
   ClipboardList,
   UserRoundCog,
+  UserRoundPlus,
   Users,
   Layers,
   UserRound,
@@ -110,7 +111,7 @@ import {
   type Lead,
 } from "@/lib/crm-types";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
-import { TornarClienteButton } from "@/components/tornar-cliente-button";
+import { TornarClienteDialog } from "@/components/tornar-cliente-button";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
   catalogColorBadgeClass,
@@ -735,6 +736,7 @@ function LeadsPage() {
   const [bulkPurgeOpen, setBulkPurgeOpen] = useState(false);
   const [bulkPurging, setBulkPurging] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
+  const [tornarClienteLead, setTornarClienteLead] = useState<Lead | null>(null);
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
   const [atividadePrompt, setAtividadePrompt] =
     useState<LeadAtividadePrompt | null>(null);
@@ -3116,6 +3118,15 @@ function LeadsPage() {
         </form>
       </FormDialogShell>
 
+      <TornarClienteDialog
+        lead={tornarClienteLead}
+        onClose={() => setTornarClienteLead(null)}
+        onConverted={(next) => {
+          applyLead(next);
+          setTornarClienteLead(null);
+        }}
+      />
+
       <LeadDetalheDialog
         lead={detailLead}
         open={!!detailLead}
@@ -4142,14 +4153,10 @@ function LeadsPage() {
                             </DropdownMenuItem>
                             {l.tipo === "lead" && !isPlatformAdmin ? (
                               <DropdownMenuItem
-                                onSelect={(event) => event.preventDefault()}
-                                className="p-0"
+                                onClick={() => setTornarClienteLead(l)}
                               >
-                                <TornarClienteButton
-                                  leadId={l.id}
-                                  leadNome={l.nome}
-                                  onConverted={applyLead}
-                                />
+                                <UserRoundPlus className="mr-2 h-4 w-4" />
+                                Tornar cliente
                               </DropdownMenuItem>
                             ) : null}
                             <DropdownMenuItem

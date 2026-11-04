@@ -14,6 +14,61 @@ import { ApiError } from "@/lib/api";
 import type { Lead } from "@/lib/crm-types";
 import { mapApiLead, tornarLeadClienteApi } from "@/lib/leads-api";
 
+export function TornarClienteDialog({
+  lead,
+  onClose,
+  onConverted,
+}: {
+  lead: Pick<Lead, "id" | "nome"> | null;
+  onClose: () => void;
+  onConverted?: (lead: Lead) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function confirmar() {
+    if (!lead) return;
+    setSaving(true);
+    try {
+      const api = await tornarLeadClienteApi(lead.id);
+      const next = mapApiLead(api);
+      onConverted?.(next);
+      toast.success(`${lead.nome} agora é cliente.`);
+      onClose();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível transformar o lead em cliente.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={lead != null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Tornar {lead?.nome} cliente</DialogTitle>
+          <DialogDescription>
+            O contato sai da tabela e do funil de leads e passa para a seção
+            de clientes e o funil de clientes. A triagem e o histórico
+            registram quem fez a transformação.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="button" disabled={saving} onClick={() => void confirmar()}>
+            {saving ? "Transformando..." : "Transformar em cliente"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TornarClienteButton({
   leadId,
   leadNome,
@@ -62,16 +117,7 @@ export function TornarClienteButton({
           <UserRoundPlus className="h-3 w-3 text-primary" />
           Cliente
         </button>
-      ) : (
-        <button
-          type="button"
-          className="flex w-full items-center"
-          onClick={() => setOpen(true)}
-        >
-          <UserRoundPlus className="mr-2 h-4 w-4" />
-          Tornar cliente
-        </button>
-      )}
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onClick={(event) => event.stopPropagation()}>
           <DialogHeader>
