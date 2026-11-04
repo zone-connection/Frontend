@@ -45,6 +45,7 @@ const ACAO: Record<string, string> = {
   redistribuicao: "Redistribuição da fila",
   desvinculo: "Corretor desvinculado",
   caca: "Caça-lead",
+  transformacao: "Virou cliente",
 };
 
 const TOM: Record<string, { icon: typeof UserRound; chip: string; bola: string }> = {
@@ -56,6 +57,7 @@ const TOM: Record<string, { icon: typeof UserRound; chip: string; bola: string }
   redistribuicao: { icon: RefreshCw, chip: "bg-cyan-50 text-cyan-800", bola: "bg-[#079ED4]" },
   desvinculo: { icon: UserMinus, chip: "bg-rose-50 text-rose-800", bola: "bg-rose-500" },
   caca: { icon: UserRound, chip: "bg-emerald-50 text-emerald-800", bola: "bg-emerald-500" },
+  transformacao: { icon: UserPlus, chip: "bg-emerald-50 text-emerald-800", bola: "bg-emerald-600" },
 };
 
 function Fluxo({

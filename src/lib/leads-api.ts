@@ -556,6 +556,10 @@ export async function removeLeadInteresseApi(
   });
 }
 
+export async function tornarLeadClienteApi(id: string): Promise<ApiLead> {
+  return apiFetch<ApiLead>(`/leads/${id}/tornar-cliente`, { method: "POST" });
+}
+
 export async function updateLeadStageApi(
   id: string,
   stage: StageId,

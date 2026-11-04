@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
 import { ConverterLeadButton } from "@/components/converter-lead-button";
+import { TornarClienteButton } from "@/components/tornar-cliente-button";
 import { FiltrosPainel, FILTRO_CAMPO } from "@/components/filtros-painel";
 import { FunilColumnShell } from "@/components/funil-column-shell";
 import { Card } from "@/components/ui/card";
@@ -1835,43 +1836,45 @@ export function ComercialFunilBoard({
                     )}
                   >
                     <div className="mb-1.5 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="table-person-name flex min-w-0 flex-1 items-start gap-1.5 text-sm">
-                          <CircleUser
-                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                            aria-hidden
-                          />
-                          <span className="min-w-0 break-words leading-snug">
-                            {l.nome}
-                          </span>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-                          {isGerente &&
-                            !isClientesFunil &&
-                            isLeadCarteiraPropria(l, user?.id) && (
-                              <MeuLeadBadge />
-                            )}
-                          <LeadOrigemLiberacaoBadge lead={l} compact />
-                          {l.roletaRedistribuido ? <LeadRoletaBadge compact /> : null}
-                          {l.tipo === "cliente" && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0 h-5 border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300"
-                              title={`Cliente da carteira de ${l.corretor}`}
-                            >
-                              Cliente
-                            </Badge>
+                      <div className="table-person-name flex items-start gap-1.5 text-sm">
+                        <CircleUser
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <span className="min-w-0 break-words leading-snug">
+                          {l.nome}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {isGerente &&
+                          !isClientesFunil &&
+                          isLeadCarteiraPropria(l, user?.id) && (
+                            <MeuLeadBadge />
                           )}
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              l.prioridade === "Alta"
-                                ? "bg-destructive"
-                                : l.prioridade === "Média"
-                                  ? "bg-warning"
-                                  : "bg-muted-foreground"
-                            }`}
-                          />
-                        </div>
+                        <LeadOrigemLiberacaoBadge lead={l} compact />
+                        {l.roletaRedistribuido ? <LeadRoletaBadge compact /> : null}
+                        {l.tipo === "cliente" && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 py-0 text-[9px] border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                            title={`Cliente da carteira de ${l.corretor}`}
+                          >
+                            Cliente
+                          </Badge>
+                        )}
+                        <Badge
+                          className={cn(
+                            "h-5 w-auto shrink-0 rounded-full px-2 py-0 text-[10px] font-semibold",
+                            l.prioridade === "Alta" &&
+                              "border-transparent bg-rose-100 text-rose-700",
+                            l.prioridade === "Média" &&
+                              "border-transparent bg-amber-100 text-amber-800",
+                            l.prioridade === "Baixa" &&
+                              "border-transparent bg-sky-100 text-sky-700",
+                          )}
+                        >
+                          {l.prioridade}
+                        </Badge>
                       </div>
                       <DocStatusFunilTags
                         status1={l.documentacaoStatus1}
@@ -1963,6 +1966,14 @@ export function ComercialFunilBoard({
                             : "flex-col",
                         )}
                       >
+                        {l.tipo === "lead" && !isClientesFunil && !isPlatformAdmin ? (
+                          <TornarClienteButton
+                            compact
+                            leadId={l.id}
+                            leadNome={l.nome}
+                            onConverted={applyLead}
+                          />
+                        ) : null}
                         <button
                           type="button"
                           className="flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"

@@ -110,6 +110,7 @@ import {
   type Lead,
 } from "@/lib/crm-types";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { TornarClienteButton } from "@/components/tornar-cliente-button";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
   catalogColorBadgeClass,
@@ -4139,6 +4140,18 @@ function LeadsPage() {
                             <DropdownMenuItem onClick={() => openEdit(l)}>
                               <Pencil className="w-4 h-4 mr-2" /> Editar
                             </DropdownMenuItem>
+                            {l.tipo === "lead" && !isPlatformAdmin ? (
+                              <DropdownMenuItem
+                                onSelect={(event) => event.preventDefault()}
+                                className="p-0"
+                              >
+                                <TornarClienteButton
+                                  leadId={l.id}
+                                  leadNome={l.nome}
+                                  onConverted={applyLead}
+                                />
+                              </DropdownMenuItem>
+                            ) : null}
                             <DropdownMenuItem
                               disabled={phoneDigits(l.telefone).length < 10}
                               onClick={() => openLeadWhatsApp(l.telefone)}

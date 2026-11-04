@@ -1,0 +1,97 @@
+import { useState } from "react";
+import { UserRoundPlus } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ApiError } from "@/lib/api";
+import type { Lead } from "@/lib/crm-types";
+import { mapApiLead, tornarLeadClienteApi } from "@/lib/leads-api";
+
+export function TornarClienteButton({
+  leadId,
+  leadNome,
+  onConverted,
+  compact = false,
+}: {
+  leadId: string;
+  leadNome: string;
+  onConverted?: (lead: Lead) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function confirmar() {
+    setSaving(true);
+    try {
+      const api = await tornarLeadClienteApi(leadId);
+      const lead = mapApiLead(api);
+      onConverted?.(lead);
+      toast.success(`${leadNome} agora é cliente.`);
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível transformar o lead em cliente.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      {compact ? (
+        <button
+          type="button"
+          className="flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-border/70 bg-muted/30 px-1.5 text-[11px] font-medium text-foreground hover:border-primary/30 hover:bg-muted/60"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <UserRoundPlus className="h-3 w-3 text-primary" />
+          Cliente
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="flex w-full items-center"
+          onClick={() => setOpen(true)}
+        >
+          <UserRoundPlus className="mr-2 h-4 w-4" />
+          Tornar cliente
+        </button>
+      )}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent onClick={(event) => event.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Tornar {leadNome} cliente</DialogTitle>
+            <DialogDescription>
+              O contato sai da tabela e do funil de leads e passa para a seção
+              de clientes e o funil de clientes. A triagem e o histórico
+              registram quem fez a transformação.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={saving} onClick={() => void confirmar()}>
+              {saving ? "Transformando..." : "Transformar em cliente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
