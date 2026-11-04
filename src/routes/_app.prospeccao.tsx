@@ -13,9 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
-  ArrowDown,
-  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
   Plus,
   RotateCcw,
   Phone,
@@ -387,24 +389,28 @@ function ProspeccaoPage() {
       ) : null}
 
       <Dialog open={config} onOpenChange={setConfig}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
-          <DialogHeader className="border-b bg-gradient-to-r from-primary/10 via-sky-50 to-background px-5 py-4 text-left dark:via-[#141a22]">
-            <DialogTitle>Etapas do funil</DialogTitle>
+        <DialogContent className="gap-0 overflow-hidden border-0 p-0 shadow-2xl outline-none ring-0 focus:outline-none focus-visible:ring-0 sm:max-w-lg sm:rounded-2xl">
+          <DialogHeader className="space-y-1 px-5 pb-2 pt-5 text-left">
+            <DialogTitle className="text-xl font-bold tracking-tight">
+              Etapas do funil
+            </DialogTitle>
             <DialogDescription>
-              Nome, cor e a etapa que abre o cadastro do cliente.
+              Configure as etapas do seu funil de prospecção.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[50vh] space-y-2 overflow-y-auto px-5 py-4">
+          <div className="max-h-[52vh] space-y-2.5 overflow-y-auto px-5 py-3">
             {etapas.map((etapa, index) => (
               <div
                 key={etapa.id}
-                className="flex items-center gap-2 rounded-xl border bg-card px-2.5 py-2 shadow-sm"
+                className="flex items-center gap-2 rounded-xl border border-black/5 px-2 py-2"
+                style={{ background: `${etapa.color}14` }}
               >
-                <label className="relative h-8 w-8 shrink-0 cursor-pointer">
-                  <span
-                    className="absolute inset-0 rounded-lg"
-                    style={{ background: etapa.color }}
-                  />
+                <span
+                  className="h-10 w-1 shrink-0 rounded-full"
+                  style={{ background: etapa.color }}
+                />
+                <label className="relative flex h-9 w-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground">
+                  <GripVertical className="h-4 w-4" style={{ color: etapa.color }} />
                   <input
                     type="color"
                     aria-label={`Cor de ${etapa.nome}`}
@@ -416,94 +422,76 @@ function ProspeccaoPage() {
                 <Input
                   value={etapa.nome}
                   onChange={(e) => atualizarEtapa(etapa.id, { nome: e.target.value })}
-                  className="h-8 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                  className="h-9 bg-white dark:bg-background"
                 />
-                <button
-                  type="button"
-                  onClick={() => atualizarEtapa(etapa.id, { fecha: !etapa.fecha })}
-                  className={
-                    etapa.fecha
-                      ? "shrink-0 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
-                      : "shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-                  }
-                >
-                  Fechamento
-                </button>
-                <div className="flex shrink-0">
-                  <Button
+                <span className="shrink-0 text-xs text-muted-foreground">Fechamento</span>
+                <Switch
+                  checked={etapa.fecha}
+                  onCheckedChange={(checked) => atualizarEtapa(etapa.id, { fecha: checked })}
+                  aria-label={`Fechamento de ${etapa.nome}`}
+                />
+                <div className="flex shrink-0 flex-col">
+                  <button
                     type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
+                    className="text-muted-foreground disabled:opacity-30"
                     disabled={index === 0}
                     onClick={() => moverEtapa(etapa.id, -1)}
+                    aria-label="Subir"
                   >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
                     type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
+                    className="text-muted-foreground disabled:opacity-30"
                     disabled={index === etapas.length - 1}
                     onClick={() => moverEtapa(etapa.id, 1)}
+                    aria-label="Descer"
                   >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-destructive"
-                    disabled={etapas.length <= 1}
-                    onClick={() => removerEtapa(etapa.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
                 </div>
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-white text-muted-foreground hover:text-destructive disabled:opacity-30 dark:bg-background"
+                  disabled={etapas.length <= 1}
+                  onClick={() => removerEtapa(etapa.id)}
+                  aria-label="Excluir etapa"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             ))}
           </div>
-          <div className="space-y-3 border-t bg-muted/30 px-5 py-4">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="h-9 w-9 shrink-0 rounded-lg border"
-                style={{ background: novaCor }}
-                aria-label="Cor da nova etapa"
-                onClick={() => {
-                  const index = CORES.indexOf(novaCor);
-                  setNovaCor(CORES[(index + 1) % CORES.length]);
-                }}
-              />
-              <Input
-                value={novaEtapa}
-                onChange={(e) => setNovaEtapa(e.target.value)}
-                placeholder="Nome da nova etapa"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") adicionarEtapa();
-                }}
-              />
-              <Button type="button" onClick={adicionarEtapa}>
-                <Plus className="mr-1 h-4 w-4" />
-                Adicionar
-              </Button>
-            </div>
-            <div className="flex gap-1.5">
+          <div className="space-y-3 border-t px-5 py-4">
+            <p className="text-sm font-semibold">Nova etapa</p>
+            <Input
+              value={novaEtapa}
+              onChange={(e) => setNovaEtapa(e.target.value)}
+              placeholder="Nome da nova etapa"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") adicionarEtapa();
+              }}
+            />
+            <div className="flex justify-center gap-3 py-1">
               {CORES.map((cor) => (
                 <button
                   key={cor}
                   type="button"
                   aria-label={cor}
-                  className="h-5 w-5 rounded-full ring-offset-2"
+                  className="h-6 w-6 rounded-full"
                   style={{
                     background: cor,
-                    boxShadow: novaCor === cor ? `0 0 0 2px white, 0 0 0 4px ${cor}` : undefined,
+                    boxShadow:
+                      novaCor === cor ? `0 0 0 2px white, 0 0 0 4px ${cor}` : undefined,
                   }}
                   onClick={() => setNovaCor(cor)}
                 />
               ))}
             </div>
+            <Button type="button" className="h-10 w-full" onClick={adicionarEtapa}>
+              <Plus className="mr-1 h-4 w-4" />
+              Adicionar etapa
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
