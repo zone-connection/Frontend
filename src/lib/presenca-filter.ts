@@ -175,8 +175,16 @@ export function applyPresencaFiltros(
   data: PresencaMes,
   userIds: string[],
   natureza: PresencaFiltroNatureza,
+  equipes: string[] = [],
 ): PresencaMes {
   let usuarios = data.usuarios;
+  if (equipes.length) {
+    const allow = new Set(equipes);
+    const semEquipe = allow.has("");
+    usuarios = usuarios.filter((u) =>
+      u.equipe ? allow.has(u.equipe) : semEquipe,
+    );
+  }
   if (userIds.length) {
     const allow = new Set(userIds);
     usuarios = usuarios.filter((u) => allow.has(u.userId));

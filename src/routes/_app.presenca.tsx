@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronsUpDown,
   FileDown,
-  Filter,
   Info,
   Loader2,
   Plus,
@@ -81,7 +80,16 @@ import {
 import { downloadPresencaPdf } from "@/lib/presenca-pdf";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import { cn } from "@/lib/utils";
-import { FILTER_CLEAR_BTN } from "@/lib/filter-bar";
+import { FiltroSelectNativo } from "@/components/filtros-painel";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
+import {
+  FILTER_BAR_SHELL,
+  FILTER_CLEAR_BTN,
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+} from "@/lib/filter-bar";
+import { SOFT_BTN, SOFT_BTN_ACTIVE } from "@/lib/soft-btn";
 
 export const Route = createFileRoute("/_app/presenca")({
   head: () => ({ meta: [{ title: "Presença — Zone Connection" }] }),
@@ -163,6 +171,7 @@ function Page() {
   const [offline, setOffline] = useState(false);
   const [tiposOpen, setTiposOpen] = useState(false);
   const [userIds, setUserIds] = useState<string[]>([]);
+  const [equipeFiltro, setEquipeFiltro] = useState("todas");
   const [naturezaFiltro, setNaturezaFiltro] =
     useState<PresencaFiltroNatureza>("todos");
   const [userPickerOpen, setUserPickerOpen] = useState(false);
@@ -225,9 +234,25 @@ function Page() {
     }
   };
 
+  const equipes = useMemo(() => {
+    const names = new Set<string>();
+    for (const usuario of data?.usuarios ?? []) {
+      if (usuario.equipe) names.add(usuario.equipe);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [data]);
+
   const view = useMemo(
-    () => (data ? applyPresencaFiltros(data, userIds, naturezaFiltro) : null),
-    [data, userIds, naturezaFiltro],
+    () =>
+      data
+        ? applyPresencaFiltros(
+            data,
+            userIds,
+            naturezaFiltro,
+            equipeFiltro === "todas" ? [] : [equipeFiltro],
+          )
+        : null,
+    [data, userIds, naturezaFiltro, equipeFiltro],
   );
 
   const rankings = useMemo(() => {
@@ -323,44 +348,36 @@ function Page() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl" onClick={() => shift(-1)}>
+          <Button type="button" variant="outline" size="icon" className={SOFT_BTN} onClick={() => shift(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2 shadow-sm">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <CalendarDays className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Período analisado
-              </div>
-              <div className="text-sm font-semibold text-foreground">
-                {view ? monthRangeLabel(view.dias) : "—"}
-              </div>
-            </div>
+          <div className="flex h-9 items-center gap-2 rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#0B3148] dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc]">
+            <CalendarDays className="h-4 w-4 text-[#079ED4]" />
+            {view ? monthRangeLabel(view.dias) : "Período"}
           </div>
-          <Button variant="outline" size="icon" className="rounded-xl" onClick={() => shift(1)}>
+          <Button type="button" variant="outline" size="icon" className={SOFT_BTN} onClick={() => shift(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
-            className="rounded-xl"
+            type="button"
+            className={BRAND_GRADIENT_BTN}
+            style={BRAND_GRADIENT_STYLE}
             onClick={exportPdf}
             disabled={!view}
           >
-            <FileDown className="mr-2 h-4 w-4" />
+            <FileDown className="mr-1.5 h-4 w-4" />
             Gerar relatório
           </Button>
           {data?.podeTipos ? (
-            <Button variant="outline" className="rounded-xl" onClick={() => setTiposOpen(true)}>
-              <Settings2 className="mr-2 h-4 w-4" />
+            <Button type="button" variant="outline" className={SOFT_BTN} onClick={() => setTiposOpen(true)}>
+              <Settings2 className="mr-1.5 h-4 w-4" />
               Tipos
             </Button>
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className={FILTER_BAR_SHELL}>
         <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -369,7 +386,7 @@ function Page() {
               role="combobox"
               className={cn(
                 "min-w-[180px] justify-between",
-                userIds.length > 0 && "border-[#079ED4] bg-[#E7F4FA]",
+                userIds.length > 0 ? SOFT_BTN_ACTIVE : SOFT_BTN,
               )}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -404,7 +421,15 @@ function Page() {
                     />
                     Todas as pessoas
                   </CommandItem>
-                  {(data?.usuarios ?? []).map((u) => (
+                  {(data?.usuarios ?? [])
+                    .filter((u) =>
+                      equipeFiltro === "todas"
+                        ? true
+                        : equipeFiltro === ""
+                          ? !u.equipe
+                          : u.equipe === equipeFiltro,
+                    )
+                    .map((u) => (
                     <CommandItem
                       key={u.userId}
                       value={`${u.nome} ${u.userId}`}
@@ -429,20 +454,39 @@ function Page() {
             </Command>
           </PopoverContent>
         </Popover>
-        <Filter className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
-        {PRESENCA_FILTRO_NATUREZA.map((opt) => (
-          <Button
-            key={opt.id}
-            type="button"
-            size="sm"
-            variant={naturezaFiltro === opt.id ? "default" : "outline"}
-            className="px-3"
-            onClick={() => setNaturezaFiltro(opt.id)}
-          >
-            {opt.label}
-          </Button>
-        ))}
-        {userIds.length > 0 || naturezaFiltro !== "todos" ? (
+        <FiltroSelectNativo
+          aria-label="Equipe"
+          value={equipeFiltro}
+          onChange={(e) => setEquipeFiltro(e.target.value)}
+        >
+          <option value="todas">Todas as equipes</option>
+          {equipes.map((nome) => (
+            <option key={nome} value={nome}>
+              {nome}
+            </option>
+          ))}
+          {(data?.usuarios ?? []).some((usuario) => !usuario.equipe) ? (
+            <option value="">Sem equipe</option>
+          ) : null}
+        </FiltroSelectNativo>
+        <div className={FILTER_VISTA_WRAP}>
+          {PRESENCA_FILTRO_NATUREZA.map((opt) => (
+            <Button
+              key={opt.id}
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={cn(
+                FILTER_VISTA_BTN,
+                naturezaFiltro === opt.id && FILTER_VISTA_BTN_ACTIVE,
+              )}
+              onClick={() => setNaturezaFiltro(opt.id)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+        {userIds.length > 0 || naturezaFiltro !== "todos" || equipeFiltro !== "todas" ? (
           <Button
             type="button"
             size="sm"
@@ -451,6 +495,7 @@ function Page() {
             onClick={() => {
               setUserIds([]);
               setNaturezaFiltro("todos");
+              setEquipeFiltro("todas");
             }}
           >
             <X className="mr-1 h-3 w-3" />
