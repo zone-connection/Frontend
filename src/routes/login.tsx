@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   Eye,
   EyeOff,
@@ -14,7 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError } from "@/lib/api";
-import { forgotPassword, resetPassword, signIn, type LoginResult } from "@/lib/auth";
+import { signIn, type LoginResult } from "@/lib/auth";
 import { MfaLoginPanel } from "@/components/mfa-login-panel";
 import { TurnstileWidget, turnstileSiteKey } from "@/components/turnstile-widget";
 import { signInPortal } from "@/lib/portal-auth";
@@ -213,20 +213,9 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
-  const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
   const [pedirAcesso, setPedirAcesso] = useState(false);
   const [mfaStep, setMfaStep] = useState<Exclude<LoginResult, { kind: "session" }> | null>(null);
-  const [resetToken, setResetToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const captchaRequired = turnstileSiteKey().length > 0;
-
-  useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("token");
-    if (token) {
-      setResetToken(token);
-      setMode("reset");
-    }
-  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -399,95 +388,7 @@ function LoginPage() {
               </div>
             </div>
 
-            {mode === "forgot" ? (
-              <form
-                className="space-y-5"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  setLoading(true);
-                  try {
-                    await forgotPassword(email);
-                    toast.success(
-                      "Se este e-mail tiver conta, enviamos o link para redefinir a senha.",
-                    );
-                    setMode("login");
-                  } catch (error) {
-                    toast.error(
-                      error instanceof ApiError
-                        ? error.message
-                        : "Não foi possível enviar o e-mail.",
-                    );
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                <LoginAuthField
-                  id="email-recuperacao"
-                  label="E-mail"
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  icon={Mail}
-                  placeholder="seu@email.com"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? "Enviando..." : "Enviar link"}
-                </button>
-                <button
-                  type="button"
-                  className="w-full text-sm text-[#5C6B76]"
-                  onClick={() => setMode("login")}
-                >
-                  Voltar ao login
-                </button>
-              </form>
-            ) : mode === "reset" ? (
-              <form
-                className="space-y-5"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  setLoading(true);
-                  try {
-                    await resetPassword(resetToken, newPassword);
-                    toast.success("Senha atualizada. Entre com a nova senha.");
-                    setPassword("");
-                    setMode("login");
-                  } catch (error) {
-                    toast.error(
-                      error instanceof ApiError
-                        ? error.message
-                        : "Link inválido ou expirado.",
-                    );
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                <LoginAuthField
-                  id="nova-senha"
-                  label="Nova senha"
-                  type="password"
-                  value={newPassword}
-                  onChange={setNewPassword}
-                  icon={Lock}
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full cursor-pointer rounded-full bg-brand-cta px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? "Salvando..." : "Salvar nova senha"}
-                </button>
-              </form>
-            ) : mfaStep ? (
+            {mfaStep ? (
               <MfaLoginPanel
                 step={mfaStep}
                 password={password}
@@ -519,15 +420,6 @@ function LoginPage() {
                 icon={Lock}
                 placeholder="••••••••"
                 required
-                labelExtra={
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-brand-accent transition-colors hover:text-brand-dark"
-                    onClick={() => setMode("forgot")}
-                  >
-                    Esqueci minha senha
-                  </button>
-                }
               />
 
               <TurnstileWidget resetKey={captchaReset} onToken={setCaptchaToken} />
