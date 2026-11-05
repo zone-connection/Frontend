@@ -74,7 +74,6 @@ import {
   PRESENCA_FILTRO_NATUREZA,
   PRESENCA_ROLE_LABEL,
   presencaInitials,
-  rankPorNatureza,
   weekdayLabel,
   type PresencaFiltroNatureza,
   type PresencaRankItem,
@@ -231,18 +230,38 @@ function Page() {
     [data, userIds, naturezaFiltro],
   );
 
-  const maisPresentes = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "presente", 4),
-    [view],
-  );
-  const maisFaltas = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "falta", 4),
-    [view],
-  );
-  const maisMeioPeriodo = useMemo(
-    () => rankPorNatureza(view?.usuarios ?? [], "meio_periodo", 4),
-    [view],
-  );
+  const rankings = useMemo(() => {
+    const usuarios = view?.usuarios ?? [];
+    const tipos = (view?.tipos ?? []).filter((tipo) => tipo.ativo);
+    const usos = new Map<string, number>();
+    for (const usuario of usuarios) {
+      for (const cell of Object.values(usuario.dias)) {
+        if (!cell?.tipoId) continue;
+        usos.set(cell.tipoId, (usos.get(cell.tipoId) ?? 0) + 1);
+      }
+    }
+    const porUso = [...usos.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => tipos.find((tipo) => tipo.id === id))
+      .filter((tipo): tipo is PresencaTipo => Boolean(tipo));
+    const escolhidos = (porUso.length > 0 ? porUso : tipos).slice(0, 3);
+    return escolhidos.map((tipo) => ({
+      tipo,
+      items: usuarios
+        .map((usuario) => ({
+          userId: usuario.userId,
+          nome: usuario.nome,
+          valor: Object.values(usuario.dias).filter(
+            (cell) => cell?.tipoId === tipo.id,
+          ).length,
+        }))
+        .filter((pessoa) => pessoa.valor > 0)
+        .sort(
+          (a, b) => b.valor - a.valor || a.nome.localeCompare(b.nome, "pt-BR"),
+        )
+        .slice(0, 4),
+    }));
+  }, [view]);
 
   const filtroLabel = data
     ? labelPresencaFiltros(data, userIds, naturezaFiltro)
@@ -461,30 +480,29 @@ function Page() {
 
       {view ? (
         <div className="grid gap-3 md:grid-cols-3">
-          <RankCard
-            title="Mais presentes"
-            hint="Dias com presença"
-            items={maisPresentes}
-            empty="Ninguém com presença neste período."
-            tone="emerald"
-            icon={UserCheck}
-          />
-          <RankCard
-            title="Mais faltas"
-            hint="Dias com falta"
-            items={maisFaltas}
-            empty="Ninguém com falta neste período."
-            tone="rose"
-            icon={UserX}
-          />
-          <RankCard
-            title="Meio período"
-            hint="Dias presentes por meio período"
-            items={maisMeioPeriodo}
-            empty="Ninguém com meio período neste recorte."
-            tone="amber"
-            icon={Clock}
-          />
+          {rankings.map(({ tipo, items }) => (
+            <RankCard
+              key={tipo.id}
+              title={tipo.nome}
+              hint={`${tipo.sigla} · dias com este marcador`}
+              items={items}
+              empty={`Ninguém com ${tipo.nome.toLowerCase()} neste período.`}
+              tone={
+                tipo.natureza === "falta" || tipo.natureza === "falta_justificada"
+                  ? "rose"
+                  : tipo.natureza === "meio_periodo"
+                    ? "amber"
+                    : "emerald"
+              }
+              icon={
+                tipo.natureza === "falta" || tipo.natureza === "falta_justificada"
+                  ? UserX
+                  : tipo.natureza === "meio_periodo"
+                    ? Clock
+                    : UserCheck
+              }
+            />
+          ))}
         </div>
       ) : null}
 
