@@ -747,17 +747,17 @@ function VendasDocumentacaoPage() {
             Acompanhe o desempenho das suas vendas e filtre os resultados conforme o período e critérios desejados.
           </p>
           {abas.length > 1 ? (
-            <div className="mt-3 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
+            <div className="mt-3 flex w-fit gap-1 rounded-xl border border-[#E2E8EC] bg-[#F4F7F8] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
               {abas.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setAba(item.id)}
                   className={cn(
-                    "rounded-md px-3 py-1.5 text-sm font-medium",
+                    "rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
                     abaAtiva === item.id
-                      ? "bg-white text-[#0B3148] shadow-sm"
-                      : "text-[#5C6B76] hover:text-[#0B3148]",
+                      ? "bg-white text-[#0B3148] shadow-sm ring-1 ring-[#E2E8EC]"
+                      : "text-[#5C6B76] hover:bg-white/70 hover:text-[#0B3148]",
                   )}
                 >
                   {item.label}
@@ -773,7 +773,7 @@ function VendasDocumentacaoPage() {
               setPeriodo(value as "30" | "90" | "365" | "all")
             }
           >
-            <SelectTrigger className="h-9 w-[170px] rounded-lg border-[#E2E8EC] bg-white">
+            <SelectTrigger className="h-10 w-[190px] rounded-xl border-[#E2E8EC] bg-white shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1490,6 +1490,25 @@ function VendasUsadosPanel() {
   );
 }
 
+const TIPO_VENDA_STYLE: Record<string, string> = {
+  Lançamento: "bg-[#E7F4FA] text-[#0B6E96] ring-[#B7DFF0]",
+  Usado: "bg-[#FFF6E8] text-[#B45309] ring-[#F3D7A8]",
+  Locação: "bg-[#F3EEFF] text-[#6D28D9] ring-[#DDD0FA]",
+};
+
+function TipoVendaBadge({ tipo }: { tipo: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset",
+        TIPO_VENDA_STYLE[tipo] ?? "bg-[#F4F7F8] text-[#5C6B76] ring-[#E2E8EC]",
+      )}
+    >
+      {tipo}
+    </span>
+  );
+}
+
 function VendasTodosPanel({
   lancamentos,
   usados,
@@ -1502,6 +1521,7 @@ function VendasTodosPanel({
   const [usadosItems, setUsadosItems] = useState<VendaUsado[]>([]);
   const [loading, setLoading] = useState(usados);
   const [erro, setErro] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     if (!usados) return;
@@ -1575,33 +1595,88 @@ function VendasTodosPanel({
       : []),
   ];
 
+  const termo = normalize(busca);
+  const visiveis = termo
+    ? linhas.filter((row) =>
+        [row.tipo, row.cliente, row.referencia, row.responsavel, row.valor]
+          .some((value) => normalize(value).includes(termo)),
+      )
+    : linhas;
+  const resumo = ["Lançamento", "Usado", "Locação"]
+    .map((tipo) => ({ tipo, total: linhas.filter((row) => row.tipo === tipo).length }))
+    .filter((item) => item.total > 0);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-[0_8px_24px_rgba(11,49,72,0.05)]">
+      <div className="flex flex-col gap-3 border-b border-[#EEF2F4] bg-gradient-to-r from-[#F7FBFD] to-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-[#0B3148]">
+            {visiveis.length} {visiveis.length === 1 ? "venda" : "vendas"}
+          </span>
+          {resumo.map((item) => (
+            <span
+              key={item.tipo}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset",
+                TIPO_VENDA_STYLE[item.tipo],
+              )}
+            >
+              {item.total}{" "}
+              {item.total === 1
+                ? item.tipo.toLowerCase()
+                : item.tipo === "Locação"
+                  ? "locações"
+                  : `${item.tipo.toLowerCase()}s`}
+            </span>
+          ))}
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B98A3]" />
+          <Input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Cliente, referência ou responsável"
+            className="h-10 rounded-xl border-[#E2E8EC] bg-white pl-9 shadow-sm"
+          />
+        </div>
+      </div>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Referência</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Valor</TableHead>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Tipo</TableHead>
+            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Cliente</TableHead>
+            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Referência</TableHead>
+            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Responsável</TableHead>
+            <TableHead className="h-11 bg-[#F7F9FA] text-right text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Valor</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {linhas.length === 0 ? (
+          {visiveis.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-sm text-[#5C6B76]">
-                Nenhuma venda nas operações ativas.
+              <TableCell colSpan={5} className="py-14 text-center text-sm text-[#5C6B76]">
+                {linhas.length === 0
+                  ? "Nenhuma venda nas operações ativas."
+                  : "Nenhuma venda encontrada para essa busca."}
               </TableCell>
             </TableRow>
           ) : (
-            linhas.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{row.tipo}</TableCell>
-                <TableCell className="font-medium">{row.cliente}</TableCell>
-                <TableCell>{row.referencia}</TableCell>
-                <TableCell>{row.responsavel}</TableCell>
-                <TableCell>{row.valor}</TableCell>
+            visiveis.map((row) => (
+              <TableRow key={row.id} className="border-[#EEF2F4] hover:bg-[#F7FBFD]">
+                <TableCell className="py-3.5">
+                  <TipoVendaBadge tipo={row.tipo} />
+                </TableCell>
+                <TableCell className="py-3.5">
+                  <PersonCell name={row.cliente} />
+                </TableCell>
+                <TableCell className="max-w-[280px] py-3.5">
+                  <span className="line-clamp-2 text-sm text-[#3D4C57]">{row.referencia}</span>
+                </TableCell>
+                <TableCell className="py-3.5">
+                  <PersonCell name={row.responsavel} />
+                </TableCell>
+                <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-[#0B3148]">
+                  {row.valor}
+                </TableCell>
               </TableRow>
             ))
           )}
