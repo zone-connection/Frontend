@@ -20,6 +20,7 @@ import { assertImageFile } from "@/components/image-upload-field";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/empreendimentos-api";
 import { userCanInformarCreci } from "@/lib/users-api";
 import { ConfigCreciPanel } from "@/components/config-creci-panel";
+import { WhatsappNotificacoesCard } from "@/components/whatsapp-notificacoes-card";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -371,6 +372,7 @@ function Perfil() {
             </p>
           </CardContent>
         </Card>
+        <WhatsappNotificacoesCard />
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">Preferências</CardTitle>
