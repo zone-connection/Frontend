@@ -37,6 +37,7 @@ export function WhatsappNotificacoesCard() {
   const [connection, setConnection] = useState<WhatsappConnection>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [senderQr, setSenderQr] = useState<string | null>(null);
 
   async function load() {
     const data = await apiFetch<WhatsappConnection>("/me/whatsapp");
@@ -82,6 +83,19 @@ export function WhatsappNotificacoesCard() {
       setConnection(await apiFetch<WhatsappConnection>("/me/whatsapp", { method: "DELETE" }));
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Não foi possível desconectar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function connectSender() {
+    setBusy(true);
+    try {
+      const data = await apiFetch<WhatsappConnection>("/me/whatsapp/remetente", { method: "POST" });
+      setSenderQr(data.qrCode);
+      if (!data.qrCode) toast.error("A Evolution não devolveu o QR Code do número de avisos.");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Não foi possível preparar o número de avisos.");
     } finally {
       setBusy(false);
     }
@@ -137,6 +151,15 @@ export function WhatsappNotificacoesCard() {
             <Button type="button" variant="outline" disabled={busy} onClick={() => void disconnect()}>
               Desconectar WhatsApp
             </Button>
+            <p className="text-xs text-muted-foreground">
+              O aviso precisa chegar de outro número. O WhatsApp não notifica mensagem que você envia para si mesmo.
+            </p>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void connectSender()}>
+              Conectar número de avisos
+            </Button>
+            {senderQr ? (
+              <img src={senderQr.startsWith("data:") ? senderQr : `data:image/png;base64,${senderQr}`} alt="QR Code do número de avisos" className="h-56 w-56 rounded-md border bg-white p-2" />
+            ) : null}
           </div>
         ) : (
           <div className="space-y-4">
