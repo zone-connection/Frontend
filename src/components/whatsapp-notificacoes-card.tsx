@@ -82,6 +82,7 @@ export function WhatsappNotificacoesCard() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   O corretor não conecta o próprio WhatsApp. O celular dele só precisa estar no cadastro do usuário.
+                  Escaneie em Aparelhos conectados, em menos de um minuto. Se o WhatsApp recusar, gere outro código.
                 </p>
               </div>
             </div>
