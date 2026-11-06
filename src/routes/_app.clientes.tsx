@@ -1641,14 +1641,10 @@ function Clientes() {
               <ChevronLeft className="h-4 w-4" />
               Voltar
             </Button>
-            {clienteFormSection === "interesse" ? (
-              <Button type="submit" className={CLIENTES_PRIMARY_BTN}>
-                {formMode === "edit" ? "Salvar alterações" : "Cadastrar cliente"}
-              </Button>
-            ) : (
+            {clienteFormSection !== "interesse" ? (
               <Button
                 type="button"
-                className={CLIENTES_PRIMARY_BTN}
+                variant="outline"
                 onClick={() => {
                   const index = CLIENTE_FORM_SECTIONS.findIndex((item) => item.id === clienteFormSection);
                   setClienteFormSection(CLIENTE_FORM_SECTIONS[index + 1].id);
@@ -1657,7 +1653,10 @@ function Clientes() {
                 Próximo
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            )}
+            ) : null}
+            <Button type="submit" className={CLIENTES_PRIMARY_BTN}>
+              {formMode === "edit" ? "Salvar" : "Cadastrar cliente"}
+            </Button>
           </FormDialogActions>
         </form>
       </FormDialogShell>
