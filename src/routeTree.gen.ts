@@ -38,6 +38,7 @@ import { Route as AppGuiaRouteImport } from './routes/_app.guia'
 import { Route as AppGuiaSistemaRouteImport } from './routes/_app.guia-sistema'
 import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
+import { Route as AppIntegracoesRouteImport } from './routes/_app.integracoes'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
 import { Route as AppLembretesRouteImport } from './routes/_app.lembretes'
@@ -54,12 +55,12 @@ import { Route as AppPermissoesRouteImport } from './routes/_app.permissoes'
 import { Route as AppPresencaRouteImport } from './routes/_app.presenca'
 import { Route as AppProcessosRouteImport } from './routes/_app.processos'
 import { Route as AppPropostasRouteImport } from './routes/_app.propostas'
+import { Route as AppProspeccaoRouteImport } from './routes/_app.prospeccao'
 import { Route as AppResultadoRouteImport } from './routes/_app.resultado'
 import { Route as AppSuporteRouteImport } from './routes/_app.suporte'
 import { Route as AppTarefasRouteImport } from './routes/_app.tarefas'
 import { Route as AppTaxaConversaoRouteImport } from './routes/_app.taxa-conversao'
 import { Route as AppTenantsRouteImport } from './routes/_app.tenants'
-import { Route as AppProspeccaoRouteImport } from './routes/_app.prospeccao'
 import { Route as AppTreinamentoRouteImport } from './routes/_app.treinamento'
 import { Route as AppTriagemRouteImport } from './routes/_app.triagem'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
@@ -274,6 +275,11 @@ const AppImoveisUsadosRoute = AppImoveisUsadosRouteImport.update({
   path: '/imoveis-usados',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntegracoesRoute = AppIntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -354,6 +360,11 @@ const AppPropostasRoute = AppPropostasRouteImport.update({
   path: '/propostas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProspeccaoRoute = AppProspeccaoRouteImport.update({
+  id: '/prospeccao',
+  path: '/prospeccao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppResultadoRoute = AppResultadoRouteImport.update({
   id: '/resultado',
   path: '/resultado',
@@ -377,11 +388,6 @@ const AppTaxaConversaoRoute = AppTaxaConversaoRouteImport.update({
 const AppTenantsRoute = AppTenantsRouteImport.update({
   id: '/tenants',
   path: '/tenants',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProspeccaoRoute = AppProspeccaoRouteImport.update({
-  id: '/prospeccao',
-  path: '/prospeccao',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTreinamentoRoute = AppTreinamentoRouteImport.update({
@@ -780,6 +786,7 @@ export interface FileRoutesByFullPath {
   '/guia-sistema': typeof AppGuiaSistemaRoute
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/integracoes': typeof AppIntegracoesRoute
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/lembretes': typeof AppLembretesRoute
@@ -796,12 +803,12 @@ export interface FileRoutesByFullPath {
   '/presenca': typeof AppPresencaRoute
   '/processos': typeof AppProcessosRoute
   '/propostas': typeof AppPropostasRoute
+  '/prospeccao': typeof AppProspeccaoRoute
   '/resultado': typeof AppResultadoRoute
   '/suporte': typeof AppSuporteRoute
   '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
   '/tenants': typeof AppTenantsRoute
-  '/prospeccao': typeof AppProspeccaoRoute
   '/treinamento': typeof AppTreinamentoRoute
   '/triagem': typeof AppTriagemRoute
   '/usuarios': typeof AppUsuariosRoute
@@ -899,6 +906,7 @@ export interface FileRoutesByTo {
   '/guia-sistema': typeof AppGuiaSistemaRoute
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/integracoes': typeof AppIntegracoesRoute
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/lembretes': typeof AppLembretesRoute
@@ -915,12 +923,12 @@ export interface FileRoutesByTo {
   '/presenca': typeof AppPresencaRoute
   '/processos': typeof AppProcessosRoute
   '/propostas': typeof AppPropostasRoute
+  '/prospeccao': typeof AppProspeccaoRoute
   '/resultado': typeof AppResultadoRoute
   '/suporte': typeof AppSuporteRoute
   '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
   '/tenants': typeof AppTenantsRoute
-  '/prospeccao': typeof AppProspeccaoRoute
   '/treinamento': typeof AppTreinamentoRoute
   '/triagem': typeof AppTriagemRoute
   '/usuarios': typeof AppUsuariosRoute
@@ -1017,6 +1025,7 @@ export interface FileRoutesById {
   '/_app/guia-sistema': typeof AppGuiaSistemaRoute
   '/_app/imoveis': typeof AppImoveisRoute
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/_app/integracoes': typeof AppIntegracoesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/_app/lembretes': typeof AppLembretesRoute
@@ -1033,12 +1042,12 @@ export interface FileRoutesById {
   '/_app/presenca': typeof AppPresencaRoute
   '/_app/processos': typeof AppProcessosRoute
   '/_app/propostas': typeof AppPropostasRoute
+  '/_app/prospeccao': typeof AppProspeccaoRoute
   '/_app/resultado': typeof AppResultadoRoute
   '/_app/suporte': typeof AppSuporteRoute
   '/_app/tarefas': typeof AppTarefasRoute
   '/_app/taxa-conversao': typeof AppTaxaConversaoRoute
   '/_app/tenants': typeof AppTenantsRoute
-  '/_app/prospeccao': typeof AppProspeccaoRoute
   '/_app/treinamento': typeof AppTreinamentoRoute
   '/_app/triagem': typeof AppTriagemRoute
   '/_app/usuarios': typeof AppUsuariosRoute
@@ -1140,6 +1149,7 @@ export interface FileRouteTypes {
     | '/guia-sistema'
     | '/imoveis'
     | '/imoveis-usados'
+    | '/integracoes'
     | '/leads'
     | '/leads-perdidos'
     | '/lembretes'
@@ -1156,12 +1166,12 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/processos'
     | '/propostas'
+    | '/prospeccao'
     | '/resultado'
     | '/suporte'
     | '/tarefas'
     | '/taxa-conversao'
     | '/tenants'
-    | '/prospeccao'
     | '/treinamento'
     | '/triagem'
     | '/usuarios'
@@ -1259,6 +1269,7 @@ export interface FileRouteTypes {
     | '/guia-sistema'
     | '/imoveis'
     | '/imoveis-usados'
+    | '/integracoes'
     | '/leads'
     | '/leads-perdidos'
     | '/lembretes'
@@ -1275,12 +1286,12 @@ export interface FileRouteTypes {
     | '/presenca'
     | '/processos'
     | '/propostas'
+    | '/prospeccao'
     | '/resultado'
     | '/suporte'
     | '/tarefas'
     | '/taxa-conversao'
     | '/tenants'
-    | '/prospeccao'
     | '/treinamento'
     | '/triagem'
     | '/usuarios'
@@ -1376,6 +1387,7 @@ export interface FileRouteTypes {
     | '/_app/guia-sistema'
     | '/_app/imoveis'
     | '/_app/imoveis-usados'
+    | '/_app/integracoes'
     | '/_app/leads'
     | '/_app/leads-perdidos'
     | '/_app/lembretes'
@@ -1392,12 +1404,12 @@ export interface FileRouteTypes {
     | '/_app/presenca'
     | '/_app/processos'
     | '/_app/propostas'
+    | '/_app/prospeccao'
     | '/_app/resultado'
     | '/_app/suporte'
     | '/_app/tarefas'
     | '/_app/taxa-conversao'
     | '/_app/tenants'
-    | '/_app/prospeccao'
     | '/_app/treinamento'
     | '/_app/triagem'
     | '/_app/usuarios'
@@ -1693,6 +1705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImoveisUsadosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/integracoes': {
+      id: '/_app/integracoes'
+      path: '/integracoes'
+      fullPath: '/integracoes'
+      preLoaderRoute: typeof AppIntegracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/leads': {
       id: '/_app/leads'
       path: '/leads'
@@ -1805,6 +1824,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPropostasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/prospeccao': {
+      id: '/_app/prospeccao'
+      path: '/prospeccao'
+      fullPath: '/prospeccao'
+      preLoaderRoute: typeof AppProspeccaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/resultado': {
       id: '/_app/resultado'
       path: '/resultado'
@@ -1838,13 +1864,6 @@ declare module '@tanstack/react-router' {
       path: '/tenants'
       fullPath: '/tenants'
       preLoaderRoute: typeof AppTenantsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/prospeccao': {
-      id: '/_app/prospeccao'
-      path: '/prospeccao'
-      fullPath: '/prospeccao'
-      preLoaderRoute: typeof AppProspeccaoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/treinamento': {
@@ -2514,6 +2533,7 @@ interface AppRouteChildren {
   AppGuiaSistemaRoute: typeof AppGuiaSistemaRoute
   AppImoveisRoute: typeof AppImoveisRoute
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
+  AppIntegracoesRoute: typeof AppIntegracoesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
   AppLembretesRoute: typeof AppLembretesRoute
@@ -2530,12 +2550,12 @@ interface AppRouteChildren {
   AppPresencaRoute: typeof AppPresencaRoute
   AppProcessosRoute: typeof AppProcessosRoute
   AppPropostasRoute: typeof AppPropostasRoute
+  AppProspeccaoRoute: typeof AppProspeccaoRoute
   AppResultadoRoute: typeof AppResultadoRoute
   AppSuporteRoute: typeof AppSuporteRoute
   AppTarefasRoute: typeof AppTarefasRoute
   AppTaxaConversaoRoute: typeof AppTaxaConversaoRoute
   AppTenantsRoute: typeof AppTenantsRoute
-  AppProspeccaoRoute: typeof AppProspeccaoRoute
   AppTreinamentoRoute: typeof AppTreinamentoRoute
   AppTriagemRoute: typeof AppTriagemRoute
   AppUsuariosRoute: typeof AppUsuariosRoute
@@ -2566,6 +2586,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGuiaSistemaRoute: AppGuiaSistemaRoute,
   AppImoveisRoute: AppImoveisRoute,
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
+  AppIntegracoesRoute: AppIntegracoesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
   AppLembretesRoute: AppLembretesRoute,
@@ -2582,12 +2603,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppPresencaRoute: AppPresencaRoute,
   AppProcessosRoute: AppProcessosRoute,
   AppPropostasRoute: AppPropostasRoute,
+  AppProspeccaoRoute: AppProspeccaoRoute,
   AppResultadoRoute: AppResultadoRoute,
   AppSuporteRoute: AppSuporteRoute,
   AppTarefasRoute: AppTarefasRoute,
   AppTaxaConversaoRoute: AppTaxaConversaoRoute,
   AppTenantsRoute: AppTenantsRoute,
-  AppProspeccaoRoute: AppProspeccaoRoute,
   AppTreinamentoRoute: AppTreinamentoRoute,
   AppTriagemRoute: AppTriagemRoute,
   AppUsuariosRoute: AppUsuariosRoute,
