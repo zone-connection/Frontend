@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api";
 import { fetchTenants, type Tenant } from "@/lib/tenants-api";
 
@@ -74,19 +81,25 @@ function IntegracoesPage() {
   const [tenantId, setTenantId] = useState("");
   const [scopes, setScopes] = useState<string[]>(["leads:read", "webhooks:manage"]);
   const [escolhida, setEscolhida] = useState("");
-  const [url, setUrl] = useState("https://");
+  const [url, setUrl] = useState("");
   const [events, setEvents] = useState<string[]>(["lead.created"]);
   const [enviando, setEnviando] = useState(false);
 
   async function carregar() {
     const [lista, aplicacoes] = await Promise.all([
       fetchTenants(),
-      apiFetch<Aplicacao[]>("/api/v1/aplicacoes"),
+      apiFetch<Aplicacao[]>("/v1/aplicacoes"),
     ]);
-    setTenants(lista);
-    setApps(aplicacoes);
-    setTenantId((atual) => atual || lista[0]?.id || "");
-    setEscolhida((atual) => atual || aplicacoes[0]?.id || "");
+    const imobiliarias = Array.isArray(lista) ? lista : [];
+    const cadastradas = (Array.isArray(aplicacoes) ? aplicacoes : []).filter(
+      (item) => item.status === "ativa",
+    );
+    setTenants(imobiliarias);
+    setApps(cadastradas);
+    setTenantId((atual) => atual || imobiliarias[0]?.id || "");
+    setEscolhida((atual) =>
+      cadastradas.some((item) => item.id === atual) ? atual : cadastradas[0]?.id ?? "",
+    );
   }
 
   useEffect(() => {
@@ -144,7 +157,7 @@ function IntegracoesPage() {
     setErro("");
     try {
       const giro = await apiFetch<{ clientSecret: string }>(
-        `/api/v1/aplicacoes/${app.id}/rotacionar`,
+        `/v1/aplicacoes/${app.id}/rotacionar`,
         { method: "POST" },
       );
       setSegredo(giro.clientSecret);
@@ -160,7 +173,7 @@ function IntegracoesPage() {
     setEnviando(true);
     setErro("");
     try {
-      await apiFetch(`/api/v1/aplicacoes/${app.id}/revogar`, { method: "POST" });
+      await apiFetch(`/v1/aplicacoes/${app.id}/revogar`, { method: "POST" });
       await carregar();
     } catch (e) {
       setErro(mensagem(e));
@@ -174,7 +187,7 @@ function IntegracoesPage() {
     setEnviando(true);
     setErro("");
     try {
-      await apiFetch(`/api/v1/aplicacoes/${app.id}/webhooks/${id}`, { method: "DELETE" });
+      await apiFetch(`/v1/aplicacoes/${app.id}/webhooks/${id}`, { method: "DELETE" });
       await carregar();
     } catch (e) {
       setErro(mensagem(e));
@@ -189,7 +202,7 @@ function IntegracoesPage() {
     setErro("");
     try {
       const giro = await apiFetch<{ secret: string }>(
-        `/api/v1/aplicacoes/${app.id}/webhooks/${id}/rotate-secret`,
+        `/v1/aplicacoes/${app.id}/webhooks/${id}/rotate-secret`,
         { method: "POST" },
       );
       setSegredo(giro.secret);
@@ -204,7 +217,17 @@ function IntegracoesPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
       <PageHeader
         title="Integrações"
-        description="Crie a aplicação de homologação, entregue a credencial e cadastre o webhook do sistema parceiro."
+        description="Crie o acesso do sistema parceiro e entregue o Client ID e o segredo. Eles se conectam na API. Revogar tira o acesso e some desta lista."
+        actions={
+          <a
+            href="/docs/api"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-[#079ED4] px-3 py-2 text-sm font-medium text-white"
+          >
+            Documentação do parceiro
+          </a>
+        }
       />
       {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
       {segredo ? (
@@ -225,12 +248,11 @@ function IntegracoesPage() {
             <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="tenant">Imobiliária</Label>
+            <Label>Imobiliária</Label>
             <select
-              id="tenant"
-              className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
+              className="h-9 w-full rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A]"
               value={tenantId}
-              onChange={(e) => setTenantId(e.target.value)}
+              onChange={(event) => setTenantId(event.target.value)}
             >
               {tenants.map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -260,19 +282,19 @@ function IntegracoesPage() {
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="space-y-2">
-            <Label htmlFor="app">Aplicação</Label>
-            <select
-              id="app"
-              className="flex h-10 min-w-72 rounded-md border bg-background px-3 text-sm"
-              value={escolhida}
-              onChange={(e) => setEscolhida(e.target.value)}
-            >
-              {apps.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nome} · {item.status}
-                </option>
-              ))}
-            </select>
+            <Label>Aplicação</Label>
+            <Select value={escolhida} onValueChange={setEscolhida}>
+              <SelectTrigger className="min-w-72">
+                <SelectValue placeholder="Escolha a aplicação" />
+              </SelectTrigger>
+              <SelectContent className="bg-white text-[#16324A]">
+                {apps.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.nome} · {item.status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {app ? (
             <div className="flex gap-2">
@@ -303,8 +325,13 @@ function IntegracoesPage() {
         <Card className="space-y-4 p-4">
           <h2 className="text-base font-semibold">Webhook</h2>
           <div className="space-y-2">
-            <Label htmlFor="url">URL HTTPS</Label>
-            <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <Label htmlFor="url">URL HTTPS do sistema parceiro</Label>
+            <Input
+              id="url"
+              placeholder="https://sistema-do-parceiro.com/webhooks/zone"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
           </div>
           <div className="flex flex-wrap gap-3">
             {EVENTOS.map((evento) => (
