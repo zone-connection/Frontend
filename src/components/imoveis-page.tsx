@@ -11,7 +11,12 @@ import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { SkeletonPropertyCards } from "@/components/skeletons";
 import { useDeferredLoading } from "@/hooks/use-deferred-loading";
-import { consultarSeCepCompleto, nomeEstado, useConsultaCep } from "@/lib/cep-lookup";
+import {
+  consultarSeCepCompleto,
+  nomeEstado,
+  useConsultaCep,
+  type EnderecoCep,
+} from "@/lib/cep-lookup";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import {
@@ -677,6 +682,25 @@ export function ImoveisPage({
   >("todos");
   const [vista, setVista] = useImoveisVista();
   const { show: showCampo } = useImoveisCamposVisiveis();
+  function aplicarEnderecoDoCep(endereco: EnderecoCep, cep: string) {
+    const cidade = endereco.cidade.trim().toLocaleLowerCase("pt-BR");
+    const localidade = catalogoLocalidades.find(
+      (item) => item.nome.trim().toLocaleLowerCase("pt-BR") === cidade,
+    );
+    setForm((prev) => ({
+      ...prev,
+      vitrineCep: formatCep(endereco.cep || cep),
+      endereco: endereco.endereco || prev.endereco,
+      vitrineBairro: endereco.bairro || prev.vitrineBairro,
+      vitrineEstado: nomeEstado(endereco.uf) || prev.vitrineEstado,
+      ...(localidade
+        ? { novaLocalidade: false, localidadeId: localidade.id, localidadeNome: "" }
+        : endereco.cidade
+          ? { novaLocalidade: true, localidadeId: "", localidadeNome: endereco.cidade }
+          : {}),
+    }));
+  }
+
   const [catalogoLocalidades, setCatalogoLocalidades] = useState<Localidade[]>(
     [],
   );
@@ -2855,35 +2879,46 @@ export function ImoveisPage({
                 label={cepLoading ? "CEP — consultando..." : "CEP"}
                 htmlFor="imovel-vitrine-cep"
               >
-                <Input
-                  id="imovel-vitrine-cep"
-                  inputMode="numeric"
-                  value={form.vitrineCep}
-                  onChange={(event) => {
-                    const cep = formatCep(event.target.value);
-                    setField("vitrineCep", cep);
-                    consultarSeCepCompleto(cep, buscarCep, (endereco) => {
-                      const cidade = endereco.cidade.trim().toLocaleLowerCase("pt-BR");
-                      const localidade = catalogoLocalidades.find(
-                        (item) => item.nome.trim().toLocaleLowerCase("pt-BR") === cidade,
+                <div className="flex gap-2">
+                  <Input
+                    id="imovel-vitrine-cep"
+                    inputMode="numeric"
+                    value={form.vitrineCep}
+                    onChange={(event) => {
+                      const cep = formatCep(event.target.value);
+                      setField("vitrineCep", cep);
+                      consultarSeCepCompleto(cep, buscarCep, (endereco) =>
+                        aplicarEnderecoDoCep(endereco, cep),
                       );
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineCep: formatCep(endereco.cep || cep),
-                        endereco: endereco.endereco || prev.endereco,
-                        vitrineBairro: endereco.bairro || prev.vitrineBairro,
-                        vitrineEstado: nomeEstado(endereco.uf) || prev.vitrineEstado,
-                        ...(localidade
-                          ? { novaLocalidade: false, localidadeId: localidade.id, localidadeNome: "" }
-                          : endereco.cidade
-                            ? { novaLocalidade: true, localidadeId: "", localidadeNome: endereco.cidade }
-                            : {}),
-                      }));
-                    });
-                  }}
-                  placeholder="00000-000"
-                  maxLength={9}
-                />
+                    }}
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    title="Buscar CEP"
+                    disabled={cepLoading}
+                    onClick={() => {
+                      const cep = form.vitrineCep;
+                      if (cep.replace(/\D/g, "").length !== 8) {
+                        toast.error("Informe o CEP com 8 dígitos.");
+                        return;
+                      }
+                      void buscarCep(cep).then((endereco) => {
+                        if (endereco) aplicarEnderecoDoCep(endereco, cep);
+                      });
+                    }}
+                  >
+                    {cepLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </FormField>
               <FormField label="Latitude" htmlFor="imovel-lat">
                 <Input
