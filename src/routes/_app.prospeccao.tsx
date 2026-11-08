@@ -119,21 +119,31 @@ function ProspeccaoPage() {
     [items],
   );
 
+  function etapaFechamento() {
+    return (
+      etapas.find((etapa) => etapa.fecha) ??
+      etapas.find((etapa) => etapa.nome.trim().toLowerCase() === "fechado") ??
+      etapas[etapas.length - 1]
+    );
+  }
+
   function add() {
     const nomeLimpo = nome.trim();
-    if (!nomeLimpo || etapas.length === 0) return;
-    setItems((prev) => [
-      {
-        id: crypto.randomUUID(),
-        nome: nomeLimpo,
-        contato: contato.trim(),
-        stage: etapas[0].id,
-        motivo: "",
-      },
-      ...prev,
-    ]);
+    const destino = etapaFechamento();
+    if (!nomeLimpo || !destino) return;
+    const item: Prospect = {
+      id: crypto.randomUUID(),
+      nome: nomeLimpo,
+      contato: contato.trim(),
+      stage: destino.id,
+      motivo: "",
+    };
+    const next = [item, ...items];
+    setItems(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ etapas, items: next }));
     setNome("");
     setContato("");
+    cadastrar(item);
   }
 
   function mover(id: string, stage: string) {
@@ -209,7 +219,7 @@ function ProspeccaoPage() {
     <div>
       <PageHeader
         title="Prospecção"
-        description="Arraste os cards entre as etapas. A etapa marcada como fechamento abre o cadastro do cliente. Perda vai para a aba Perdidos."
+        description="A imobiliária criada aqui entra em Fechado e abre o cadastro do cliente. Arraste os demais cards entre as etapas. Perda vai para a aba Perdidos."
         actions={
           <Button type="button" variant="outline" onClick={() => setConfig(true)}>
             <Settings2 className="mr-1 h-4 w-4" />
@@ -246,7 +256,7 @@ function ProspeccaoPage() {
             </div>
             <Button type="button" onClick={add}>
               <Plus className="mr-1 h-4 w-4" />
-              Adicionar
+              Cadastrar imobiliária
             </Button>
           </div>
 
