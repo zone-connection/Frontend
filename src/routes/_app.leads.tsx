@@ -3096,13 +3096,10 @@ function LeadsPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
                 </Button>
-                {tenantLeadSection === "qualificacao" ? (
-                  <Button type="submit">
-                    {formMode === "edit" ? "Salvar alterações" : "Salvar lead"}
-                  </Button>
-                ) : (
+                {tenantLeadSection !== "qualificacao" ? (
                   <Button
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       const index = TENANT_LEAD_SECTIONS.findIndex((item) => item.id === tenantLeadSection);
                       setTenantLeadSection(TENANT_LEAD_SECTIONS[index + 1].id);
@@ -3111,7 +3108,10 @@ function LeadsPage() {
                     Próximo
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                )}
+                ) : null}
+                <Button type="submit">
+                  {formMode === "edit" ? "Salvar" : "Salvar lead"}
+                </Button>
               </>
             )}
           </FormDialogActions>

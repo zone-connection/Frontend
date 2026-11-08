@@ -1868,17 +1868,10 @@ function Usuarios() {
               <ChevronLeft className="h-4 w-4" />
               Voltar
             </Button>
-            {userFormSection === "acesso" ? (
-            <Button type="submit" disabled={saving}>
-              {saving
-                ? "Salvando..."
-                : formMode === "edit"
-                  ? "Salvar alterações"
-                  : "Criar usuário"}
-            </Button>
-            ) : (
+            {userFormSection !== "acesso" ? (
               <Button
                 type="button"
+                variant="outline"
                 disabled={saving}
                 onClick={() => {
                   const index = USER_FORM_SECTIONS.findIndex((item) => item.id === userFormSection);
@@ -1888,7 +1881,14 @@ function Usuarios() {
                 Próximo
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            )}
+            ) : null}
+            <Button type="submit" disabled={saving}>
+              {saving
+                ? "Salvando..."
+                : formMode === "edit"
+                  ? "Salvar"
+                  : "Criar usuário"}
+            </Button>
           </FormDialogActions>
         </form>
       </FormDialogShell>

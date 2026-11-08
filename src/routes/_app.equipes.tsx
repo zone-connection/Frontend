@@ -883,14 +883,11 @@ function EquipesPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
                 </Button>
-                {teamFormSection === "funis" ? (
-                <Button type="submit" disabled={saving || optionsLoading}>
-                  {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-                  {formMode === "create" ? "Criar equipe" : "Salvar"}
-                </Button>
-                ) : (
+                {teamFormSection !== "funis" ? (
                   <Button
                     type="button"
+                    variant="outline"
+                    disabled={saving || optionsLoading}
                     onClick={() => {
                       const index = TEAM_FORM_SECTIONS.findIndex((item) => item.id === teamFormSection);
                       setTeamFormSection(TEAM_FORM_SECTIONS[index + 1].id);
@@ -899,7 +896,11 @@ function EquipesPage() {
                     Próximo
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                )}
+                ) : null}
+                <Button type="submit" disabled={saving || optionsLoading}>
+                  {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                  {formMode === "create" ? "Criar equipe" : "Salvar"}
+                </Button>
               </FormDialogActions>
             </form>
           </FormDialogShell>

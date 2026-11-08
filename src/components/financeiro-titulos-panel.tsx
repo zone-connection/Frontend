@@ -899,17 +899,18 @@ export function FinanceiroTitulosPanel({
       r.status === "atrasado"
         ? Number(r.valorAtualizado ?? r.valor) || 0
         : principal(r);
-    const aberto = rows
+    const baseAberto = tipo === "receber" ? items : rows;
+    const aberto = baseAberto
       .filter((r) => r.status === "aberto")
       .reduce((s, r) => s + principal(r), 0);
-    const atrasado = rows
+    const atrasado = baseAberto
       .filter((r) => r.status === "atrasado")
       .reduce((s, r) => s + devido(r), 0);
     const pago = rows
       .filter((r) => r.status === "pago")
       .reduce((s, r) => s + principal(r), 0);
-    return { aberto, atrasado, pago };
-  }, [rows]);
+    return { aberto, atrasado, pago, aReceber: aberto + atrasado };
+  }, [rows, items, tipo]);
 
   const displayRows = useMemo(
     () => buildDisplayRows(rows, vistaParcelas),
@@ -1708,7 +1709,9 @@ export function FinanceiroTitulosPanel({
         inset="muted"
         className="mb-4"
         title={
-          dataDe || dataAte
+          tipo === "receber"
+            ? "Tudo a receber"
+            : dataDe || dataAte
             ? "Indicadores do período"
             : mesNome
               ? `Indicadores de ${mesNome}`
@@ -1720,24 +1723,28 @@ export function FinanceiroTitulosPanel({
                     ? "Indicadores"
                     : "Indicadores do mês"
         }
-        description="Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
+        description={
+          tipo === "receber"
+            ? "A receber soma tudo em aberto e atrasado, de qualquer mês, inclusive comissão. Recebido segue o período filtrado."
+            : "Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
+        }
       >
       <section className="grid gap-3 sm:grid-cols-3">
         <FinanceKpiCard
           variant="dash"
           label={
             tipo === "receber"
-              ? `A receber ${periodoKpi}`
+              ? "A receber"
               : `A pagar ${periodoKpi}`
           }
-          value={kpis.aberto}
+          value={tipo === "receber" ? kpis.aReceber : kpis.aberto}
           icon={Clock3}
           tone="teal"
           blurValue={hideValues}
         />
         <FinanceKpiCard
           variant="dash"
-          label={`Atrasado ${periodoKpi}`}
+          label={tipo === "receber" ? "Atrasado" : `Atrasado ${periodoKpi}`}
           value={kpis.atrasado}
           icon={AlertTriangle}
           tone="rose"
