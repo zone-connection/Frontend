@@ -125,7 +125,7 @@ function DocsApiPage() {
               ]}
             />
             <p>
-              Na criação, <code>nome</code>, <code>telefone</code>, <code>interesse</code>, <code>cidade</code> e <code>bairro</code> são obrigatórios. O telefone usa o formato (81) 99999-9999. O interesse aceito é Comprar. A prioridade pode ser Alta, Média ou Baixa. A etapa é o slug do funil, por exemplo novo.
+              Na criação, <code>nome</code>, <code>telefone</code>, <code>interesse</code>, <code>cidade</code> e <code>bairro</code> são obrigatórios. O telefone usa o formato (81) 99999-9999. O interesse aceito é Comprar. A categoria é opcional e fica no lead: aluguel ou potencial. A prioridade pode ser Alta, Média ou Baixa. A etapa é o slug do funil, por exemplo novo.
             </p>
             <Bloco
               codigo={`{
@@ -137,7 +137,8 @@ function DocsApiPage() {
   "email": "ana@email.com",
   "origem": "agente",
   "stage": "novo",
-  "prioridade": "Média"
+  "prioridade": "Média",
+  "categoria": "potencial"
 }`}
             />
             <p>Para mover de etapa: POST /v1/leads/:id/move com {`{ "stage": "contato" }`}.</p>
@@ -151,7 +152,7 @@ function DocsApiPage() {
           </Secao>
 
           <Secao id="funis" titulo="Funis">
-            <p>GET /v1/funnels, GET /v1/funnels/:id e GET /v1/funnels/:id/stages, com funnels:read. Para mover o lead, envie o slug da etapa e use o escopo leads:update. O campo papel é estável mesmo quando o nome visível da etapa muda. Os papéis de integração são: prospeccao_ativa, frio, qualificado, agendado, agendado_compra, agendado_venda, lead_aluguel e leads_em_potencial. A imobiliária atribui esses papéis às etapas dela. Leia a lista desta imobiliária antes de mover.</p>
+            <p>GET /v1/funnels, GET /v1/funnels/:id e GET /v1/funnels/:id/stages, com funnels:read. Para mover o lead, envie o slug da etapa e use o escopo leads:update. O campo papel é estável mesmo quando o nome visível da etapa muda. Os papéis de integração da etapa são: prospeccao_ativa, frio, qualificado, agendado, agendado_compra e agendado_venda. Lead de aluguel e lead em potencial não são etapa: vão no campo categoria do lead. A imobiliária atribui esses papéis às etapas dela. Leia a lista desta imobiliária antes de mover.</p>
           </Secao>
 
           <Secao id="webhooks" titulo="Webhooks">
@@ -217,11 +218,11 @@ const esperado = "sha256=" + crypto
 
           <Secao id="base-fria" titulo="CSV da base fria">
             <p>
-              GET /v1/leads/import/modelo devolve o arquivo de exemplo. POST /v1/leads/import recebe {`{ "csv": "..." }`}, com leads:write. UTF-8, vírgula ou ponto e vírgula. Telefone com DDD. Cidade vazia vira Não informado. Interesse vazio vira Comprar. Os contatos entram no funil comercial padrão. Para colocar em outra etapa, use POST /v1/leads/:id/move depois.
+              GET /v1/leads/import/modelo devolve o arquivo de exemplo. POST /v1/leads/import recebe {`{ "csv": "..." }`}, com leads:write. UTF-8, vírgula ou ponto e vírgula. Telefone com DDD. Cidade vazia vira Não informado. Interesse vazio vira Comprar. A coluna categoria é opcional: aluguel ou potencial. Os contatos entram no funil comercial padrão. Para colocar em outra etapa, use POST /v1/leads/:id/move depois.
             </p>
             <Bloco
-              codigo={`nome,telefone,email,cidade,bairro,interesse,origem,prioridade
-Ana Souza,(81) 98888-7777,ana@email.com,Recife,Boa Viagem,Comprar,base-fria,Média`}
+              codigo={`nome,telefone,email,cidade,bairro,interesse,origem,prioridade,categoria
+Ana Souza,(81) 98888-7777,ana@email.com,Recife,Boa Viagem,Comprar,base-fria,Média,potencial`}
             />
           </Secao>
 
