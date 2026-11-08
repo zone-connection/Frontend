@@ -686,8 +686,6 @@ export function ImoveisPage({
     "todos" | "lancamentos" | "captacoes" | "orulo"
   >("todos");
   const [vista, setVista] = useImoveisVista();
-  const [kindPickOpen, setKindPickOpen] = useState(false);
-  const [unidadeCreateTick, setUnidadeCreateTick] = useState(0);
   const [unidadeEditRequest, setUnidadeEditRequest] = useState<{
     id: string;
     tick: number;
@@ -878,7 +876,6 @@ export function ImoveisPage({
   }
 
   async function openQuickCreate() {
-    setKindPickOpen(false);
     setEditingId(null);
     setForm(emptyEmpreendimentoForm());
     setFormTab("identidade");
@@ -893,11 +890,6 @@ export function ImoveisPage({
     // só na montagem do assistente aberto pela captação
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [somenteDialogo]);
-
-  function openUnidadeCreate() {
-    setKindPickOpen(false);
-    setUnidadeCreateTick((n) => n + 1);
-  }
 
   async function toggleVisivelNoSite(item: Empreendimento, next: boolean) {
     if (!isAdmin) return;
@@ -1748,9 +1740,7 @@ export function ImoveisPage({
             {gerarPdfButton}
             {canCreate ? (
               <Button
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
                 className={IMOVEIS_GRADIENT_BTN}
                 style={IMOVEIS_GRADIENT_STYLE}
               >
@@ -1769,7 +1759,7 @@ export function ImoveisPage({
               {gerarPdfButton}
               {canCreate ? (
                 <Button
-                  onClick={() => setKindPickOpen(true)}
+                  onClick={() => void openQuickCreate()}
                   className={IMOVEIS_GRADIENT_BTN}
                   style={IMOVEIS_GRADIENT_STYLE}
                 >
@@ -2131,9 +2121,7 @@ export function ImoveisPage({
               <Button
                 className={`mt-2 ${IMOVEIS_GRADIENT_BTN}`}
                 style={IMOVEIS_GRADIENT_STYLE}
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Novo imóvel
@@ -2582,59 +2570,12 @@ export function ImoveisPage({
           search={search}
           vista={vista}
           proprietarioId={proprietarioId}
-          createTick={unidadeCreateTick}
+          createTick={0}
           editRequest={unidadeEditRequest}
           deleteRequest={unidadeDeleteRequest}
           onChanged={() => void loadCaptacaoImoveis()}
         />
       ) : null}
-
-      <Dialog open={kindPickOpen} onOpenChange={setKindPickOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-2xl">
-          <DialogHeader className="space-y-1.5 px-6 pb-2 pt-6">
-            <DialogTitle className="text-xl">O que você vai cadastrar?</DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed">
-              Escolha o tipo. Depois abrimos só o formulário certo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={() => void openQuickCreate()}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Building2 className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Lançamento
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Empreendimento da construtora: torres, plantas e tabela.
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={openUnidadeCreate}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Home className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Captação ou usado
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Unidade de um dono. Entra na captação e no catálogo de empreendimentos.
-                </span>
-              </span>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <FormDialogShell
         open={matchesOpen}
