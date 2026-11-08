@@ -139,23 +139,11 @@ import {
   assertImageFile,
   ImageUploadField,
 } from "@/components/image-upload-field";
-import { CatalogUnidadeImoveis } from "@/components/catalog-unidade-imoveis";
-import { ImovelFotoThumb } from "@/components/imovel-foto-thumb";
 import {
-  CAPTACAO_IMOVEL_TIPO_LABEL,
-  fetchCaptacaoImoveis,
-  formatBrl,
-  imovelCapaUrl,
   IMOVEL_CARACTERISTICAS_DIFERENCIAIS,
   IMOVEL_DETALHES_IMOVEL,
   IMOVEL_LOCALIZACAO_INFRA,
-  type Imovel,
 } from "@/lib/captacao-api";
-import {
-  fetchVendasUsado,
-  VENDA_STATUS_LABEL,
-  type VendaUsado,
-} from "@/lib/imoveis-usados-api";
 import { AmenityChips } from "@/components/imovel-ficha-fields";
 import {
   ArrowRight,
@@ -621,15 +609,22 @@ function formatPrevisao(iso: string | null | undefined) {
   return `${month}/${year}`;
 }
 
+function veioDaCaptacao(item: { tags?: string[] | null }) {
+  return (item.tags ?? []).some((tag) => {
+    const nome = tag.trim().toLocaleLowerCase("pt-BR");
+    return nome === "captação" || nome === "captacao";
+  });
+}
+
 export function ImoveisPage({
   embedded = false,
-  proprietarioId,
   openMatchesId,
   somenteDialogo = false,
   ocultarPrazoEntrega = false,
   onDialogoFechado,
 }: {
   embedded?: boolean;
+  /** A captação só entra nesta lista depois de captada, já como imóvel do catálogo. */
   proprietarioId?: string;
   openMatchesId?: string;
   /** Abre só o assistente de cadastro, por cima da tela de captação. */
@@ -664,15 +659,10 @@ export function ImoveisPage({
   const tagOptions = catalog.empreendimento_tag;
 
   const [items, setItems] = useState<Empreendimento[]>([]);
-  const [captacaoImoveis, setCaptacaoImoveis] = useState<Imovel[]>([]);
-  const [estoqueUsados, setEstoqueUsados] = useState<VendaUsado[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [loading, setLoading] = useState(true);
   const showImoveisSkeleton = useDeferredLoading(
-    loading &&
-      items.length === 0 &&
-      captacaoImoveis.length === 0 &&
-      estoqueUsados.length === 0,
+    loading && items.length === 0,
   );
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<TableSort>(DEFAULT_TABLE_SORT);
@@ -686,16 +676,6 @@ export function ImoveisPage({
     "todos" | "lancamentos" | "captacoes" | "orulo"
   >("todos");
   const [vista, setVista] = useImoveisVista();
-  const [kindPickOpen, setKindPickOpen] = useState(false);
-  const [unidadeCreateTick, setUnidadeCreateTick] = useState(0);
-  const [unidadeEditRequest, setUnidadeEditRequest] = useState<{
-    id: string;
-    tick: number;
-  } | null>(null);
-  const [unidadeDeleteRequest, setUnidadeDeleteRequest] = useState<{
-    id: string;
-    tick: number;
-  } | null>(null);
   const { show: showCampo } = useImoveisCamposVisiveis();
   const [catalogoLocalidades, setCatalogoLocalidades] = useState<Localidade[]>(
     [],
@@ -803,39 +783,10 @@ export function ImoveisPage({
       .catch(() => setMatchAlerts([]));
   }, [embedded]);
 
-  const loadCaptacaoImoveis = useCallback(async () => {
-    if (embedded) {
-      setCaptacaoImoveis([]);
-      return;
-    }
-    try {
-      setCaptacaoImoveis(
-        await fetchCaptacaoImoveis(
-          proprietarioId ? { proprietarioId } : undefined,
-        ),
-      );
-    } catch {
-      setCaptacaoImoveis([]);
-    }
-  }, [embedded, proprietarioId]);
-
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [lancamentos, estoque] = await Promise.all([
-        fetchEmpreendimentos({ ativo: true }),
-        loadCaptacaoImoveis().then(() =>
-          embedded
-            ? ([] as VendaUsado[])
-            : fetchVendasUsado().catch(() => [] as VendaUsado[]),
-        ),
-      ]);
-      setItems(lancamentos);
-      setEstoqueUsados(
-        estoque.filter(
-          (item) => item.status === "disponivel" || item.status === "reservado",
-        ),
-      );
+      setItems(await fetchEmpreendimentos({ ativo: true }));
     } catch (err) {
       if (!(err instanceof ApiError && err.status >= 500)) {
         toast.error(
@@ -847,7 +798,7 @@ export function ImoveisPage({
     } finally {
       setLoading(false);
     }
-  }, [loadCaptacaoImoveis]);
+  }, []);
 
   useEffect(() => {
     void loadItems();
@@ -878,7 +829,6 @@ export function ImoveisPage({
   }
 
   async function openQuickCreate() {
-    setKindPickOpen(false);
     setEditingId(null);
     setForm(emptyEmpreendimentoForm());
     setFormTab("identidade");
@@ -893,11 +843,6 @@ export function ImoveisPage({
     // só na montagem do assistente aberto pela captação
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [somenteDialogo]);
-
-  function openUnidadeCreate() {
-    setKindPickOpen(false);
-    setUnidadeCreateTick((n) => n + 1);
-  }
 
   async function toggleVisivelNoSite(item: Empreendimento, next: boolean) {
     if (!isAdmin) return;
@@ -1587,12 +1532,15 @@ export function ImoveisPage({
   );
 
   const sorted = useMemo(() => {
-    if (origemCatalogo === "captacoes") return [];
     const base =
-      origemCatalogo === "orulo"
+      origemCatalogo === "captacoes"
+        ? filtered.filter((item) => veioDaCaptacao(item))
+        : origemCatalogo === "orulo"
         ? filtered.filter((item) => item.oruloBuildingId != null)
         : origemCatalogo === "lancamentos"
-          ? filtered.filter((item) => item.oruloBuildingId == null)
+          ? filtered.filter(
+              (item) => item.oruloBuildingId == null && !veioDaCaptacao(item),
+            )
           : filtered;
     return sortByTableOrder(
       base,
@@ -1605,68 +1553,15 @@ export function ImoveisPage({
 
   const kpiImoveis = useMemo(
     () => ({
-      total: items.length + captacaoImoveis.length + estoqueUsados.length,
-      empreendimentos: items.length,
+      total: items.length,
+      empreendimentos: items.filter((item) => !veioDaCaptacao(item)).length,
       litoral: items.filter((item) => empreendimentoHasLitoral(item)).length,
       matches: items.filter((item) => (item.matchTotal ?? 0) > 0).length,
     }),
-    [captacaoImoveis, estoqueUsados.length, items],
+    [items],
   );
 
-  const captacaoFiltered = useMemo(() => {
-    if (embedded || origemCatalogo === "lancamentos" || origemCatalogo === "orulo") return [];
-    const q = search.trim().toLocaleLowerCase("pt-BR");
-    return captacaoImoveis.filter((item) => {
-      if (proprietarioId && item.proprietarioId !== proprietarioId) return false;
-      if (quartos && item.quartos !== Number(quartos)) return false;
-      if (!q) return true;
-      const hay = [
-        item.titulo,
-        item.cidade,
-        item.bairro,
-        item.logradouro,
-        item.proprietario?.nome,
-        CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo],
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase("pt-BR");
-      return hay.includes(q);
-    });
-  }, [
-    embedded,
-    origemCatalogo,
-    captacaoImoveis,
-    proprietarioId,
-    quartos,
-    search,
-  ]);
-
-  const estoqueFiltered = useMemo(() => {
-    if (embedded || origemCatalogo === "lancamentos" || origemCatalogo === "orulo" || origemCatalogo === "captacoes") {
-      return [];
-    }
-    const q = search.trim().toLocaleLowerCase("pt-BR");
-    return estoqueUsados.filter((item) => {
-      if (!q) return true;
-      const hay = [
-        item.imovel.titulo,
-        item.imovel.cidade,
-        item.imovel.bairro,
-        item.imovel.logradouro,
-        item.responsavel?.name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase("pt-BR");
-      return hay.includes(q);
-    });
-  }, [embedded, origemCatalogo, estoqueUsados, search]);
-
-  const catalogEmpty =
-    sorted.length === 0 &&
-    captacaoFiltered.length === 0 &&
-    estoqueFiltered.length === 0;
+  const catalogEmpty = sorted.length === 0;
 
   function openPdfDialog() {
     if (sorted.length === 0) {
@@ -1741,16 +1636,14 @@ export function ImoveisPage({
           <div>
             <h2 className="text-base font-semibold">Cadastro de imóveis</h2>
             <p className="text-sm text-muted-foreground">
-              Lançamentos desta imobiliária.
+              Imóveis desta imobiliária.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {gerarPdfButton}
             {canCreate ? (
               <Button
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
                 className={IMOVEIS_GRADIENT_BTN}
                 style={IMOVEIS_GRADIENT_STYLE}
               >
@@ -1763,13 +1656,13 @@ export function ImoveisPage({
       ) : (
         <PageHeader
           title="Imóveis"
-          description="Cadastre lançamentos e unidades de captação/usados."
+          description="Um só catálogo. A captação entra aqui quando o imóvel é captado."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {gerarPdfButton}
               {canCreate ? (
                 <Button
-                  onClick={() => setKindPickOpen(true)}
+                  onClick={() => void openQuickCreate()}
                   className={IMOVEIS_GRADIENT_BTN}
                   style={IMOVEIS_GRADIENT_STYLE}
                 >
@@ -2119,7 +2012,7 @@ export function ImoveisPage({
           <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
             <Building2 className="w-8 h-8 opacity-40" />
             <p className="text-center max-w-sm">
-              {items.length === 0 && captacaoImoveis.length === 0 && estoqueUsados.length === 0
+              {items.length === 0
                 ? canCreate
                   ? "Nenhum imóvel no catálogo. Use “Novo imóvel” para começar."
                   : "Nenhum imóvel no catálogo ainda."
@@ -2127,13 +2020,11 @@ export function ImoveisPage({
                   ? "Nenhum imóvel encontrado para os filtros selecionados."
                   : "Nenhum resultado para a busca."}
             </p>
-            {items.length === 0 && captacaoImoveis.length === 0 && estoqueUsados.length === 0 && canCreate && (
+            {items.length === 0 && canCreate && (
               <Button
                 className={`mt-2 ${IMOVEIS_GRADIENT_BTN}`}
                 style={IMOVEIS_GRADIENT_STYLE}
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Novo imóvel
@@ -2446,195 +2337,6 @@ export function ImoveisPage({
           })}
         </div>
       )}
-
-      {captacaoFiltered.length > 0 ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {captacaoFiltered.map((item) => (
-            <article
-              key={`cap-${item.id}`}
-              className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
-            >
-              <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
-                {imovelCapaUrl(item) ? (
-                  <img src={imovelCapaUrl(item) ?? ""} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Building2 className="h-10 w-10 text-[#05749E]/40" />
-                  </div>
-                )}
-                <span className="absolute left-3 top-3 rounded-full bg-[#7c3aed] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-                  Captação{item.captacoes?.[0]?.funilEtapa?.label ? ` · ${item.captacoes[0].funilEtapa.label}` : ""}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col gap-2.5 p-4">
-                <div>
-                  <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
-                    {CAPTACAO_IMOVEL_TIPO_LABEL[item.tipo]}
-                  </h3>
-                  <p className="mt-1 flex items-start gap-1.5 text-sm text-[#5C6B76] dark:text-[#94a3b8]">
-                    <MapPin className="mt-0.5 size-3.5 shrink-0 text-[#079ED4]" />
-                    {item.proprietario?.nome ?? "Sem proprietário"}
-                    {item.cidade ? ` · ${item.cidade}` : ""}
-                  </p>
-                </div>
-                <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
-                  {item.valor != null ? formatBrl(item.valor) : "—"}
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#5C6B76] dark:text-[#94a3b8]">
-                  {item.quartos != null ? (
-                    <span className="inline-flex items-center gap-1"><BedDouble className="size-3.5 text-[#079ED4]" />{item.quartos} quartos</span>
-                  ) : null}
-                  {item.vagas != null ? (
-                    <span className="inline-flex items-center gap-1"><Car className="size-3.5 text-[#079ED4]" />{item.vagas} vagas</span>
-                  ) : null}
-                  {item.area != null ? (
-                    <span className="inline-flex items-center gap-1"><Ruler className="size-3.5 text-[#079ED4]" />{item.area} m²</span>
-                  ) : null}
-                </div>
-                <p className="mt-auto flex items-center gap-2 rounded-xl bg-[#F3FAFD] px-3 py-2 text-xs font-medium text-[#05749E] dark:bg-[#102838] dark:text-[#7DD3FC]">
-                  <CalendarClock className="size-3.5 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{item.titulo}</span>
-                  <ArrowRight className="size-3.5 shrink-0" />
-                </p>
-                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 pt-1">
-                  <Button type="button" variant="outline" size="sm" className="rounded-full" asChild>
-                    <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
-                      Ver detalhes
-                    </Link>
-                  </Button>
-                  <Button type="button" size="sm" className="rounded-full bg-[#079ED4] text-white hover:bg-[#0689b8]" asChild>
-                    <Link to="/captacao/imoveis/$id" params={{ id: item.id }}>
-                      <Images className="mr-1.5 size-3.5" />
-                      Fotos e ficha
-                    </Link>
-                  </Button>
-                  {canManage || canDelete ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-full" title="Ações">
-                          <MoreVertical className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canManage ? (
-                          <DropdownMenuItem onClick={() => setUnidadeEditRequest({ id: item.id, tick: Date.now() })}>
-                            Editar
-                          </DropdownMenuItem>
-                        ) : null}
-                        {canDelete ? (
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setUnidadeDeleteRequest({ id: item.id, tick: Date.now() })}>
-                            Excluir
-                          </DropdownMenuItem>
-                        ) : null}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : null}
-
-      {estoqueFiltered.length > 0 ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {estoqueFiltered.map((item) => (
-            <article
-              key={`usado-${item.id}`}
-              className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-card shadow-sm dark:border-white/10"
-            >
-              <div className="relative h-44 bg-[#E7F4FA] dark:bg-[#102838]">
-                {imovelCapaUrl(item.imovel) ? (
-                  <img src={imovelCapaUrl(item.imovel) ?? ""} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Building2 className="h-10 w-10 text-[#05749E]/40" />
-                  </div>
-                )}
-                <span className="absolute left-3 top-3 rounded-full bg-[#0C7C86] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-                  Estoque · {VENDA_STATUS_LABEL[item.status]}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col gap-2 p-4">
-                <h3 className="text-base font-semibold text-[#0B3148] dark:text-[#f8fafc]">
-                  {item.imovel.titulo || "Imóvel usado"}
-                </h3>
-                <p className="text-sm text-[#5C6B76]">
-                  {[item.imovel.bairro, item.imovel.cidade].filter(Boolean).join(" · ") || "Usado"}
-                </p>
-                <p className="text-lg font-bold tabular-nums text-[#0B3148] dark:text-[#f8fafc]">
-                  {item.precoVenda != null ? formatBrl(item.precoVenda) : "—"}
-                </p>
-                <Button type="button" variant="outline" size="sm" className="mt-auto rounded-full" asChild>
-                  <Link to="/imoveis-usados/vendas/$id" params={{ id: item.id }}>
-                    Ver no estoque
-                  </Link>
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : null}
-
-      {!embedded ? (
-        <CatalogUnidadeImoveis
-          hideList
-          search={search}
-          vista={vista}
-          proprietarioId={proprietarioId}
-          createTick={unidadeCreateTick}
-          editRequest={unidadeEditRequest}
-          deleteRequest={unidadeDeleteRequest}
-          onChanged={() => void loadCaptacaoImoveis()}
-        />
-      ) : null}
-
-      <Dialog open={kindPickOpen} onOpenChange={setKindPickOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-2xl">
-          <DialogHeader className="space-y-1.5 px-6 pb-2 pt-6">
-            <DialogTitle className="text-xl">O que você vai cadastrar?</DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed">
-              Escolha o tipo. Depois abrimos só o formulário certo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={() => void openQuickCreate()}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Building2 className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Lançamento
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Empreendimento da construtora: torres, plantas e tabela.
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={openUnidadeCreate}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Home className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Captação ou usado
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Unidade de um dono. Entra na captação e no catálogo de empreendimentos.
-                </span>
-              </span>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <FormDialogShell
         open={matchesOpen}
