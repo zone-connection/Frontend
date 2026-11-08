@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { SkeletonPropertyCards } from "@/components/skeletons";
 import { useDeferredLoading } from "@/hooks/use-deferred-loading";
-import { nomeEstado, useConsultaCep } from "@/lib/cep-lookup";
+import { consultarSeCepCompleto, nomeEstado, useConsultaCep } from "@/lib/cep-lookup";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import {
@@ -2859,19 +2859,25 @@ export function ImoveisPage({
                   id="imovel-vitrine-cep"
                   inputMode="numeric"
                   value={form.vitrineCep}
-                  onChange={(event) =>
-                    setField("vitrineCep", formatCep(event.target.value))
-                  }
-                  onBlur={() => {
-                    void buscarCep(form.vitrineCep).then((endereco) => {
-                      if (!endereco) return;
+                  onChange={(event) => {
+                    const cep = formatCep(event.target.value);
+                    setField("vitrineCep", cep);
+                    consultarSeCepCompleto(cep, buscarCep, (endereco) => {
+                      const cidade = endereco.cidade.trim().toLocaleLowerCase("pt-BR");
+                      const localidade = catalogoLocalidades.find(
+                        (item) => item.nome.trim().toLocaleLowerCase("pt-BR") === cidade,
+                      );
                       setForm((prev) => ({
                         ...prev,
-                        vitrineCep: formatCep(endereco.cep || prev.vitrineCep),
+                        vitrineCep: formatCep(endereco.cep || cep),
                         endereco: endereco.endereco || prev.endereco,
                         vitrineBairro: endereco.bairro || prev.vitrineBairro,
-                        vitrineEstado:
-                          nomeEstado(endereco.uf) || prev.vitrineEstado,
+                        vitrineEstado: nomeEstado(endereco.uf) || prev.vitrineEstado,
+                        ...(localidade
+                          ? { novaLocalidade: false, localidadeId: localidade.id, localidadeNome: "" }
+                          : endereco.cidade
+                            ? { novaLocalidade: true, localidadeId: "", localidadeNome: endereco.cidade }
+                            : {}),
                       }));
                     });
                   }}
@@ -2905,7 +2911,7 @@ export function ImoveisPage({
           <FormSection
             icon={<Layers className="h-4 w-4" />}
             title="Tipo"
-            description="Classificação do produto. Admin, gerente, analista e treinee podem criar, editar e excluir tipos."
+            description="Padrão da API: Venda, Aluguel, Lançamento e Sala comercial. Quem administra o catálogo pode criar, editar e excluir outros tipos."
           >
             {canCreateCatalog ? (
               <div className="mb-2 flex justify-end">
