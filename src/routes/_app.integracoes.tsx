@@ -118,7 +118,7 @@ function IntegracoesPage() {
     setSegredo("");
     try {
       const criada = await apiFetch<Aplicacao & { clientSecret: string }>(
-        "/api/v1/aplicacoes",
+        "/v1/aplicacoes",
         { method: "POST", body: { nome, tenantId, scopes } },
       );
       setSegredo(criada.clientSecret);
@@ -139,7 +139,7 @@ function IntegracoesPage() {
     setSegredo("");
     try {
       const destino = await apiFetch<{ secret: string }>(
-        `/api/v1/aplicacoes/${app.id}/webhooks`,
+        `/v1/aplicacoes/${app.id}/webhooks`,
         { method: "POST", body: { url, events } },
       );
       setSegredo(destino.secret);
