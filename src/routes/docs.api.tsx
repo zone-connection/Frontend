@@ -107,7 +107,7 @@ function DocsApiPage() {
                 ["properties:read", "Listar e consultar imóveis"],
                 ["funnels:read", "Listar funis e etapas"],
                 ["funnels:write", "Reservado para alteração de funil"],
-                ["calls:write", "Reservado para registro de chamada"],
+                ["calls:write", "Registrar o pacote da chamada"],
                 ["webhooks:manage", "Cadastrar e desativar a sua URL"],
               ]}
             />
@@ -145,10 +145,13 @@ function DocsApiPage() {
 
           <Secao id="imoveis" titulo="Imóveis">
             <p>GET /v1/properties e GET /v1/properties/:id, com o escopo properties:read. O id público do usado disponível é o id da venda. A resposta não traz dados internos do proprietário.</p>
+            <p>
+              Cada imóvel traz <code>purpose</code>: venda, aluguel, lancamento ou sala_comercial. O filtro usa o mesmo nome: <code>?purpose=venda</code>. Também aceita city, neighborhood, type, bedrooms, bathrooms, minPrice e maxPrice. Sala comercial já cadastrada com esse tipo de imóvel entra como sala_comercial. Lançamento visível no site entra como lancamento. O restante entra como venda até alguém alterar a finalidade.
+            </p>
           </Secao>
 
           <Secao id="funis" titulo="Funis">
-            <p>GET /v1/funnels, GET /v1/funnels/:id e GET /v1/funnels/:id/stages, com funnels:read. Use o slug da etapa ao criar ou mover um lead. Não invente a etapa: leia a lista desta imobiliária.</p>
+            <p>GET /v1/funnels, GET /v1/funnels/:id e GET /v1/funnels/:id/stages, com funnels:read. Para mover o lead, envie o slug da etapa e use o escopo leads:update. O campo papel é estável mesmo quando o nome visível da etapa muda. Os papéis de integração são: prospeccao_ativa, frio, qualificado, agendado, agendado_compra, agendado_venda, lead_aluguel e leads_em_potencial. A imobiliária atribui esses papéis às etapas dela. Leia a lista desta imobiliária antes de mover.</p>
           </Secao>
 
           <Secao id="webhooks" titulo="Webhooks">

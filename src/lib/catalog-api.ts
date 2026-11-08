@@ -21,7 +21,15 @@ export type FunilEtapaPapel =
   | "perdido"
   | "concluido"
   | "aprovado"
-  | "reprovado";
+  | "reprovado"
+  | "prospeccao_ativa"
+  | "frio"
+  | "qualificado"
+  | "agendado"
+  | "agendado_compra"
+  | "agendado_venda"
+  | "lead_aluguel"
+  | "leads_em_potencial";
 
 export interface CatalogItem {
   id: string;
