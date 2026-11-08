@@ -35,7 +35,7 @@ import {
 } from "@/lib/money-input";
 import { toast } from "sonner";
 import { formatCep } from "@/lib/utils";
-import { useConsultaCep } from "@/lib/cep-lookup";
+import { consultarSeCepCompleto, useConsultaCep } from "@/lib/cep-lookup";
 
 export const Route = createFileRoute("/portal/imoveis/")({
   ssr: false,
@@ -227,11 +227,11 @@ function PortalImoveisPage() {
                   maxLength={9}
                   placeholder="00000-000"
                   value={cep}
-                  onChange={(e) => setCep(formatCep(e.target.value))}
-                  onBlur={() => {
-                    void buscarCep(cep).then((endereco) => {
-                      if (!endereco) return;
-                      setCep(formatCep(endereco.cep || cep));
+                  onChange={(e) => {
+                    const valor = formatCep(e.target.value);
+                    setCep(valor);
+                    consultarSeCepCompleto(valor, buscarCep, (endereco) => {
+                      setCep(formatCep(endereco.cep || valor));
                       if (endereco.endereco) setLogradouro(endereco.endereco);
                       if (endereco.bairro) setBairro(endereco.bairro);
                       if (endereco.cidade) setCidade(endereco.cidade);

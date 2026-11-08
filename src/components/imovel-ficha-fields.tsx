@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCep } from "@/lib/utils";
-import { useConsultaCep } from "@/lib/cep-lookup";
+import { consultarSeCepCompleto, useConsultaCep } from "@/lib/cep-lookup";
 import {
   type ImovelCadastroFields,
   type ImovelFichaValues,
@@ -66,14 +66,12 @@ function EnderecoSection({ cadastro }: { cadastro: ImovelCadastroFields }) {
             maxLength={9}
             value={cadastro.cep}
             placeholder="00000-000"
-            onChange={(e) =>
-              cadastro.onChange({ cep: formatCep(e.target.value) })
-            }
-            onBlur={() => {
-              void buscar(cadastro.cep).then((endereco) => {
-                if (!endereco) return;
+            onChange={(e) => {
+              const cep = formatCep(e.target.value);
+              cadastro.onChange({ cep });
+              consultarSeCepCompleto(cep, buscar, (endereco) => {
                 cadastro.onChange({
-                  cep: formatCep(endereco.cep || cadastro.cep),
+                  cep: formatCep(endereco.cep || cep),
                   logradouro: endereco.endereco || cadastro.logradouro,
                   bairro: endereco.bairro || cadastro.bairro,
                   cidade: endereco.cidade || cadastro.cidade,

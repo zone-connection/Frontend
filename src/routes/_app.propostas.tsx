@@ -1806,8 +1806,8 @@ function Page() {
       });
   }
 
-  async function buscarCepResidencial() {
-    const digits = form.clienteCepResidencial.replace(/\D/g, "");
+  async function buscarCepResidencial(cep = form.clienteCepResidencial) {
+    const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8 || cepLoading) return;
 
     setCepLoading(true);
@@ -1836,8 +1836,8 @@ function Page() {
     }
   }
 
-  async function buscarCepComercial() {
-    const digits = form.clienteCepComercial.replace(/\D/g, "");
+  async function buscarCepComercial(cep = form.clienteCepComercial) {
+    const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8 || cepLoading) return;
 
     setCepLoading(true);
@@ -3321,16 +3321,16 @@ function Page() {
                   <OptionalField
                     label={cepLoading ? "CEP — consultando..." : "CEP"}
                     value={form.clienteCepResidencial}
-                    onChange={(clienteCepResidencial) =>
-                      setForm((f) => ({
-                        ...f,
-                        clienteCepResidencial: digitsOnly(
-                          clienteCepResidencial,
-                          8,
-                        ).replace(/^(\d{5})(\d)/, "$1-$2"),
-                      }))
-                    }
-                    onBlur={() => void buscarCepResidencial()}
+                    onChange={(clienteCepResidencial) => {
+                      const cep = digitsOnly(clienteCepResidencial, 8).replace(
+                        /^(\d{5})(\d)/,
+                        "$1-$2",
+                      );
+                      setForm((f) => ({ ...f, clienteCepResidencial: cep }));
+                      if (cep.replace(/\D/g, "").length === 8) {
+                        void buscarCepResidencial(cep);
+                      }
+                    }}
                     placeholder="00000-000"
                   />
                   <div className="space-y-1.5">
@@ -3418,16 +3418,16 @@ function Page() {
                   <OptionalField
                     label={cepLoading ? "CEP comercial — consultando..." : "CEP comercial"}
                     value={form.clienteCepComercial}
-                    onChange={(clienteCepComercial) =>
-                      setForm((f) => ({
-                        ...f,
-                        clienteCepComercial: digitsOnly(
-                          clienteCepComercial,
-                          8,
-                        ).replace(/^(\d{5})(\d)/, "$1-$2"),
-                      }))
-                    }
-                    onBlur={() => void buscarCepComercial()}
+                    onChange={(clienteCepComercial) => {
+                      const cep = digitsOnly(clienteCepComercial, 8).replace(
+                        /^(\d{5})(\d)/,
+                        "$1-$2",
+                      );
+                      setForm((f) => ({ ...f, clienteCepComercial: cep }));
+                      if (cep.replace(/\D/g, "").length === 8) {
+                        void buscarCepComercial(cep);
+                      }
+                    }}
                     placeholder="00000-000"
                   />
                   <OptionalField

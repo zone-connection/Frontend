@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Home, Loader2, MapPin, Ruler, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
+import { consultarSeCepCompleto, useConsultaCep } from "@/lib/cep-lookup";
+import { formatCep } from "@/lib/utils";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_IMOVEL_TIPOS,
@@ -112,6 +114,7 @@ function PortalImovelPage() {
   const [editCidade, setEditCidade] = useState("");
   const [editEstado, setEditEstado] = useState("");
   const [editCep, setEditCep] = useState("");
+  const { loading: cepLoading, buscar: buscarCep } = useConsultaCep(true);
   const [editValor, setEditValor] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
   const [editQuartos, setEditQuartos] = useState("");
@@ -840,12 +843,25 @@ function PortalImovelPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-cep">CEP</Label>
+                    <Label htmlFor="edit-cep">{cepLoading ? "CEP — consultando..." : "CEP"}</Label>
                     <Input
                       id="edit-cep"
+                      inputMode="numeric"
+                      maxLength={9}
+                      placeholder="00000-000"
                       className="relative z-10 h-10 rounded-lg border-slate-200 bg-slate-50 dark:border-white/15 dark:bg-[#1c2430] dark:text-[#f8fafc] pointer-events-auto"
                       value={editCep}
-                      onChange={(e) => setEditCep(e.target.value)}
+                      onChange={(e) => {
+                        const valor = formatCep(e.target.value);
+                        setEditCep(valor);
+                        consultarSeCepCompleto(valor, buscarCep, (endereco) => {
+                          setEditCep(formatCep(endereco.cep || valor));
+                          if (endereco.endereco) setEditLogradouro(endereco.endereco);
+                          if (endereco.bairro) setEditBairro(endereco.bairro);
+                          if (endereco.cidade) setEditCidade(endereco.cidade);
+                          if (endereco.uf) setEditEstado(endereco.uf);
+                        });
+                      }}
                     />
                   </div>
                 </div>
