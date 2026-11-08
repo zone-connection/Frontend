@@ -67,6 +67,18 @@ function DocsApiPage() {
             <p>
               A Zone Connection cria uma aplicação para a sua imobiliária e entrega três dados: <strong>Client ID</strong>, <strong>segredo</strong> e <strong>slug</strong> da imobiliária. O segredo aparece uma vez. Guarde os dois. A credencial de homologação não funciona em produção.
             </p>
+            <p>
+              Abrir <code>https://api.zoneconnection.com.br/api</code> no navegador responde 404. Esse endereço é só o prefixo. A primeira chamada é <code>POST /v1/oauth/token</code>. Todas as rotas abaixo já incluem esse prefixo: a URL completa é a base mais o caminho, por exemplo <code>https://api.zoneconnection.com.br/api/v1/oauth/token</code>.
+            </p>
+            <Tabela
+              linhas={[
+                ["Base", "https://api.zoneconnection.com.br/api"],
+                ["Token", "POST /v1/oauth/token"],
+                ["Header", "Authorization: Bearer access_token"],
+                ["Validade", "3600 segundos. Peça outro token quando expirar."],
+                ["Imobiliária", "Só o slug recebido. Não envie tenantId."],
+              ]}
+            />
             <Passos
               itens={[
                 "Peça o token com o Client ID, o segredo e o slug.",
@@ -141,13 +153,13 @@ function DocsApiPage() {
   "categoria": "potencial"
 }`}
             />
-            <p>Para mover de etapa: POST /v1/leads/:id/move com {`{ "stage": "contato" }`}.</p>
+            <p>Para mover de etapa: POST /v1/leads/:id/move com {`{ "stage": "slug-lido-no-funil" }`}. O slug vem de GET /v1/funnels/:id/stages. Liste os leads com GET /v1/leads?search=ana&amp;categoria=potencial.</p>
           </Secao>
 
           <Secao id="imoveis" titulo="Imóveis">
             <p>GET /v1/properties e GET /v1/properties/:id, com o escopo properties:read. O id público do usado disponível é o id da venda. A resposta não traz dados internos do proprietário.</p>
             <p>
-              Cada imóvel traz <code>purpose</code>: venda, aluguel, lancamento ou sala_comercial. O filtro usa o mesmo nome: <code>?purpose=venda</code>. Também aceita city, neighborhood, type, bedrooms, bathrooms, minPrice e maxPrice. Sala comercial já cadastrada com esse tipo de imóvel entra como sala_comercial. Lançamento visível no site entra como lancamento. O restante entra como venda até alguém alterar a finalidade.
+              Cada imóvel traz <code>purpose</code>: venda, aluguel, lancamento ou sala_comercial. Exemplo: <code>GET /v1/properties?purpose=venda&amp;city=Recife&amp;neighborhood=Boa%20Viagem&amp;bedrooms=2&amp;bathrooms=1&amp;minPrice=200000&amp;maxPrice=800000&amp;page=1&amp;limit=20</code>. O tipo físico aceita apartamento, casa, terreno, sala_comercial, loja, galpao, fazenda, chacara ou outro. Não existe filtro de aluguel separado do purpose. A resposta traz id, purpose, propertyType, description, price, location, features e coverImage. Sem dados do proprietário.
             </p>
           </Secao>
 
