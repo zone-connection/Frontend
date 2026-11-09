@@ -248,6 +248,16 @@ export function canAccessRoute(
   if (path === "/whatsapp" && options?.hasOzapConnection !== true) {
     return false;
   }
+  if (
+    modules?.hideClientesNav === true &&
+    role !== "admin" &&
+    (path === "/clientes" ||
+      path.startsWith("/clientes/") ||
+      path === "/funil-clientes" ||
+      path.startsWith("/funil-clientes/"))
+  ) {
+    return false;
+  }
   if (path === "/clientes-perdidos" || path.startsWith("/clientes-perdidos/")) {
     return role === "corretor" || role === "treinee";
   }
