@@ -182,6 +182,16 @@ export async function createDocumentacao(
   });
 }
 
+export async function marcarJornadaVenda(
+  id: string,
+  jornada: Record<string, string | null>,
+): Promise<Documentacao> {
+  return apiFetch<Documentacao>(`/documentacao/${id}/jornada`, {
+    method: "PATCH",
+    body: { jornada },
+  });
+}
+
 export async function updateDocumentacao(
   id: string,
   input: UpdateDocumentacaoInput,
