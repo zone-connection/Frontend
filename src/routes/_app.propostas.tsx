@@ -186,11 +186,6 @@ import {
   type PropostaPdfBrand,
 } from "@/lib/proposta-pdf";
 import { useTenantTheme } from "@/lib/tenant-theme";
-import {
-  ordenarLinhasRelatorio,
-  PropostaRelatorioSheet,
-  type RelatorioLinha,
-} from "@/components/proposta-relatorio-sheet";
 import { PropostaVinculosPanel } from "@/components/proposta-vinculos-panel";
 import {
   formatPhone,
@@ -488,106 +483,6 @@ function OptionalField({
         placeholder={placeholder}
       />
     </div>
-  );
-}
-
-function linhasDoFormulario(form: FormState): RelatorioLinha[] {
-  const linhas: RelatorioLinha[] = [];
-  for (const key of PROPOSTA_SIMPLES_KEYS) {
-    const value = moneyOrZero(form[key]);
-    if (value <= 0) continue;
-    linhas.push({
-      qtd: "1",
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: brl(value),
-      subtotal: brl(value),
-    });
-  }
-  for (const key of PROPOSTA_LISTA_KEYS) {
-    const parcela = form[key];
-    const qtd = parseQuantidade(parcela.quantidade);
-    const valor = moneyOrZero(parcela.valor);
-    if (!qtd || valor <= 0) continue;
-    linhas.push({
-      qtd: String(qtd),
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: brl(valor),
-      subtotal: brl(qtd * valor),
-    });
-  }
-  return ordenarLinhasRelatorio(linhas);
-}
-
-function linhasDaProposta(p: Proposta): RelatorioLinha[] {
-  const linhas: RelatorioLinha[] = [];
-  for (const key of PROPOSTA_SIMPLES_KEYS) {
-    const value = p[key];
-    if (value == null || value <= 0) continue;
-    linhas.push({
-      qtd: "1",
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: brl(value),
-      subtotal: brl(value),
-    });
-  }
-  for (const key of PROPOSTA_LISTA_KEYS) {
-    const values = p[key] ?? [];
-    if (!values.length) continue;
-    const resumo = parcelasResumo(values);
-    linhas.push({
-      qtd: String(resumo.quantidade),
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: resumo.equal ? brl(resumo.valorUnitario) : "Valores variados",
-      subtotal: brl(resumo.subtotal),
-    });
-  }
-  return ordenarLinhasRelatorio(linhas);
-}
-
-function PropostaFormPreview({
-  form,
-  total,
-  companyName,
-  logoUrl,
-  codigo,
-  data,
-  subtitulo,
-  accent,
-}: {
-  form: FormState;
-  total: number;
-  companyName: string;
-  logoUrl?: string | null;
-  codigo: string;
-  data: string;
-  subtitulo: string;
-  accent?: string | null;
-}) {
-  const desconto = moneyOrZero(form.desconto);
-  const negociado = Math.max(0, moneyOrZero(form.valor) - desconto);
-
-  return (
-    <aside className="sticky top-0 space-y-2">
-      <div>
-        <div className="text-sm font-semibold">Prévia do relatório</div>
-        <div className="text-xs text-muted-foreground">
-          Atualizada enquanto você preenche
-        </div>
-      </div>
-      <PropostaRelatorioSheet
-        companyName={companyName}
-        logoUrl={logoUrl}
-        codigo={codigo}
-        data={data}
-        clienteNome={form.clienteNome}
-        subtituloImobiliaria={subtitulo}
-        linhas={linhasDoFormulario(form)}
-        total={total}
-        desconto={desconto}
-        valorNegociado={negociado}
-        accent={accent}
-      />
-    </aside>
   );
 }
 
@@ -3081,7 +2976,7 @@ function Page() {
           </FormDialogActions>
         }
       >
-        <FormDialogBody className="lg:grid lg:grid-cols-[minmax(28rem,1fr)_minmax(28rem,1.25fr)] lg:items-start lg:gap-5 lg:space-y-0">
+        <FormDialogBody>
           <form
             id="proposta-form"
             className="min-w-0 space-y-5"
@@ -4025,52 +3920,6 @@ function Page() {
               </FormSection>
             ) : null}
           </form>
-          <div className="hidden lg:block lg:self-start">
-            <PropostaFormPreview
-              form={form}
-              total={formTotal}
-              companyName={tenant?.name?.trim() || "Imobiliária"}
-              logoUrl={logoUrl}
-              accent={tenant?.primaryColor}
-              codigo={
-                (editingId
-                  ? items.find((item) => item.id === editingId)?.codigo
-                  : undefined) ?? "NOVA PROPOSTA"
-              }
-              data={
-                editingId
-                  ? formatPropostaDate(
-                      items.find((item) => item.id === editingId)?.createdAt,
-                    )
-                  : new Date().toLocaleDateString("pt-BR")
-              }
-              subtitulo={
-                [
-                  empreendimentos.find(
-                    (item) => item.id === form.empreendimentoId,
-                  )?.nome,
-                  form.unidade.trim() ? `Un. ${form.unidade.trim()}` : "",
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "PROPOSTA COMERCIAL"
-              }
-            />
-          </div>
-          {editingId ? (
-            <div className="lg:col-span-2">
-              <DocumentosPanel
-                entityType="proposta"
-                entityId={editingId}
-                categoria="proposta"
-                extraVinculo={
-                  form.leadId
-                    ? { entityType: "lead", entityId: form.leadId }
-                    : undefined
-                }
-                title="PDF da proposta"
-              />
-            </div>
-          ) : null}
         </FormDialogBody>
       </FormDialogShell>
 
