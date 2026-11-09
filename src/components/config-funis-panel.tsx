@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -1276,20 +1283,25 @@ export function ConfigFunisPanel() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="etapa-papel">Papel no fluxo</Label>
-                <select
-                  id="etapa-papel"
-                  className="w-full h-9 rounded-md border bg-background px-3 text-sm"
-                  value={etapaPapel}
-                  onChange={(e) =>
-                    setEtapaPapel(e.target.value as FunilEtapaPapel | "")
+                <Select
+                  value={etapaPapel || "none"}
+                  onValueChange={(value) =>
+                    setEtapaPapel(
+                      value === "none" ? "" : (value as FunilEtapaPapel),
+                    )
                   }
                 >
-                  {PAPEL_OPTIONS.map((opt) => (
-                    <option key={opt.value || "none"} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="etapa-papel" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {PAPEL_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value || "none"} value={opt.value || "none"}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
                   Análise envia à fila do analista; Venda conta na conversão;
                   Perdido dispara exclusão operacional. Para tirar o papel
