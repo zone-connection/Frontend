@@ -794,6 +794,7 @@ function VendasDocumentacaoPage() {
           lancamentos={verLancamentos ? filtered : []}
           usados={verUsados}
           locacao={verLocacao}
+          onAcompanhar={setFluxo}
         />
       ) : null}
       {abaAtiva === "usados" ? <VendasUsadosPanel /> : null}
@@ -1182,61 +1183,6 @@ function VendasDocumentacaoPage() {
       </PagePanel>
 
       <FormDialogShell
-        open={fluxo != null}
-        onOpenChange={(open) => {
-          if (!open) setFluxo(null);
-        }}
-        icon={<Wallet className="h-5 w-5" />}
-        title={fluxo?.nome ?? "Venda"}
-        description="Jornada do comprador nesta venda."
-        className="max-w-3xl"
-      >
-        {fluxo ? (
-          <FormDialogBody>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Construtora</p>
-                <p className="font-medium">{fluxo.construtora?.nome ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Imóvel</p>
-                <p className="font-medium">{fluxo.empreendimento?.nome ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Valor</p>
-                <p className="font-medium">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-sm">
-              <Badge variant="outline">Status 1 · {fluxo.status1 || "—"}</Badge>
-              <Badge variant="outline">Status 2 · {fluxo.status2 || "—"}</Badge>
-            </div>
-            <ol className="mt-4 space-y-2">
-              {["Contrato", "Assinatura", "Obra", "Entrega de chaves", "Pós-venda"].map(
-                (nome, index) => (
-                  <li
-                    key={nome}
-                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
-                  >
-                    <span>
-                      {index + 1}. {nome}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {index === 0 ? "Documentação desta venda" : "Acompanhamento"}
-                    </span>
-                  </li>
-                ),
-              )}
-            </ol>
-            <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-              <p>Entrada: {fluxo.temEntrada && fluxo.valorEntrada != null ? brl(fluxo.valorEntrada) : "não informada"}</p>
-              <p>FGTS: {fluxo.temFgts && fluxo.valorFgts != null ? brl(fluxo.valorFgts) : "não informado"}</p>
-            </div>
-          </FormDialogBody>
-        ) : null}
-      </FormDialogShell>
-
-      <FormDialogShell
         open={editOpen}
         onOpenChange={(open) => {
           if (saving) return;
@@ -1450,6 +1396,76 @@ function VendasDocumentacaoPage() {
       </FormDialogShell>
       </>
       ) : null}
+      <FormDialogShell
+        open={fluxo != null}
+        onOpenChange={(open) => {
+          if (!open) setFluxo(null);
+        }}
+        icon={<Wallet className="h-5 w-5" />}
+        title={fluxo?.nome ?? "Venda"}
+        description="Jornada do comprador nesta venda."
+        className="max-w-3xl"
+      >
+        {fluxo ? (
+          <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Construtora</p>
+                <p className="font-medium">{fluxo.construtora?.nome ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Imóvel</p>
+                <p className="font-medium">{fluxo.empreendimento?.nome ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Valor</p>
+                <p className="font-medium">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <Badge variant="outline">Status 1 · {fluxo.status1 || "—"}</Badge>
+              <Badge variant="outline">Status 2 · {fluxo.status2 || "—"}</Badge>
+            </div>
+            <ol className="mt-4 grid gap-2 sm:grid-cols-5">
+              {["Contrato", "Assinatura", "Obra", "Entrega de chaves", "Pós-venda"].map(
+                (nome, index) => (
+                  <li
+                    key={nome}
+                    className="rounded-xl border bg-card px-3 py-2 text-sm"
+                  >
+                    <p className="text-xs text-muted-foreground">{index + 1}</p>
+                    <p className="font-medium">{nome}</p>
+                  </li>
+                ),
+              )}
+            </ol>
+            <div className="mt-4 overflow-hidden rounded-xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>Entrada</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {fluxo.temEntrada && fluxo.valorEntrada != null ? brl(fluxo.valorEntrada) : "—"}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>FGTS</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {fluxo.temFgts && fluxo.valorFgts != null ? brl(fluxo.valorFgts) : "—"}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </FormDialogBody>
+        ) : null}
+      </FormDialogShell>
     </div>
   );
 }
@@ -1578,10 +1594,12 @@ function VendasTodosPanel({
   lancamentos,
   usados,
   locacao,
+  onAcompanhar,
 }: {
   lancamentos: Documentacao[];
   usados: boolean;
   locacao: boolean;
+  onAcompanhar: (doc: Documentacao) => void;
 }) {
   const [usadosItems, setUsadosItems] = useState<VendaUsado[]>([]);
   const [loading, setLoading] = useState(usados);
@@ -1631,6 +1649,7 @@ function VendasTodosPanel({
     referencia: string;
     responsavel: string;
     valor: string;
+    doc?: Documentacao;
   }[] = [
     ...lancamentos.map((doc) => ({
       id: `lanc-${doc.id}`,
@@ -1639,6 +1658,7 @@ function VendasTodosPanel({
       referencia: doc.empreendimento?.nome ?? "—",
       responsavel: doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—",
       valor: doc.vgv != null ? brl(doc.vgv) : "—",
+      doc,
     })),
     ...usadosItems.map((item) => ({
       id: `usado-${item.id}`,
@@ -1713,12 +1733,13 @@ function VendasTodosPanel({
             <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Referência</TableHead>
             <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Responsável</TableHead>
             <TableHead className="h-11 bg-muted text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</TableHead>
+            <TableHead className="h-11 bg-muted" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {visiveis.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-14 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={6} className="py-14 text-center text-sm text-muted-foreground">
                 {linhas.length === 0
                   ? "Nenhuma venda nas operações ativas."
                   : "Nenhuma venda encontrada para essa busca."}
@@ -1741,6 +1762,19 @@ function VendasTodosPanel({
                 </TableCell>
                 <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-foreground">
                   {row.valor}
+                </TableCell>
+                <TableCell className="py-3.5 text-right">
+                  {row.doc ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => onAcompanhar(row.doc!)}
+                    >
+                      Acompanhar
+                    </Button>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))
