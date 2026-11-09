@@ -261,7 +261,9 @@ function TriagemLeadCard({
         active
           ? "border-sky-200 bg-sky-50 ring-1 ring-sky-100 dark:border-sky-900/50 dark:bg-sky-950/25 dark:ring-sky-900/40"
           : "border-black/5 bg-card hover:bg-muted/40",
-        herdada && !active && "border-amber-200 bg-amber-50/90",
+        herdada &&
+          !active &&
+          "border-amber-200 bg-amber-50/90 dark:border-amber-900/50 dark:bg-amber-950/30",
       )}
     >
       <button type="button" onClick={onSelect} className="w-full text-left">
