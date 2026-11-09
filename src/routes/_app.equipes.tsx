@@ -51,20 +51,12 @@ import {
   fetchEquipeCorretores,
   fetchEquipeGerentes,
   fetchEquipes,
-  putEquipeFunis,
   updateEquipe,
   type Equipe,
-  type EquipeFunisMap,
   type EquipeMember,
   type EquipeOptionUser,
 } from "@/lib/equipes-api";
-import {
-  fetchFunis,
-  FUNIL_TIPO_LABEL,
-  FUNIL_TIPOS,
-  type Funil,
-  type FunilTipo,
-} from "@/lib/funis-api";
+import { type FunilTipo } from "@/lib/funis-api";
 import { resetUserPassword } from "@/lib/users-api";
 import {
   ChevronLeft,
@@ -100,12 +92,9 @@ type FormState = {
   funis: Record<FunilTipo, string>;
 };
 
-const NONE_FUNIL = "__none__";
-
 const TEAM_FORM_SECTIONS = [
   { id: "dados", label: "Dados" },
   { id: "corretores", label: "Corretores" },
-  { id: "funis", label: "Funis" },
 ] as const;
 
 type TeamFormSectionId = (typeof TEAM_FORM_SECTIONS)[number]["id"];
@@ -132,12 +121,6 @@ function funisFromEquipe(equipe: Equipe): Record<FunilTipo, string> {
     venda_usados: equipe.funis?.venda_usados?.id ?? "",
     pos_venda: equipe.funis?.pos_venda?.id ?? "",
   };
-}
-
-function funilCell(map: EquipeFunisMap | undefined, tipo: FunilTipo) {
-  const item = map?.[tipo];
-  if (!item) return "—";
-  return item.ativo ? item.name : `${item.name} (inativo)`;
 }
 
 function initials(name: string) {
@@ -250,7 +233,6 @@ function EquipesPage() {
   const [gerentes, setGerentes] = useState<EquipeOptionUser[]>([]);
   const [corretores, setCorretores] = useState<EquipeOptionUser[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
-  const [catalogFunis, setCatalogFunis] = useState<Funil[]>([]);
   const [teamFormSection, setTeamFormSection] =
     useState<TeamFormSectionId>("dados");
 
@@ -273,15 +255,6 @@ function EquipesPage() {
   useEffect(() => {
     void loadItems();
   }, [loadItems]);
-
-  useEffect(() => {
-    if (!canManage) return;
-    void fetchFunis()
-      .then(setCatalogFunis)
-      .catch(() => {
-        toast.error("Não foi possível carregar os funis para vínculo.");
-      });
-  }, [canManage]);
 
   async function loadOptions(equipeId?: string) {
     setOptionsLoading(true);
@@ -381,14 +354,6 @@ function EquipesPage() {
           gerenteId: form.gerenteId,
           membroIds: form.membroIds,
           status: form.status,
-        });
-      }
-      if (equipeId) {
-        await putEquipeFunis(equipeId, {
-          comercial: form.funis.comercial || null,
-          captacao: form.funis.captacao || null,
-          venda_usados: form.funis.venda_usados || null,
-          pos_venda: form.funis.pos_venda || null,
         });
       }
       toast.success(
@@ -539,7 +504,7 @@ function EquipesPage() {
 
           <PagePanel
             title="Times"
-            description="Gerente, corretores e funis de cada operação."
+            description="Gerente e corretores de cada equipe."
             inset="muted"
           >
             <div className="space-y-3">
@@ -580,19 +545,6 @@ function EquipesPage() {
                           </span>
                         ) : null}
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {FUNIL_TIPOS.map((tipo) => (
-                          <span
-                            key={tipo}
-                            className="inline-flex items-center gap-1 rounded-full border border-black/8 bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground"
-                          >
-                            <span className="font-medium text-foreground/70">
-                              {FUNIL_TIPO_LABEL[tipo]}
-                            </span>
-                            {funilCell(eq.funis, tipo)}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   {canManage && (
                     <div className="flex shrink-0 items-center gap-0.5">
@@ -819,55 +771,6 @@ function EquipesPage() {
                 </FormSection>
                 </div>
 
-                <div className={cn(teamFormSection !== "funis" && "hidden")}>
-                <FormSection
-                  icon={<GitFork className="w-3.5 h-3.5 text-primary" />}
-                  title="Funis da equipe"
-                  description="Um funil ativo por tipo. Captações e vendas já criadas ficam no funil original."
-                >
-                  {FUNIL_TIPOS.map((tipo) => {
-                    const currentId = form.funis[tipo];
-                    const options = catalogFunis.filter(
-                      (f) => f.tipo === tipo && (f.ativo || f.id === currentId),
-                    );
-                    return (
-                      <div key={tipo} className="space-y-1.5">
-                        <Label className={FORM_LABEL}>
-                          {FUNIL_TIPO_LABEL[tipo]}
-                        </Label>
-                        <Select
-                          value={currentId || NONE_FUNIL}
-                          onValueChange={(v) =>
-                            setForm((p) => ({
-                              ...p,
-                              funis: {
-                                ...p.funis,
-                                [tipo]: v === NONE_FUNIL ? "" : v,
-                              },
-                            }))
-                          }
-                        >
-                          <SelectTrigger className={FORM_CONTROL}>
-                            <SelectValue placeholder="Nenhum" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={NONE_FUNIL}>Nenhum</SelectItem>
-                            {options.map((f) => (
-                              <SelectItem
-                                key={f.id}
-                                value={f.id}
-                                disabled={!f.ativo}
-                              >
-                                {f.ativo ? f.name : `${f.name} (inativo)`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  })}
-                </FormSection>
-                </div>
               </FormDialogBody>
 
               <FormDialogActions>
@@ -883,7 +786,7 @@ function EquipesPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
                 </Button>
-                {teamFormSection !== "funis" ? (
+                {teamFormSection !== "corretores" ? (
                   <Button
                     type="button"
                     variant="outline"

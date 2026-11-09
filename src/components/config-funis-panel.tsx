@@ -688,21 +688,10 @@ export function ConfigFunisPanel() {
       <div className="grid gap-4 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
         <Card>
           <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base">Funis</CardTitle>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setCreateTipo(
-                    tipoFiltro === "sem_tipo" ? "comercial" : tipoFiltro,
-                  );
-                  setCreateOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Novo
-              </Button>
-            </div>
+            <CardTitle className="text-base">Funis</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Os funis já cadastrados continuam aqui, com etapas e papéis. Dá para criar, editar e excluir etapas. Não dá para criar outro funil.
+            </p>
             <div className="flex flex-col gap-0.5">
               {tiposVisiveis.map((tipo) => (
                 <button
@@ -758,45 +747,6 @@ export function ConfigFunisPanel() {
                     ? "Todos os funis já estão vinculados a um tipo."
                     : "Nenhum funil cadastrado neste tipo."}
                 </p>
-                {tipoFiltro !== "sem_tipo" && funisParaVincular.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-xs font-medium">
-                      Vincular um funil existente a{" "}
-                      {FUNIL_TIPO_LABEL[tipoFiltro]}
-                    </p>
-                    {funisParaVincular.map((f) => {
-                      const tipoAtual = funilTipoOf(f);
-                      return (
-                        <div
-                          key={f.id}
-                          className="flex items-center gap-2 rounded-lg border px-3 py-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">
-                              {f.name}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {tipoAtual
-                                ? FUNIL_TIPO_LABEL[tipoAtual]
-                                : "Sem tipo"}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={saving}
-                            onClick={() =>
-                              void handleVincularTipo(f, tipoFiltro)
-                            }
-                          >
-                            Vincular
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             )}
             {funisDoTipo.map((f) => {
@@ -883,7 +833,7 @@ export function ConfigFunisPanel() {
                       ? "Vincule este funil a um tipo de operação para usá-lo no kanban."
                       : selected.ativo
                         ? funilTipoOf(selected) === "comercial"
-                          ? "Ativo no kanban. Novos leads entram aqui. Leads dos outros funis permanecem neles."
+                          ? "Funil comercial em uso. Novos leads entram aqui."
                           : "Ativo neste tipo de operação."
                         : funilTipoOf(selected) === "comercial"
                           ? "Edite as etapas ou ative este funil para usá-lo. Os leads dele continuam aqui."
@@ -893,99 +843,10 @@ export function ConfigFunisPanel() {
               </div>
               {selected ? (
                 <div className="flex shrink-0 items-center gap-2">
-                  {!selected.ativo ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={saving}
-                      onClick={() => void handleAtivar(selected.id)}
-                    >
-                      <Check className="mr-1 h-4 w-4" />
-                      Usar
-                    </Button>
-                  ) : null}
                   <Button size="sm" onClick={openAddEtapa}>
                     <Plus className="mr-1 h-4 w-4" />
                     Nova etapa
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8"
-                        disabled={saving}
-                        aria-label="Mais ações do funil"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem
-                        disabled={saving}
-                        onClick={() => {
-                          setRenameValue(selected.name);
-                          setRenameOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Renomear
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={saving}
-                        onClick={() => setConfirmDefaults(true)}
-                      >
-                        <ListRestart className="h-4 w-4" />
-                        Restaurar etapas padrão
-                      </DropdownMenuItem>
-                      {funilTipoOf(selected) === "comercial" ? (
-                        <>
-                          <DropdownMenuItem
-                            disabled={saving}
-                            onClick={() => void handleRecoverLeadStages()}
-                          >
-                            <LifeBuoy className="h-4 w-4" />
-                            Recuperar etapas dos leads
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={
-                              saving ||
-                              funis.filter(
-                                (f) =>
-                                  funilTipoOf(f) === "comercial" &&
-                                  f.id !== selected.id,
-                              ).length === 0
-                            }
-                            onClick={() => {
-                              const primeiro = funis.find(
-                                (f) =>
-                                  funilTipoOf(f) === "comercial" &&
-                                  f.id !== selected.id,
-                              );
-                              setMigrateDestinoId(primeiro?.id ?? "");
-                              setMigrateOpen(true);
-                            }}
-                          >
-                            <ArrowRightLeft className="h-4 w-4" />
-                            Migrar leads para outro funil
-                          </DropdownMenuItem>
-                        </>
-                      ) : null}
-                      {!selected.ativo ? (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            disabled={saving || funisDoTipo.length <= 1}
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteFunilId(selected.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir funil
-                          </DropdownMenuItem>
-                        </>
-                      ) : null}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               ) : null}
             </div>
@@ -997,32 +858,7 @@ export function ConfigFunisPanel() {
               </p>
             )}
             {selected ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Label htmlFor="funil-tipo" className="shrink-0 text-xs">
-                    Tipo
-                  </Label>
-                  <select
-                    id="funil-tipo"
-                    className="h-9 min-w-40 rounded-md border bg-background px-2 text-sm"
-                    value={funilTipoOf(selected) ?? ""}
-                    disabled={saving}
-                    onChange={(e) => {
-                      const tipo = parseFunilTipo(e.target.value);
-                      if (!tipo) return;
-                      void handleVincularTipo(selected, tipo);
-                    }}
-                  >
-                    {funilTipoOf(selected) === null && (
-                      <option value="">Sem tipo</option>
-                    )}
-                    {FUNIL_TIPOS.map((tipo) => (
-                      <option key={tipo} value={tipo}>
-                        {FUNIL_TIPO_LABEL[tipo]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-3 border-b pb-4">
                 <Link
                   to="/configuracoes"
                   search={{ secao: "operacao", item: "automacoes" }}

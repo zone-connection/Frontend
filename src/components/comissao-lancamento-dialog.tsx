@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
+import { uploadArquivo } from "@/lib/arquivos-api";
 import { getSession } from "@/lib/auth";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
@@ -250,6 +251,7 @@ export function ComissaoLancamentoDialog({
   const [loadingSales, setLoadingSales] = useState(false);
   const [salePickerOpen, setSalePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [comprovante, setComprovante] = useState<File | null>(null);
   const [corretores, setCorretores] = useState<DocumentacaoCorretor[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
@@ -305,8 +307,10 @@ export function ComissaoLancamentoDialog({
   useEffect(() => {
     if (!open) {
       setSalePickerOpen(false);
+      setComprovante(null);
       return;
     }
+    setComprovante(null);
     if (mode === "edit" && editing) {
       setForm(toForm(editing));
       return;
@@ -525,6 +529,24 @@ export function ComissaoLancamentoDialog({
                   ...premiacaoPayload,
                   observacao,
                 });
+      if (comprovante) {
+        try {
+          await uploadArquivo({
+            file: comprovante,
+            entityType: "financeiro_comissao",
+            entityId: saved.id,
+            nome: comprovante.name.replace(/\.[^.]+$/, "") || "Comprovante",
+            categoria: "outro",
+            tagIds: [],
+          });
+        } catch (err) {
+          toast.error(
+            err instanceof ApiError
+              ? err.message
+              : "A comissão foi salva, mas o comprovante não foi anexado.",
+          );
+        }
+      }
       onOpenChange(false);
       toast.success(
         created
@@ -1127,6 +1149,26 @@ export function ComissaoLancamentoDialog({
                 placeholder="Notas internas sobre este lançamento (opcional)"
                 rows={3}
               />
+            </div>
+          </FormSection>
+
+          <FormSection title="Comprovante">
+            <div className="space-y-1.5">
+              <Label htmlFor="comissao-comprovante">
+                Foto ou PDF do pagamento
+              </Label>
+              <input
+                id="comissao-comprovante"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+                onChange={(event) =>
+                  setComprovante(event.target.files?.[0] ?? null)
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                O corretor desta comissão também vê o arquivo no detalhe.
+              </p>
             </div>
           </FormSection>
 

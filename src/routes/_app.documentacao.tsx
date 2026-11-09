@@ -103,6 +103,11 @@ import {
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
 import {
+  createProposta,
+  fetchPropostas,
+  type Proposta,
+} from "@/lib/propostas-api";
+import {
   dedupeStatusOptions,
   docPipelineFromStatus1,
   isStatusAnalise,
@@ -296,6 +301,7 @@ type FormState = {
   dataAnalise: string;
   dataVenda: string;
   vgv: string;
+  propostaId: string;
   obs: string;
   temEntrada: boolean;
   valorEntrada: string;
@@ -322,6 +328,7 @@ const emptyForm = (): FormState => ({
   dataAnalise: "",
   dataVenda: "",
   vgv: "",
+  propostaId: "",
   obs: "",
   temEntrada: false,
   valorEntrada: "",
@@ -677,6 +684,23 @@ function DocumentacaoPage() {
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [criandoProposta, setCriandoProposta] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let ativo = true;
+    void fetchPropostas()
+      .then((lista) => {
+        if (ativo) setPropostas(lista);
+      })
+      .catch(() => {
+        if (ativo) setPropostas([]);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [open]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -1329,6 +1353,7 @@ function DocumentacaoPage() {
       dataAnalise: toDateInput(doc.dataAnalise),
       dataVenda: toDateInput(doc.dataVenda),
       vgv: doc.vgv != null ? formatMoneyInput(doc.vgv) : "",
+      propostaId: doc.propostaId ?? "",
       obs: doc.obs ?? "",
       temEntrada: doc.temEntrada ?? false,
       valorEntrada:
@@ -1365,6 +1390,41 @@ function DocumentacaoPage() {
     () => leads.filter((item) => item.tipo === "cliente"),
     [leads],
   );
+
+  async function criarPropostaDaVenda() {
+    const nome = form.nome.trim();
+    if (nome.length < 2) {
+      toast.error("Informe o nome do cliente antes de criar a proposta.");
+      return;
+    }
+    const vgv = parseOptionalMoneyInput(form.vgv);
+    setCriandoProposta(true);
+    try {
+      const created = await createProposta({
+        clienteNome: nome,
+        leadId: form.leadId || null,
+        construtoraId: form.construtoraId || null,
+        empreendimentoId: form.empreendimentoId || null,
+        corretorId: form.corretorId || null,
+        valor: vgv != null && vgv > 0 ? vgv : 1,
+        status: "aceita",
+      });
+      setPropostas((lista) => [
+        created,
+        ...lista.filter((item) => item.id !== created.id),
+      ]);
+      setField("propostaId", created.id);
+      toast.success("Proposta criada e vinculada a esta venda.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível criar a proposta.",
+      );
+    } finally {
+      setCriandoProposta(false);
+    }
+  }
 
   function applyContato(id: string) {
     const contact = leads.find((item) => item.id === id);
@@ -1409,6 +1469,12 @@ function DocumentacaoPage() {
     const dataVenda =
       form.dataVenda ||
       (vgv != null && vgv > 0 ? todayDateInput() : null);
+    if (vgv != null && vgv > 0 && dataVenda && !form.propostaId) {
+      toast.error(
+        "Vincule uma proposta para lançar a venda com VGV e data de venda.",
+      );
+      return null;
+    }
 
     const leadVinculado =
       leads.some((item) => item.id === form.leadId) ? form.leadId : "";
@@ -1435,6 +1501,7 @@ function DocumentacaoPage() {
       dataAnalise: form.dataAnalise || null,
       dataVenda,
       vgv,
+      propostaId: form.propostaId || null,
       obs: form.obs.trim() || null,
       temEntrada: form.temEntrada,
       valorEntrada: form.temEntrada
@@ -3379,6 +3446,53 @@ function DocumentacaoPage() {
                     disabled={readOnly}
                     placeholder="0,00"
                   />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Proposta</Label>
+                    {!readOnly ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs"
+                        disabled={criandoProposta}
+                        onClick={() => void criarPropostaDaVenda()}
+                      >
+                        {criandoProposta ? "Criando…" : "+ Criar proposta"}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Select
+                    value={form.propostaId || "__none__"}
+                    onValueChange={(v) =>
+                      setField("propostaId", v === "__none__" ? "" : v)
+                    }
+                    disabled={readOnly}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a proposta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem proposta</SelectItem>
+                      {propostas
+                        .filter(
+                          (item) =>
+                            !form.leadId ||
+                            !item.leadId ||
+                            item.leadId === form.leadId ||
+                            item.id === form.propostaId,
+                        )
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.codigo} · {item.clienteNome} · {brl(item.valor)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo.
+                  </p>
                 </div>
 
                 <div className="space-y-3 sm:col-span-2 rounded-lg border border-border/60 p-3">

@@ -67,6 +67,14 @@ export interface Documentacao {
   dataAnalise: string | null;
   dataVenda: string | null;
   vgv: number | null;
+  propostaId?: string | null;
+  proposta?: {
+    id: string;
+    codigo: string;
+    valor: number;
+    status: string;
+    clienteNome: string;
+  } | null;
   obs: string | null;
   temEntrada: boolean;
   valorEntrada: number | null;
@@ -118,6 +126,7 @@ export type CreateDocumentacaoInput = {
   dataAnalise?: string | null;
   dataVenda?: string | null;
   vgv?: number | null;
+  propostaId?: string | null;
   obs?: string | null;
   temEntrada?: boolean;
   valorEntrada?: number | null;

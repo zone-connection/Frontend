@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
-import { dashCardTone, type FinanceKpiTone } from "@/components/finance-kpi-card";
 import { LeadDetalheDialog } from "@/components/lead-detalhe-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,10 +54,8 @@ import { SOFT_SURFACE } from "@/lib/soft-surface";
 import { useCatalog } from "@/lib/catalog-store";
 import {
   createTriagemEvent,
-  fetchTriagemKpis,
   fetchTriagemLeads,
   type TriagemContact,
-  type TriagemKpis,
   type TriagemLeadsResponse,
   type TriagemOrigem,
 } from "@/lib/triagem-api";
@@ -79,15 +76,11 @@ import {
 import {
   ClipboardList,
   Clock,
-  Clock3,
   Plus,
   Search,
-  Target,
-  UserRound,
   FileText,
   Loader2,
   Repeat,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
@@ -109,38 +102,6 @@ export const Route = createFileRoute("/_app/triagem")({
 });
 
 const MAX_TEXTO = MAX_TRIAGEM_TEXTO;
-
-function TriagemKpi({
-  label,
-  value,
-  detail,
-  icon: Icon,
-  tone = "teal",
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  icon: LucideIcon;
-  tone?: FinanceKpiTone;
-}) {
-  const paint = dashCardTone(tone);
-  return (
-    <div className={cn("flex min-w-0 flex-col rounded-xl border px-3.5 py-3", paint.card)}>
-      <span className="flex items-center gap-2">
-        <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", paint.disc)}>
-          <Icon className="size-4" />
-        </span>
-        <span className={cn("truncate text-[13px]", paint.label)}>{label}</span>
-      </span>
-      <span className={cn("mt-2 truncate text-[22px] font-semibold leading-none tracking-tight tabular-nums", paint.ink)}>
-        {value}
-      </span>
-      {detail ? (
-        <span className={cn("mt-1.5 truncate text-[11px]", paint.label)}>{detail}</span>
-      ) : null}
-    </div>
-  );
-}
 
 function leadToContact(l: Lead): TriagemContact {
   return {
@@ -221,15 +182,6 @@ function formatRelativePt(iso?: string | null) {
   return `Há ${days}d`;
 }
 
-function formatDurationMs(ms: number) {
-  if (ms <= 0) return "—";
-  const mins = Math.round(ms / 60000);
-  if (mins < 60) return `${mins} min`;
-  const hours = Math.floor(mins / 60);
-  const rest = mins % 60;
-  return rest ? `${hours}h ${rest}min` : `${hours}h`;
-}
-
 function TriagemLeadCard({
   lead,
   stageName,
@@ -259,11 +211,8 @@ function TriagemLeadCard({
       className={cn(
         "rounded-2xl border p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors",
         active
-          ? "border-sky-200 bg-sky-50 ring-1 ring-sky-100 dark:border-sky-900/50 dark:bg-sky-950/25 dark:ring-sky-900/40"
-          : "border-black/5 bg-card hover:bg-muted/40",
-        herdada &&
-          !active &&
-          "border-amber-200 bg-amber-50/90 dark:border-amber-900/50 dark:bg-amber-950/30",
+          ? "border-white/15 bg-muted ring-1 ring-white/10"
+          : "border-white/10 bg-card hover:bg-muted/40",
       )}
     >
       <button type="button" onClick={onSelect} className="w-full text-left">
@@ -1068,7 +1017,6 @@ function ManagerTriagem() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("__all__");
   const [tipoFilter, setTipoFilter] = useState<"lead" | "cliente">("lead");
-  const [kpis, setKpis] = useState<TriagemKpis | null>(null);
   const {
     events,
     setEvents,
@@ -1225,31 +1173,6 @@ function ManagerTriagem() {
     return map;
   }, [allLeads, funnelStages]);
 
-  const teamLeads = useMemo(
-    () => allLeads.filter((l) => l.tipo === "lead"),
-    [allLeads],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchTriagemKpis({
-      equipeId:
-        selectedEquipeId !== "__all__" && selectedEquipeId !== "__none__"
-          ? selectedEquipeId
-          : undefined,
-      semEquipe: selectedEquipeId === "__none__",
-    })
-      .then((data) => {
-        if (!cancelled) setKpis(data);
-      })
-      .catch(() => {
-        if (!cancelled) setKpis(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedEquipeId]);
-
   function selectEquipe(id: string) {
     setSelectedEquipeId(id);
     setCorretorSearch("");
@@ -1322,51 +1245,6 @@ function ManagerTriagem() {
           title="Triagem"
           description="Organize, analise e direcione cada oportunidade."
         />
-        <div className="mb-4 grid grid-cols-2 items-start gap-3 xl:grid-cols-5">
-            <TriagemKpi
-              label="Corretores ativos"
-              value={String(corretores.length)}
-              icon={UserRound}
-              tone="blue-2"
-              detail="Todas na equipe"
-            />
-            <TriagemKpi
-              label="Leads em triagem"
-              value={String(teamLeads.length)}
-              icon={ClipboardList}
-              tone="blue"
-              detail="Aguardando evolução"
-            />
-            <TriagemKpi
-              label="Tempo médio de triagem"
-              value={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
-              icon={Clock3}
-              tone="orange"
-              detail={
-                kpis?.amostra
-                  ? `${kpis.amostra} relato${kpis.amostra === 1 ? "" : "s"} medido${kpis.amostra === 1 ? "" : "s"}`
-                  : "Sem relatos suficientes"
-              }
-            />
-            <TriagemKpi
-              label="Atualizados hoje"
-              value={String(kpis?.atualizadosHoje ?? 0)}
-              icon={Target}
-              tone="violet"
-              detail={`Ontem: ${kpis?.atualizadosOntem ?? 0}`}
-            />
-            <TriagemKpi
-              label="Triagem mais rápida"
-              value={kpis?.maisRapida?.nome || "—"}
-              icon={Zap}
-              tone="emerald"
-              detail={
-                kpis?.maisRapida
-                  ? `Média de ${formatDurationMs(kpis.maisRapida.tempoMedioMs)}`
-                  : "Menor tempo médio na equipe"
-              }
-            />
-        </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12 lg:overflow-hidden">
