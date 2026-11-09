@@ -2908,6 +2908,7 @@ function DocumentacaoPage() {
                 clienteNome={form.nome}
               />
             ) : (
+            <>
             <FormSection title={form.origem === "usado" ? "Venda de usados" : "Dados da planilha"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 {form.origem === "lancamento" ? (
@@ -3471,6 +3472,7 @@ function DocumentacaoPage() {
                 />
               </div>
             ) : null}
+            </>
             )}
           </FormDialogBody>
           <FormDialogActions
