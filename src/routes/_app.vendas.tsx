@@ -1,19 +1,28 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  Banknote,
+  Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   BarChart3,
   CircleUser,
+  FileSignature,
   Filter,
   Globe,
+  HardHat,
+  Headset,
+  KeyRound,
+  Landmark,
   Loader2,
+  PenLine,
   Pencil,
   Search,
   UserRound,
   Users,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
@@ -54,7 +63,6 @@ import {
   VENDA_STATUS_LABEL,
   type VendaUsado,
 } from "@/lib/imoveis-usados-api";
-import { LOCACOES_MOCK } from "@/lib/modulos-mock";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { origemBadgeClass } from "@/lib/catalog-colors";
@@ -111,14 +119,22 @@ function brl(value: number) {
 }
 
 const ETAPAS_JORNADA = [
-  { id: "contrato", nome: "Contrato" },
-  { id: "assinatura", nome: "Assinatura" },
-  { id: "obra", nome: "Obra" },
-  { id: "chaves", nome: "Entrega de chaves" },
-  { id: "posVenda", nome: "Pós-venda" },
+  { id: "contrato", nome: "Contrato", icon: FileSignature },
+  { id: "assinatura", nome: "Assinatura", icon: PenLine },
+  { id: "obra", nome: "Obra", icon: HardHat },
+  { id: "chaves", nome: "Entrega de chaves", icon: KeyRound },
+  { id: "posVenda", nome: "Pós-venda", icon: Headset },
 ] as const;
 
 type EtapaJornadaId = (typeof ETAPAS_JORNADA)[number]["id"];
+
+function iconePlano(nome: string): LucideIcon {
+  if (nome === "FGTS") return Landmark;
+  if (nome === "Financiamento") return Building2;
+  if (nome.startsWith("Parcelas até")) return KeyRound;
+  if (nome.startsWith("Parcelas depois")) return CalendarDays;
+  return Wallet;
+}
 
 function dataMarcada(valor: string | null) {
   if (!valor) return "";
@@ -859,7 +875,6 @@ function VendasDocumentacaoPage() {
         <VendasTodosPanel
           lancamentos={verLancamentos ? filtered : []}
           usados={verUsados}
-          locacao={verLocacao}
           onAcompanhar={setFluxo}
         />
       ) : null}
@@ -1475,19 +1490,34 @@ function VendasDocumentacaoPage() {
         {fluxo ? (
           <FormDialogBody className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl border bg-card px-4 py-3 sm:col-span-2">
-                <p className="text-xs text-muted-foreground">Imóvel</p>
-                <p className="mt-1 text-lg font-semibold">{fluxo.empreendimento?.nome ?? "—"}</p>
-                <p className="text-sm text-muted-foreground">{fluxo.construtora?.nome ?? "Sem construtora"}</p>
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3 sm:col-span-2">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                  <Building2 className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Imóvel</p>
+                  <p className="mt-1 truncate text-lg font-semibold">{fluxo.empreendimento?.nome ?? "—"}</p>
+                  <p className="truncate text-sm text-muted-foreground">{fluxo.construtora?.nome ?? "Sem construtora"}</p>
+                </div>
               </div>
-              <div className="rounded-2xl border bg-card px-4 py-3">
-                <p className="text-xs text-muted-foreground">Valor da venda</p>
-                <p className="mt-1 text-lg font-semibold tabular-nums">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                  <Banknote className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Valor da venda</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+                </div>
               </div>
-              <div className="rounded-2xl border bg-card px-4 py-3">
-                <p className="text-xs text-muted-foreground">Responsável</p>
-                <p className="mt-1 font-semibold">{fluxo.corretor?.name ?? fluxo.lead?.corretor?.name ?? "—"}</p>
-                <p className="text-sm text-muted-foreground">{fluxo.gerente?.name ?? "Sem gerente"}</p>
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                  <UserRound className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Responsável</p>
+                  <p className="mt-1 truncate font-semibold">{fluxo.corretor?.name ?? fluxo.lead?.corretor?.name ?? "—"}</p>
+                  <p className="truncate text-sm text-muted-foreground">{fluxo.gerente?.name ?? "Sem gerente"}</p>
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1509,6 +1539,7 @@ function VendasDocumentacaoPage() {
                 {ETAPAS_JORNADA.map((etapa, index) => {
                   const marcadaEm = fluxo.jornada?.[etapa.id] ?? null;
                   const marcada = Boolean(marcadaEm);
+                  const EtapaIcon = etapa.icon;
                   return (
                     <div key={etapa.id} className="flex min-w-[8.5rem] flex-1 items-center">
                       <button
@@ -1524,13 +1555,13 @@ function VendasDocumentacaoPage() {
                       >
                         <span
                           className={cn(
-                            "grid size-6 place-items-center rounded-full text-xs font-semibold",
+                            "grid size-8 place-items-center rounded-full",
                             marcada
                               ? "bg-emerald-500 text-white"
                               : "bg-muted text-muted-foreground",
                           )}
                         >
-                          {index + 1}
+                          <EtapaIcon className="size-4" />
                         </span>
                         <p className="mt-2 text-sm font-medium">{etapa.nome}</p>
                         <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
@@ -1573,14 +1604,22 @@ function VendasDocumentacaoPage() {
                         ["Entrada", fluxo.temEntrada ? fluxo.valorEntrada : null],
                         ["FGTS", fluxo.temFgts ? fluxo.valorFgts : null],
                       ]
-                  ).map(([nome, valor]) => (
+                  ).map(([nome, valor]) => {
+                    const PlanoIcon = iconePlano(String(nome));
+                    return (
                     <TableRow key={String(nome)}>
-                      <TableCell>{nome}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-2">
+                          <PlanoIcon className="size-4 text-muted-foreground" />
+                          {nome}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -1714,12 +1753,10 @@ function TipoVendaBadge({ tipo }: { tipo: string }) {
 function VendasTodosPanel({
   lancamentos,
   usados,
-  locacao,
   onAcompanhar,
 }: {
   lancamentos: Documentacao[];
   usados: boolean;
-  locacao: boolean;
   onAcompanhar: (doc: Documentacao) => void;
 }) {
   const [usadosItems, setUsadosItems] = useState<VendaUsado[]>([]);
@@ -1789,16 +1826,6 @@ function VendasTodosPanel({
       responsavel: item.responsavel?.name ?? "—",
       valor: item.precoVenda != null ? brl(item.precoVenda) : "—",
     })),
-    ...(locacao
-      ? LOCACOES_MOCK.map((row) => ({
-          id: row.id,
-          tipo: "Locação",
-          cliente: row.nome,
-          referencia: row.imovel,
-          responsavel: row.corretor,
-          valor: row.aluguel,
-        }))
-      : []),
   ];
 
   const termo = normalize(busca);
@@ -1908,34 +1935,8 @@ function VendasTodosPanel({
 
 function VendasLocacaoPanel() {
   return (
-    <div>
-      <p className="mb-3 text-sm text-[#5C6B76]">
-        Carteira de locação do módulo ativo. Os contratos reais entram quando o aluguel deixar de ser demonstração.
-      </p>
-      <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Interessado</TableHead>
-              <TableHead>Imóvel</TableHead>
-              <TableHead>Aluguel</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Corretor</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {LOCACOES_MOCK.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium">{row.nome}</TableCell>
-                <TableCell>{row.imovel}</TableCell>
-                <TableCell>{row.aluguel}</TableCell>
-                <TableCell>{row.etapa}</TableCell>
-                <TableCell>{row.corretor}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="rounded-2xl border bg-card px-6 py-14 text-center text-sm text-muted-foreground shadow-sm">
+      Nenhuma locação cadastrada.
     </div>
   );
 }

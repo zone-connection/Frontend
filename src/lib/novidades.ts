@@ -865,7 +865,7 @@ export const NOVIDADES: Novidade[] = [
 ];
 
 export function anuncioNovidadeAtual(): Novidade | null {
-  return NOVIDADES[0] ?? null;
+  return null;
 }
 
 export function novidadeAnuncioPendente(): boolean {
