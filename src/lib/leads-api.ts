@@ -78,6 +78,7 @@ export interface ApiLead {
   documentacaoStatus1?: string | null;
   documentacaoStatus2?: string | null;
   documentacaoVgv?: number | null;
+  propostasCount?: number;
   podeRedistribuir?: boolean;
   perdidoAt?: string | null;
   motivoPerda?: string | null;
@@ -218,6 +219,7 @@ export function mapApiLead(api: ApiLead): Lead {
       api.documentacaoStatus2 ?? api.documentacoes?.[0]?.status2 ?? null,
     documentacaoVgv:
       api.documentacaoVgv ?? api.documentacoes?.[0]?.vgv ?? null,
+    propostasCount: api.propostasCount ?? 0,
     podeRedistribuir: api.podeRedistribuir,
     monitoramento: api.monitoramento ?? null,
     aquisicao: (() => {

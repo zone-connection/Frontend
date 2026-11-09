@@ -119,6 +119,11 @@ import {
   type LeadAtividadePrompt,
 } from "@/components/lead-atividade-dialog";
 import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
+import {
+  fetchPropostas,
+  updateProposta,
+  type Proposta,
+} from "@/lib/propostas-api";
 import { useTenantTheme } from "@/lib/tenant-theme";
 import {
   assumirAnalise,
@@ -314,6 +319,11 @@ export function ComercialFunilBoard({
   const [vendaObs, setVendaObs] = useState("");
   const [vendaStatus1, setVendaStatus1] = useState("");
   const [vendaStatus2, setVendaStatus2] = useState("Vendido");
+  const [escolhaVenda, setEscolhaVenda] = useState<{
+    lead: Lead;
+    stage: StageId;
+    propostas: Proposta[];
+  } | null>(null);
   const [statusEtapa, setStatusEtapa] = useState<{
     lead: Lead;
     stage: StageId;
@@ -1168,6 +1178,50 @@ export function ComercialFunilBoard({
     }
   }
 
+  async function propostasDoLead(leadId: string) {
+    const lista = await fetchPropostas();
+    return lista.filter((item) => item.leadId === leadId);
+  }
+
+  async function prepararVenda(lead: Lead, stage: StageId) {
+    try {
+      const propostas = await propostasDoLead(lead.id);
+      if (propostas.length !== 1) {
+        setEscolhaVenda({ lead, stage, propostas });
+        return;
+      }
+      await definirPropostaDaVenda(propostas[0].id, propostas);
+      await seguirParaVenda(lead, stage);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível abrir as propostas.",
+      );
+    }
+  }
+
+  async function definirPropostaDaVenda(escolhidaId: string, propostas: Proposta[]) {
+    await Promise.all(
+      propostas.map((item) =>
+        updateProposta(item.id, {
+          status: item.id === escolhidaId ? "aceita" : "recusada",
+        }),
+      ),
+    );
+  }
+
+  async function seguirParaVenda(lead: Lead, stage: StageId) {
+    if (fichaGuiada) {
+      await abrirConferenciaVenda(lead, stage);
+      return;
+    }
+    await updateLeadStage(
+      lead.id,
+      stage,
+      isCorretor ? { omitTriagem: true } : undefined,
+    );
+    toast.success(`${lead.nome} foi para venda.`);
+  }
+
   async function abrirConferenciaVenda(lead: Lead, stage: StageId) {
     try {
       const docs = await fetchDocumentacoes();
@@ -1303,8 +1357,30 @@ export function ComercialFunilBoard({
       void loadCatalogoFicha();
       return;
     }
-    if (fichaGuiada && papel === "venda") {
-      void abrirConferenciaVenda(lead, stage);
+    if (papel === "proposta") {
+      try {
+        await updateLeadStage(
+          leadId,
+          stage,
+          isCorretor ? { omitTriagem: true } : undefined,
+        );
+        const doLead = (await fetchPropostas()).filter((item) => item.leadId === lead.id);
+        await Promise.all(
+          doLead
+            .filter((item) => item.status === "rascunho" || item.status === "enviada")
+            .map((item) => updateProposta(item.id, { status: "negociacao" })),
+        );
+        toast.success(`${lead.nome} foi para a etapa de proposta.`);
+        void navigate({ to: "/propostas", search: { lead: lead.id } });
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Não foi possível mover o lead.",
+        );
+      }
+      return;
+    }
+    if (papel === "venda") {
+      void prepararVenda(lead, stage);
       return;
     }
     if (fichaGuiada && (papel === "aprovado" || papel === "reprovado")) {
@@ -1434,10 +1510,10 @@ export function ComercialFunilBoard({
       void loadCatalogoFicha();
       return;
     }
-    if (fichaGuiada && papelDetalhe === "venda") {
+    if (papelDetalhe === "venda") {
       const target = detailLead;
       setDetailLead(null);
-      void abrirConferenciaVenda(target, stage);
+      void prepararVenda(target, stage);
       return;
     }
     if (fichaGuiada && (papelDetalhe === "aprovado" || papelDetalhe === "reprovado")) {
@@ -1862,6 +1938,21 @@ export function ComercialFunilBoard({
                             Cliente
                           </Badge>
                         )}
+                        {(l.propostasCount ?? 0) > 0 ? (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 py-0 text-[9px] border-amber-500/50 bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                            title={
+                              (l.propostasCount ?? 0) > 1
+                                ? `${l.propostasCount} propostas`
+                                : "Proposta criada"
+                            }
+                          >
+                            {(l.propostasCount ?? 0) > 1
+                              ? "1+"
+                              : "Proposta criada"}
+                          </Badge>
+                        ) : null}
                         <Badge
                           className={cn(
                             "h-5 w-auto shrink-0 rounded-full px-2 py-0 text-[10px] font-semibold",
@@ -2309,6 +2400,90 @@ export function ComercialFunilBoard({
             </Button>
             <Button type="button" disabled={fichaSaving} onClick={() => void confirmarStatusEtapa()}>
               Salvar status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={escolhaVenda != null}
+        onOpenChange={(open) => {
+          if (!open && !fichaSaving) setEscolhaVenda(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Qual proposta entra na venda?</DialogTitle>
+            <DialogDescription>
+              {escolhaVenda && escolhaVenda.propostas.length > 1
+                ? `${escolhaVenda.lead.nome} tem mais de uma proposta. A escolhida fica aceita. As outras ficam recusadas.`
+                : `${escolhaVenda?.lead.nome ?? "Este lead"} ainda não tem proposta para a venda.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 space-y-2 overflow-y-auto">
+            {escolhaVenda?.propostas.map((item) => (
+              <div key={item.id} className="rounded-xl border px-3 py-2 text-sm">
+                <p className="font-medium">{brl(item.valor)}</p>
+                <p className="text-muted-foreground">
+                  {item.construtora?.nome ?? "Sem construtora"}
+                  {" · "}
+                  {item.empreendimento?.nome ?? "Sem empreendimento"}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={fichaSaving}
+                    onClick={() => {
+                      if (!escolhaVenda) return;
+                      void (async () => {
+                        setFichaSaving(true);
+                        try {
+                          await definirPropostaDaVenda(item.id, escolhaVenda.propostas);
+                          const alvo = escolhaVenda;
+                          setEscolhaVenda(null);
+                          await seguirParaVenda(alvo.lead, alvo.stage);
+                        } catch (err) {
+                          toast.error(
+                            err instanceof ApiError
+                              ? err.message
+                              : "Não foi possível escolher a proposta.",
+                          );
+                        } finally {
+                          setFichaSaving(false);
+                        }
+                      })();
+                    }}
+                  >
+                    Esta entra na venda
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      void navigate({ to: "/propostas", search: { id: item.id } });
+                    }}
+                  >
+                    Editar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (!escolhaVenda) return;
+                void navigate({
+                  to: "/propostas",
+                  search: { lead: escolhaVenda.lead.id },
+                });
+              }}
+            >
+              Nova proposta
             </Button>
           </DialogFooter>
         </DialogContent>

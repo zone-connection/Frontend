@@ -14,7 +14,8 @@ export type FunilEtapaPapel =
   | "qualificado"
   | "agendado"
   | "agendado_compra"
-  | "agendado_venda";
+  | "agendado_venda"
+  | "proposta";
 
 export type FunilTipo =
   | "comercial"
