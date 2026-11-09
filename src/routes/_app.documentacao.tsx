@@ -2879,7 +2879,7 @@ function DocumentacaoPage() {
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
-            <div className="mb-4 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
+            <div className="mb-4 flex w-fit gap-1 rounded-lg border bg-muted p-1">
               {(
                 [
                   ["ficha", "Ficha"],
@@ -2893,8 +2893,8 @@ function DocumentacaoPage() {
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm font-medium",
                     abaDoc === id
-                      ? "bg-white text-[#0B3148] shadow-sm"
-                      : "text-[#5C6B76]",
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {label}
