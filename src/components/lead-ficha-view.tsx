@@ -215,7 +215,11 @@ export function LeadFichaView({
   hasWhatsapp: boolean;
 }) {
   const isAdmin = getSession()?.role === "admin";
-  const tabs = TABS.filter((item) => item !== "Distribuição" || isAdmin);
+  const tabs = TABS.filter((item) => {
+    if (item === "Distribuição") return isAdmin;
+    if (item === "WhatsApp") return hasWhatsapp;
+    return true;
+  });
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [pendingStage, setPendingStage] = useState<string | null>(null);
   const [filter, setFilter] = useState<HistoryKind>("todos");
