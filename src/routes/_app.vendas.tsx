@@ -63,12 +63,13 @@ import {
   displayFonte,
   fetchDocumentacaoCorretores,
   fetchDocumentacoes,
+  marcarJornadaVenda,
   updateDocumentacao,
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
 import { isStatusVendido } from "@/lib/documentacao-status";
-import { fetchPropostas } from "@/lib/propostas-api";
+import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
 import {
   fetchEmpreendimentos,
   type Empreendimento,
@@ -364,7 +365,7 @@ function VendasDocumentacaoPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [fluxo, setFluxo] = useState<Documentacao | null>(null);
   const [marcandoEtapa, setMarcandoEtapa] = useState(false);
-  const [propostaAceita, setPropostaAceita] = useState<string | null>(null);
+  const [propostaAceita, setPropostaAceita] = useState<Proposta | null>(null);
   const [saving, setSaving] = useState(false);
   const emptyFilters = useMemo(
     () => ({
@@ -402,9 +403,7 @@ function VendasDocumentacaoPage() {
         const aceita = lista.find(
           (item) => item.leadId === fluxo.leadId && item.status === "aceita",
         );
-        setPropostaAceita(
-          aceita ? `${aceita.codigo} aceita · ${brl(aceita.valor)}` : null,
-        );
+        setPropostaAceita(aceita ?? null);
       })
       .catch(() => {
         if (ativo) setPropostaAceita(null);
@@ -423,7 +422,7 @@ function VendasDocumentacaoPage() {
     };
     setMarcandoEtapa(true);
     try {
-      const atualizada = await updateDocumentacao(fluxo.id, { jornada });
+      const atualizada = await marcarJornadaVenda(fluxo.id, jornada);
       setFluxo(atualizada);
       setDocs((lista) =>
         lista.map((item) => (item.id === atualizada.id ? atualizada : item)),
@@ -1471,91 +1470,117 @@ function VendasDocumentacaoPage() {
         icon={<Wallet className="h-5 w-5" />}
         title={fluxo?.nome ?? "Venda"}
         description="Jornada do comprador nesta venda."
-        className="max-w-3xl"
+        className="max-w-5xl"
       >
         {fluxo ? (
-          <FormDialogBody>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Construtora</p>
-                <p className="font-medium">{fluxo.construtora?.nome ?? "—"}</p>
-              </div>
-              <div>
+          <FormDialogBody className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl border bg-card px-4 py-3 sm:col-span-2">
                 <p className="text-xs text-muted-foreground">Imóvel</p>
-                <p className="font-medium">{fluxo.empreendimento?.nome ?? "—"}</p>
+                <p className="mt-1 text-lg font-semibold">{fluxo.empreendimento?.nome ?? "—"}</p>
+                <p className="text-sm text-muted-foreground">{fluxo.construtora?.nome ?? "Sem construtora"}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Valor</p>
-                <p className="font-medium">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+              <div className="rounded-2xl border bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">Valor da venda</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+              </div>
+              <div className="rounded-2xl border bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">Responsável</p>
+                <p className="mt-1 font-semibold">{fluxo.corretor?.name ?? fluxo.lead?.corretor?.name ?? "—"}</p>
+                <p className="text-sm text-muted-foreground">{fluxo.gerente?.name ?? "Sem gerente"}</p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-sm">
-              <Badge variant="outline">Status 1 · {fluxo.status1 || "—"}</Badge>
-              <Badge variant="outline">Status 2 · {fluxo.status2 || "—"}</Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Crédito · {fluxo.status1 || "—"}</Badge>
+              <Badge variant="outline">Venda · {fluxo.status2 || "—"}</Badge>
+              <Badge variant="outline">Análise · {dateBr(fluxo.dataAnalise) || "—"}</Badge>
+              <Badge variant="outline">Venda em · {dateBr(fluxo.dataVenda) || "—"}</Badge>
               {propostaAceita ? (
                 <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                  Proposta aceita · {propostaAceita}
+                  Proposta aceita · {propostaAceita.codigo} · {brl(propostaAceita.valor)}
                 </Badge>
-              ) : null}
+              ) : (
+                <Badge variant="outline">Sem proposta aceita</Badge>
+              )}
             </div>
-            <div className="mt-5 flex items-stretch gap-0 overflow-x-auto pb-1">
-              {ETAPAS_JORNADA.map((etapa, index) => {
-                const marcadaEm = fluxo.jornada?.[etapa.id] ?? null;
-                const marcada = Boolean(marcadaEm);
-                return (
-                  <div key={etapa.id} className="flex min-w-0 flex-1 items-center">
-                    <button
-                      type="button"
-                      disabled={marcandoEtapa}
-                      onClick={() => void alternarEtapa(etapa.id)}
-                      className={cn(
-                        "min-w-[7.5rem] flex-1 rounded-xl border px-3 py-2 text-left text-sm transition-colors",
-                        marcada
-                          ? "border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
-                          : "bg-card hover:bg-muted",
-                      )}
-                    >
-                      <p className="text-xs text-muted-foreground">{index + 1}</p>
-                      <p className="font-medium">{etapa.nome}</p>
-                      <p className="mt-1 text-[11px] tabular-nums">
-                        {marcada ? dataMarcada(marcadaEm) : "Marcar etapa"}
-                      </p>
-                    </button>
-                    {index < ETAPAS_JORNADA.length - 1 ? (
-                      <div className="mx-1 h-1.5 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
-                        <div
+            <div>
+              <p className="mb-3 text-sm font-medium">Jornada do comprador</p>
+              <div className="flex items-stretch overflow-x-auto pb-1">
+                {ETAPAS_JORNADA.map((etapa, index) => {
+                  const marcadaEm = fluxo.jornada?.[etapa.id] ?? null;
+                  const marcada = Boolean(marcadaEm);
+                  return (
+                    <div key={etapa.id} className="flex min-w-[8.5rem] flex-1 items-center">
+                      <button
+                        type="button"
+                        disabled={marcandoEtapa}
+                        onClick={() => void alternarEtapa(etapa.id)}
+                        className={cn(
+                          "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
+                          marcada
+                            ? "border-emerald-500 bg-emerald-500/15"
+                            : "bg-card hover:bg-muted",
+                        )}
+                      >
+                        <span
                           className={cn(
-                            "h-full rounded-full bg-emerald-500 transition-all duration-300",
-                            marcada ? "w-full" : "w-0",
+                            "grid size-6 place-items-center rounded-full text-xs font-semibold",
+                            marcada
+                              ? "bg-emerald-500 text-white"
+                              : "bg-muted text-muted-foreground",
                           )}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+                        >
+                          {index + 1}
+                        </span>
+                        <p className="mt-2 text-sm font-medium">{etapa.nome}</p>
+                        <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                          {marcada ? dataMarcada(marcadaEm) : "Toque para marcar"}
+                        </p>
+                      </button>
+                      {index < ETAPAS_JORNADA.length - 1 ? (
+                        <div className="mx-1.5 h-1.5 w-6 shrink-0 overflow-hidden rounded-full bg-muted sm:w-10">
+                          <div
+                            className={cn(
+                              "h-full rounded-full bg-emerald-500 transition-all duration-300",
+                              marcada ? "w-full" : "w-0",
+                            )}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="mt-4 overflow-hidden rounded-xl border">
+            <div className="overflow-hidden rounded-2xl border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
+                    <TableHead>Plano de pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>Entrada</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fluxo.temEntrada && fluxo.valorEntrada != null ? brl(fluxo.valorEntrada) : "—"}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>FGTS</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fluxo.temFgts && fluxo.valorFgts != null ? brl(fluxo.valorFgts) : "—"}
-                    </TableCell>
-                  </TableRow>
+                  {(propostaAceita
+                    ? [
+                        ["Entrada", propostaAceita.entrada],
+                        ["FGTS", propostaAceita.fgts],
+                        ["Financiamento", propostaAceita.financiamento],
+                        ["Parcelas até as chaves", (propostaAceita.preChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                        ["Parcelas depois das chaves", (propostaAceita.posChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                      ]
+                    : [
+                        ["Entrada", fluxo.temEntrada ? fluxo.valorEntrada : null],
+                        ["FGTS", fluxo.temFgts ? fluxo.valorFgts : null],
+                      ]
+                  ).map(([nome, valor]) => (
+                    <TableRow key={String(nome)}>
+                      <TableCell>{nome}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
