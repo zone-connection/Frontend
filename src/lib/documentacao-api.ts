@@ -73,6 +73,7 @@ export interface Documentacao {
   temFgts: boolean;
   valorFgts: number | null;
   temDependente: boolean;
+  jornada?: Record<string, string | null> | null;
   createdAt: string;
   updatedAt: string;
   autor: {
@@ -123,6 +124,7 @@ export type CreateDocumentacaoInput = {
   temFgts?: boolean;
   valorFgts?: number | null;
   temDependente?: boolean;
+  jornada?: Record<string, string | null> | null;
   /** Data de cadastro retroativa (YYYY-MM-DD ou ISO). */
   createdAt?: string | null;
 };

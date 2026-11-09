@@ -68,6 +68,7 @@ import {
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
 import { isStatusVendido } from "@/lib/documentacao-status";
+import { fetchPropostas } from "@/lib/propostas-api";
 import {
   fetchEmpreendimentos,
   type Empreendimento,
@@ -106,6 +107,23 @@ function brl(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+const ETAPAS_JORNADA = [
+  { id: "contrato", nome: "Contrato" },
+  { id: "assinatura", nome: "Assinatura" },
+  { id: "obra", nome: "Obra" },
+  { id: "chaves", nome: "Entrega de chaves" },
+  { id: "posVenda", nome: "Pós-venda" },
+] as const;
+
+type EtapaJornadaId = (typeof ETAPAS_JORNADA)[number]["id"];
+
+function dataMarcada(valor: string | null) {
+  if (!valor) return "";
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return "";
+  return data.toLocaleDateString("pt-BR");
 }
 
 function normalize(value: string | null | undefined) {
@@ -345,6 +363,8 @@ function VendasDocumentacaoPage() {
   const [editForm, setEditForm] = useState<VendaEditForm>(emptyVendaEditForm);
   const [editOpen, setEditOpen] = useState(false);
   const [fluxo, setFluxo] = useState<Documentacao | null>(null);
+  const [marcandoEtapa, setMarcandoEtapa] = useState(false);
+  const [propostaAceita, setPropostaAceita] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const emptyFilters = useMemo(
     () => ({
@@ -369,6 +389,53 @@ function VendasDocumentacaoPage() {
     setDraft((prev) => ({ ...prev, ...range }));
     setApplied((prev) => ({ ...prev, ...range }));
   }, [periodo]);
+
+  useEffect(() => {
+    if (!fluxo?.leadId) {
+      setPropostaAceita(null);
+      return;
+    }
+    let ativo = true;
+    void fetchPropostas()
+      .then((lista) => {
+        if (!ativo) return;
+        const aceita = lista.find(
+          (item) => item.leadId === fluxo.leadId && item.status === "aceita",
+        );
+        setPropostaAceita(
+          aceita ? `${aceita.codigo} aceita · ${brl(aceita.valor)}` : null,
+        );
+      })
+      .catch(() => {
+        if (ativo) setPropostaAceita(null);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [fluxo?.id, fluxo?.leadId]);
+
+  async function alternarEtapa(etapa: EtapaJornadaId) {
+    if (!fluxo || marcandoEtapa) return;
+    const atual = fluxo.jornada ?? {};
+    const jornada = {
+      ...atual,
+      [etapa]: atual[etapa] ? null : new Date().toISOString(),
+    };
+    setMarcandoEtapa(true);
+    try {
+      const atualizada = await updateDocumentacao(fluxo.id, { jornada });
+      setFluxo(atualizada);
+      setDocs((lista) =>
+        lista.map((item) => (item.id === atualizada.id ? atualizada : item)),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível marcar a etapa.",
+      );
+    } finally {
+      setMarcandoEtapa(false);
+    }
+  }
 
   useEffect(() => {
     if (!canView) {
@@ -1425,20 +1492,49 @@ function VendasDocumentacaoPage() {
             <div className="mt-4 flex flex-wrap gap-2 text-sm">
               <Badge variant="outline">Status 1 · {fluxo.status1 || "—"}</Badge>
               <Badge variant="outline">Status 2 · {fluxo.status2 || "—"}</Badge>
+              {propostaAceita ? (
+                <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  Proposta aceita · {propostaAceita}
+                </Badge>
+              ) : null}
             </div>
-            <ol className="mt-4 grid gap-2 sm:grid-cols-5">
-              {["Contrato", "Assinatura", "Obra", "Entrega de chaves", "Pós-venda"].map(
-                (nome, index) => (
-                  <li
-                    key={nome}
-                    className="rounded-xl border bg-card px-3 py-2 text-sm"
-                  >
-                    <p className="text-xs text-muted-foreground">{index + 1}</p>
-                    <p className="font-medium">{nome}</p>
-                  </li>
-                ),
-              )}
-            </ol>
+            <div className="mt-5 flex items-stretch gap-0 overflow-x-auto pb-1">
+              {ETAPAS_JORNADA.map((etapa, index) => {
+                const marcadaEm = fluxo.jornada?.[etapa.id] ?? null;
+                const marcada = Boolean(marcadaEm);
+                return (
+                  <div key={etapa.id} className="flex min-w-0 flex-1 items-center">
+                    <button
+                      type="button"
+                      disabled={marcandoEtapa}
+                      onClick={() => void alternarEtapa(etapa.id)}
+                      className={cn(
+                        "min-w-[7.5rem] flex-1 rounded-xl border px-3 py-2 text-left text-sm transition-colors",
+                        marcada
+                          ? "border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+                          : "bg-card hover:bg-muted",
+                      )}
+                    >
+                      <p className="text-xs text-muted-foreground">{index + 1}</p>
+                      <p className="font-medium">{etapa.nome}</p>
+                      <p className="mt-1 text-[11px] tabular-nums">
+                        {marcada ? dataMarcada(marcadaEm) : "Marcar etapa"}
+                      </p>
+                    </button>
+                    {index < ETAPAS_JORNADA.length - 1 ? (
+                      <div className="mx-1 h-1.5 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={cn(
+                            "h-full rounded-full bg-emerald-500 transition-all duration-300",
+                            marcada ? "w-full" : "w-0",
+                          )}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
             <div className="mt-4 overflow-hidden rounded-xl border">
               <Table>
                 <TableHeader>
