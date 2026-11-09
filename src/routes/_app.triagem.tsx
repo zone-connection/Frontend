@@ -439,7 +439,6 @@ function CorretorTriagem() {
   const search = Route.useSearch();
   const { funnelStages } = useCatalog();
   const stageName = useStageLabel();
-  const [kpis, setKpis] = useState<TriagemKpis | null>(null);
   const [triagemLists, setTriagemLists] = useState<TriagemLeadsResponse>({
     leads: [],
     clientes: [],
@@ -474,20 +473,6 @@ function CorretorTriagem() {
 
   const leads = triagemLists.leads;
   const clientes = triagemLists.clientes;
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchTriagemKpis()
-      .then((data) => {
-        if (!cancelled) setKpis(data);
-      })
-      .catch(() => {
-        if (!cancelled) setKpis(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const [selectedId, setSelectedId] = useState<string | null>(
     search.leadId ?? null,
@@ -683,44 +668,6 @@ function CorretorTriagem() {
             </Button>
           }
         />
-        <div className="mb-4 grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
-            <TriagemKpi
-              label="Meus leads"
-              value={String(leads.length)}
-              icon={ClipboardList}
-              tone="blue"
-              detail="Aguardando atendimento"
-            />
-            <TriagemKpi
-              label="Clientes"
-              value={String(clientes.length)}
-              icon={UserRound}
-              tone="teal"
-            />
-            <TriagemKpi
-              label="Em análise"
-              value={String(
-                [...leads, ...clientes].filter((l) => {
-                  const papel = funnelStages.find((s) => s.id === l.stage)?.papel;
-                  return papel === "analise";
-                }).length,
-              )}
-              icon={Target}
-              tone="violet"
-            />
-            <TriagemKpi
-              label="Tempo médio"
-              value={formatDurationMs(kpis?.tempoMedioMs ?? 0)}
-              icon={Clock3}
-              tone="orange"
-              detail={
-                kpis?.amostra
-                  ? `${kpis.amostra} relato${kpis.amostra === 1 ? "" : "s"}`
-                  : "Tempo entre relatos"
-              }
-            />
-        </div>
-
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="w-full sm:w-55">
             <Select value={stageFilter} onValueChange={setStageFilter}>
