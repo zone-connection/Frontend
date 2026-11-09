@@ -344,6 +344,7 @@ function VendasDocumentacaoPage() {
   const [editing, setEditing] = useState<Documentacao | null>(null);
   const [editForm, setEditForm] = useState<VendaEditForm>(emptyVendaEditForm);
   const [editOpen, setEditOpen] = useState(false);
+  const [fluxo, setFluxo] = useState<Documentacao | null>(null);
   const [saving, setSaving] = useState(false);
   const emptyFilters = useMemo(
     () => ({
@@ -1060,9 +1061,7 @@ function VendasDocumentacaoPage() {
                     <TableHead>Corretor</TableHead>
                     <TableHead>Data da venda</TableHead>
                     <TableHead className="text-right">VGV</TableHead>
-                    {canEdit ? (
-                      <TableHead className="text-right">Ações</TableHead>
-                    ) : null}
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1113,21 +1112,32 @@ function VendasDocumentacaoPage() {
                         <TableCell className="text-right font-medium tabular-nums whitespace-nowrap">
                           {doc.vgv != null ? brl(doc.vgv) : "—"}
                         </TableCell>
-                        {canEdit ? (
-                          <TableCell className="text-right">
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
                             <Button
                               type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Editar venda"
-                              onClick={() => void openEdit(doc)}
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => setFluxo(doc)}
                             >
-                              <Pencil className="h-4 w-4" />
-                              <span className="sr-only">Editar venda</span>
+                              Acompanhar
                             </Button>
-                          </TableCell>
-                        ) : null}
+                            {canEdit ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Editar venda"
+                                onClick={() => void openEdit(doc)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar venda</span>
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -1170,6 +1180,61 @@ function VendasDocumentacaoPage() {
         )}
       </Card>
       </PagePanel>
+
+      <FormDialogShell
+        open={fluxo != null}
+        onOpenChange={(open) => {
+          if (!open) setFluxo(null);
+        }}
+        icon={<Wallet className="h-5 w-5" />}
+        title={fluxo?.nome ?? "Venda"}
+        description="Jornada do comprador nesta venda."
+        className="max-w-3xl"
+      >
+        {fluxo ? (
+          <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Construtora</p>
+                <p className="font-medium">{fluxo.construtora?.nome ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Imóvel</p>
+                <p className="font-medium">{fluxo.empreendimento?.nome ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Valor</p>
+                <p className="font-medium">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <Badge variant="outline">Status 1 · {fluxo.status1 || "—"}</Badge>
+              <Badge variant="outline">Status 2 · {fluxo.status2 || "—"}</Badge>
+            </div>
+            <ol className="mt-4 space-y-2">
+              {["Contrato", "Assinatura", "Obra", "Entrega de chaves", "Pós-venda"].map(
+                (nome, index) => (
+                  <li
+                    key={nome}
+                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
+                  >
+                    <span>
+                      {index + 1}. {nome}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {index === 0 ? "Documentação desta venda" : "Acompanhamento"}
+                    </span>
+                  </li>
+                ),
+              )}
+            </ol>
+            <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+              <p>Entrada: {fluxo.temEntrada && fluxo.valorEntrada != null ? brl(fluxo.valorEntrada) : "não informada"}</p>
+              <p>FGTS: {fluxo.temFgts && fluxo.valorFgts != null ? brl(fluxo.valorFgts) : "não informado"}</p>
+            </div>
+          </FormDialogBody>
+        ) : null}
+      </FormDialogShell>
 
       <FormDialogShell
         open={editOpen}

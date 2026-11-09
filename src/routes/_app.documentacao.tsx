@@ -193,6 +193,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { IdSearchSelect } from "@/components/id-search-select";
+import { DocumentacaoPropostaPainel } from "@/components/documentacao-proposta-painel";
 
 const DOC_STATUS_CHIP = cn(STATUS_CHIP_CLASS, "justify-start text-left");
 
@@ -664,6 +665,7 @@ function DocumentacaoPage() {
   const [importFileName, setImportFileName] = useState("");
 
   const [open, setOpen] = useState(false);
+  const [abaDoc, setAbaDoc] = useState<"ficha" | "proposta">("ficha");
   const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
   const [interessadosUsado, setInteressadosUsado] = useState<InteressadoUsado[]>(
     [],
@@ -1289,6 +1291,7 @@ function DocumentacaoPage() {
     if (!canCreateDoc) return;
     resetCreateForm();
     setCreateLocked(false);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1340,6 +1343,7 @@ function DocumentacaoPage() {
     setFormMode("view");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1348,6 +1352,7 @@ function DocumentacaoPage() {
     setFormMode("edit");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1378,15 +1383,13 @@ function DocumentacaoPage() {
   }
 
   function buildPayload(): CreateDocumentacaoInput | null {
-    const interessado = interessadosUsado.find(
-      (item) => item.id === form.interessadoId,
-    );
+    const contatoEscolhido = leads.find((item) => item.id === form.leadId);
     const nome =
       form.origem === "usado"
-        ? (interessado?.nome ?? "").trim()
+        ? (contatoEscolhido?.nome || form.nome).trim()
         : form.nome.trim();
-    if (form.origem === "usado" && !form.interessadoId) {
-      toast.error("Selecione o interessado.");
+    if (form.origem === "usado" && nome.length < 2) {
+      toast.error("Selecione o interessado ou informe o nome.");
       return null;
     }
     if (nome.length < 2) {
@@ -1416,7 +1419,10 @@ function DocumentacaoPage() {
       empreendimentoId: form.empreendimentoId || null,
       origem: form.origem,
       proprietarioId: form.origem === "usado" ? form.proprietarioId || null : null,
-      interessadoId: form.origem === "usado" ? form.interessadoId || null : null,
+      interessadoId:
+        form.origem === "usado" && !leadVinculado
+          ? form.interessadoId || null
+          : null,
       matricula: form.origem === "usado" ? form.matricula.trim() : "",
       fonte: form.fonte,
       status1: form.status1.trim(),
@@ -2869,25 +2875,24 @@ function DocumentacaoPage() {
               ? "Editar documentação"
               : "Documentação"
         }
-        className="max-w-2xl"
+        className={abaDoc === "proposta" ? "max-w-5xl" : "max-w-2xl"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
             <div className="mb-4 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
               {(
                 [
-                  ["lancamento", "Lançamento"],
-                  ["usado", "Usados"],
+                  ["ficha", "Ficha"],
+                  ["proposta", "Proposta"],
                 ] as const
               ).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
-                  disabled={readOnly}
-                  onClick={() => setField("origem", id)}
+                  onClick={() => setAbaDoc(id)}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm font-medium",
-                    form.origem === id
+                    abaDoc === id
                       ? "bg-white text-[#0B3148] shadow-sm"
                       : "text-[#5C6B76]",
                   )}
@@ -2896,6 +2901,13 @@ function DocumentacaoPage() {
                 </button>
               ))}
             </div>
+            {abaDoc === "proposta" ? (
+              <DocumentacaoPropostaPainel
+                leadId={form.leadId}
+                empreendimentoId={form.empreendimentoId}
+                clienteNome={form.nome}
+              />
+            ) : (
             <FormSection title={form.origem === "usado" ? "Venda de usados" : "Dados da planilha"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 {form.origem === "lancamento" ? (
@@ -3039,18 +3051,42 @@ function DocumentacaoPage() {
                 <div className="space-y-2">
                   <Label>Interessado *</Label>
                   <IdSearchSelect
-                    value={form.interessadoId}
-                    options={interessadosUsado.map((item) => ({
+                    value={
+                      leads.some((item) => item.id === form.leadId)
+                        ? form.leadId
+                        : ""
+                    }
+                    options={leads.map((item) => ({
                       id: item.id,
-                      label: item.nome,
-                      keywords: `${item.nome} ${item.telefone}`,
+                      label: `${item.nome} · ${item.tipo === "cliente" ? "Cliente" : "Lead"}`,
+                      keywords: `${item.nome} ${item.telefone} ${item.tipo}`,
                     }))}
-                    onChange={(id) => setField("interessadoId", id)}
-                    placeholder="Selecione"
-                    searchPlaceholder="Pesquisar interessado…"
-                    emptyLabel="Nenhum interessado cadastrado"
+                    onChange={(id) => {
+                      if (!id) {
+                        setForm((prev) => ({
+                          ...prev,
+                          leadId: "",
+                          interessadoId: "",
+                        }));
+                        return;
+                      }
+                      applyContato(id);
+                      setField("interessadoId", "");
+                    }}
+                    placeholder="Lead ou cliente"
+                    noneLabel="Não está na lista"
+                    searchPlaceholder="Pesquisar lead ou cliente…"
+                    emptyLabel="Nenhum lead ou cliente cadastrado"
                     disabled={readOnly}
                   />
+                  {!leads.some((item) => item.id === form.leadId) && (
+                    <Input
+                      value={form.nome}
+                      onChange={(e) => setField("nome", e.target.value)}
+                      placeholder="Nome de quem não está na lista"
+                      disabled={readOnly}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="matricula">Matrícula</Label>
@@ -3435,6 +3471,7 @@ function DocumentacaoPage() {
                 />
               </div>
             ) : null}
+            )}
           </FormDialogBody>
           <FormDialogActions
             hint={
@@ -3443,7 +3480,7 @@ function DocumentacaoPage() {
                 : undefined
             }
           >
-            {formMode === "create" && (
+            {abaDoc === "ficha" && formMode === "create" && (
               <Button
                 type="button"
                 variant={createLocked ? "secondary" : "outline"}
@@ -3468,7 +3505,7 @@ function DocumentacaoPage() {
                   ? "Sair"
                   : "Cancelar"}
             </Button>
-            {!readOnly && (
+            {abaDoc === "ficha" && !readOnly && (
               <Button type="submit" loading={saving} loadingText="Salvando...">
                 Salvar
               </Button>

@@ -108,6 +108,7 @@ const PAPEL_OPTIONS: Array<{
   { value: "agendado", label: "Agendado" },
   { value: "agendado_compra", label: "Agendado compra" },
   { value: "agendado_venda", label: "Agendado venda" },
+  { value: "proposta", label: "Proposta" },
 ];
 
 const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
@@ -125,6 +126,7 @@ const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
   agendado: "Agendado",
   agendado_compra: "Agendado compra",
   agendado_venda: "Agendado venda",
+  proposta: "Proposta",
 };
 
 type FiltroFunil = FunilTipo | "sem_tipo";

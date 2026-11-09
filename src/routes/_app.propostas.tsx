@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -121,7 +122,7 @@ import {
   type Documentacao,
 } from "@/lib/documentacao-api";
 import { isStatusAprovadoDoc } from "@/lib/documentacao-status";
-import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
+import { fetchLeadById, fetchLeads, mapApiLead, type ApiLead } from "@/lib/leads-api";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   fetchCaptacoes,
@@ -131,6 +132,7 @@ import {
 } from "@/lib/captacao-api";
 import {
   addNegociacaoMovimento,
+  createInteressadoUsado,
   createPropostaUsado,
   fetchInteressadosUsado,
   fetchPropostaUsado,
@@ -242,16 +244,21 @@ export const Route = createFileRoute("/_app/propostas")({
   head: () => ({ meta: [{ title: "Propostas — Zone Connection" }] }),
   validateSearch: (
     search: Record<string, unknown>,
-  ): { id?: string; origem?: "lancamento" | "usado" } => {
+  ): { id?: string; origem?: "lancamento" | "usado"; lead?: string } => {
     const id =
       typeof search.id === "string" && search.id.trim() ? search.id : undefined;
     const origem =
       search.origem === "lancamento" || search.origem === "usado"
         ? search.origem
         : undefined;
+    const lead =
+      typeof search.lead === "string" && search.lead.trim()
+        ? search.lead
+        : undefined;
     return {
       ...(id ? { id } : {}),
       ...(origem ? { origem } : {}),
+      ...(lead ? { lead } : {}),
     };
   },
   component: Page,
@@ -973,7 +980,7 @@ function PropostaActionMenus({
 
 function Page() {
   const navigate = useNavigate();
-  const { id: abrirId, origem: origemSearch } = Route.useSearch();
+  const { id: abrirId, origem: origemSearch, lead: leadSearch } = Route.useSearch();
   const origem: OrigemProposta = origemSearch ?? "todos";
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
@@ -1017,9 +1024,7 @@ function Page() {
   );
   const [usadoCreateOpen, setUsadoCreateOpen] = useState(false);
   const [usadoSaving, setUsadoSaving] = useState(false);
-  const [interessadosUsado, setInteressadosUsado] = useState<
-    InteressadoUsado[]
-  >([]);
+  const [contatosProposta, setContatosProposta] = useState<ApiLead[]>([]);
   const [responsaveisUsado, setResponsaveisUsado] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -1594,12 +1599,45 @@ function Page() {
       observacoes: "",
     });
     setUsadoCreateOpen(true);
-    const [interessados, responsaveis] = await Promise.all([
-      fetchInteressadosUsado().catch(() => [] as InteressadoUsado[]),
+    const [leads, clientes, responsaveis] = await Promise.all([
+      fetchLeads({ tipo: "lead", page: 1, limit: 200, sort: "created_desc" }).catch(
+        () => ({ data: [] as ApiLead[] }),
+      ),
+      fetchLeads({ tipo: "cliente", page: 1, limit: 200, sort: "created_desc" }).catch(
+        () => ({ data: [] as ApiLead[] }),
+      ),
       fetchUsadosResponsaveis().catch(() => [] as Array<{ id: string; name: string }>),
     ]);
-    setInteressadosUsado(interessados);
+    const contatos = [...leads.data, ...clientes.data].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR"),
+    );
+    setContatosProposta(contatos);
     setResponsaveisUsado(responsaveis);
+  }
+
+  async function interessadoDaPessoa(pessoa: ApiLead) {
+    const digitos = (value: string) => value.replace(/\D/g, "");
+    const telefone = digitos(pessoa.telefone);
+    const nome = pessoa.nome.trim().toLocaleLowerCase("pt-BR");
+    const existentes = await fetchInteressadosUsado().catch(
+      () => [] as InteressadoUsado[],
+    );
+    const jaExiste =
+      existentes.find(
+        (item) => telefone && digitos(item.telefone) === telefone,
+      ) ??
+      existentes.find(
+        (item) => item.nome.trim().toLocaleLowerCase("pt-BR") === nome,
+      );
+    if (jaExiste) return jaExiste.id;
+    const criado = await createInteressadoUsado({
+      nome: pessoa.nome.trim(),
+      telefone: pessoa.telefone,
+      email: pessoa.email,
+      cidade: pessoa.cidade,
+      bairros: pessoa.bairro,
+    });
+    return criado.id;
   }
 
   async function salvarPropostaUsado(e: FormEvent) {
@@ -1613,10 +1651,18 @@ function Page() {
       toast.error("Informe o valor da proposta.");
       return;
     }
+    const pessoa = contatosProposta.find(
+      (item) => item.id === usadoForm.interessadoId,
+    );
+    if (!pessoa) {
+      toast.error("Selecione o lead ou o cliente.");
+      return;
+    }
     setUsadoSaving(true);
     try {
+      const interessadoId = await interessadoDaPessoa(pessoa);
       await createPropostaUsado(usadoForm.vendaId, {
-        interessadoId: usadoForm.interessadoId,
+        interessadoId,
         responsavelId: usadoForm.responsavelId,
         valor,
         entrada: parseOptionalMoneyInput(usadoForm.entrada) ?? undefined,
@@ -1806,6 +1852,15 @@ function Page() {
       });
   }
 
+  const leadAbertaRef = useRef("");
+  useEffect(() => {
+    if (!leadSearch || leadAbertaRef.current === leadSearch) return;
+    leadAbertaRef.current = leadSearch;
+    openCreate();
+    setForm((atual) => ({ ...atual, status: "negociacao", leadId: leadSearch }));
+    onLeadSelect(leadSearch);
+  }, [leadSearch]);
+
   async function buscarCepResidencial(cep = form.clienteCepResidencial) {
     const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8 || cepLoading) return;
@@ -1978,12 +2033,37 @@ function Page() {
     try {
       const updated = await updateProposta(id, { status: next });
       setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      setSelected(updated);
+      setSelected((atual) => (atual?.id === id ? updated : atual));
       toast.success(`Status: ${PROPOSTA_STATUS_LABEL[next]}`);
     } catch (err) {
       const msg =
         err instanceof ApiError ? err.message : "Falha ao atualizar status.";
       toast.error(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function patchStatusUsado(
+    vendaId: string,
+    propostaId: string,
+    next: PropostaUsadoStatus,
+  ) {
+    setActionLoading(true);
+    try {
+      const updated = await updatePropostaUsado(vendaId, propostaId, {
+        status: next,
+      });
+      setUsadosPropostas((prev) =>
+        prev.map((item) =>
+          item.id === propostaId ? { ...item, ...updated } : item,
+        ),
+      );
+      toast.success(`Status: ${USADO_PROPOSTA_STATUS_LABEL[next]}`);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Falha ao atualizar status.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -2289,13 +2369,33 @@ function Page() {
                       <TableCell className="text-right tabular-nums font-semibold">
                         {brl(p.valorAtual ?? p.valor)}
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={classeStatusUsado(p.status)}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={p.status}
+                          disabled={actionLoading || !p.vendaUsado?.id}
+                          onValueChange={(value) => {
+                            const vendaId = p.vendaUsado?.id;
+                            if (!vendaId) return;
+                            void patchStatusUsado(
+                              vendaId,
+                              p.id,
+                              value as PropostaUsadoStatus,
+                            );
+                          }}
                         >
-                          {USADO_PROPOSTA_STATUS_LABEL[p.status]}
-                        </Badge>
+                          <SelectTrigger className={cn("h-8 w-[9.5rem]", classeStatusUsado(p.status))}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(
+                              Object.keys(USADO_PROPOSTA_STATUS_LABEL) as PropostaUsadoStatus[]
+                            ).map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {USADO_PROPOSTA_STATUS_LABEL[status]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         —
@@ -2416,14 +2516,27 @@ function Page() {
                   <TableCell className="text-right tabular-nums font-semibold">
                     {brl(p.valor)}
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={propostaStatusClass(p.status)}
-                      title={PROPOSTA_STATUS_LABEL[p.status]}
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={p.status}
+                      disabled={actionLoading}
+                      onValueChange={(value) =>
+                        void patchStatus(p.id, value as PropostaStatus)
+                      }
                     >
-                      {PROPOSTA_STATUS_LABEL[p.status]}
-                    </Badge>
+                      <SelectTrigger className={cn("h-8 w-[9.5rem]", propostaStatusClass(p.status))}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(
+                          Object.keys(PROPOSTA_STATUS_LABEL) as PropostaStatus[]
+                        ).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {PROPOSTA_STATUS_LABEL[status]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                     {formatPropostaDate(p.validade)}
@@ -2497,7 +2610,7 @@ function Page() {
               >
                 {PROPOSTA_STATUS_LABEL[selected.status]}
               </Badge>
-              <span>Detalhes da proposta comercial</span>
+              <span>A negociação. A jornada do comprador abre em Vendas se esta for a aceita.</span>
               <span>Criada por {selected.autor?.name ?? "—"}</span>
             </span>
           ) : undefined
@@ -2570,6 +2683,71 @@ function Page() {
       >
         {selected && (
           <FormDialogBody>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div>
+                <p className="text-xs text-muted-foreground">Cliente</p>
+                <p className="font-medium">{selected.clienteNome}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Construtora</p>
+                <p className="font-medium">{selected.construtora?.nome ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Empreendimento</p>
+                <p className="font-medium">
+                  {selected.empreendimento?.nome ?? "—"}
+                  {selected.unidade ? ` · Un. ${selected.unidade}` : ""}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Valor desta proposta</p>
+                <p className="font-medium tabular-nums">{brl(propostaValorLiquido(selected))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Status</p>
+                <p className="font-medium">{PROPOSTA_STATUS_LABEL[selected.status]}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {selected.status === "aceita"
+                ? "Esta proposta entrou na venda. As outras deste lead ficam recusadas."
+                : selected.status === "recusada"
+                  ? "Esta proposta não foi a escolhida para a venda."
+                  : "Enquanto está em negociação, o plano abaixo é o que foi ofertado. Pago e assinatura aparecem em Vendas depois do aceite."}
+              {items.filter((item) => item.leadId && item.leadId === selected.leadId).length > 1
+                ? " Este lead tem mais de uma proposta."
+                : ""}
+            </p>
+            <div className="overflow-hidden rounded-xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    ["Entrada", selected.entrada],
+                    ["FGTS", selected.fgts],
+                    ["Financiamento", selected.financiamento],
+                    ["Parcelas até as chaves", (selected.preChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                    ["Parcelas depois das chaves", (selected.posChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                  ].map(([nome, valor]) => (
+                    <TableRow key={String(nome)}>
+                      <TableCell>{nome}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {selected.status === "aceita" ? "Na venda" : "Ofertada"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             <PropostaRelatorioSheet
               companyName={tenant?.name?.trim() || "Imobiliária"}
               logoUrl={logoUrl}
@@ -3844,7 +4022,7 @@ function Page() {
                     ) : null}
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {PROPOSTA_SIMPLES_KEYS.map((key) => (
                       <MoneyField
                         key={key}
@@ -3858,7 +4036,7 @@ function Page() {
                     ))}
                   </div>
 
-                  <div className="grid gap-3 lg:grid-cols-3">
+                  <div className="grid gap-3">
                     {PROPOSTA_LISTA_KEYS.map((key) => (
                       <ParcelasQtyValueEditor
                         key={key}
@@ -4187,12 +4365,12 @@ function Page() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Lead ou cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {interessadosUsado.map((item) => (
+                  {contatosProposta.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.nome}
+                      {item.nome} · {item.tipo === "cliente" ? "Cliente" : "Lead"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -4506,15 +4684,15 @@ function ParcelasQtyValueEditor({
   const subtotal = q * unit;
 
   return (
-    <div className="flex h-full flex-col space-y-3 rounded-2xl border border-black/5 bg-card p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-      <div>
+    <div className="rounded-2xl border border-black/5 bg-card p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
         <div className="text-sm font-medium">{title}</div>
         <div className="text-[11px] text-muted-foreground tabular-nums">
           Subtotal {brl(subtotal)}
           {q > 0 && unit > 0 ? ` · ${q} × ${brl(unit)}` : ""}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor={`${id}-qtd`}>Quantidade</Label>
           <Input
