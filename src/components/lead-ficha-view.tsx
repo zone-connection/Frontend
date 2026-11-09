@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
+import { DocumentacaoPropostaPainel } from "@/components/documentacao-proposta-painel";
+import { fetchPropostas } from "@/lib/propostas-api";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
 import { LeadRoletaBadge } from "@/components/lead-origem-liberacao-badge";
@@ -72,7 +74,7 @@ type FichaAction = {
   disabled?: boolean;
 };
 
-const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Documentações", "Distribuição"] as const;
+const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Proposta", "Documentações", "Distribuição"] as const;
 
 const FILTERS = [
   { id: "todos", label: "Todos" },
@@ -215,9 +217,11 @@ export function LeadFichaView({
   hasWhatsapp: boolean;
 }) {
   const isAdmin = getSession()?.role === "admin";
+  const [temProposta, setTemProposta] = useState((lead.propostasCount ?? 0) > 0);
   const tabs = TABS.filter((item) => {
     if (item === "Distribuição") return isAdmin;
     if (item === "WhatsApp") return hasWhatsapp;
+    if (item === "Proposta") return temProposta;
     return true;
   });
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -234,6 +238,22 @@ export function LeadFichaView({
   useEffect(() => {
     setPendingStage(null);
   }, [lead.stage, lead.id]);
+  useEffect(() => {
+    setTab("Dados");
+    setTemProposta((lead.propostasCount ?? 0) > 0);
+  }, [lead.id, lead.propostasCount]);
+  useEffect(() => {
+    let ativo = true;
+    void fetchPropostas()
+      .then((lista) => {
+        if (!ativo) return;
+        setTemProposta(lista.some((item) => item.leadId === lead.id));
+      })
+      .catch(() => undefined);
+    return () => {
+      ativo = false;
+    };
+  }, [lead.id]);
   const created = formatDateTimePt(lead.createdAt);
 
   const rows = useMemo(() => {
@@ -669,6 +689,14 @@ export function LeadFichaView({
               {lead.empreendimento?.nome ? <Data label="Empreendimento" value={lead.empreendimento.nome} /> : null}
               {lead.construtora?.nome ? <Data label="Construtora" value={lead.construtora.nome} /> : null}
             </div>
+          ) : null}
+
+          {tab === "Proposta" ? (
+            <DocumentacaoPropostaPainel
+              leadId={lead.id}
+              empreendimentoId={lead.empreendimentoId ?? ""}
+              clienteNome={lead.nome}
+            />
           ) : null}
 
           {tab === "Documentações" ? (

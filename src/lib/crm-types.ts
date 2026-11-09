@@ -199,6 +199,8 @@ export interface Lead {
   documentacaoStatus2?: string | null;
   /** VGV da documentação mais recente, em reais. */
   documentacaoVgv?: number | null;
+  /** Quantidade de propostas comerciais deste contato. */
+  propostasCount?: number;
   /** false quando o lead virou venda ou já tem VGV. */
   podeRedistribuir?: boolean;
   monitoramento?: LeadMonitoramento | null;
