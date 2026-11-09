@@ -226,7 +226,7 @@ function PersonCell({ name, detail }: { name: string; detail?: string }) {
         {initials(name)}
       </span>
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium text-[#1A242C]">{name}</div>
+        <div className="truncate text-sm font-medium text-foreground">{name}</div>
         {detail ? (
           <div className="truncate text-xs text-[#8B98A3]">{detail}</div>
         ) : null}
@@ -740,15 +740,15 @@ function VendasDocumentacaoPage() {
             <span className="px-1.5">/</span>
             <span className="text-[#5C6B76]">Vendas</span>
           </p>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#0B3148]">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
             <BarChart3 className="size-5 text-[#079ED4]" />
             Vendas
           </h1>
-          <p className="mt-1 max-w-xl text-sm text-[#5C6B76]">
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Acompanhe o desempenho das suas vendas e filtre os resultados conforme o período e critérios desejados.
           </p>
           {abas.length > 1 ? (
-            <div className="mt-3 flex w-fit gap-1 rounded-xl border border-[#E2E8EC] bg-[#F4F7F8] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+            <div className="mt-3 flex w-fit gap-1 rounded-xl border bg-muted p-1">
               {abas.map((item) => (
                 <button
                   key={item.id}
@@ -757,8 +757,8 @@ function VendasDocumentacaoPage() {
                   className={cn(
                     "rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
                     abaAtiva === item.id
-                      ? "bg-white text-[#0B3148] shadow-sm ring-1 ring-[#E2E8EC]"
-                      : "text-[#5C6B76] hover:bg-white/70 hover:text-[#0B3148]",
+                      ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
                   )}
                 >
                   {item.label}
@@ -774,7 +774,7 @@ function VendasDocumentacaoPage() {
               setPeriodo(value as "30" | "90" | "365" | "all")
             }
           >
-            <SelectTrigger className="h-10 w-[190px] rounded-xl border-[#E2E8EC] bg-white shadow-sm">
+            <SelectTrigger className="h-10 w-[190px] rounded-xl bg-background shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1510,7 +1510,7 @@ function VendasUsadosPanel() {
         <VendaKpi label="Vendidos" value={String(items.length)} icon={Filter} tone="teal" />
         <VendaKpi label="Valor de venda" value={brl(total)} icon={Wallet} tone="blue" />
       </div>
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1672,10 +1672,10 @@ function VendasTodosPanel({
     .filter((item) => item.total > 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-[0_8px_24px_rgba(11,49,72,0.05)]">
-      <div className="flex flex-col gap-3 border-b border-[#EEF2F4] bg-gradient-to-r from-[#F7FBFD] to-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-col gap-3 border-b bg-muted/40 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-[#0B3148]">
+          <span className="text-sm font-semibold text-foreground">
             {visiveis.length} {visiveis.length === 1 ? "venda" : "vendas"}
           </span>
           {resumo.map((item) => (
@@ -1701,24 +1701,24 @@ function VendasTodosPanel({
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
             placeholder="Cliente, referência ou responsável"
-            className="h-10 rounded-xl border-[#E2E8EC] bg-white pl-9 shadow-sm"
+            className="h-10 rounded-xl bg-background pl-9 shadow-sm"
           />
         </div>
       </div>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Tipo</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Cliente</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Referência</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Responsável</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-right text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Valor</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tipo</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Referência</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Responsável</TableHead>
+            <TableHead className="h-11 bg-muted text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {visiveis.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-14 text-center text-sm text-[#5C6B76]">
+              <TableCell colSpan={5} className="py-14 text-center text-sm text-muted-foreground">
                 {linhas.length === 0
                   ? "Nenhuma venda nas operações ativas."
                   : "Nenhuma venda encontrada para essa busca."}
@@ -1726,7 +1726,7 @@ function VendasTodosPanel({
             </TableRow>
           ) : (
             visiveis.map((row) => (
-              <TableRow key={row.id} className="border-[#EEF2F4] hover:bg-[#F7FBFD]">
+              <TableRow key={row.id} className="hover:bg-muted/40">
                 <TableCell className="py-3.5">
                   <TipoVendaBadge tipo={row.tipo} />
                 </TableCell>
@@ -1734,12 +1734,12 @@ function VendasTodosPanel({
                   <PersonCell name={row.cliente} />
                 </TableCell>
                 <TableCell className="max-w-[280px] py-3.5">
-                  <span className="line-clamp-2 text-sm text-[#3D4C57]">{row.referencia}</span>
+                  <span className="line-clamp-2 text-sm text-foreground">{row.referencia}</span>
                 </TableCell>
                 <TableCell className="py-3.5">
                   <PersonCell name={row.responsavel} />
                 </TableCell>
-                <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-[#0B3148]">
+                <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-foreground">
                   {row.valor}
                 </TableCell>
               </TableRow>
@@ -1757,7 +1757,7 @@ function VendasLocacaoPanel() {
       <p className="mb-3 text-sm text-[#5C6B76]">
         Carteira de locação do módulo ativo. Os contratos reais entram quando o aluguel deixar de ser demonstração.
       </p>
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
