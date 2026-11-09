@@ -97,6 +97,7 @@ const PAPEL_OPTIONS: Array<{
   { value: "inicial", label: "Inicial" },
   { value: "analise", label: "Análise" },
   { value: "venda", label: "Venda" },
+  { value: "proposta", label: "Negociação" },
   { value: "captado", label: "Captado" },
   { value: "perdido", label: "Perdido / Cancelado" },
   { value: "concluido", label: "Concluído" },
@@ -108,7 +109,6 @@ const PAPEL_OPTIONS: Array<{
   { value: "agendado", label: "Agendado" },
   { value: "agendado_compra", label: "Agendado compra" },
   { value: "agendado_venda", label: "Agendado venda" },
-  { value: "proposta", label: "Proposta" },
 ];
 
 const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
@@ -126,7 +126,7 @@ const PAPEL_BADGE_LABEL: Record<FunilEtapaPapel, string> = {
   agendado: "Agendado",
   agendado_compra: "Agendado compra",
   agendado_venda: "Agendado venda",
-  proposta: "Proposta",
+  proposta: "Negociação",
 };
 
 type FiltroFunil = FunilTipo | "sem_tipo";
