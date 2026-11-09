@@ -2683,119 +2683,6 @@ function Page() {
       >
         {selected && (
           <FormDialogBody>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div>
-                <p className="text-xs text-muted-foreground">Cliente</p>
-                <p className="font-medium">{selected.clienteNome}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Construtora</p>
-                <p className="font-medium">{selected.construtora?.nome ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Empreendimento</p>
-                <p className="font-medium">
-                  {selected.empreendimento?.nome ?? "—"}
-                  {selected.unidade ? ` · Un. ${selected.unidade}` : ""}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Valor desta proposta</p>
-                <p className="font-medium tabular-nums">{brl(propostaValorLiquido(selected))}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Status</p>
-                <p className="font-medium">{PROPOSTA_STATUS_LABEL[selected.status]}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {selected.status === "aceita"
-                ? "Esta proposta entrou na venda. As outras deste lead ficam recusadas."
-                : selected.status === "recusada"
-                  ? "Esta proposta não foi a escolhida para a venda."
-                  : "Enquanto está em negociação, o plano abaixo é o que foi ofertado. Pago e assinatura aparecem em Vendas depois do aceite."}
-              {items.filter((item) => item.leadId && item.leadId === selected.leadId).length > 1
-                ? " Este lead tem mais de uma proposta."
-                : ""}
-            </p>
-            <div className="overflow-hidden rounded-xl border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Situação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    ["Entrada", selected.entrada],
-                    ["FGTS", selected.fgts],
-                    ["Financiamento", selected.financiamento],
-                    ["Parcelas até as chaves", (selected.preChaves ?? []).reduce((s, n) => s + n, 0) || null],
-                    ["Parcelas depois das chaves", (selected.posChaves ?? []).reduce((s, n) => s + n, 0) || null],
-                  ].map(([nome, valor]) => (
-                    <TableRow key={String(nome)}>
-                      <TableCell>{nome}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {selected.status === "aceita" ? "Na venda" : "Ofertada"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <PropostaRelatorioSheet
-              companyName={tenant?.name?.trim() || "Imobiliária"}
-              logoUrl={logoUrl}
-              codigo={selected.codigo}
-              data={formatPropostaDate(selected.createdAt)}
-              clienteNome={selected.clienteNome}
-              subtituloImobiliaria={
-                [
-                  selected.empreendimento?.nome,
-                  selected.unidade ? `Un. ${selected.unidade}` : "",
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "PROPOSTA COMERCIAL"
-              }
-              linhas={linhasDaProposta(selected)}
-              total={propostaComposicaoTotal(selected)}
-              desconto={selected.desconto ?? 0}
-              valorNegociado={propostaValorLiquido(selected)}
-              accent={tenant?.primaryColor}
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3 py-2.5">
-              <span className="text-xs text-muted-foreground">
-                Exportar, enviar ao cliente ou vincular imóvel
-              </span>
-              <PropostaActionMenus
-                proposta={selected}
-                brand={pdfBrand}
-                onVincular={() => setVinculoTarget(selected)}
-                onRequestWhatsAppPhone={(item) => {
-                  setWhatsAppTarget(item);
-                  setWhatsAppPhone(
-                    item.clienteTelefone
-                      ? formatPhone(item.clienteTelefone)
-                      : "",
-                  );
-                }}
-                onOpenQr={(item) => {
-                  if (!propostaWhatsAppDigits(item.clienteTelefone)) {
-                    toast.error(
-                      "Informe um telefone válido para gerar o QR Code.",
-                    );
-                    return;
-                  }
-                  setQrTarget(item);
-                }}
-              />
-            </div>
-
             <FormSection title="Cliente e imóvel">
               <div className="grid gap-4 sm:grid-cols-2">
                 <DetailField label="Cliente" value={selected.clienteNome} />
@@ -2826,7 +2713,10 @@ function Page() {
                 <DetailField
                   label="Equipe"
                   value={equipeName(selected)}
-                  className="sm:col-span-2"
+                />
+                <DetailField
+                  label="Status"
+                  value={PROPOSTA_STATUS_LABEL[selected.status]}
                 />
               </div>
             </FormSection>

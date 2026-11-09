@@ -17,11 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  PropostaRelatorioSheet,
-  ordenarLinhasRelatorio,
-  type RelatorioLinha,
-} from "@/components/proposta-relatorio-sheet";
 import { brl } from "@/lib/crm-types";
 import {
   downloadPropostaPdfCliente,
@@ -29,44 +24,12 @@ import {
   type PropostaPdfBrand,
 } from "@/lib/proposta-pdf";
 import {
-  PROPOSTA_COMPOSICAO_LABEL,
-  PROPOSTA_LISTA_KEYS,
-  PROPOSTA_SIMPLES_KEYS,
   PROPOSTA_STATUS_LABEL,
   fetchPropostas,
-  formatPropostaDate,
-  propostaComposicaoTotal,
   propostaValorLiquido,
   type Proposta,
 } from "@/lib/propostas-api";
 import { useTenantTheme } from "@/lib/tenant-theme";
-
-function linhasDaProposta(p: Proposta): RelatorioLinha[] {
-  const linhas: RelatorioLinha[] = [];
-  for (const key of PROPOSTA_SIMPLES_KEYS) {
-    const value = p[key];
-    if (value == null || value <= 0) continue;
-    linhas.push({
-      qtd: "1",
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: brl(value),
-      subtotal: brl(value),
-    });
-  }
-  for (const key of PROPOSTA_LISTA_KEYS) {
-    const values = p[key] ?? [];
-    if (!values.length) continue;
-    const subtotal = values.reduce((sum, n) => sum + n, 0);
-    const equal = values.every((n) => n === values[0]);
-    linhas.push({
-      qtd: String(values.length),
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: equal ? brl(values[0] ?? 0) : "Valores variados",
-      subtotal: brl(subtotal),
-    });
-  }
-  return ordenarLinhasRelatorio(linhas);
-}
 
 export function DocumentacaoPropostaPainel({
   leadId,
@@ -169,14 +132,14 @@ export function DocumentacaoPropostaPainel({
           </SelectContent>
         </Select>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <p className="text-xs text-muted-foreground">Cliente</p>
           <p className="font-medium">{proposta.clienteNome}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Construtora</p>
-          <p className="font-medium">{proposta.construtora?.nome ?? "—"}</p>
+          <p className="text-xs text-muted-foreground">Telefone</p>
+          <p className="font-medium">{proposta.clienteTelefone || "—"}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Empreendimento</p>
@@ -186,30 +149,24 @@ export function DocumentacaoPropostaPainel({
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Valor desta proposta</p>
-          <p className="font-medium tabular-nums">
-            {brl(propostaValorLiquido(proposta))}
-          </p>
+          <p className="text-xs text-muted-foreground">Construtora</p>
+          <p className="font-medium">{proposta.construtora?.nome ?? "—"}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Status</p>
           <p className="font-medium">{PROPOSTA_STATUS_LABEL[proposta.status]}</p>
         </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Valor</p>
+          <p className="font-medium tabular-nums">{brl(propostaValorLiquido(proposta))}</p>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {proposta.status === "aceita"
-          ? "Esta proposta entrou na venda. As outras deste lead ficam recusadas."
-          : proposta.status === "recusada"
-            ? "Esta proposta não foi a escolhida para a venda."
-            : "Enquanto está em negociação, o plano abaixo é o que foi ofertado. Pago e assinatura aparecem em Vendas depois do aceite."}
-      </p>
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Item</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -231,31 +188,11 @@ export function DocumentacaoPropostaPainel({
                 <TableCell className="text-right tabular-nums">
                   {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {proposta.status === "aceita" ? "Na venda" : "Ofertada"}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <PropostaRelatorioSheet
-        companyName={tenant?.name?.trim() || "Imobiliária"}
-        logoUrl={logoUrl}
-        codigo={proposta.codigo}
-        data={formatPropostaDate(proposta.createdAt)}
-        clienteNome={proposta.clienteNome}
-        subtituloImobiliaria={
-          [proposta.empreendimento?.nome, proposta.unidade ? `Un. ${proposta.unidade}` : ""]
-            .filter(Boolean)
-            .join(" · ") || "PROPOSTA COMERCIAL"
-        }
-        linhas={linhasDaProposta(proposta)}
-        total={propostaComposicaoTotal(proposta)}
-        desconto={proposta.desconto ?? 0}
-        valorNegociado={propostaValorLiquido(proposta)}
-        accent={tenant?.primaryColor}
-      />
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
