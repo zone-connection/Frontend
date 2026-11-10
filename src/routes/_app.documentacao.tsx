@@ -3466,6 +3466,18 @@ function DocumentacaoPage() {
                         .map((item) => {
                           const aberta = propostaValoresId === item.id;
                           const linhas = [
+                            {
+                              rotulo: "Construtora",
+                              valor: item.construtora?.nome || "—",
+                            },
+                            {
+                              rotulo: "Empreendimento",
+                              valor: item.empreendimento?.nome || "—",
+                            },
+                            {
+                              rotulo: "Unidade",
+                              valor: item.unidade?.trim() || "—",
+                            },
                             { rotulo: "Valor", valor: brl(item.valor) },
                             ...PROPOSTA_SIMPLES_KEYS.flatMap((key) => {
                               const valor = item[key];
