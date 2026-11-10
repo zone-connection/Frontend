@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type SyntheticEvent,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -103,13 +102,7 @@ import {
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
-import {
-  fetchPropostas,
-  PROPOSTA_COMPOSICAO_LABEL,
-  PROPOSTA_LISTA_KEYS,
-  PROPOSTA_SIMPLES_KEYS,
-  type Proposta,
-} from "@/lib/propostas-api";
+import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
 import { PropostaCadastroDialog } from "@/components/propostas-page";
 import {
   dedupeStatusOptions,
@@ -162,6 +155,9 @@ import {
   MoreHorizontal,
   Building,
   Building2,
+  Landmark,
+  KeyRound,
+  CalendarDays,
   Filter,
   Search,
   X,
@@ -694,6 +690,8 @@ function DocumentacaoPage() {
   const [propostaValoresId, setPropostaValoresId] = useState<string | null>(
     null,
   );
+  const propostaEscolhida =
+    propostas.find((item) => item.id === form.propostaId) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -3443,139 +3441,135 @@ function DocumentacaoPage() {
                       </Button>
                     ) : null}
                   </div>
-                  <Select
-                    value={form.propostaId || "__none__"}
-                    onValueChange={(v) =>
-                      setField("propostaId", v === "__none__" ? "" : v)
-                    }
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a proposta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Sem proposta</SelectItem>
-                      {propostas
-                        .filter(
-                          (item) =>
-                            !form.leadId ||
-                            !item.leadId ||
-                            item.leadId === form.leadId ||
-                            item.id === form.propostaId,
-                        )
-                        .map((item) => {
-                          const aberta = propostaValoresId === item.id;
-                          const linhas = [
-                            {
-                              rotulo: "Construtora",
-                              valor: item.construtora?.nome || "—",
-                            },
-                            {
-                              rotulo: "Empreendimento",
-                              valor: item.empreendimento?.nome || "—",
-                            },
-                            {
-                              rotulo: "Unidade",
-                              valor: item.unidade?.trim() || "—",
-                            },
-                            { rotulo: "Valor", valor: brl(item.valor) },
-                            ...PROPOSTA_SIMPLES_KEYS.flatMap((key) => {
-                              const valor = item[key];
-                              return valor
-                                ? [
-                                    {
-                                      rotulo: PROPOSTA_COMPOSICAO_LABEL[key],
-                                      valor: brl(valor),
-                                    },
-                                  ]
-                                : [];
-                            }),
-                            ...PROPOSTA_LISTA_KEYS.flatMap((key) =>
-                              (item[key] ?? []).flatMap((valor, indice) =>
-                                valor
-                                  ? [
-                                      {
-                                        rotulo: `${PROPOSTA_COMPOSICAO_LABEL[key]} ${indice + 1}`,
-                                        valor: brl(valor),
-                                      },
-                                    ]
-                                  : [],
-                              ),
-                            ),
-                            ...(item.desconto
-                              ? [
-                                  {
-                                    rotulo: "Desconto",
-                                    valor: brl(item.desconto),
-                                  },
-                                ]
-                              : []),
-                          ];
-                          const segurar = (event: SyntheticEvent) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          };
-                          return (
-                            <SelectItem
-                              key={item.id}
-                              value={item.id}
-                              className="pr-14"
-                              extra={
-                                <>
-                                  <button
-                                    type="button"
-                                    className="absolute right-7 top-1.5 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                    aria-expanded={aberta}
-                                    aria-label={
-                                      aberta
-                                        ? "Ocultar valores da proposta"
-                                        : "Exibir valores da proposta"
-                                    }
-                                    onPointerDown={segurar}
-                                    onPointerUp={segurar}
-                                    onClick={(event) => {
-                                      segurar(event);
-                                      setPropostaValoresId((atual) =>
-                                        atual === item.id ? null : item.id,
-                                      );
-                                    }}
-                                  >
-                                    <ChevronDown
-                                      className={cn(
-                                        "h-4 w-4 transition-transform",
-                                        aberta && "rotate-180",
-                                      )}
-                                    />
-                                  </button>
-                                  {aberta ? (
-                                    <div
-                                      className="mt-1 space-y-0.5 pr-6 text-xs text-muted-foreground"
-                                      onPointerDown={segurar}
-                                      onPointerUp={segurar}
-                                      onClick={segurar}
-                                    >
-                                      {linhas.map((linha) => (
-                                        <div
-                                          key={linha.rotulo}
-                                          className="flex justify-between gap-3"
-                                        >
-                                          <span>{linha.rotulo}</span>
-                                          <span className="tabular-nums">
-                                            {linha.valor}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : null}
-                                </>
-                              }
-                            >
-                              {item.codigo} · {item.clienteNome} · {brl(item.valor)}
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={form.propostaId || "__none__"}
+                      onValueChange={(v) => {
+                        const id = v === "__none__" ? "" : v;
+                        setField("propostaId", id);
+                        setPropostaValoresId(id || null);
+                      }}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a proposta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem proposta</SelectItem>
+                        {propostas
+                          .filter(
+                            (item) =>
+                              !form.leadId ||
+                              !item.leadId ||
+                              item.leadId === form.leadId ||
+                              item.id === form.propostaId,
+                          )
+                          .map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {[
+                                item.codigo,
+                                item.clienteNome,
+                                item.construtora?.nome,
+                                item.empreendimento?.nome,
+                                item.unidade?.trim(),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
                             </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      disabled={!form.propostaId}
+                      aria-expanded={propostaValoresId === form.propostaId}
+                      aria-label={
+                        propostaValoresId === form.propostaId
+                          ? "Ocultar resumo da proposta"
+                          : "Exibir resumo da proposta"
+                      }
+                      onClick={() =>
+                        setPropostaValoresId((atual) =>
+                          atual === form.propostaId ? null : form.propostaId,
+                        )
+                      }
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          propostaValoresId === form.propostaId && "rotate-180",
+                        )}
+                      />
+                    </Button>
+                  </div>
+                  {propostaEscolhida &&
+                  propostaValoresId === propostaEscolhida.id ? (
+                    <div className="overflow-hidden rounded-2xl border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Plano de pagamento</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(
+                            [
+                              ["Entrada", propostaEscolhida.entrada],
+                              ["FGTS", propostaEscolhida.fgts],
+                              [
+                                "Financiamento",
+                                propostaEscolhida.financiamento,
+                              ],
+                              [
+                                "Parcelas até as chaves",
+                                (propostaEscolhida.preChaves ?? []).reduce(
+                                  (soma, valor) => soma + valor,
+                                  0,
+                                ) || null,
+                              ],
+                              [
+                                "Parcelas depois das chaves",
+                                (propostaEscolhida.posChaves ?? []).reduce(
+                                  (soma, valor) => soma + valor,
+                                  0,
+                                ) || null,
+                              ],
+                            ] as Array<[string, number | null]>
+                          ).map(([nome, valor]) => {
+                            const PlanoIcon =
+                              nome === "FGTS"
+                                ? Landmark
+                                : nome === "Financiamento"
+                                  ? Building2
+                                  : nome.startsWith("Parcelas até")
+                                    ? KeyRound
+                                    : nome.startsWith("Parcelas depois")
+                                      ? CalendarDays
+                                      : Wallet;
+                            return (
+                              <TableRow key={nome}>
+                                <TableCell>
+                                  <span className="inline-flex items-center gap-2">
+                                    <PlanoIcon className="size-4 text-muted-foreground" />
+                                    {nome}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {typeof valor === "number" && valor > 0
+                                    ? brl(valor)
+                                    : "—"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : null}
                     <p className="text-xs text-muted-foreground">
                       Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo.
                     </p>
@@ -3592,11 +3586,50 @@ function DocumentacaoPage() {
                     }}
                     onOpenChange={setPropostaFormOpen}
                     onCreated={(proposta) => {
+                      const construtora =
+                        proposta.construtora ??
+                        construtoras.find(
+                          (item) => item.id === proposta.construtoraId,
+                        ) ??
+                        null;
+                      const empreendimento =
+                        proposta.empreendimento ??
+                        empreendimentos.find(
+                          (item) => item.id === proposta.empreendimentoId,
+                        ) ??
+                        null;
+                      const criada: Proposta = {
+                        ...proposta,
+                        construtora: construtora
+                          ? {
+                              id: construtora.id,
+                              nome: construtora.nome,
+                              cor:
+                                "cor" in construtora
+                                  ? construtora.cor
+                                  : null,
+                            }
+                          : null,
+                        empreendimento: empreendimento
+                          ? {
+                              id: empreendimento.id,
+                              nome: empreendimento.nome,
+                              cidade:
+                                "cidade" in empreendimento
+                                  ? empreendimento.cidade
+                                  : null,
+                            }
+                          : null,
+                      };
                       setPropostas((lista) => [
-                        proposta,
-                        ...lista.filter((item) => item.id !== proposta.id),
+                        criada,
+                        ...lista.filter((item) => item.id !== criada.id),
                       ]);
-                      setField("propostaId", proposta.id);
+                      setForm((atual) => ({
+                        ...atual,
+                        propostaId: criada.id,
+                      }));
+                      setPropostaValoresId(criada.id);
                       setPropostaFormOpen(false);
                     }}
                   />
