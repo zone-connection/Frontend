@@ -432,7 +432,7 @@ function TreinamentoPage() {
         onOpenChange={setFileOpen}
         icon={<Upload className="h-5 w-5" />}
         title="Enviar arquivo"
-        description="Foto, vídeo ou documento. Vídeo até 40 MB; os demais até 15 MB."
+        description="Foto, vídeo, PDF, Word (.doc e .docx) ou PowerPoint (.ppt e .pptx). Vídeo até 40 MB; os demais até 15 MB."
       >
         <FormDialogBody>
           <FormSection title="Material">
@@ -450,7 +450,7 @@ function TreinamentoPage() {
               <Input
                 id="treino-arquivo"
                 type="file"
-                accept="image/*,video/mp4,video/webm,video/quicktime,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                accept="image/*,video/mp4,video/webm,video/quicktime,.pdf,.doc,.docx,.ppt,.pptx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.xls,.xlsx,.txt,.zip"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
             </div>
