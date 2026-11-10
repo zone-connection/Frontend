@@ -102,11 +102,8 @@ import {
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
-import {
-  createProposta,
-  fetchPropostas,
-  type Proposta,
-} from "@/lib/propostas-api";
+import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
+import { PropostaCadastroDialog } from "@/routes/_app.propostas";
 import {
   dedupeStatusOptions,
   docPipelineFromStatus1,
@@ -685,7 +682,7 @@ function DocumentacaoPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
-  const [criandoProposta, setCriandoProposta] = useState(false);
+  const [propostaFormOpen, setPropostaFormOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -1391,39 +1388,12 @@ function DocumentacaoPage() {
     [leads],
   );
 
-  async function criarPropostaDaVenda() {
-    const nome = form.nome.trim();
-    if (nome.length < 2) {
+  function abrirCriarProposta() {
+    if (form.nome.trim().length < 2) {
       toast.error("Informe o nome do cliente antes de criar a proposta.");
       return;
     }
-    const vgv = parseOptionalMoneyInput(form.vgv);
-    setCriandoProposta(true);
-    try {
-      const created = await createProposta({
-        clienteNome: nome,
-        leadId: form.leadId || null,
-        construtoraId: form.construtoraId || null,
-        empreendimentoId: form.empreendimentoId || null,
-        corretorId: form.corretorId || null,
-        valor: vgv != null && vgv > 0 ? vgv : 1,
-        status: "aceita",
-      });
-      setPropostas((lista) => [
-        created,
-        ...lista.filter((item) => item.id !== created.id),
-      ]);
-      setField("propostaId", created.id);
-      toast.success("Proposta criada e vinculada a esta venda.");
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError
-          ? err.message
-          : "Não foi possível criar a proposta.",
-      );
-    } finally {
-      setCriandoProposta(false);
-    }
+    setPropostaFormOpen(true);
   }
 
   function applyContato(id: string) {
@@ -3456,10 +3426,9 @@ function DocumentacaoPage() {
                         type="button"
                         variant="link"
                         className="h-auto p-0 text-xs"
-                        disabled={criandoProposta}
-                        onClick={() => void criarPropostaDaVenda()}
+                        onClick={abrirCriarProposta}
                       >
-                        {criandoProposta ? "Criando…" : "+ Criar proposta"}
+                        + Criar proposta
                       </Button>
                     ) : null}
                   </div>
@@ -3490,10 +3459,30 @@ function DocumentacaoPage() {
                         ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo.
-                  </p>
-                </div>
+                    <p className="text-xs text-muted-foreground">
+                      Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo.
+                    </p>
+                  </div>
+                  <PropostaCadastroDialog
+                    open={propostaFormOpen}
+                    seed={{
+                      nome: form.nome,
+                      leadId: form.leadId,
+                      construtoraId: form.construtoraId,
+                      empreendimentoId: form.empreendimentoId,
+                      corretorId: form.corretorId,
+                      valor: form.vgv,
+                    }}
+                    onOpenChange={setPropostaFormOpen}
+                    onCreated={(proposta) => {
+                      setPropostas((lista) => [
+                        proposta,
+                        ...lista.filter((item) => item.id !== proposta.id),
+                      ]);
+                      setField("propostaId", proposta.id);
+                      setPropostaFormOpen(false);
+                    }}
+                  />
 
                 <div className="space-y-3 sm:col-span-2 rounded-lg border border-border/60 p-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

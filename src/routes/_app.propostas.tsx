@@ -1,6 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -952,9 +954,53 @@ function PropostaActionMenus({
   );
 }
 
+export type PropostaCadastroSeed = {
+  nome?: string;
+  leadId?: string;
+  construtoraId?: string;
+  empreendimentoId?: string;
+  corretorId?: string;
+  valor?: string;
+};
+
+const PropostaEmbedContext = createContext<{
+  seed: PropostaCadastroSeed;
+  onCreated: (proposta: Proposta) => void;
+  onClose: () => void;
+} | null>(null);
+
+export function PropostaCadastroDialog({
+  open,
+  seed,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  seed: PropostaCadastroSeed;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (proposta: Proposta) => void;
+}) {
+  if (!open) return null;
+  return (
+    <PropostaEmbedContext.Provider
+      value={{
+        seed,
+        onCreated,
+        onClose: () => onOpenChange(false),
+      }}
+    >
+      <Page />
+    </PropostaEmbedContext.Provider>
+  );
+}
+
 function Page() {
   const navigate = useNavigate();
-  const { id: abrirId, origem: origemSearch, lead: leadSearch } = Route.useSearch();
+  const embed = useContext(PropostaEmbedContext);
+  const routeSearch = useSearch({ from: "/_app/propostas", strict: false });
+  const abrirId = routeSearch?.id;
+  const origemSearch = routeSearch?.origem;
+  const leadSearch = routeSearch?.lead;
   const origem: OrigemProposta = origemSearch ?? "todos";
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
@@ -1045,6 +1091,30 @@ function Page() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+
+  useEffect(() => {
+    if (!embed) return;
+    setFormMode("create");
+    setEditingId(null);
+    setFormSection("usuario");
+    setForm({
+      ...emptyForm(),
+      clienteNome: embed.seed.nome ?? "",
+      leadId: embed.seed.leadId ?? "",
+      construtoraId: embed.seed.construtoraId ?? "",
+      empreendimentoId: embed.seed.empreendimentoId ?? "",
+      corretorId: embed.seed.corretorId ?? "",
+      valor: embed.seed.valor ?? "",
+    });
+    setOpen(true);
+  }, [
+    embed?.seed.nome,
+    embed?.seed.leadId,
+    embed?.seed.construtoraId,
+    embed?.seed.empreendimentoId,
+    embed?.seed.corretorId,
+    embed?.seed.valor,
+  ]);
   const [formSection, setFormSection] =
     useState<PropostaFormSection>("usuario");
   const [saving, setSaving] = useState(false);
@@ -1973,6 +2043,10 @@ function Page() {
           }
         }
         toast.success("Proposta criada.");
+        if (embed) {
+          embed.onCreated(criada);
+          return;
+        }
       } else if (editingId) {
         await updateProposta(editingId, payload);
         if (form.vinculoImovelId) {
@@ -2058,7 +2132,7 @@ function Page() {
   }
 
   return (
-    <div>
+    <div className={embed ? "hidden" : undefined}>
       <PageHeader
         eyebrow="Propostas"
         title="Propostas"
@@ -3018,7 +3092,10 @@ function Page() {
 
       <FormDialogShell
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) embed?.onClose();
+        }}
         className="max-w-7xl"
         icon={<FileText className="w-5 h-5" />}
         title={formMode === "create" ? "Nova proposta" : "Editar proposta"}
