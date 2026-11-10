@@ -698,10 +698,16 @@ function DocumentacaoPage() {
     let ativo = true;
     void fetchPropostas()
       .then((lista) => {
-        if (ativo) setPropostas(lista);
+        if (!ativo) return;
+        setPropostas((atual) => {
+          const extras = atual.filter(
+            (item) => !lista.some((salva) => salva.id === item.id),
+          );
+          return [...extras, ...lista];
+        });
       })
       .catch(() => {
-        if (ativo) setPropostas([]);
+        if (ativo) setPropostas((atual) => atual);
       });
     return () => {
       ativo = false;
@@ -3631,6 +3637,15 @@ function DocumentacaoPage() {
                       }));
                       setPropostaValoresId(criada.id);
                       setPropostaFormOpen(false);
+                      if (editingId) {
+                        void updateDocumentacao(editingId, {
+                          propostaId: criada.id,
+                        }).catch(() => {
+                          toast.error(
+                            "A proposta foi criada, mas não ficou vinculada à documentação.",
+                          );
+                        });
+                      }
                     }}
                   />
 
