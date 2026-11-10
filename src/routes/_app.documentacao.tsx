@@ -103,7 +103,7 @@ import {
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
 import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
-import { PropostaCadastroDialog } from "@/routes/_app.propostas";
+import { PropostaCadastroDialog } from "@/components/propostas-page";
 import {
   dedupeStatusOptions,
   docPipelineFromStatus1,
