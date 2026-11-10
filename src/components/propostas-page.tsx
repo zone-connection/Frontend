@@ -971,7 +971,7 @@ export function PropostaCadastroDialog({
   );
 }
 
-function PropostasPage() {
+export function PropostasPage() {
   const navigate = useNavigate();
   const embed = useContext(PropostaEmbedContext);
   const routeSearch = useSearch({ from: "/_app/propostas", strict: false });
