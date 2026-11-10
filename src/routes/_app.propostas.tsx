@@ -263,7 +263,7 @@ export const Route = createFileRoute("/_app/propostas")({
       ...(lead ? { lead } : {}),
     };
   },
-  component: Page,
+  component: PropostasPage,
 });
 
 function initialsNome(nome: string) {
@@ -989,12 +989,12 @@ export function PropostaCadastroDialog({
         onClose: () => onOpenChange(false),
       }}
     >
-      <Page />
+      <PropostasPage />
     </PropostaEmbedContext.Provider>
   );
 }
 
-function Page() {
+function PropostasPage() {
   const navigate = useNavigate();
   const embed = useContext(PropostaEmbedContext);
   const routeSearch = useSearch({ from: "/_app/propostas", strict: false });
