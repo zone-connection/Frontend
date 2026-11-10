@@ -517,9 +517,9 @@ function Usuarios() {
     password: string;
     title: string;
   } | null>(null);
-  const [copiedField, setCopiedField] = useState<"email" | "password" | null>(
-    null,
-  );
+  const [copiedField, setCopiedField] = useState<
+    "email" | "password" | "whatsapp" | null
+  >(null);
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -692,11 +692,40 @@ function Usuarios() {
     void refreshLeads({ silent: true });
   }
 
-  async function copyText(value: string, field: "email" | "password") {
+  function mensagemWhatsapp(alvo: {
+    name: string;
+    email: string;
+    password: string;
+  }) {
+    const site =
+      typeof window !== "undefined" ? window.location.origin : "https://www.zoneconnection.com.br";
+    return [
+      `Olá, ${alvo.name}!`,
+      "",
+      "Seu acesso ao CRM Zone Connection está pronto.",
+      "",
+      `Site: ${site}`,
+      `E-mail: ${alvo.email}`,
+      `Senha temporária: ${alvo.password}`,
+      "",
+      "No primeiro acesso, troque a senha pelo perfil.",
+    ].join("\n");
+  }
+
+  async function copyText(
+    value: string,
+    field: "email" | "password" | "whatsapp",
+  ) {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedField(field);
-      toast.success(field === "email" ? "E-mail copiado." : "Senha copiada.");
+      toast.success(
+        field === "email"
+          ? "E-mail copiado."
+          : field === "password"
+            ? "Senha copiada."
+            : "Mensagem do WhatsApp copiada.",
+      );
       window.setTimeout(() => setCopiedField(null), 2000);
     } catch {
       toast.error("Não foi possível copiar.");
@@ -2257,6 +2286,21 @@ function Usuarios() {
                       </Button>
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() =>
+                      void copyText(mensagemWhatsapp(credentials), "whatsapp")
+                    }
+                  >
+                    {copiedField === "whatsapp" ? (
+                      <Check className="w-3.5 h-3.5 mr-1" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    Copiar mensagem do WhatsApp
+                  </Button>
                 </div>
               </FormSection>
             </FormDialogBody>
