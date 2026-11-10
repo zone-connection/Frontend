@@ -1,4 +1,4 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   createContext,
   useCallback,
@@ -974,7 +974,13 @@ export function PropostaCadastroDialog({
 export function PropostasPage() {
   const navigate = useNavigate();
   const embed = useContext(PropostaEmbedContext);
-  const routeSearch = useSearch({ from: "/_app/propostas", strict: false });
+  const routeSearch = useRouterState({
+    select: (state) =>
+      state.matches.find((match) => match.routeId === "/_app/propostas")
+        ?.search as
+        | { id?: string; origem?: "lancamento" | "usado"; lead?: string }
+        | undefined,
+  });
   const abrirId = routeSearch?.id;
   const origemSearch = routeSearch?.origem;
   const leadSearch = routeSearch?.lead;
