@@ -150,6 +150,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarClock,
+  Bot,
   ClipboardList,
   UserRoundCog,
   Loader2,
@@ -715,7 +716,7 @@ export function ComercialFunilBoard({
     setTriagemSaving(false);
   }
 
-  async function registerFunilTriagem(texto: string) {
+  async function registerFunilTriagem(texto: string, automatico = false) {
     if (!triagemPrompt || triagemFinalizedRef.current) return;
     triagemFinalizedRef.current = true;
     setTriagemSaving(true);
@@ -726,6 +727,7 @@ export function ComercialFunilBoard({
         origem: "funil",
         stage: triagemPrompt.stage,
         stageAnterior: triagemPrompt.fromStage,
+        automatico,
       });
       toast.success("Histórico registrado na Triagem.");
       closeTriagemPrompt();
@@ -746,7 +748,7 @@ export function ComercialFunilBoard({
   async function skipTriagemHistory() {
     if (!triagemPrompt || triagemSaving || triagemFinalizedRef.current) return;
     const texto = `Etapa avançada de "${triagemPrompt.fromStageName}" para "${triagemPrompt.stageName}".`;
-    await registerFunilTriagem(texto);
+    await registerFunilTriagem(texto, true);
   }
 
   function openManualTriagem(lead: Lead) {
@@ -1853,6 +1855,18 @@ export function ComercialFunilBoard({
                           )}
                         <LeadOrigemLiberacaoBadge lead={l} compact />
                         {l.roletaRedistribuido ? <LeadRoletaBadge compact /> : null}
+                        {(isCorretor || isGerente || user?.role === "admin" || isPlatformAdmin) &&
+                        l.historicoPendente ? (
+                          <span
+                            className="inline-flex h-5 items-center gap-1 rounded-full bg-orange-100 px-1.5 text-orange-800"
+                            title="O sistema registrou o avanço da etapa automaticamente"
+                          >
+                            <Bot className="h-3.5 w-3.5" aria-hidden />
+                            <span className="sr-only">
+                              O sistema registrou o avanço da etapa automaticamente
+                            </span>
+                          </span>
+                        ) : null}
                         {l.tipo === "cliente" && (
                           <Badge
                             variant="outline"

@@ -138,6 +138,8 @@ export interface Lead {
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   /** Passou para outro integrante porque o prazo da roleta esgotou. */
   roletaRedistribuido?: boolean;
+  /** Corretor avançou a etapa sem registrar relato. */
+  historicoPendente?: boolean;
   /** Nome da equipe para exibição. */
   equipe?: string | null;
   construtoraId?: string | null;
