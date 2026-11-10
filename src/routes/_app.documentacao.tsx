@@ -303,6 +303,7 @@ type FormState = {
   dataVenda: string;
   vgv: string;
   propostaId: string;
+  vendaSemProposta: boolean;
   obs: string;
   temEntrada: boolean;
   valorEntrada: string;
@@ -330,6 +331,7 @@ const emptyForm = (): FormState => ({
   dataVenda: "",
   vgv: "",
   propostaId: "",
+  vendaSemProposta: false,
   obs: "",
   temEntrada: false,
   valorEntrada: "",
@@ -1366,6 +1368,7 @@ function DocumentacaoPage() {
       dataVenda: toDateInput(doc.dataVenda),
       vgv: doc.vgv != null ? formatMoneyInput(doc.vgv) : "",
       propostaId: doc.propostaId ?? "",
+      vendaSemProposta: doc.vendaSemProposta ?? false,
       obs: doc.obs ?? "",
       temEntrada: doc.temEntrada ?? false,
       valorEntrada:
@@ -1454,7 +1457,13 @@ function DocumentacaoPage() {
     const dataVenda =
       form.dataVenda ||
       (vgv != null && vgv > 0 ? todayDateInput() : null);
-    if (vgv != null && vgv > 0 && dataVenda && !form.propostaId) {
+    if (
+      !form.vendaSemProposta &&
+      vgv != null &&
+      vgv > 0 &&
+      dataVenda &&
+      !form.propostaId
+    ) {
       toast.error(
         "Vincule uma proposta para lançar a venda com VGV e data de venda.",
       );
@@ -1487,6 +1496,7 @@ function DocumentacaoPage() {
       dataVenda,
       vgv,
       propostaId: form.propostaId || null,
+      vendaSemProposta: form.vendaSemProposta,
       obs: form.obs.trim() || null,
       temEntrada: form.temEntrada,
       valorEntrada: form.temEntrada
@@ -3436,6 +3446,21 @@ function DocumentacaoPage() {
                 <div className="space-y-2 sm:col-span-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label>Proposta</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="venda-sem-proposta" className="text-xs font-normal">
+                        Venda sem proposta
+                      </Label>
+                      <Switch
+                        id="venda-sem-proposta"
+                        checked={form.vendaSemProposta}
+                        onCheckedChange={(checked) =>
+                          setField("vendaSemProposta", checked)
+                        }
+                        disabled={readOnly}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
                     {!readOnly ? (
                       <Button
                         type="button"
@@ -3577,7 +3602,9 @@ function DocumentacaoPage() {
                     </div>
                   ) : null}
                     <p className="text-xs text-muted-foreground">
-                      Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo.
+                      {form.vendaSemProposta
+                        ? "Venda sem proposta ativada. Dá para lançar com VGV e data de venda."
+                        : "Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo."}
                     </p>
                   </div>
                   <PropostaCadastroDialog
