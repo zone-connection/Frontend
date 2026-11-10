@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type SyntheticEvent,
 } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
@@ -102,7 +103,13 @@ import {
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
-import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
+import {
+  fetchPropostas,
+  PROPOSTA_COMPOSICAO_LABEL,
+  PROPOSTA_LISTA_KEYS,
+  PROPOSTA_SIMPLES_KEYS,
+  type Proposta,
+} from "@/lib/propostas-api";
 import { PropostaCadastroDialog } from "@/components/propostas-page";
 import {
   dedupeStatusOptions,
@@ -172,6 +179,7 @@ import {
   Users,
   ClipboardList,
   RotateCcw,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -683,6 +691,9 @@ function DocumentacaoPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [propostaFormOpen, setPropostaFormOpen] = useState(false);
+  const [propostaValoresId, setPropostaValoresId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -3452,11 +3463,105 @@ function DocumentacaoPage() {
                             item.leadId === form.leadId ||
                             item.id === form.propostaId,
                         )
-                        .map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.codigo} · {item.clienteNome} · {brl(item.valor)}
-                          </SelectItem>
-                        ))}
+                        .map((item) => {
+                          const aberta = propostaValoresId === item.id;
+                          const linhas = [
+                            { rotulo: "Valor", valor: brl(item.valor) },
+                            ...PROPOSTA_SIMPLES_KEYS.flatMap((key) => {
+                              const valor = item[key];
+                              return valor
+                                ? [
+                                    {
+                                      rotulo: PROPOSTA_COMPOSICAO_LABEL[key],
+                                      valor: brl(valor),
+                                    },
+                                  ]
+                                : [];
+                            }),
+                            ...PROPOSTA_LISTA_KEYS.flatMap((key) =>
+                              (item[key] ?? []).flatMap((valor, indice) =>
+                                valor
+                                  ? [
+                                      {
+                                        rotulo: `${PROPOSTA_COMPOSICAO_LABEL[key]} ${indice + 1}`,
+                                        valor: brl(valor),
+                                      },
+                                    ]
+                                  : [],
+                              ),
+                            ),
+                            ...(item.desconto
+                              ? [
+                                  {
+                                    rotulo: "Desconto",
+                                    valor: brl(item.desconto),
+                                  },
+                                ]
+                              : []),
+                          ];
+                          const segurar = (event: SyntheticEvent) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          };
+                          return (
+                            <SelectItem
+                              key={item.id}
+                              value={item.id}
+                              className="pr-14"
+                              extra={
+                                <>
+                                  <button
+                                    type="button"
+                                    className="absolute right-7 top-1.5 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    aria-expanded={aberta}
+                                    aria-label={
+                                      aberta
+                                        ? "Ocultar valores da proposta"
+                                        : "Exibir valores da proposta"
+                                    }
+                                    onPointerDown={segurar}
+                                    onPointerUp={segurar}
+                                    onClick={(event) => {
+                                      segurar(event);
+                                      setPropostaValoresId((atual) =>
+                                        atual === item.id ? null : item.id,
+                                      );
+                                    }}
+                                  >
+                                    <ChevronDown
+                                      className={cn(
+                                        "h-4 w-4 transition-transform",
+                                        aberta && "rotate-180",
+                                      )}
+                                    />
+                                  </button>
+                                  {aberta ? (
+                                    <div
+                                      className="mt-1 space-y-0.5 pr-6 text-xs text-muted-foreground"
+                                      onPointerDown={segurar}
+                                      onPointerUp={segurar}
+                                      onClick={segurar}
+                                    >
+                                      {linhas.map((linha) => (
+                                        <div
+                                          key={linha.rotulo}
+                                          className="flex justify-between gap-3"
+                                        >
+                                          <span>{linha.rotulo}</span>
+                                          <span className="tabular-nums">
+                                            {linha.valor}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </>
+                              }
+                            >
+                              {item.codigo} · {item.clienteNome} · {brl(item.valor)}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                     <p className="text-xs text-muted-foreground">
