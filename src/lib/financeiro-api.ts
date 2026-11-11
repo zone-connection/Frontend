@@ -87,6 +87,8 @@ export type Comissao = {
   vgv: number;
   percentualImobiliaria?: number;
   comissaoBruta?: number;
+  percentualIss?: number;
+  valorIss?: number;
   percentualTributos?: number;
   valorTributos?: number;
   comissaoLiquida?: number;
