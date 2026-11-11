@@ -68,6 +68,20 @@ export async function fetchCategoriasResumo(params?: {
 
 export type ComissaoStatus = "pendente" | "liberada" | "paga";
 
+export type NotaFiscal = {
+  id: string;
+  numero: string;
+  cliente: string;
+  vgv: number | null;
+  corretor: string;
+  construtora: string;
+  empreendimento: string;
+  torreBloco: string;
+  dataEmissao: string | null;
+  arquivoUrl: string;
+  arquivoNome: string;
+};
+
 export type ComissaoRelacionamento = {
   id?: string;
   nome?: string;
@@ -92,6 +106,8 @@ export type Comissao = {
   percentualTributos?: number;
   valorTributos?: number;
   comissaoLiquida?: number;
+  notaFiscalId?: string | null;
+  notaFiscal?: NotaFiscal | null;
   percentualCorretor?: number;
   valorCorretor?: number;
   percentualGerente?: number;
@@ -729,5 +745,30 @@ export async function renovarRecebimentosMes(
       method: "POST",
       body: { competencia },
     },
+  );
+}
+
+export async function fetchNotasFiscais(q = ""): Promise<NotaFiscal[]> {
+  const query = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+  return apiFetch<NotaFiscal[]>(`/financeiro/notas-fiscais${query}`);
+}
+
+export async function saveNotaFiscal(
+  input: Partial<NotaFiscal> & { numero: string; file?: File | null },
+  id?: string,
+): Promise<NotaFiscal> {
+  const body = new FormData();
+  body.set("numero", input.numero);
+  body.set("cliente", input.cliente ?? "");
+  body.set("corretor", input.corretor ?? "");
+  body.set("construtora", input.construtora ?? "");
+  body.set("empreendimento", input.empreendimento ?? "");
+  body.set("torreBloco", input.torreBloco ?? "");
+  if (input.vgv != null && !Number.isNaN(input.vgv)) body.set("vgv", String(input.vgv));
+  if (input.dataEmissao) body.set("dataEmissao", input.dataEmissao);
+  if (input.file) body.set("file", input.file);
+  return apiFetch<NotaFiscal>(
+    id ? `/financeiro/notas-fiscais/${id}` : "/financeiro/notas-fiscais",
+    { method: id ? "PATCH" : "POST", body },
   );
 }

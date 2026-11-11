@@ -51,8 +51,11 @@ import {
   createTituloComissaoAvulsa,
   fetchVendasElegiveisComissao,
   fetchVendasElegiveisTituloComissao,
+  fetchNotasFiscais,
+  saveNotaFiscal,
   updateComissao,
   type Comissao,
+  type NotaFiscal,
   type ComissaoRelacionamento,
   type ComissaoStatus,
   type VendaElegivelComissao,
@@ -255,6 +258,11 @@ export function ComissaoLancamentoDialog({
   const [salePickerOpen, setSalePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [comprovante, setComprovante] = useState<File | null>(null);
+  const [notas, setNotas] = useState<NotaFiscal[]>([]);
+  const [notaFiscalId, setNotaFiscalId] = useState("");
+  const [notaBusca, setNotaBusca] = useState("");
+  const [notaArquivo, setNotaArquivo] = useState<File | null>(null);
+  const [notaNumero, setNotaNumero] = useState("");
   const [corretores, setCorretores] = useState<DocumentacaoCorretor[]>([]);
   const [construtoras, setConstrutoras] = useState<Construtora[]>([]);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
@@ -314,6 +322,11 @@ export function ComissaoLancamentoDialog({
       return;
     }
     setComprovante(null);
+    setNotaArquivo(null);
+    setNotaNumero("");
+    setNotaBusca("");
+    setNotaFiscalId(editing?.notaFiscalId ?? editing?.notaFiscal?.id ?? "");
+    void fetchNotasFiscais().then(setNotas).catch(() => setNotas([]));
     if (mode === "edit" && editing) {
       setForm(toForm(editing));
       return;
@@ -483,6 +496,23 @@ export function ComissaoLancamentoDialog({
 
     setSaving(true);
     try {
+      let notaId = notaFiscalId;
+      if (notaArquivo) {
+        if (!notaNumero.trim()) {
+          toast.error("Informe o número da NF para anexar o arquivo.");
+          setSaving(false);
+          return;
+        }
+        const criada = await saveNotaFiscal({
+          numero: notaNumero.trim(),
+          cliente: relationName(saleSummary?.cliente) || form.clienteNome,
+          vgv: previewVgv || null,
+          corretor: relationName(saleSummary?.corretor),
+          empreendimento: relationName(saleSummary?.empreendimento),
+          file: notaArquivo,
+        });
+        notaId = criada.id;
+      }
       const created = mode === "create";
       const avulsaPayload = {
         clienteNome: form.clienteNome.trim(),
@@ -500,12 +530,13 @@ export function ComissaoLancamentoDialog({
       const observacao = form.observacao.trim();
       const saved =
         mode === "edit" && editing
-          ? await updateComissao(editing.id, {
+              ? await updateComissao(editing.id, {
               ...percentages,
               ...premiacaoPayload,
               dataPrevistaRecebimento: form.dataPrevistaRecebimento,
               status: form.status,
               observacao,
+              notaFiscalId: notaId || null,
             })
           : isAvulsa
             ? via === "titulo"
@@ -513,11 +544,13 @@ export function ComissaoLancamentoDialog({
                   ...avulsaPayload,
                   observacao,
                   registrarDocumentacao,
+                  ...(notaId ? { notaFiscalId: notaId } : {}),
                 })).comissao
               : await createComissaoComVendaAvulsa({
                   ...avulsaPayload,
                   observacao,
                   registrarDocumentacao,
+                  ...(notaId ? { notaFiscalId: notaId } : {}),
                 })
             : via === "titulo"
               ? (
@@ -527,6 +560,7 @@ export function ComissaoLancamentoDialog({
                     ...percentages,
                     ...premiacaoPayload,
                     observacao,
+                    ...(notaId ? { notaFiscalId: notaId } : {}),
                   })
                 ).comissao
               : await createComissao({
@@ -535,6 +569,7 @@ export function ComissaoLancamentoDialog({
                   ...percentages,
                   ...premiacaoPayload,
                   observacao,
+                  ...(notaId ? { notaFiscalId: notaId } : {}),
                 });
       if (comprovante) {
         try {
@@ -587,11 +622,8 @@ export function ComissaoLancamentoDialog({
           ? "Use uma venda já cadastrada ou lance um cliente que ainda não está no sistema."
           : "Defina a data prevista de recebimento e os percentuais antes de salvar."
       }
-      className="max-w-3xl"
       footer={
-        <FormDialogActions
-          hint={`Distribuição: ${splitTotal.toLocaleString("pt-BR")}% de 100%`}
-        >
+        <FormDialogActions>
           <Button
             type="button"
             variant="outline"
@@ -612,7 +644,8 @@ export function ComissaoLancamentoDialog({
         onSubmit={handleSubmit}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <FormDialogBody>
+        <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start lg:gap-5">
+          <div className="space-y-5">
           {mode === "create" && (
             <FormSection title="Origem da venda">
               <div className="grid gap-2 sm:grid-cols-2">
@@ -922,6 +955,61 @@ export function ComissaoLancamentoDialog({
             </div>
           </FormSection>
 
+          <FormSection title="Nota fiscal">
+            <p className="text-xs text-muted-foreground">
+              Opcional. Anexe um arquivo para criar a NF ou escolha uma já cadastrada.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Número da NF do arquivo</Label>
+                <Input value={notaNumero} onChange={(event) => setNotaNumero(event.target.value)} placeholder="Obrigatório só se enviar arquivo" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Arquivo</Label>
+                <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(event) => setNotaArquivo(event.target.files?.[0] ?? null)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Selecionar NF cadastrada</Label>
+              <Input value={notaBusca} onChange={(event) => setNotaBusca(event.target.value)} placeholder="Buscar por cliente, VGV, corretor, construtora, empreendimento, torre ou número" />
+              <select
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={notaFiscalId}
+                onChange={(event) => setNotaFiscalId(event.target.value)}
+              >
+                <option value="">Sem NF vinculada</option>
+                {notas
+                  .filter((nota) => {
+                    const term = notaBusca.trim().toLowerCase();
+                    if (!term) return true;
+                    return [nota.numero, nota.cliente, nota.corretor, nota.construtora, nota.empreendimento, nota.torreBloco, nota.vgv ?? ""].join(" ").toLowerCase().includes(term);
+                  })
+                  .map((nota) => (
+                    <option key={nota.id} value={nota.id}>
+                      NF {nota.numero}{nota.cliente ? ` · ${nota.cliente}` : ""}{nota.empreendimento ? ` · ${nota.empreendimento}` : ""}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </FormSection>
+
+          <FormSection title="Observação">
+            <div className="space-y-2">
+              <Label htmlFor="comissao-observacao">Observação</Label>
+              <Textarea
+                id="comissao-observacao"
+                value={form.observacao}
+                onChange={(event) =>
+                  setField("observacao", event.target.value.slice(0, 2000))
+                }
+                placeholder="Notas internas sobre este lançamento (opcional)"
+                rows={3}
+              />
+            </div>
+          </FormSection>
+          </div>
+
+          <div className="space-y-5">
           <FormSection title="Percentuais">
             {isSolo ? (
               <>
@@ -968,7 +1056,7 @@ export function ComissaoLancamentoDialog({
               </>
             ) : (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <PercentField
                     label="Imobiliária"
                     value={form.percentualImobiliaria}
@@ -986,6 +1074,8 @@ export function ComissaoLancamentoDialog({
                     value={form.percentualTributos}
                     onChange={(value) => setField("percentualTributos", value)}
                   />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <PercentField
                     label="Corretor"
                     value={form.percentualCorretor}
@@ -1154,21 +1244,6 @@ export function ComissaoLancamentoDialog({
             )}
           </FormSection>
 
-          <FormSection title="Observação">
-            <div className="space-y-2">
-              <Label htmlFor="comissao-observacao">Observação</Label>
-              <Textarea
-                id="comissao-observacao"
-                value={form.observacao}
-                onChange={(event) =>
-                  setField("observacao", event.target.value.slice(0, 2000))
-                }
-                placeholder="Notas internas sobre este lançamento (opcional)"
-                rows={3}
-              />
-            </div>
-          </FormSection>
-
           <FormSection title="Comprovante">
             <div className="space-y-1.5">
               <Label htmlFor="comissao-comprovante">
@@ -1217,6 +1292,7 @@ export function ComissaoLancamentoDialog({
                 : "Imobiliária, depois ISS, depois tributos. A líquida segue o rateio de corretor, gerente, caixa e sócios."}
             </p>
           </FormSection>
+          </div>
         </FormDialogBody>
       </form>
     </FormDialogShell>

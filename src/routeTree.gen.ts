@@ -102,6 +102,7 @@ import { Route as AppFinanceiroContratosRouteImport } from './routes/_app.financ
 import { Route as AppFinanceiroDespesasRouteImport } from './routes/_app.financeiro.despesas'
 import { Route as AppFinanceiroFluxoCaixaRouteImport } from './routes/_app.financeiro.fluxo-caixa'
 import { Route as AppFinanceiroFuncionariosRouteImport } from './routes/_app.financeiro.funcionarios'
+import { Route as AppFinanceiroGestaoNfRouteImport } from './routes/_app.financeiro.gestao-nf'
 import { Route as AppFinanceiroMovimentacaoRouteImport } from './routes/_app.financeiro.movimentacao'
 import { Route as AppFinanceiroVisaoGeralRouteImport } from './routes/_app.financeiro.visao-geral'
 import { Route as AppImoveisUsadosEstoqueRouteImport } from './routes/_app.imoveis-usados.estoque'
@@ -605,6 +606,11 @@ const AppFinanceiroFuncionariosRoute =
     path: '/funcionarios',
     getParentRoute: () => AppFinanceiroRoute,
   } as any)
+const AppFinanceiroGestaoNfRoute = AppFinanceiroGestaoNfRouteImport.update({
+  id: '/gestao-nf',
+  path: '/gestao-nf',
+  getParentRoute: () => AppFinanceiroRoute,
+} as any)
 const AppFinanceiroMovimentacaoRoute =
   AppFinanceiroMovimentacaoRouteImport.update({
     id: '/movimentacao',
@@ -856,6 +862,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/despesas': typeof AppFinanceiroDespesasRoute
   '/financeiro/fluxo-caixa': typeof AppFinanceiroFluxoCaixaRoute
   '/financeiro/funcionarios': typeof AppFinanceiroFuncionariosRoute
+  '/financeiro/gestao-nf': typeof AppFinanceiroGestaoNfRoute
   '/financeiro/movimentacao': typeof AppFinanceiroMovimentacaoRoute
   '/financeiro/visao-geral': typeof AppFinanceiroVisaoGeralRoute
   '/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
@@ -973,6 +980,7 @@ export interface FileRoutesByTo {
   '/financeiro/despesas': typeof AppFinanceiroDespesasRoute
   '/financeiro/fluxo-caixa': typeof AppFinanceiroFluxoCaixaRoute
   '/financeiro/funcionarios': typeof AppFinanceiroFuncionariosRoute
+  '/financeiro/gestao-nf': typeof AppFinanceiroGestaoNfRoute
   '/financeiro/movimentacao': typeof AppFinanceiroMovimentacaoRoute
   '/financeiro/visao-geral': typeof AppFinanceiroVisaoGeralRoute
   '/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
@@ -1097,6 +1105,7 @@ export interface FileRoutesById {
   '/_app/financeiro/despesas': typeof AppFinanceiroDespesasRoute
   '/_app/financeiro/fluxo-caixa': typeof AppFinanceiroFluxoCaixaRoute
   '/_app/financeiro/funcionarios': typeof AppFinanceiroFuncionariosRoute
+  '/_app/financeiro/gestao-nf': typeof AppFinanceiroGestaoNfRoute
   '/_app/financeiro/movimentacao': typeof AppFinanceiroMovimentacaoRoute
   '/_app/financeiro/visao-geral': typeof AppFinanceiroVisaoGeralRoute
   '/_app/imoveis-usados/estoque': typeof AppImoveisUsadosEstoqueRoute
@@ -1222,6 +1231,7 @@ export interface FileRouteTypes {
     | '/financeiro/despesas'
     | '/financeiro/fluxo-caixa'
     | '/financeiro/funcionarios'
+    | '/financeiro/gestao-nf'
     | '/financeiro/movimentacao'
     | '/financeiro/visao-geral'
     | '/imoveis-usados/estoque'
@@ -1339,6 +1349,7 @@ export interface FileRouteTypes {
     | '/financeiro/despesas'
     | '/financeiro/fluxo-caixa'
     | '/financeiro/funcionarios'
+    | '/financeiro/gestao-nf'
     | '/financeiro/movimentacao'
     | '/financeiro/visao-geral'
     | '/imoveis-usados/estoque'
@@ -1462,6 +1473,7 @@ export interface FileRouteTypes {
     | '/_app/financeiro/despesas'
     | '/_app/financeiro/fluxo-caixa'
     | '/_app/financeiro/funcionarios'
+    | '/_app/financeiro/gestao-nf'
     | '/_app/financeiro/movimentacao'
     | '/_app/financeiro/visao-geral'
     | '/_app/imoveis-usados/estoque'
@@ -2166,6 +2178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceiroFuncionariosRouteImport
       parentRoute: typeof AppFinanceiroRoute
     }
+    '/_app/financeiro/gestao-nf': {
+      id: '/_app/financeiro/gestao-nf'
+      path: '/gestao-nf'
+      fullPath: '/financeiro/gestao-nf'
+      preLoaderRoute: typeof AppFinanceiroGestaoNfRouteImport
+      parentRoute: typeof AppFinanceiroRoute
+    }
     '/_app/financeiro/movimentacao': {
       id: '/_app/financeiro/movimentacao'
       path: '/movimentacao'
@@ -2452,6 +2471,7 @@ interface AppFinanceiroRouteChildren {
   AppFinanceiroDespesasRoute: typeof AppFinanceiroDespesasRoute
   AppFinanceiroFluxoCaixaRoute: typeof AppFinanceiroFluxoCaixaRoute
   AppFinanceiroFuncionariosRoute: typeof AppFinanceiroFuncionariosRoute
+  AppFinanceiroGestaoNfRoute: typeof AppFinanceiroGestaoNfRoute
   AppFinanceiroMovimentacaoRoute: typeof AppFinanceiroMovimentacaoRoute
   AppFinanceiroVisaoGeralRoute: typeof AppFinanceiroVisaoGeralRoute
 }
@@ -2469,6 +2489,7 @@ const AppFinanceiroRouteChildren: AppFinanceiroRouteChildren = {
   AppFinanceiroDespesasRoute: AppFinanceiroDespesasRoute,
   AppFinanceiroFluxoCaixaRoute: AppFinanceiroFluxoCaixaRoute,
   AppFinanceiroFuncionariosRoute: AppFinanceiroFuncionariosRoute,
+  AppFinanceiroGestaoNfRoute: AppFinanceiroGestaoNfRoute,
   AppFinanceiroMovimentacaoRoute: AppFinanceiroMovimentacaoRoute,
   AppFinanceiroVisaoGeralRoute: AppFinanceiroVisaoGeralRoute,
 }

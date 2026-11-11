@@ -324,6 +324,7 @@ const FINANCEIRO_MENU_LEAVES: NavLeaf[] = [
   },
   { to: "/financeiro/despesas", label: "Despesas", icon: Receipt },
   { to: "/financeiro/comissao", label: "Comissão", icon: Percent },
+  { to: "/financeiro/gestao-nf", label: "Gestão de NF", icon: FileText },
   {
     to: "/financeiro/clientes-fornecedores",
     label: "Clientes e fornecedores",

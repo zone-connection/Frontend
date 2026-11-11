@@ -40,6 +40,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/fluxo-caixa",
     "/financeiro/movimentacao",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/financeiro/funcionarios",
   ],
   admin: [
@@ -106,6 +107,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/parcerias",
     "/taxa-conversao",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/configuracoes",
     "/perfil",
   ],
@@ -133,6 +135,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/construtoras",
     "/propostas",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/perfil",
   ],
   analista: [
@@ -164,6 +167,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/financeiro/contas-a-pagar",
     "/financeiro/despesas",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/financeiro/funcionarios",
     "/presenca",
     "/mural-chaves",
@@ -193,6 +197,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/parcerias",
     "/propostas",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/construtoras",
     "/configuracoes",
     "/perfil",
@@ -220,6 +225,7 @@ const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/mural-chaves",
   "/contratos",
     "/financeiro/comissao",
+    "/financeiro/gestao-nf",
     "/configuracoes",
     "/perfil",
   ];
