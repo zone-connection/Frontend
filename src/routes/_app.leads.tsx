@@ -89,6 +89,7 @@ import {
   Repeat,
   Briefcase,
   UserCheck,
+  UserX,
   ClipboardList,
   UserRoundCog,
   UserRoundPlus,
@@ -98,6 +99,7 @@ import {
   Flame,
   Building2,
   Globe,
+  CalendarDays,
   Link2,
   Target,
   ExternalLink,
@@ -140,10 +142,11 @@ import {
   type TableSort,
 } from "@/lib/table-sort";
 import { useLeads } from "@/lib/leads-store";
+import { loadLostLeads, type LostLead } from "@/lib/lost-leads-cache";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
-import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi } from "@/lib/leads-api";
+import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi, fetchIndicadoresPeriodo } from "@/lib/leads-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -322,6 +325,66 @@ type FormState = {
 };
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
+
+type PeriodoModo = "hoje" | "dia" | "semana" | "mes" | "personalizado";
+
+function formatDiaLocal(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Dia local (YYYY-MM-DD) em que o lead chegou à imobiliária. */
+function diaRecebimento(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return formatDiaLocal(d);
+}
+
+/** Intervalo inclusivo de chegada, conforme o modo escolhido no filtro. */
+function intervaloRecebimento(
+  modo: PeriodoModo | "",
+  dia: string,
+  mes: string,
+  inicio: string,
+  fim: string,
+): { start: string; end: string } | null {
+  const hoje = formatDiaLocal(new Date());
+  if (modo === "hoje") return { start: hoje, end: hoje };
+  if (modo === "dia" && dia) return { start: dia, end: dia };
+  if (modo === "semana" && (dia || hoje)) {
+    dia = dia || hoje;
+    const d = new Date(`${dia}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return null;
+    const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() + offset);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start: formatDiaLocal(start), end: formatDiaLocal(end) };
+  }
+  if (modo === "mes") {
+    mes = /^\d{4}-\d{2}$/.test(mes) ? mes : hoje.slice(0, 7);
+    const [y, m] = mes.split("-").map(Number);
+    const start = new Date(y, m - 1, 1, 12);
+    const end = new Date(y, m, 0, 12);
+    return { start: formatDiaLocal(start), end: formatDiaLocal(end) };
+  }
+  if (modo === "personalizado" && inicio && fim) {
+    return inicio <= fim
+      ? { start: inicio, end: fim }
+      : { start: fim, end: inicio };
+  }
+  return null;
+}
+
+function limiteIso(dia: string, fimDoDia: boolean) {
+  const [y, m, d] = dia.split("-").map(Number);
+  const date = new Date(y, (m || 1) - 1, d || 1, fimDoDia ? 23 : 0, fimDoDia ? 59 : 0, fimDoDia ? 59 : 0, fimDoDia ? 999 : 0);
+  return date.toISOString();
+}
 
 const emptyProspeccaoForm = () => ({
   endereco: "",
@@ -753,6 +816,63 @@ function LeadsPage() {
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("all");
   const [tipoRendaFilter, setTipoRendaFilter] = useState<string>("all");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
+  const [periodoModo, setPeriodoModo] = useState<PeriodoModo | "">("");
+  const [periodoDia, setPeriodoDia] = useState("");
+  const [periodoMes, setPeriodoMes] = useState("");
+  const [periodoInicio, setPeriodoInicio] = useState("");
+  const [periodoFim, setPeriodoFim] = useState("");
+  const [lostLeads, setLostLeads] = useState<LostLead[]>([]);
+  const [indicadores, setIndicadores] = useState({
+    recebidos: 0,
+    distribuidos: 0,
+    perdas: 0,
+  });
+  const periodoRecebimento = useMemo(
+    () =>
+      intervaloRecebimento(
+        periodoModo,
+        periodoDia,
+        periodoMes,
+        periodoInicio,
+        periodoFim,
+      ),
+    [periodoModo, periodoDia, periodoMes, periodoInicio, periodoFim],
+  );
+
+  useEffect(() => {
+    if (!showTeamColumns || !periodoRecebimento) return;
+    let cancelled = false;
+    void fetchIndicadoresPeriodo(
+      limiteIso(periodoRecebimento.start, false),
+      limiteIso(periodoRecebimento.end, true),
+    )
+      .then((data) => {
+        if (!cancelled) setIndicadores(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIndicadores({ recebidos: 0, distribuidos: 0, perdas: 0 });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showTeamColumns, periodoRecebimento]);
+
+  useEffect(() => {
+    if (!periodoRecebimento) return;
+    let cancelled = false;
+    void loadLostLeads()
+      .then((list) => {
+        if (!cancelled) setLostLeads(list);
+      })
+      .catch(() => {
+        if (!cancelled) setLostLeads([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [periodoRecebimento]);
   const routeSearch = Route.useSearch();
   /** Separação pool (chegaram) × já atribuídos a equipe/corretor. */
   const [distribuicaoFilter, setDistribuicaoFilter] =
@@ -862,7 +982,10 @@ function LeadsPage() {
     prioridadeFilter !== "all" ||
     tipoRendaFilter !== "all" ||
     origemFilter !== "all" ||
-    (!isCorretor && distribuicaoFilter !== "all") ||
+    Boolean(periodoRecebimento) ||
+    (isCorretor
+      ? distribuicaoFilter === "chegaram"
+      : distribuicaoFilter !== "all") ||
     paradosFilter;
 
   const isLeadRetrabalho = (l: Lead) =>
@@ -885,7 +1008,21 @@ function LeadsPage() {
     const scoped = canSeeRetrabalhoLead(user?.role)
       ? leads
       : leads.filter((l) => !isLeadRetrabalho(l));
-    if (!filtersActive) return scoped;
+    const ativosIds = new Set(scoped.map((l) => l.id));
+    const noPeriodo = (iso: string | null | undefined) => {
+      if (!periodoRecebimento) return true;
+      const dia = diaRecebimento(iso);
+      return dia >= periodoRecebimento.start && dia <= periodoRecebimento.end;
+    };
+    const pool: Lead[] = periodoRecebimento
+      ? [
+          ...scoped,
+          ...lostLeads.filter(
+            (l) => !ativosIds.has(l.id) && noPeriodo(l.createdAt),
+          ),
+        ]
+      : scoped;
+    if (!filtersActive) return pool;
     const q = debouncedSearch.toLowerCase();
     const qDigits = phoneDigits(debouncedSearch);
     const equipeMembros =
@@ -900,7 +1037,7 @@ function LeadsPage() {
       equipeFilter === "none"
         ? new Set(equipes.flatMap((e) => e.membros.map((m) => m.id)))
         : null;
-    return scoped.filter((l) => {
+    return pool.filter((l) => {
       if (q) {
         const hay = `${l.nome} ${l.email} ${l.telefone}`.toLowerCase();
         const phoneOk =
@@ -933,7 +1070,8 @@ function LeadsPage() {
       if (tipoRendaFilter !== "all" && (l.tipoRenda || "") !== tipoRendaFilter)
         return false;
       if (origemFilter !== "all" && l.origem !== origemFilter) return false;
-      if (!isCorretor && distribuicaoFilter === "chegaram" && !isLeadChegou(l))
+      if (periodoRecebimento && !noPeriodo(l.createdAt)) return false;
+      if (distribuicaoFilter === "chegaram" && !isLeadChegou(l))
         return false;
       if (
         !isCorretor &&
@@ -964,6 +1102,8 @@ function LeadsPage() {
     });
   }, [
     leads,
+    lostLeads,
+    periodoRecebimento,
     filtersActive,
     debouncedSearch,
     stageFilter,
@@ -1003,6 +1143,7 @@ function LeadsPage() {
       prioridadeFilter,
       tipoRendaFilter,
       origemFilter,
+      periodoRecebimento,
       distribuicaoFilter,
       paradosFilter,
       sort,
@@ -3475,14 +3616,42 @@ function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {showTeamColumns && periodoRecebimento ? (
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <LeadKpi
+            label="Leads recebidos"
+            value={indicadores.recebidos}
+            icon={Inbox}
+            tone="teal"
+            onClick={() => {}}
+          />
+          <LeadKpi
+            label="Leads distribuídos"
+            value={indicadores.distribuidos}
+            icon={UserCheck}
+            tone="emerald"
+            onClick={() => {}}
+          />
+          <LeadKpi
+            label="Leads em perda"
+            value={indicadores.perdas}
+            icon={UserX}
+            tone="rose"
+            onClick={() => {}}
+          />
+        </div>
+      ) : null}
+
       <div
         className={cn(
           "mb-4 grid grid-cols-2 items-start gap-3",
           isPlatformAdmin
             ? "lg:grid-cols-2"
-            : isGerente
-              ? "xl:grid-cols-7"
-              : "xl:grid-cols-6",
+            : isCorretor
+              ? "sm:grid-cols-3"
+              : isGerente
+                ? "xl:grid-cols-7"
+                : "xl:grid-cols-6",
         )}
       >
         <LeadKpi
@@ -3504,7 +3673,7 @@ function LeadsPage() {
             void navigate({ to: "/leads", search: {}, replace: true });
           }}
         />
-        {showTeamColumns ? (
+        {showTeamColumns || isCorretor ? (
           <>
             <LeadKpi
               label="Chegaram"
@@ -3524,6 +3693,8 @@ function LeadsPage() {
                 });
               }}
             />
+            {showTeamColumns ? (
+            <>
             <LeadKpi
               label="Retrabalho"
               value={kpiCounts.retrabalho}
@@ -3595,6 +3766,8 @@ function LeadsPage() {
                 }}
               />
             ) : null}
+            </>
+            ) : null}
           </>
         ) : (
           <LeadKpi
@@ -3624,19 +3797,6 @@ function LeadsPage() {
             setPrioridadeFilter(prioridadeFilter === "Alta" ? "all" : "Alta")
           }
         />
-        {isCorretor ? (
-          <LeadKpi
-            label="Em atendimento"
-            value={Math.max(0, kpiCounts.total - kpiCounts.novos)}
-            icon={UserCheck}
-            tone="orange"
-            onClick={() => {
-              setStageFilter("all");
-              setPrioridadeFilter("all");
-              setDistribuicaoFilter("all");
-            }}
-          />
-        ) : null}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -3663,6 +3823,7 @@ function LeadsPage() {
               prioridadeFilter !== "all",
               tipoRendaFilter !== "all",
               origemFilter !== "all",
+              Boolean(periodoRecebimento),
             ].filter(Boolean).length
           }
           onClear={() => {
@@ -3672,6 +3833,11 @@ function LeadsPage() {
             setPrioridadeFilter("all");
             setTipoRendaFilter("all");
             setOrigemFilter("all");
+            setPeriodoModo("");
+            setPeriodoDia("");
+            setPeriodoMes("");
+            setPeriodoInicio("");
+            setPeriodoFim("");
           }}
         >
               <div className="space-y-1.5">
@@ -3770,6 +3936,77 @@ function LeadsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
+                  <CalendarDays className="size-3.5 text-[#079ED4]" />
+                  Recebidos no período
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["", "Qualquer data"],
+                      ["hoje", "Hoje"],
+                      ["dia", "Dia"],
+                      ["semana", "Semana"],
+                      ["mes", "Mês"],
+                      ["personalizado", "Personalizado"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id || "all"}
+                      type="button"
+                      onClick={() => setPeriodoModo(id)}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs",
+                        periodoModo === id
+                          ? "border-[#079ED4] bg-[#079ED4]/10 text-[#0678A8]"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {periodoModo === "dia" ? (
+                  <Input
+                    type="date"
+                    className={FILTRO_CAMPO}
+                    value={periodoDia}
+                    onChange={(e) => setPeriodoDia(e.target.value)}
+                  />
+                ) : null}
+                {periodoModo === "mes" ? (
+                  <Input
+                    type="month"
+                    className={FILTRO_CAMPO}
+                    value={periodoMes}
+                    onChange={(e) => setPeriodoMes(e.target.value)}
+                  />
+                ) : null}
+                {periodoModo === "personalizado" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      className={FILTRO_CAMPO}
+                      value={periodoInicio}
+                      aria-label="Início do período"
+                      onChange={(e) => setPeriodoInicio(e.target.value)}
+                    />
+                    <Input
+                      type="date"
+                      className={FILTRO_CAMPO}
+                      value={periodoFim}
+                      aria-label="Fim do período"
+                      onChange={(e) => setPeriodoFim(e.target.value)}
+                    />
+                  </div>
+                ) : null}
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {periodoModo === "semana"
+                    ? "A semana vai de segunda a domingo a partir do dia escolhido. Inclui ativos e perdas."
+                    : "Leads que chegaram no período, inclusive os que já foram marcados como perda."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-xs font-medium text-[#5C6B76]">
@@ -4012,6 +4249,11 @@ function LeadsPage() {
                                 <MeuLeadBadge />
                               )}
                             <LeadOrigemLiberacaoBadge lead={l} />
+                            {lostLeads.some((lost) => lost.id === l.id) ? (
+                              <Badge className="h-5 rounded-full bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
+                                Perdido
+                              </Badge>
+                            ) : null}
                             {l.roletaRedistribuido ? <LeadRoletaBadge /> : null}
                           </div>
                           <div className="truncate text-[10px] text-muted-foreground">
