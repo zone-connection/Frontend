@@ -80,6 +80,7 @@ export type ComissaoFormState = {
   empreendimentoId: string;
   dataPrevistaRecebimento: string;
   percentualImobiliaria: string;
+  percentualIss: string;
   percentualTributos: string;
   percentualCorretor: string;
   percentualGerente: string;
@@ -105,6 +106,7 @@ const EMPTY_FORM: ComissaoFormState = {
   empreendimentoId: "",
   dataPrevistaRecebimento: "",
   percentualImobiliaria: "",
+  percentualIss: "",
   percentualTributos: "",
   percentualCorretor: "",
   percentualGerente: "",
@@ -193,6 +195,7 @@ function toForm(comissao: Comissao): ComissaoFormState {
       10,
     ),
     percentualImobiliaria: String(comissao.percentualImobiliaria ?? ""),
+    percentualIss: String(comissao.percentualIss ?? ""),
     percentualTributos: String(comissao.percentualTributos ?? ""),
     percentualCorretor: String(comissao.percentualCorretor ?? ""),
     percentualGerente: String(comissao.percentualGerente ?? ""),
@@ -342,6 +345,7 @@ export function ComissaoLancamentoDialog({
   const percentages = useMemo(() => {
     const base = {
       percentualImobiliaria: numberValue(form.percentualImobiliaria),
+      percentualIss: numberValue(form.percentualIss),
       percentualTributos: numberValue(form.percentualTributos),
       percentualCorretor: numberValue(form.percentualCorretor),
       percentualGerente: numberValue(form.percentualGerente),
@@ -365,10 +369,13 @@ export function ComissaoLancamentoDialog({
   const preview = useMemo(() => {
     const vgv = previewVgv;
     const gross = (vgv * percentages.percentualImobiliaria) / 100;
-    const taxes = (gross * percentages.percentualTributos) / 100;
-    const net = gross - taxes;
+    const iss = (gross * percentages.percentualIss) / 100;
+    const afterIss = gross - iss;
+    const taxes = (afterIss * percentages.percentualTributos) / 100;
+    const net = afterIss - taxes;
     return {
       gross,
+      iss,
       taxes,
       net,
       broker: (net * percentages.percentualCorretor) / 100,
@@ -927,6 +934,11 @@ export function ComissaoLancamentoDialog({
                     }
                   />
                   <PercentField
+                    label="ISS"
+                    value={form.percentualIss}
+                    onChange={(value) => setField("percentualIss", value)}
+                  />
+                  <PercentField
                     label="Tributos"
                     value={form.percentualTributos}
                     onChange={(value) => setField("percentualTributos", value)}
@@ -963,6 +975,11 @@ export function ComissaoLancamentoDialog({
                     onChange={(value) =>
                       setField("percentualImobiliaria", value)
                     }
+                  />
+                  <PercentField
+                    label="ISS"
+                    value={form.percentualIss}
+                    onChange={(value) => setField("percentualIss", value)}
                   />
                   <PercentField
                     label="Tributos"
@@ -1175,6 +1192,7 @@ export function ComissaoLancamentoDialog({
           <FormSection title="Prévia do cálculo" className="bg-muted/20">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Summary label="Comissão bruta" value={brl(preview.gross)} />
+              <Summary label="ISS" value={brl(preview.iss)} />
               <Summary label="Tributos" value={brl(preview.taxes)} />
               <Summary
                 label="Comissão líquida"
@@ -1195,8 +1213,8 @@ export function ComissaoLancamentoDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               {isSolo
-                ? "Bruta = VGV × % comissão; líquida = bruta − tributos; caixa e uso pessoal sobre a líquida."
-                : "Bruta = VGV × % imobiliária; líquida = bruta − tributos; distribuição calculada sobre a líquida."}
+                ? "Bruta = VGV × % comissão; ISS sobre a bruta; tributos sobre o saldo; líquida segue para caixa e uso pessoal."
+                : "Imobiliária, depois ISS, depois tributos. A líquida segue o rateio de corretor, gerente, caixa e sócios."}
             </p>
           </FormSection>
         </FormDialogBody>

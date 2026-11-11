@@ -923,6 +923,10 @@ function Page() {
                       value={`${numberValue(detail.percentualImobiliaria).toLocaleString("pt-BR")}%`}
                     />
                     <DetailField
+                      label="ISS"
+                      value={`${numberValue(detail.percentualIss).toLocaleString("pt-BR")}%`}
+                    />
+                    <DetailField
                       label="Tributos"
                       value={`${numberValue(detail.percentualTributos).toLocaleString("pt-BR")}%`}
                     />
@@ -954,6 +958,10 @@ function Page() {
                     <DetailField
                       label="Comissão bruta"
                       value={brl(numberValue(detail.comissaoBruta))}
+                    />
+                    <DetailField
+                      label="ISS"
+                      value={brl(numberValue(detail.valorIss))}
                     />
                     <DetailField
                       label="Tributos"
