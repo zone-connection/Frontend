@@ -121,7 +121,7 @@ export const PERMISSION_MODULES = [
   {
     key: "comissao",
     label: "Comissões",
-    routes: ["/financeiro/comissao"],
+    routes: ["/financeiro/comissao", "/financeiro/gestao-nf"],
     group: "financeiro",
   },
 ] as const;
@@ -571,6 +571,7 @@ export function actionForFinancePath(pathname: string): string | null {
     return "financeiro.receber.view";
   if (path.startsWith("/financeiro/fluxo-caixa")) return "financeiro.fluxo";
   if (path.startsWith("/financeiro/comissao")) return "financeiro.comissao";
+  if (path.startsWith("/financeiro/gestao-nf")) return "financeiro.access";
   if (path.startsWith("/financeiro")) return "financeiro.access";
   return null;
 }

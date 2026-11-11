@@ -955,6 +955,24 @@ function Page() {
 
                 <FormSection title="Valores calculados" className="bg-muted/20">
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {detail.notaFiscal ? (
+                      <DetailField
+                        label="Nota fiscal"
+                        value={
+                          <span className="space-y-1">
+                            <span className="block">NF {detail.notaFiscal.numero}</span>
+                            {detail.notaFiscal.cliente ? <span className="block text-muted-foreground">{detail.notaFiscal.cliente}</span> : null}
+                            {detail.notaFiscal.arquivoUrl ? (
+                              <a className="block text-primary underline" href={detail.notaFiscal.arquivoUrl} target="_blank" rel="noreferrer">
+                                {detail.notaFiscal.arquivoNome || "Abrir arquivo"}
+                              </a>
+                            ) : null}
+                          </span>
+                        }
+                      />
+                    ) : (
+                      <DetailField label="Nota fiscal" value="Não vinculada" />
+                    )}
                     <DetailField
                       label="Comissão bruta"
                       value={brl(numberValue(detail.comissaoBruta))}
