@@ -113,6 +113,7 @@ import {
   type Lead,
 } from "@/lib/crm-types";
 import { MeuLeadBadge } from "@/components/meu-lead-badge";
+import { LeadCadastroOrigemBadge } from "@/components/lead-cadastro-origem";
 import { TornarClienteDialog } from "@/components/tornar-cliente-button";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
@@ -4255,6 +4256,9 @@ function LeadsPage() {
                               </Badge>
                             ) : null}
                             {l.roletaRedistribuido ? <LeadRoletaBadge /> : null}
+                          </div>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                            <LeadCadastroOrigemBadge origem={l.cadastroOrigem} compact />
                           </div>
                           <div className="truncate text-[10px] text-muted-foreground">
                             {l.telefone}

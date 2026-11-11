@@ -90,6 +90,7 @@ export interface ApiLead {
   roletaRedistribuido?: boolean;
   createdAt: string;
   updatedAt: string;
+  reatribuicoes?: Array<{ actor: { role: string } | null }>;
   monitoramento?: LeadMonitoramento | null;
   metaLink?: {
     campaignId?: string | null;
@@ -209,6 +210,11 @@ export function mapApiLead(api: ApiLead): Lead {
     vagasMin: api.vagasMin ?? null,
     prospeccao: api.prospeccao ?? null,
     createdAt: api.createdAt,
+    cadastroOrigem:
+      api.reatribuicoes?.[0]?.actor?.role === "corretor" ||
+      api.reatribuicoes?.[0]?.actor?.role === "treinee"
+        ? "corretor"
+        : "imobiliaria",
     updatedAt: formatUpdatedAt(api.updatedAt),
     updatedAtIso: api.updatedAt,
     tags: api.tags ?? [],

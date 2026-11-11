@@ -178,6 +178,8 @@ export interface Lead {
   /** Prospecção B2B (tenant da plataforma). */
   prospeccao?: LeadProspeccao | null;
   interesses?: LeadEmpreendimentoInteresse[];
+  /** Quem cadastrou: corretor/treinee ou a imobiliária. */
+  cadastroOrigem?: "corretor" | "imobiliaria";
   /** Data de cadastro (ISO). */
   createdAt?: string;
   updatedAt: string;

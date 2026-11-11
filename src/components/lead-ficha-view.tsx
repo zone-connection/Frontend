@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LeadCadastroOrigemBadge } from "@/components/lead-cadastro-origem";
 import {
   ArrowLeft,
   Banknote,
@@ -308,6 +309,7 @@ export function LeadFichaView({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">{lead.nome}</h1>
+                <LeadCadastroOrigemBadge origem={lead.cadastroOrigem} />
                 {showMeuLeadBadge ? <MeuLeadBadge /> : null}
                 {lead.roletaRedistribuido ? <LeadRoletaBadge /> : null}
               </div>
