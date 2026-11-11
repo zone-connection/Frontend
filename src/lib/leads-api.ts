@@ -465,6 +465,21 @@ export type DistribuirResumo = {
   }>;
 };
 
+export type IndicadoresPeriodo = {
+  recebidos: number;
+  distribuidos: number;
+  perdas: number;
+};
+
+/** inicio/fim em ISO, limites inclusivos no fuso do navegador. */
+export async function fetchIndicadoresPeriodo(
+  inicio: string,
+  fim: string,
+): Promise<IndicadoresPeriodo> {
+  const query = new URLSearchParams({ inicio, fim });
+  return apiFetch<IndicadoresPeriodo>(`/leads/indicadores-periodo?${query}`);
+}
+
 export async function fetchDistribuirResumo(): Promise<DistribuirResumo> {
   return apiFetch<DistribuirResumo>("/leads/distribuir/resumo");
 }
