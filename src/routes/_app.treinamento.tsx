@@ -586,7 +586,13 @@ function TreinamentoPage() {
           <DialogHeader>
             <DialogTitle className="truncate pr-8">{preview?.titulo}</DialogTitle>
           </DialogHeader>
-          {preview ? <MaterialPreview url={preview.url} titulo={preview.titulo} /> : null}
+          {preview ? (
+            <MaterialPreview
+              linkId={preview.id}
+              url={preview.url}
+              titulo={preview.titulo}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
@@ -848,64 +854,141 @@ function materialKind(url: string): "video" | "image" | "file" {
   return "file";
 }
 
-function isDocx(url: string) {
-  return /\.docx$/i.test(url.split("?")[0]);
+function isDocxName(value: string) {
+  return /\.docx?$/i.test(value.split("?")[0]);
 }
 
-function DocxPreview({ url }: { url: string }) {
+function ArquivoSistemaPreview({
+  linkId,
+  url,
+  titulo,
+}: {
+  linkId: string;
+  url: string;
+  titulo: string;
+}) {
   const [html, setHtml] = useState("");
+  const [blobUrl, setBlobUrl] = useState("");
+  const [kind, setKind] = useState<"docx" | "media" | "">("");
   const [erro, setErro] = useState("");
 
   useEffect(() => {
     let cancelado = false;
+    let localUrl = "";
     setHtml("");
+    setBlobUrl("");
+    setKind("");
     setErro("");
     void (async () => {
       try {
-        const resposta = await fetch(url);
+        const resposta = await fetch(`/api/treinamento/links/${linkId}/arquivo`, {
+          credentials: "include",
+        });
         if (!resposta.ok) throw new Error("download");
-        const buffer = await resposta.arrayBuffer();
-        const mammoth = await import("mammoth");
-        const resultado = await mammoth.convertToHtml({ arrayBuffer: buffer });
-        if (cancelado) return;
-        setHtml(resultado.value.trim() || "<p>Este documento não tem texto para exibir.</p>");
+        const blob = await resposta.blob();
+        const tipo = (blob.type || "").toLowerCase();
+        const caminho = url.split("?")[0];
+        const pareceOutro =
+          /\.(pdf|png|jpe?g|webp|gif|mp4|webm|mov|m4v)$/i.test(caminho) ||
+          tipo.startsWith("image/") ||
+          tipo.startsWith("video/") ||
+          tipo.includes("pdf");
+        const pareceDocx =
+          isDocxName(url) ||
+          isDocxName(titulo) ||
+          tipo.includes("word") ||
+          !pareceOutro;
+        if (pareceDocx) {
+          try {
+            const mammoth = await import("mammoth");
+            const resultado = await mammoth.convertToHtml({
+              arrayBuffer: await blob.arrayBuffer(),
+            });
+            if (cancelado) return;
+            setKind("docx");
+            setHtml(
+              resultado.value.trim() ||
+                "<p>Este documento não tem texto para exibir.</p>",
+            );
+            return;
+          } catch {
+            if (isDocxName(url) || isDocxName(titulo) || tipo.includes("word")) {
+              throw new Error("docx");
+            }
+          }
+        }
+        localUrl = URL.createObjectURL(blob);
+        if (cancelado) {
+          URL.revokeObjectURL(localUrl);
+          return;
+        }
+        setKind("media");
+        setBlobUrl(localUrl);
       } catch {
-        if (!cancelado) setErro("Não foi possível abrir este Word.");
+        if (!cancelado) setErro("Não foi possível abrir este arquivo.");
       }
     })();
     return () => {
       cancelado = true;
+      if (localUrl) URL.revokeObjectURL(localUrl);
     };
-  }, [url]);
+  }, [linkId, titulo, url]);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [blobUrl]);
 
   if (erro) {
     return (
-      <div className="flex h-[75vh] flex-col items-center justify-center gap-3 rounded-xl border bg-muted text-sm">
-        <p>{erro}</p>
-        <a href={url} target="_blank" rel="noreferrer" className="text-primary underline">
-          Baixar arquivo
-        </a>
+      <div className="flex h-[75vh] items-center justify-center rounded-xl border bg-muted text-sm">
+        {erro}
       </div>
     );
   }
-  if (!html) {
+  if (kind === "docx" && html) {
     return (
-      <div className="flex h-[75vh] items-center justify-center rounded-xl border bg-muted text-sm text-muted-foreground">
-        Abrindo documento…
-      </div>
+      <div
+        className="h-[75vh] max-w-none overflow-auto rounded-xl border bg-white p-6 text-sm leading-relaxed text-slate-900 [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-3 [&_table]:w-full [&_td]:border [&_td]:px-2 [&_td]:py-1"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+  if (kind === "media" && blobUrl) {
+    const visual = materialKind(url);
+    if (visual === "video") {
+      return (
+        <video src={blobUrl} controls playsInline className="max-h-[75vh] w-full rounded-xl bg-black" />
+      );
+    }
+    if (visual === "image") {
+      return <img src={blobUrl} alt={titulo} className="max-h-[75vh] w-full rounded-xl object-contain" />;
+    }
+    return (
+      <iframe title={titulo} src={blobUrl} className="h-[75vh] w-full rounded-xl border bg-muted" />
     );
   }
   return (
-    <div
-      className="h-[75vh] max-w-none overflow-auto rounded-xl border bg-white p-6 text-sm leading-relaxed text-slate-900 [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-3 [&_table]:w-full [&_td]:border [&_td]:px-2 [&_td]:py-1"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="flex h-[75vh] items-center justify-center rounded-xl border bg-muted text-sm text-muted-foreground">
+      Abrindo documento…
+    </div>
   );
 }
 
-function MaterialPreview({ url, titulo }: { url: string; titulo: string }) {
+function MaterialPreview({
+  linkId,
+  url,
+  titulo,
+}: {
+  linkId: string;
+  url: string;
+  titulo: string;
+}) {
   const kind = materialKind(url);
-  if (isDocx(url)) return <DocxPreview url={url} />;
+  if (isArquivoDoSistema(url)) {
+    return <ArquivoSistemaPreview linkId={linkId} url={url} titulo={titulo} />;
+  }
   if (kind === "video") {
     return (
       <video
