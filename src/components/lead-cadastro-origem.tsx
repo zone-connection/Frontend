@@ -17,13 +17,13 @@ export function LeadCadastroOrigemBadge({
         "inline-flex max-w-full items-center gap-1 rounded-full font-medium",
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs",
         porCorretor
-          ? "bg-violet-100 text-violet-800"
+          ? "bg-orange-100 text-orange-800"
           : "bg-sky-100 text-sky-800",
       )}
     >
       <Icon className={compact ? "size-3 shrink-0" : "size-3.5 shrink-0"} />
       <span className="truncate">
-        {porCorretor ? "Criado por corretor" : "Criado pela imobiliária"}
+        {porCorretor ? "Criado pelo corretor" : "Criado pela imobiliária"}
       </span>
     </span>
   );

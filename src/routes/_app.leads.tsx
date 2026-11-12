@@ -710,7 +710,7 @@ function LeadsPage() {
   const [contratoLead, setContratoLead] = useState<Lead | null>(null);
   const [arquivosLead, setArquivosLead] = useState<Lead | null>(null);
   const showTeamColumns = !isCorretor && !isPlatformAdmin;
-  const leadTableColSpan = isPlatformAdmin ? 9 : showTeamColumns ? 7 : 6;
+  const leadTableColSpan = isPlatformAdmin ? 10 : showTeamColumns ? 8 : 7;
   /** Só admin/analista filtram entre várias equipes. Gerente não filtra por outras. */
   const canFilterEquipe = user?.role === "admin" || user?.role === "analista";
 
@@ -1423,8 +1423,13 @@ function LeadsPage() {
       toast.error(PHONE_INVALID_MESSAGE);
       return;
     }
+    if (formMode === "create" && !form.origem.trim()) {
+      setTenantLeadSection("contato");
+      toast.error("Selecione a origem do lead.");
+      return;
+    }
     if (form.origem && !origemOptions.includes(form.origem)) {
-      toast.error("Selecione uma origem válida ou deixe em branco.");
+      toast.error("Selecione uma origem válida.");
       return;
     }
 
@@ -1450,7 +1455,8 @@ function LeadsPage() {
     const tags = [form.temperatura, ...otherTags];
     const emailFinal =
       email || `contato.${phoneDigits(telefone)}@sem-email.local`;
-    const origemFinal = form.origem.trim() || "Não informado";
+    const origemFinal =
+      form.origem.trim() || (formMode === "edit" ? "Não informado" : "");
 
     let equipeId: string | null | undefined;
     let corretorId: string | null | undefined;
@@ -2785,10 +2791,15 @@ function LeadsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">
-                    Origem <span className="font-normal">(opcional)</span>
+                    Origem
+                    {formMode === "create" ? (
+                      <span className="text-destructive"> *</span>
+                    ) : (
+                      <span className="font-normal"> (opcional)</span>
+                    )}
                   </Label>
                   <Select
-                    value={form.origem || "__none__"}
+                    value={form.origem || (formMode === "create" ? undefined : "__none__")}
                     onValueChange={(v) =>
                       setField("origem", v === "__none__" ? "" : v)
                     }
@@ -2797,7 +2808,9 @@ function LeadsPage() {
                       <SelectValue placeholder="Selecione a origem" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Sem origem</SelectItem>
+                      {formMode === "edit" ? (
+                        <SelectItem value="__none__">Sem origem</SelectItem>
+                      ) : null}
                       {origemOptions.map((o) => (
                         <SelectItem key={o} value={o}>
                           {o}
@@ -4160,6 +4173,7 @@ function LeadsPage() {
                   <TableHead className="w-[8%]">Município</TableHead>
                 </>
               ) : null}
+              <TableHead className="w-32">Origem</TableHead>
               <TableHead className="w-19">Prioridade</TableHead>
               <TableHead className="w-28">Atualizado</TableHead>
               <TableHead className="sticky right-0 z-20 w-16 text-right">
@@ -4315,6 +4329,11 @@ function LeadsPage() {
                         </TableCell>
                       </>
                     ) : null}
+                    <TableCell className="truncate" title={l.origem || undefined}>
+                      {l.origem || (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="truncate">
                       <Badge
                         className={cn(
