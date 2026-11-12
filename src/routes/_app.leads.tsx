@@ -1328,6 +1328,7 @@ function LeadsPage() {
     setEditingId(null);
     setPlatformLeadTab("empresa");
     setTenantLeadSection("contato");
+    void refreshCatalog({ silent: true });
     // Sem vínculo: lead fica no pool do admin para distribuição.
     setForm({
       ...emptyForm(),
@@ -1421,11 +1422,6 @@ function LeadsPage() {
     }
     if (!isValidPhone(telefone)) {
       toast.error(PHONE_INVALID_MESSAGE);
-      return;
-    }
-    if (formMode === "create" && !form.origem.trim()) {
-      setTenantLeadSection("contato");
-      toast.error("Selecione a origem do lead.");
       return;
     }
     if (form.origem && !origemOptions.includes(form.origem)) {
@@ -2595,7 +2591,7 @@ function LeadsPage() {
                         <SelectTrigger className="h-10 bg-background">
                           <SelectValue placeholder="Selecione a origem" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[80] max-h-72">
                           <SelectItem value="__none__">Sem origem</SelectItem>
                           {origemOptions.map((o) => (
                             <SelectItem key={o} value={o}>
@@ -2791,15 +2787,10 @@ function LeadsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">
-                    Origem
-                    {formMode === "create" ? (
-                      <span className="text-destructive"> *</span>
-                    ) : (
-                      <span className="font-normal"> (opcional)</span>
-                    )}
+                    Origem <span className="font-normal">(opcional)</span>
                   </Label>
                   <Select
-                    value={form.origem || (formMode === "create" ? undefined : "__none__")}
+                    value={form.origem || "__none__"}
                     onValueChange={(v) =>
                       setField("origem", v === "__none__" ? "" : v)
                     }
@@ -2807,10 +2798,8 @@ function LeadsPage() {
                     <SelectTrigger className="h-10 bg-background">
                       <SelectValue placeholder="Selecione a origem" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {formMode === "edit" ? (
-                        <SelectItem value="__none__">Sem origem</SelectItem>
-                      ) : null}
+                    <SelectContent className="z-[80] max-h-72">
+                      <SelectItem value="__none__">Sem origem</SelectItem>
                       {origemOptions.map((o) => (
                         <SelectItem key={o} value={o}>
                           {o}
