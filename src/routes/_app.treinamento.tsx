@@ -848,8 +848,64 @@ function materialKind(url: string): "video" | "image" | "file" {
   return "file";
 }
 
+function isDocx(url: string) {
+  return /\.docx$/i.test(url.split("?")[0]);
+}
+
+function DocxPreview({ url }: { url: string }) {
+  const [html, setHtml] = useState("");
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let cancelado = false;
+    setHtml("");
+    setErro("");
+    void (async () => {
+      try {
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error("download");
+        const buffer = await resposta.arrayBuffer();
+        const mammoth = await import("mammoth");
+        const resultado = await mammoth.convertToHtml({ arrayBuffer: buffer });
+        if (cancelado) return;
+        setHtml(resultado.value.trim() || "<p>Este documento não tem texto para exibir.</p>");
+      } catch {
+        if (!cancelado) setErro("Não foi possível abrir este Word.");
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [url]);
+
+  if (erro) {
+    return (
+      <div className="flex h-[75vh] flex-col items-center justify-center gap-3 rounded-xl border bg-muted text-sm">
+        <p>{erro}</p>
+        <a href={url} target="_blank" rel="noreferrer" className="text-primary underline">
+          Baixar arquivo
+        </a>
+      </div>
+    );
+  }
+  if (!html) {
+    return (
+      <div className="flex h-[75vh] items-center justify-center rounded-xl border bg-muted text-sm text-muted-foreground">
+        Abrindo documento…
+      </div>
+    );
+  }
+  return (
+    <div
+      className="h-[75vh] max-w-none overflow-auto rounded-xl border bg-white p-6 text-sm leading-relaxed text-slate-900 [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-3 [&_table]:w-full [&_td]:border [&_td]:px-2 [&_td]:py-1"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 function MaterialPreview({ url, titulo }: { url: string; titulo: string }) {
   const kind = materialKind(url);
+  if (isDocx(url)) return <DocxPreview url={url} />;
   if (kind === "video") {
     return (
       <video
