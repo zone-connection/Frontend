@@ -208,7 +208,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
               "media-src 'self' blob: https:",
-              "frame-src https://challenges.cloudflare.com https://res.cloudinary.com",
+              "frame-src 'self' blob: https://challenges.cloudflare.com https://res.cloudinary.com",
               `connect-src ${connectSrc}`,
             ].join("; "),
           },
