@@ -136,6 +136,8 @@ export type VendaElegivelComissao = {
   documentacaoId: string;
   cliente?: string | ComissaoRelacionamento | null;
   empreendimento?: string | ComissaoRelacionamento | null;
+  construtora?: string;
+  torreBloco?: string;
   corretor?: string | ComissaoRelacionamento | null;
   gerente?: string | ComissaoRelacionamento | null;
   equipe?: string | ComissaoRelacionamento | null;

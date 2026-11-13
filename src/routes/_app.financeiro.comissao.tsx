@@ -961,7 +961,13 @@ function Page() {
                         value={
                           <span className="space-y-1">
                             <span className="block">NF {detail.notaFiscal.numero}</span>
-                            {detail.notaFiscal.cliente ? <span className="block text-muted-foreground">{detail.notaFiscal.cliente}</span> : null}
+                            {detail.notaFiscal.cliente ? <span className="block">Cliente: {detail.notaFiscal.cliente}</span> : null}
+                            {detail.notaFiscal.vgv != null ? <span className="block">VGV: {brl(detail.notaFiscal.vgv)}</span> : null}
+                            {detail.notaFiscal.corretor ? <span className="block">Corretor: {detail.notaFiscal.corretor}</span> : null}
+                            {detail.notaFiscal.construtora ? <span className="block">Construtora: {detail.notaFiscal.construtora}</span> : null}
+                            {detail.notaFiscal.empreendimento ? <span className="block">Empreendimento: {detail.notaFiscal.empreendimento}</span> : null}
+                            {detail.notaFiscal.torreBloco ? <span className="block">Torre/bloco: {detail.notaFiscal.torreBloco}</span> : null}
+                            {detail.notaFiscal.dataEmissao ? <span className="block">Emissão: {formatDate(detail.notaFiscal.dataEmissao)}</span> : null}
                             {detail.notaFiscal.arquivoUrl ? (
                               <a className="block text-primary underline" href={detail.notaFiscal.arquivoUrl} target="_blank" rel="noreferrer">
                                 {detail.notaFiscal.arquivoNome || "Abrir arquivo"}
@@ -970,9 +976,7 @@ function Page() {
                           </span>
                         }
                       />
-                    ) : (
-                      <DetailField label="Nota fiscal" value="Não vinculada" />
-                    )}
+                    ) : null}
                     <DetailField
                       label="Comissão bruta"
                       value={brl(numberValue(detail.comissaoBruta))}

@@ -258,7 +258,6 @@ export function ComissaoLancamentoDialog({
   const [saving, setSaving] = useState(false);
   const [notas, setNotas] = useState<NotaFiscal[]>([]);
   const [notaFiscalId, setNotaFiscalId] = useState("");
-  const [notaBusca, setNotaBusca] = useState("");
   const [notaArquivo, setNotaArquivo] = useState<File | null>(null);
   const [notaNumero, setNotaNumero] = useState("");
   const [corretores, setCorretores] = useState<DocumentacaoCorretor[]>([]);
@@ -320,7 +319,6 @@ export function ComissaoLancamentoDialog({
     }
     setNotaArquivo(null);
     setNotaNumero("");
-    setNotaBusca("");
     setNotaFiscalId(editing?.notaFiscalId ?? editing?.notaFiscal?.id ?? "");
     void fetchNotasFiscais().then(setNotas).catch(() => setNotas([]));
     if (mode === "edit" && editing) {
@@ -343,6 +341,33 @@ export function ComissaoLancamentoDialog({
   const saleSummary = selectedSale ?? editing ?? null;
   const avulsoVgv = parseOptionalMoneyInput(form.vgv) ?? 0;
   const previewVgv = isAvulsa ? avulsoVgv : numberValue(saleSummary?.vgv);
+  function dadosNotaDoLancamento() {
+    const nome = (value?: string | ComissaoRelacionamento | null) => {
+      const text = relationName(value, "");
+      return text === "—" ? "" : text;
+    };
+    const corretorAvulso = corretores.find((item) => item.id === form.corretorId);
+    const construtoraAvulsa = construtoras.find(
+      (item) => item.id === form.construtoraId,
+    );
+    const empreendimentoAvulso = empreendimentos.find(
+      (item) => item.id === form.empreendimentoId,
+    );
+    return {
+      cliente: nome(saleSummary?.cliente) || form.clienteNome.trim(),
+      vgv: previewVgv || null,
+      corretor: isAvulsa
+        ? (corretorAvulso?.name ?? "")
+        : nome(saleSummary?.corretor),
+      construtora: isAvulsa
+        ? (construtoraAvulsa?.nome ?? "")
+        : (selectedSale?.construtora ?? ""),
+      empreendimento: isAvulsa
+        ? (empreendimentoAvulso?.nome ?? "")
+        : nome(saleSummary?.empreendimento),
+      torreBloco: selectedSale?.torreBloco ?? "",
+    };
+  }
   const filteredEmpreendimentos = useMemo(() => {
     if (!form.construtoraId) return empreendimentos;
     return empreendimentos.filter(
@@ -494,20 +519,28 @@ export function ComissaoLancamentoDialog({
     try {
       let notaId = notaFiscalId;
       if (notaArquivo) {
-        if (!notaNumero.trim()) {
+        const selecionada = notas.find((nota) => nota.id === notaFiscalId);
+        if (!selecionada && !notaNumero.trim()) {
           toast.error("Informe o número da NF para anexar o arquivo.");
           setSaving(false);
           return;
         }
-        const criada = await saveNotaFiscal({
-          numero: notaNumero.trim(),
-          cliente: relationName(saleSummary?.cliente) || form.clienteNome,
-          vgv: previewVgv || null,
-          corretor: relationName(saleSummary?.corretor),
-          empreendimento: relationName(saleSummary?.empreendimento),
-          file: notaArquivo,
-        });
-        notaId = criada.id;
+        const dadosNota = dadosNotaDoLancamento();
+        const salva = await saveNotaFiscal(
+          selecionada
+            ? {
+                ...selecionada,
+                numero: notaNumero.trim() || selecionada.numero,
+                file: notaArquivo,
+              }
+            : {
+                ...dadosNota,
+                numero: notaNumero.trim(),
+                file: notaArquivo,
+              },
+          selecionada?.id,
+        );
+        notaId = salva.id;
       }
       const created = mode === "create";
       const avulsaPayload = {
@@ -949,25 +982,29 @@ export function ComissaoLancamentoDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Selecionar NF cadastrada</Label>
-              <Input value={notaBusca} onChange={(event) => setNotaBusca(event.target.value)} placeholder="Buscar por cliente, VGV, corretor, construtora, empreendimento, torre ou número" />
-              <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              <IdSearchSelect
                 value={notaFiscalId}
-                onChange={(event) => setNotaFiscalId(event.target.value)}
-              >
-                <option value="">Sem NF vinculada</option>
-                {notas
-                  .filter((nota) => {
-                    const term = notaBusca.trim().toLowerCase();
-                    if (!term) return true;
-                    return [nota.numero, nota.cliente, nota.corretor, nota.construtora, nota.empreendimento, nota.torreBloco, nota.vgv ?? ""].join(" ").toLowerCase().includes(term);
-                  })
-                  .map((nota) => (
-                    <option key={nota.id} value={nota.id}>
-                      NF {nota.numero}{nota.cliente ? ` · ${nota.cliente}` : ""}{nota.empreendimento ? ` · ${nota.empreendimento}` : ""}
-                    </option>
-                  ))}
-              </select>
+                onChange={setNotaFiscalId}
+                placeholder="Sem NF vinculada"
+                noneLabel="Sem NF vinculada"
+                emptyLabel="Nenhuma NF cadastrada"
+                searchPlaceholder="Cliente, VGV, corretor, construtora, empreendimento, torre ou número"
+                options={notas.map((nota) => ({
+                  id: nota.id,
+                  label: `NF ${nota.numero}${nota.cliente ? ` · ${nota.cliente}` : ""}`,
+                  hint: [nota.empreendimento, nota.torreBloco].filter(Boolean).join(" · "),
+                  keywords: [
+                    nota.numero,
+                    nota.cliente,
+                    nota.corretor,
+                    nota.construtora,
+                    nota.empreendimento,
+                    nota.torreBloco,
+                    nota.vgv ?? "",
+                    nota.vgv == null ? "" : brl(nota.vgv),
+                  ].join(" "),
+                }))}
+              />
             </div>
           </FormSection>
 
