@@ -192,6 +192,7 @@ function Page() {
                   onCheckedChange={(filtroCampanhas) =>
                     void run(() =>
                       setFilaFiltros({
+                        filaEquipes: Boolean(painel.filaEquipes),
                         filtroCampanhas,
                         outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
                       }),
@@ -207,6 +208,7 @@ function Page() {
                   onCheckedChange={(outrosCanaisNaFila) =>
                     void run(() =>
                       setFilaFiltros({
+                        filaEquipes: Boolean(painel.filaEquipes),
                         filtroCampanhas: Boolean(painel.filtroCampanhas),
                         outrosCanaisNaFila,
                       }),
@@ -363,11 +365,29 @@ function Page() {
             </ul>
           </Card>
           <Card className="space-y-3 p-4">
-            <p className="font-medium">Fila de equipes</p>
-            <p className="text-sm text-muted-foreground">
-              O lead cai no pool da equipe. A distribuição interna da equipe continua igual.
-              Com o prazo estourado e sem corretor, o lead volta ao pool do administrador.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">Fila de equipes</p>
+                <p className="text-sm text-muted-foreground">
+                  {painel.filaEquipes
+                    ? "Ligada. Os leads novos passam pelas equipes, na ordem. O filtro de campanhas continua opcional."
+                    : "Desligada. A distribuição segue só entre os corretores."}
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(painel.filaEquipes)}
+                onCheckedChange={(filaEquipes) =>
+                  void run(() =>
+                    setFilaFiltros({
+                      filaEquipes,
+                      filtroCampanhas: Boolean(painel.filtroCampanhas),
+                      outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
+                    }),
+                  )
+                }
+                aria-label="Ativar fila de equipes"
+              />
+            </div>
             <div className="flex flex-wrap items-end gap-2">
               <label className="min-w-56 flex-1 text-sm">
                 Adicionar equipe

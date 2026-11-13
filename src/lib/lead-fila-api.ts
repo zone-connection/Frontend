@@ -26,6 +26,7 @@ export type FilaMembro = {
 
 export type FilaPainel = {
   ativa: boolean;
+  filaEquipes?: boolean;
   filtroCampanhas?: boolean;
   outrosCanaisNaFila?: boolean;
   redistribuirMinutos: number;
@@ -111,10 +112,20 @@ export function fetchFilaCampanhas() {
 }
 
 export function setFilaFiltros(filtros: {
+  filaEquipes?: boolean;
   filtroCampanhas: boolean;
   outrosCanaisNaFila: boolean;
 }) {
-  return apiFetch("/leads/distribuir/fila/filtros", { method: "PATCH", body: filtros });
+  const body: {
+    filtroCampanhas: boolean;
+    outrosCanaisNaFila: boolean;
+    filaEquipes?: boolean;
+  } = {
+    filtroCampanhas: filtros.filtroCampanhas,
+    outrosCanaisNaFila: filtros.outrosCanaisNaFila,
+  };
+  if (typeof filtros.filaEquipes === "boolean") body.filaEquipes = filtros.filaEquipes;
+  return apiFetch("/leads/distribuir/fila/filtros", { method: "PATCH", body });
 }
 
 export function addFilaEquipe(equipeId: string) {

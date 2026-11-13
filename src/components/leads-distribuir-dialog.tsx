@@ -44,13 +44,17 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import {
   addFilaMembro,
+  fetchFilaCampanhas,
   fetchFilaElegiveis,
   fetchFilaPainel,
   removeFilaMembro,
   reordenarFila,
   setFilaAtiva,
+  setFilaCampanhasMembro,
+  setFilaFiltros,
   setFilaMembroAtivo,
   setFilaPrazo,
+  type FilaCampanha,
   type FilaElegivel,
   type FilaPainel,
 } from "@/lib/lead-fila-api";
@@ -114,19 +118,22 @@ function FilaDistribuicaoPainel({
 }) {
   const [painel, setPainel] = useState<FilaPainel | null>(null);
   const [elegiveis, setElegiveis] = useState<FilaElegivel[]>([]);
+  const [campanhas, setCampanhas] = useState<FilaCampanha[]>([]);
   const [userId, setUserId] = useState("");
   const [busca, setBusca] = useState("");
   const [minutos, setMinutos] = useState("0");
   const [busy, setBusy] = useState(true);
 
   const load = useCallback(async () => {
-    const [next, livres] = await Promise.all([
+    const [next, livres, opcoes] = await Promise.all([
       fetchFilaPainel(),
       fetchFilaElegiveis(),
+      fetchFilaCampanhas(),
     ]);
     setPainel(next);
     setMinutos(String(next.redistribuirMinutos ?? 0));
     setElegiveis(livres);
+    setCampanhas(opcoes);
   }, []);
 
   useEffect(() => {
@@ -162,8 +169,8 @@ function FilaDistribuicaoPainel({
   }
 
   const termo = busca.trim().toLowerCase();
-  const membros = painel.membros.filter((m) =>
-    termo ? m.nome.toLowerCase().includes(termo) : true,
+  const membros = painel.membros.filter(
+    (m) => m.tipo !== "equipe" && (termo ? m.nome.toLowerCase().includes(termo) : true),
   );
   const ativos = painel.membros.filter((m) => m.ativoNaFila).length;
 
@@ -223,6 +230,28 @@ function FilaDistribuicaoPainel({
         </Button>
       </div>
 
+      <label className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm">
+        <span>
+          <span className="block font-semibold">Filtrar por campanhas</span>
+          <span className="text-xs text-muted-foreground">
+            Opcional. Ligado, o corretor só recebe as campanhas marcadas abaixo.
+          </span>
+        </span>
+        <Switch
+          checked={Boolean(painel.filtroCampanhas)}
+          disabled={busy}
+          onCheckedChange={(filtroCampanhas) =>
+            void run(() =>
+              setFilaFiltros({
+                filtroCampanhas,
+                outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
+              }),
+            )
+          }
+          aria-label="Filtrar por campanhas"
+        />
+      </label>
+
       <div className="rounded-2xl border">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <div className="flex items-center gap-2">
@@ -254,7 +283,7 @@ function FilaDistribuicaoPainel({
           ) : (
             membros.map((membro) => {
               const index = painel.membros.findIndex((m) => m.id === membro.id);
-              const online = onlineIds.has(membro.userId);
+              const online = membro.userId ? onlineIds.has(membro.userId) : false;
               return (
                 <li
                   key={membro.id}
@@ -280,6 +309,26 @@ function FilaDistribuicaoPainel({
                       {CARGO[membro.role] ?? membro.role}
                       {membro.ativoNaFila ? "" : " · pausado"}
                     </p>
+                    <select
+                      multiple
+                      aria-label={`Campanhas de ${membro.nome}`}
+                      className="mt-1 h-16 w-full rounded-md border bg-background px-1 text-xs"
+                      value={(membro.campanhas ?? []).map((c) => c.chave)}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const chaves = Array.from(event.target.selectedOptions).map(
+                          (opcao) => opcao.value,
+                        );
+                        const escolhidas = campanhas.filter((c) => chaves.includes(c.chave));
+                        void run(() => setFilaCampanhasMembro(membro.id, escolhidas));
+                      }}
+                    >
+                      {campanhas.map((campanha) => (
+                        <option key={campanha.chave} value={campanha.chave}>
+                          {campanha.nome}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <Button
                     type="button"
