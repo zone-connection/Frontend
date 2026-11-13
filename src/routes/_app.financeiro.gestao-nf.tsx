@@ -1,17 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { FileText, FileWarning, Link2Off, Plus, Receipt } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   FormDialogActions,
   FormDialogBody,
   FormDialogShell,
+  FormSection,
 } from "@/components/form-dialog";
-import { fetchNotasFiscais, saveNotaFiscal, type NotaFiscal } from "@/lib/financeiro-api";
-import { brl } from "@/lib/financeiro-mock";
+import { FinanceKpiCard } from "@/components/finance-kpi-card";
+import { PagePanel } from "@/components/page-panel";
+import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
+import { FILTRO_CAMPO } from "@/components/filtros-painel";
+import { TablePager } from "@/components/table-pager";
+import {
+  fetchNotasFiscais,
+  fetchNotasFiscaisOpcoes,
+  saveNotaFiscal,
+  type NotaFiscal,
+} from "@/lib/financeiro-api";
+import { brl, formatDate, type PeriodoFiltro } from "@/lib/financeiro-mock";
+import { TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
+import { useTablePager } from "@/lib/use-table-pager";
 import { ApiError } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -31,37 +60,90 @@ const empty = {
   dataEmissao: "",
 };
 
+type ArquivoFiltro = "todos" | "com" | "sem";
+
 function Page() {
   const [rows, setRows] = useState<NotaFiscal[]>([]);
+  const [corretores, setCorretores] = useState<string[]>([]);
+  const [construtoras, setConstrutoras] = useState<string[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<string[]>([]);
   const [q, setQ] = useState("");
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>("tudo");
+  const [dataDe, setDataDe] = useState("");
+  const [dataAte, setDataAte] = useState("");
+  const [corretor, setCorretor] = useState("todos");
+  const [construtora, setConstrutora] = useState("todos");
+  const [empreendimento, setEmpreendimento] = useState("todos");
+  const [arquivo, setArquivo] = useState<ArquivoFiltro>("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<NotaFiscal | null>(null);
   const [form, setForm] = useState(empty);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function load() {
+  async function loadOpcoes() {
     try {
-      setRows(await fetchNotasFiscais());
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar as notas.");
+      const opcoes = await fetchNotasFiscaisOpcoes();
+      setCorretores(opcoes.corretores);
+      setConstrutoras(opcoes.construtoras);
+      setEmpreendimentos(opcoes.empreendimentos);
+    } catch {
+      /* a lista segue mesmo sem as opções do filtro */
     }
   }
 
   useEffect(() => {
-    void load();
+    void loadOpcoes();
   }, []);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((row) =>
-      [row.numero, row.cliente, row.corretor, row.construtora, row.empreendimento, row.torreBloco, row.vgv ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(term),
-    );
-  }, [rows, q]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setRows(
+            await fetchNotasFiscais({
+              q,
+              periodo,
+              de: dataDe,
+              ate: dataAte,
+              corretor,
+              construtora,
+              empreendimento,
+              arquivo: arquivo === "todos" ? undefined : arquivo,
+            }),
+          );
+        } catch (err) {
+          toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar as notas.");
+        }
+      })();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [q, periodo, dataDe, dataAte, corretor, construtora, empreendimento, arquivo]);
+
+  const hasActive =
+    Boolean(q.trim()) ||
+    periodo !== "tudo" ||
+    Boolean(dataDe || dataAte) ||
+    corretor !== "todos" ||
+    construtora !== "todos" ||
+    empreendimento !== "todos" ||
+    arquivo !== "todos";
+
+  const pager = useTablePager(
+    rows,
+    `${q}|${periodo}|${dataDe}|${dataAte}|${corretor}|${construtora}|${empreendimento}|${arquivo}`,
+  );
+
+  function clearFilters() {
+    setQ("");
+    setPeriodo("tudo");
+    setDataDe("");
+    setDataAte("");
+    setCorretor("todos");
+    setConstrutora("todos");
+    setEmpreendimento("todos");
+    setArquivo("todos");
+  }
 
   function startCreate() {
     setEditing(null);
@@ -110,7 +192,19 @@ function Page() {
       );
       setOpen(false);
       toast.success(editing ? "Nota atualizada." : "Nota cadastrada.");
-      await load();
+      setRows(
+        await fetchNotasFiscais({
+          q,
+          periodo,
+          de: dataDe,
+          ate: dataAte,
+          corretor,
+          construtora,
+          empreendimento,
+          arquivo: arquivo === "todos" ? undefined : arquivo,
+        }),
+      );
+      await loadOpcoes();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível salvar a nota.");
     } finally {
@@ -119,90 +213,234 @@ function Page() {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <PageHeader
         title="Gestão de NF"
         description="Notas fiscais das vendas e das comissões."
-        actions={<Button onClick={startCreate}>Nova NF</Button>}
+        actions={
+          <Button type="button" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} onClick={startCreate}>
+            <Plus className="mr-1.5 size-4" />
+            Nova NF
+          </Button>
+        }
       />
-      <Input
-        value={q}
-        onChange={(event) => setQ(event.target.value)}
-        placeholder="Buscar por número, cliente, corretor, construtora, empreendimento ou torre"
+
+      <FinanceiroFiltrosBar
+        kicker="Gestão de NF"
+        resultCount={rows.length}
+        search={q}
+        onSearchChange={setQ}
+        searchPlaceholder="Buscar número, cliente, corretor, construtora, empreendimento ou torre"
+        periodo={periodo}
+        onPeriodoChange={setPeriodo}
+        dataDe={dataDe}
+        onDataDeChange={setDataDe}
+        dataAte={dataAte}
+        onDataAteChange={setDataAte}
+        hasActive={hasActive}
+        onClear={clearFilters}
+        extra={
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FiltroOpcoes label="Corretor" value={corretor} onChange={setCorretor} options={corretores} todos="Todos os corretores" />
+            <FiltroOpcoes label="Construtora" value={construtora} onChange={setConstrutora} options={construtoras} todos="Todas as construtoras" />
+            <FiltroOpcoes label="Empreendimento" value={empreendimento} onChange={setEmpreendimento} options={empreendimentos} todos="Todos os empreendimentos" />
+            <div className="space-y-1.5">
+              <Label>Arquivo</Label>
+              <Select value={arquivo} onValueChange={(value) => setArquivo(value as ArquivoFiltro)}>
+                <SelectTrigger className={FILTRO_CAMPO}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Com ou sem arquivo</SelectItem>
+                  <SelectItem value="com">Com arquivo</SelectItem>
+                  <SelectItem value="sem">Sem arquivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        }
       />
-      <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left">
-            <tr>
-              <th className="px-3 py-2">Número</th>
-              <th className="px-3 py-2">Cliente</th>
-              <th className="px-3 py-2">VGV</th>
-              <th className="px-3 py-2">Corretor</th>
-              <th className="px-3 py-2">Empreendimento</th>
-              <th className="px-3 py-2">Arquivo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                  Nenhuma nota fiscal cadastrada.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((row) => (
-                <tr key={row.id} className="cursor-pointer border-t" onClick={() => startEdit(row)}>
-                  <td className="px-3 py-2 font-medium">{row.numero}</td>
-                  <td className="px-3 py-2">{row.cliente || "—"}</td>
-                  <td className="px-3 py-2">{row.vgv == null ? "—" : brl(row.vgv)}</td>
-                  <td className="px-3 py-2">{row.corretor || "—"}</td>
-                  <td className="px-3 py-2">{row.empreendimento || "—"}</td>
-                  <td className="px-3 py-2">
-                    {row.arquivoUrl ? (
-                      <a className="text-primary underline" href={row.arquivoUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-                        {row.arquivoNome || "Abrir"}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+
+      <PagePanel
+        inset="muted"
+        className="mb-4"
+        title="Notas no recorte"
+        description="Os números acompanham a busca e os filtros."
+      >
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <FinanceKpiCard
+            label="Notas"
+            value={rows.length}
+            format="number"
+            icon={FileText}
+            variant="dash"
+            tone="blue"
+          />
+          <FinanceKpiCard
+            label="Sem comissão"
+            value={rows.filter((row) => !row.vinculada).length}
+            format="number"
+            icon={Link2Off}
+            variant="dash"
+            tone="orange"
+          />
+          <FinanceKpiCard
+            label="Sem arquivo"
+            value={rows.filter((row) => !row.arquivoUrl).length}
+            format="number"
+            icon={FileWarning}
+            variant="dash"
+            tone="rose"
+          />
+          <FinanceKpiCard
+            label="VGV das notas"
+            value={rows.reduce((sum, row) => sum + (row.vgv ?? 0), 0)}
+            icon={Receipt}
+            variant="dash"
+            tone="teal"
+          />
+        </section>
+      </PagePanel>
+
+      <div className={TABLE_SHELL}>
+        <div className="overflow-x-auto">
+          <Table className={TABLE_LUX}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="h-9">Número</TableHead>
+                <TableHead className="h-9">Cliente</TableHead>
+                <TableHead className="h-9">VGV</TableHead>
+                <TableHead className="h-9">Corretor</TableHead>
+                <TableHead className="h-9">Construtora</TableHead>
+                <TableHead className="h-9">Empreendimento</TableHead>
+                <TableHead className="h-9">Emissão</TableHead>
+                <TableHead className="h-9">Arquivo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pager.pageItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                    {hasActive ? "Nenhuma nota neste filtro." : "Nenhuma nota fiscal cadastrada."}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pager.pageItems.map((row) => (
+                  <TableRow key={row.id} className="cursor-pointer" onClick={() => startEdit(row)}>
+                    <TableCell className="font-medium">{row.numero}</TableCell>
+                    <TableCell>{row.cliente || "—"}</TableCell>
+                    <TableCell>{row.vgv == null ? "—" : brl(row.vgv)}</TableCell>
+                    <TableCell>{row.corretor || "—"}</TableCell>
+                    <TableCell>{row.construtora || "—"}</TableCell>
+                    <TableCell>
+                      {row.empreendimento || "—"}
+                      {row.torreBloco ? <span className="block text-xs text-muted-foreground">{row.torreBloco}</span> : null}
+                    </TableCell>
+                    <TableCell>{row.dataEmissao ? formatDate(row.dataEmissao) : "—"}</TableCell>
+                    <TableCell>
+                      {row.arquivoUrl ? (
+                        <a
+                          className="text-primary underline"
+                          href={row.arquivoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {row.arquivoNome || "Abrir"}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          onPageChange={pager.setPage}
+        />
       </div>
 
-      <FormDialogShell open={open} onOpenChange={setOpen} icon={<FileText className="size-5" />} title={editing ? "Editar NF" : "Nova NF"}>
+      <FormDialogShell
+        open={open}
+        onOpenChange={setOpen}
+        icon={<FileText className="size-5" />}
+        title={editing ? "Editar NF" : "Nova NF"}
+        description="Só o número é obrigatório. Os demais dados podem ser preenchidos depois."
+      >
         <form onSubmit={(event) => void submit(event)}>
-          <FormDialogBody className="grid gap-3 sm:grid-cols-2">
-            <Field label="Número da NF" required value={form.numero} onChange={(numero) => setForm({ ...form, numero })} />
-            <Field label="Cliente" value={form.cliente} onChange={(cliente) => setForm({ ...form, cliente })} />
-            <Field label="Valor da venda (VGV)" value={form.vgv} onChange={(vgv) => setForm({ ...form, vgv })} />
-            <Field label="Corretor" value={form.corretor} onChange={(corretor) => setForm({ ...form, corretor })} />
-            <Field label="Construtora" value={form.construtora} onChange={(construtora) => setForm({ ...form, construtora })} />
-            <Field label="Empreendimento" value={form.empreendimento} onChange={(empreendimento) => setForm({ ...form, empreendimento })} />
-            <Field label="Torre / Bloco" value={form.torreBloco} onChange={(torreBloco) => setForm({ ...form, torreBloco })} />
-            <div className="space-y-1.5">
-              <Label>Data de emissão</Label>
-              <Input type="date" value={form.dataEmissao} onChange={(event) => setForm({ ...form, dataEmissao: event.target.value })} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Arquivo da NF</Label>
-              <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-              {editing?.arquivoUrl ? (
-                <a className="text-xs text-primary underline" href={editing.arquivoUrl} target="_blank" rel="noreferrer">
-                  Arquivo atual: {editing.arquivoNome || "abrir"}
-                </a>
-              ) : null}
-            </div>
+          <FormDialogBody>
+            <FormSection title="Nota">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Número da NF" required value={form.numero} onChange={(numero) => setForm({ ...form, numero })} />
+                <div className="space-y-1.5">
+                  <Label>Data de emissão</Label>
+                  <Input type="date" value={form.dataEmissao} onChange={(event) => setForm({ ...form, dataEmissao: event.target.value })} />
+                </div>
+                <Field label="Cliente" value={form.cliente} onChange={(cliente) => setForm({ ...form, cliente })} />
+                <Field label="Valor da venda (VGV)" value={form.vgv} onChange={(vgv) => setForm({ ...form, vgv })} />
+                <Field label="Corretor" value={form.corretor} onChange={(corretor) => setForm({ ...form, corretor })} />
+                <Field label="Construtora" value={form.construtora} onChange={(construtora) => setForm({ ...form, construtora })} />
+                <Field label="Empreendimento" value={form.empreendimento} onChange={(empreendimento) => setForm({ ...form, empreendimento })} />
+                <Field label="Torre / Bloco" value={form.torreBloco} onChange={(torreBloco) => setForm({ ...form, torreBloco })} />
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Arquivo da NF</Label>
+                  <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+                  {editing?.arquivoUrl ? (
+                    <a className="text-xs text-primary underline" href={editing.arquivoUrl} target="_blank" rel="noreferrer">
+                      Arquivo atual: {editing.arquivoNome || "abrir"}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            </FormSection>
           </FormDialogBody>
           <FormDialogActions>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Salvando…" : "Salvar"}</Button>
+            <Button type="submit" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} disabled={saving}>
+              {saving ? "Salvando…" : "Salvar"}
+            </Button>
           </FormDialogActions>
         </form>
       </FormDialogShell>
+    </div>
+  );
+}
+
+function FiltroOpcoes({
+  label,
+  value,
+  onChange,
+  options,
+  todos,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  todos: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className={FILTRO_CAMPO}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">{todos}</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -220,7 +458,10 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}{required ? " *" : ""}</Label>
+      <Label>
+        {label}
+        {required ? " *" : ""}
+      </Label>
       <Input value={value} required={required} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
