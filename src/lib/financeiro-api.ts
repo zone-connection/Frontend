@@ -80,6 +80,7 @@ export type NotaFiscal = {
   dataEmissao: string | null;
   arquivoUrl: string;
   arquivoNome: string;
+  vinculada?: boolean;
 };
 
 export type ComissaoRelacionamento = {
@@ -750,9 +751,34 @@ export async function renovarRecebimentosMes(
   );
 }
 
-export async function fetchNotasFiscais(q = ""): Promise<NotaFiscal[]> {
-  const query = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+export type NotasFiscaisFiltro = {
+  q?: string;
+  periodo?: "mes" | "trimestre" | "ano" | "tudo";
+  de?: string;
+  ate?: string;
+  corretor?: string;
+  construtora?: string;
+  empreendimento?: string;
+  arquivo?: "com" | "sem";
+};
+
+export async function fetchNotasFiscais(
+  filtro: NotasFiscaisFiltro = {},
+): Promise<NotaFiscal[]> {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(filtro)) {
+    if (value && value !== "todos" && value !== "tudo") qs.set(key, value);
+  }
+  const query = qs.toString() ? `?${qs.toString()}` : "";
   return apiFetch<NotaFiscal[]>(`/financeiro/notas-fiscais${query}`);
+}
+
+export async function fetchNotasFiscaisOpcoes(): Promise<{
+  corretores: string[];
+  construtoras: string[];
+  empreendimentos: string[];
+}> {
+  return apiFetch("/financeiro/notas-fiscais/opcoes");
 }
 
 export async function saveNotaFiscal(
