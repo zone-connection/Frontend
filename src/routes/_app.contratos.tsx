@@ -488,16 +488,19 @@ function ContratoPreview({
         <p>
           Eu, <Fill>{value("nomeParente")}</Fill>, CPF{" "}
           <Fill>{value("cpfParente")}</Fill>, estado civil{" "}
-          <Fill>{value("estadoCivil")}</Fill>, declaro que sou{" "}
+          <Fill>{value("estadoCivil")}</Fill>, declaro, sob as penas da Lei n.º
+          7.115/1983, que sou{" "}
           <Fill>{value("grauParentesco")}</Fill> do proponente{" "}
           <Fill>{value("nomeProponente")}</Fill>, CPF{" "}
-          <Fill>{value("cpfProponente")}</Fill>, com quem resido no mesmo
-          endereço há pelo menos 6 (seis) meses.
+          <Fill>{value("cpfProponente")}</Fill>, com quem resido no{" "}
+          <Fill>{value("endereco")}</Fill> há pelo menos 6 (seis) meses.
         </p>
         <p>
           Declaro ainda que não possuo nenhum tipo de rendimento, seja renda
-          formal ou informal, e que não participo como dependente de outro
-          financiamento habitacional.
+          formal ou informal, exceto os benefícios temporários previstos na Lei
+          14.620/2023, e que dependo financeiramente do proponente. Declaro
+          também que não participo como dependente de outro financiamento
+          habitacional e não possuo financiamento ativo no SFH.
         </p>
         <p>
           Data: <Fill>{date}</Fill>

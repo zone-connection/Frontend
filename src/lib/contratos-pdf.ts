@@ -1110,13 +1110,15 @@ async function pdfParentescoSem(
       { b: v(values, "cpfParente") },
       ", estado civil ",
       { b: v(values, "estadoCivil") },
-      ", declaro que sou ",
+      ", declaro, sob as penas da Lei n.º 7.115/1983, que sou ",
       { b: v(values, "grauParentesco") },
       " do proponente ",
       { b: v(values, "nomeProponente") },
       ", CPF ",
       { b: v(values, "cpfProponente") },
-      ", com quem resido no mesmo endereço há pelo menos 6 (seis) meses.",
+      ", com quem resido no ",
+      { b: v(values, "endereco") },
+      " há pelo menos 6 (seis) meses.",
     ],
     y,
   );
@@ -1124,17 +1126,11 @@ async function pdfParentescoSem(
   y = writeRich(
     doc,
     [
-      "Declaro ainda que não possuo nenhum tipo de rendimento, seja renda formal ou informal exceto os benefícios temporários de natureza indenizatória, assistencial ou previdenciária, como auxílio-doença, auxílio-acidente, seguro-desemprego, benefício de prestação continuada (BPC) e benefício do Programa Bolsa Família, ou outros que vierem a substituí-los de acordo com a Lei 14.620 de 13/07/2023 e dependo financeiramente do ",
+      "Declaro ainda que não possuo nenhum tipo de rendimento, seja renda formal ou informal, exceto os benefícios temporários de natureza indenizatória, assistencial ou previdenciária, como auxílio-doença, auxílio-acidente, seguro-desemprego, benefício de prestação continuada (BPC) e benefício do Programa Bolsa Família, ou outros que vierem a substituí-los de acordo com a Lei 14.620 de 13/07/2023 e dependo financeiramente do ",
       { b: v(values, "nomeProponente") },
-      ", proponente acima qualificado.",
+      ", proponente acima qualificado. Declaro ainda que não participo como dependente de nenhum outro contrato de financiamento habitacional e não possuo financiamento ativo no SFH.",
     ],
     y,
-  );
-
-  y = writeParagraph(
-    doc,
-    y,
-    "Declaro ainda que não participo como dependente de nenhum outro contrato de financiamento habitacional e não possuo financiamento ativo no SFH.",
   );
 
   y = writeParagraph(
