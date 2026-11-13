@@ -224,6 +224,8 @@ export type DashboardFiltros = {
   de?: string;
   ate?: string;
   categoria?: RankingCategoria;
+  /** Vazio ou omitido = todas as equipes. */
+  equipeIds?: string[];
 };
 
 function dashboardQuery(params?: DashboardFiltros): string {
@@ -237,6 +239,9 @@ function dashboardQuery(params?: DashboardFiltros): string {
   if (params?.de) qs.set("de", params.de);
   if (params?.ate) qs.set("ate", params.ate);
   if (params?.categoria) qs.set("categoria", params.categoria);
+  for (const id of params?.equipeIds ?? []) {
+    if (id) qs.append("equipeIds", id);
+  }
   const query = qs.toString();
   return query ? `?${query}` : "";
 }

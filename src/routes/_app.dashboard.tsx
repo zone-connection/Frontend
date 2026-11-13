@@ -11,6 +11,7 @@ import { InlineSpinner } from "@/components/inline-spinner";
 import { PagePanel } from "@/components/page-panel";
 import { EvolucaoBadge, FinanceKpiCard } from "@/components/finance-kpi-card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -78,6 +79,7 @@ import { SOFT_BTN } from "@/lib/soft-btn";
 import { cn } from "@/lib/utils";
 import { FILTER_CONTROL, FILTER_LABEL } from "@/lib/filter-bar";
 import { brl } from "@/lib/crm-types";
+import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   fetchDashboardPlataforma,
   type PlataformaDashboard,
@@ -671,7 +673,11 @@ function DashboardAdminView() {
   const [mes, setMes] = useState(agora.mes);
   const [ano, setAno] = useState(agora.ano);
   const [origemFilter, setOrigemFilter] = useState("all");
-  const [operacaoFilter, setOperacaoFilter] = useState("all");
+  const [operacaoFilter, setOperacaoFilter] = useState<
+    "all" | "lancamento" | "usado" | "captacao"
+  >("all");
+  const [equipeIds, setEquipeIds] = useState<string[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [summary, setSummary] = useState<DashboardAdmin | null>(null);
   const [loading, setLoading] = useState(true);
   const awaitingFirst = loading && !summary;
@@ -718,13 +724,28 @@ function DashboardAdminView() {
         operacaoFilter === "captacao"
           ? operacaoFilter
           : undefined,
+      equipeIds: equipeIds.length > 0 ? equipeIds : undefined,
     }),
-    [mes, ano, origemFilter, operacaoFilter],
+    [mes, ano, origemFilter, operacaoFilter, equipeIds],
   );
+
+  useEffect(() => {
+    if (isSolo) return;
+    let ativo = true;
+    void fetchEquipes()
+      .then((lista) => {
+        if (ativo) setEquipes(lista.filter((equipe) => equipe.status === "ativo"));
+      })
+      .catch(() => {
+        if (ativo) setEquipes([]);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [isSolo]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setSummary(null);
     try {
       setSummary(await fetchDashboardAdmin(filtrosEntrada));
     } catch (err) {
@@ -838,6 +859,52 @@ function DashboardAdminView() {
             </SelectContent>
           </Select>
         </div>
+        {equipes.length > 0 ? (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <Label className={FILTER_LABEL}>Equipes</Label>
+              {equipeIds.length > 0 ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[#079ED4] hover:underline"
+                  onClick={() => setEquipeIds([])}
+                >
+                  Todas
+                </button>
+              ) : null}
+            </div>
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-black/10 p-2">
+              {equipes.map((equipe) => {
+                const marcada = equipeIds.includes(equipe.id);
+                return (
+                  <label
+                    key={equipe.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-secondary"
+                  >
+                    <Checkbox
+                      checked={marcada}
+                      onCheckedChange={(checked) => {
+                        setEquipeIds((atual) =>
+                          checked === true
+                            ? [...atual, equipe.id]
+                            : atual.filter((id) => id !== equipe.id),
+                        );
+                      }}
+                    />
+                    <span className="truncate">{equipe.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {equipeIds.length === 0
+                ? "Visão geral da imobiliária."
+                : equipeIds.length === 1
+                  ? "1 equipe selecionada."
+                  : `${equipeIds.length} equipes selecionadas.`}
+            </p>
+          </div>
+        ) : null}
         <div className="space-y-1">
           <Label className={FILTER_LABEL}>Origem</Label>
           <Select value={origemFilter} onValueChange={setOrigemFilter}>
