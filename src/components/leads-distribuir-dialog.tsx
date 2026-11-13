@@ -28,6 +28,7 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  ChevronDown,
   Clock,
   Loader2,
   Pause,
@@ -42,6 +43,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   addFilaMembro,
   fetchFilaCampanhas,
@@ -99,6 +106,77 @@ function Quantidade({
         +
       </button>
     </div>
+  );
+}
+
+function SeletorCampanhas({
+  opcoes,
+  selecionadas,
+  disabled,
+  onChange,
+}: {
+  opcoes: FilaCampanha[];
+  selecionadas: FilaCampanha[];
+  disabled?: boolean;
+  onChange: (campanhas: FilaCampanha[]) => void;
+}) {
+  const chaves = new Set(selecionadas.map((c) => c.chave));
+  const resumo =
+    selecionadas.length === 0
+      ? "Nenhuma campanha"
+      : selecionadas.length === 1
+        ? selecionadas[0].nome
+        : `${selecionadas.length} campanhas`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="mt-1.5 flex h-8 w-full items-center justify-between gap-2 rounded-lg border bg-background px-2.5 text-left text-xs hover:bg-muted/60 disabled:opacity-50"
+        >
+          <span className="truncate text-foreground">{resumo}</span>
+          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
+          Pode marcar mais de uma
+        </p>
+        <div className="max-h-48 space-y-0.5 overflow-y-auto">
+          {opcoes.length === 0 ? (
+            <p className="px-2 py-2 text-xs text-muted-foreground">
+              Nenhuma campanha da Meta ou da OLX ainda.
+            </p>
+          ) : (
+            opcoes.map((campanha) => {
+              const marcada = chaves.has(campanha.chave);
+              return (
+                <label
+                  key={campanha.chave}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <Checkbox
+                    checked={marcada}
+                    onCheckedChange={(checked) => {
+                      const proximas = checked
+                        ? [...selecionadas, campanha]
+                        : selecionadas.filter((c) => c.chave !== campanha.chave);
+                      onChange(proximas);
+                    }}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{campanha.nome}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {campanha.canal === "olx" ? "OLX" : "Meta"}
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -176,81 +254,74 @@ function FilaDistribuicaoPainel({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#079ed4]/20 bg-[#079ed4]/8 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#079ed4]/15 text-[#079ed4]">
-            <Zap className="size-4" />
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="flex items-center justify-between gap-2 rounded-2xl border border-[#079ed4]/20 bg-[#079ed4]/8 px-3 py-2.5">
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              <Zap className="size-3.5 text-[#079ed4]" />
+              Fila automática
+            </span>
+            <span className="block text-[11px] text-muted-foreground">
+              {painel.ativa ? "Ligada" : "Pausada"}
+            </span>
           </span>
-          <div>
-            <p className="text-sm font-semibold">Distribuição automática</p>
-            <p className="text-xs text-muted-foreground">
-              {painel.ativa
-                ? "Leads novos seguem a ordem. Quem recebe vai para o fim."
-                : "Pausada. Novos leads não entram na fila."}
-            </p>
+          <Switch
+            checked={painel.ativa}
+            disabled={busy}
+            onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}
+            aria-label="Ativar fila automática"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-2 rounded-2xl border px-3 py-2.5">
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Campanhas</span>
+            <span className="block text-[11px] text-muted-foreground">
+              {painel.filtroCampanhas ? "Filtro ligado" : "Opcional"}
+            </span>
+          </span>
+          <Switch
+            checked={Boolean(painel.filtroCampanhas)}
+            disabled={busy}
+            onCheckedChange={(filtroCampanhas) =>
+              void run(() =>
+                setFilaFiltros({
+                  filtroCampanhas,
+                  outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
+                }),
+              )
+            }
+            aria-label="Filtrar por campanhas"
+          />
+        </label>
+        <div className="flex items-center gap-2 rounded-2xl border px-3 py-2.5">
+          <Clock className="size-3.5 shrink-0 text-[#079ed4]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Prazo</p>
+            <p className="text-[11px] text-muted-foreground">Minutos. 0 desliga.</p>
           </div>
+          <Input
+            type="number"
+            min={0}
+            max={1440}
+            className="h-8 w-14 px-2"
+            value={minutos}
+            onChange={(e) => setMinutos(e.target.value)}
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 px-2"
+            disabled={busy}
+            onClick={() =>
+              void run(() =>
+                setFilaPrazo(Math.max(0, Math.min(1440, Math.trunc(Number(minutos) || 0)))),
+              )
+            }
+          >
+            Salvar
+          </Button>
         </div>
-        <Switch
-          checked={painel.ativa}
-          disabled={busy}
-          onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}
-          aria-label="Ativar fila automática"
-        />
       </div>
-
-      <div className="flex items-center gap-3 rounded-2xl border px-4 py-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-[#079ed4]">
-          <Clock className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Redistribuir após (min)</p>
-          <p className="text-xs text-muted-foreground">
-            Parado na primeira etapa, sem atividade, vai ao próximo. 0 desliga.
-          </p>
-        </div>
-        <Input
-          type="number"
-          min={0}
-          max={1440}
-          className="h-9 w-20"
-          value={minutos}
-          onChange={(e) => setMinutos(e.target.value)}
-        />
-        <Button
-          type="button"
-          size="sm"
-          disabled={busy}
-          onClick={() =>
-            void run(() =>
-              setFilaPrazo(Math.max(0, Math.min(1440, Math.trunc(Number(minutos) || 0)))),
-            )
-          }
-        >
-          Salvar
-        </Button>
-      </div>
-
-      <label className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm">
-        <span>
-          <span className="block font-semibold">Filtrar por campanhas</span>
-          <span className="text-xs text-muted-foreground">
-            Opcional. Ligado, o corretor só recebe as campanhas marcadas abaixo.
-          </span>
-        </span>
-        <Switch
-          checked={Boolean(painel.filtroCampanhas)}
-          disabled={busy}
-          onCheckedChange={(filtroCampanhas) =>
-            void run(() =>
-              setFilaFiltros({
-                filtroCampanhas,
-                outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
-              }),
-            )
-          }
-          aria-label="Filtrar por campanhas"
-        />
-      </label>
 
       <div className="rounded-2xl border">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
@@ -309,26 +380,16 @@ function FilaDistribuicaoPainel({
                       {CARGO[membro.role] ?? membro.role}
                       {membro.ativoNaFila ? "" : " · pausado"}
                     </p>
-                    <select
-                      multiple
-                      aria-label={`Campanhas de ${membro.nome}`}
-                      className="mt-1 h-16 w-full rounded-md border bg-background px-1 text-xs"
-                      value={(membro.campanhas ?? []).map((c) => c.chave)}
-                      disabled={busy}
-                      onChange={(event) => {
-                        const chaves = Array.from(event.target.selectedOptions).map(
-                          (opcao) => opcao.value,
-                        );
-                        const escolhidas = campanhas.filter((c) => chaves.includes(c.chave));
-                        void run(() => setFilaCampanhasMembro(membro.id, escolhidas));
-                      }}
-                    >
-                      {campanhas.map((campanha) => (
-                        <option key={campanha.chave} value={campanha.chave}>
-                          {campanha.nome}
-                        </option>
-                      ))}
-                    </select>
+                    {painel.filtroCampanhas ? (
+                      <SeletorCampanhas
+                        opcoes={campanhas}
+                        selecionadas={membro.campanhas ?? []}
+                        disabled={busy}
+                        onChange={(escolhidas) =>
+                          void run(() => setFilaCampanhasMembro(membro.id, escolhidas))
+                        }
+                      />
+                    ) : null}
                   </div>
                   <Button
                     type="button"
@@ -461,6 +522,9 @@ export function LeadsDistribuirDialog({
   const [resumo, setResumo] = useState<DistribuirResumo | null>(null);
   const [destino, setDestino] = useState<Destino>("equipes");
   const [qtdEquipes, setQtdEquipes] = useState<Record<string, number>>({});
+  const [filtroEquipesCampanha, setFiltroEquipesCampanha] = useState(false);
+  const [vinculosEquipe, setVinculosEquipe] = useState<Record<string, FilaCampanha[]>>({});
+  const [cotasEquipe, setCotasEquipe] = useState<Record<string, Record<string, number>>>({});
   const [qtdCorretores, setQtdCorretores] = useState<Record<string, number>>(
     {},
   );
@@ -497,10 +561,15 @@ export function LeadsDistribuirDialog({
     if (open) void load();
   }, [open, load]);
 
-  const somaEquipes = useMemo(
-    () => Object.values(qtdEquipes).reduce((s, n) => s + (Number(n) || 0), 0),
-    [qtdEquipes],
-  );
+  const somaEquipes = useMemo(() => {
+    if (!filtroEquipesCampanha) {
+      return Object.values(qtdEquipes).reduce((s, n) => s + (Number(n) || 0), 0);
+    }
+    return Object.values(cotasEquipe).reduce(
+      (s, cotas) => s + Object.values(cotas).reduce((a, n) => a + (Number(n) || 0), 0),
+      0,
+    );
+  }, [cotasEquipe, filtroEquipesCampanha, qtdEquipes]);
   const somaCorretores = useMemo(
     () =>
       Object.values(qtdCorretores).reduce((s, n) => s + (Number(n) || 0), 0),
@@ -523,6 +592,23 @@ export function LeadsDistribuirDialog({
     if (destino === "equipes") {
       if (resumo.equipes.length === 0) {
         toast.error("Nenhuma equipe cadastrada.");
+        return;
+      }
+      if (filtroEquipesCampanha) {
+        const campanhas = (resumo.campanhas ?? []).filter((c) => c.canal !== "outro" && c.leads > 0);
+        const next: Record<string, Record<string, number>> = {};
+        for (const eq of resumo.equipes) next[eq.equipeId] = {};
+        for (const campanha of campanhas) {
+          const equipes = resumo.equipes.filter((eq) =>
+            (vinculosEquipe[eq.equipeId] ?? []).some((v) => v.chave === campanha.chave),
+          );
+          const partes = splitEvenly(campanha.leads, equipes.length);
+          equipes.forEach((eq, i) => {
+            next[eq.equipeId][campanha.chave] = partes[i] ?? 0;
+          });
+        }
+        setCotasEquipe(next);
+        toast.success("Leads divididos pelas campanhas de cada equipe.");
         return;
       }
       const split = splitEvenly(disponiveis, resumo.equipes.length);
@@ -636,12 +722,22 @@ export function LeadsDistribuirDialog({
     setSaving(true);
     try {
       if (destino === "equipes") {
-        const result = await distribuirLeadsEquipes(
-          resumo.equipes.map((eq) => ({
-            equipeId: eq.equipeId,
-            quantidade: Number(qtdEquipes[eq.equipeId]) || 0,
-          })),
-        );
+        const alocacoes = filtroEquipesCampanha
+          ? resumo.equipes.map((eq) => {
+              const porCampanha = Object.entries(cotasEquipe[eq.equipeId] ?? {})
+                .map(([chave, quantidade]) => ({ chave, quantidade: Number(quantidade) || 0 }))
+                .filter((item) => item.quantidade > 0);
+              return {
+                equipeId: eq.equipeId,
+                quantidade: porCampanha.reduce((s, item) => s + item.quantidade, 0),
+                porCampanha,
+              };
+            })
+          : resumo.equipes.map((eq) => ({
+              equipeId: eq.equipeId,
+              quantidade: Number(qtdEquipes[eq.equipeId]) || 0,
+            }));
+        const result = await distribuirLeadsEquipes(alocacoes);
         toast.success(
           `${result.total} lead(s) enviados às equipes (ainda sem corretor individual).`,
         );
@@ -813,6 +909,55 @@ export function LeadsDistribuirDialog({
                     }}
                   />
                 </div>
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-semibold">Filtrar por campanhas</span>
+                    <span className="text-xs text-muted-foreground">
+                      Opcional. Desligado, a divisão continua igual para todas as equipes.
+                    </span>
+                  </span>
+                  <Switch
+                    checked={filtroEquipesCampanha}
+                    onCheckedChange={setFiltroEquipesCampanha}
+                    aria-label="Filtrar distribuição por campanhas"
+                  />
+                </label>
+                {filtroEquipesCampanha ? (
+                  <div className="mb-3 overflow-hidden rounded-2xl border">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/50 text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Campanha</th>
+                          <th className="px-3 py-2 font-medium">Leads</th>
+                          <th className="px-3 py-2 font-medium">Equipes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(resumo.campanhas ?? []).map((campanha) => {
+                          const equipes = resumo.equipes.filter((eq) =>
+                            (vinculosEquipe[eq.equipeId] ?? []).some((v) => v.chave === campanha.chave),
+                          );
+                          return (
+                            <tr key={campanha.chave} className="border-t">
+                              <td className="px-3 py-2">{campanha.nome}</td>
+                              <td className="px-3 py-2 tabular-nums">{campanha.leads}</td>
+                              <td className="px-3 py-2">
+                                {campanha.canal === "outro"
+                                  ? "Ficam no pool"
+                                  : equipes.map((eq) => eq.nome).join(", ") || "Nenhuma"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-t font-semibold">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2 tabular-nums">{resumo.disponiveis}</td>
+                          <td className="px-3 py-2">{somaEquipes} na distribuição</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
                 {resumo.equipes.length === 0 ? (
                   <p className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                     Nenhuma equipe cadastrada. Use a aba Corretores.
@@ -820,31 +965,74 @@ export function LeadsDistribuirDialog({
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {resumo.equipes.map((eq) => {
-                      const qtd = qtdEquipes[eq.equipeId] ?? 0;
+                      const qtd = filtroEquipesCampanha
+                        ? Object.values(cotasEquipe[eq.equipeId] ?? {}).reduce((s, n) => s + n, 0)
+                        : (qtdEquipes[eq.equipeId] ?? 0);
+                      const opcoes = [
+                        { chave: "olx:grupo", nome: "Grupo OLX", canal: "olx" },
+                        { chave: "olx:mcmv", nome: "MCMV OLX", canal: "olx" },
+                        ...(resumo.campanhas ?? [])
+                          .filter((c) => c.canal === "meta")
+                          .map((c) => ({ chave: c.chave, nome: c.nome, canal: c.canal })),
+                      ];
                       return (
                         <div
                           key={eq.equipeId}
                           className={
                             qtd > 0
-                              ? "flex items-center gap-3 rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
-                              : "flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm"
+                              ? "rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
+                              : "rounded-2xl border bg-card p-3 shadow-sm"
                           }
                         >
-                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
-                            {iniciais(eq.nome)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">{eq.nome}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {eq.gerente} · {eq.corretores} corretor{eq.corretores === 1 ? "" : "es"}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
+                              {iniciais(eq.nome)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">{eq.nome}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {eq.gerente} · {eq.corretores} corretor{eq.corretores === 1 ? "" : "es"}
+                              </p>
+                            </div>
+                            {filtroEquipesCampanha ? (
+                              <span className="text-sm font-semibold tabular-nums text-[#079ed4]">{qtd}</span>
+                            ) : (
+                              <Quantidade
+                                value={qtdEquipes[eq.equipeId] ?? 0}
+                                onChange={(next) =>
+                                  setQtdEquipes((prev) => ({ ...prev, [eq.equipeId]: next }))
+                                }
+                              />
+                            )}
                           </div>
-                          <Quantidade
-                            value={qtd}
-                            onChange={(next) =>
-                              setQtdEquipes((prev) => ({ ...prev, [eq.equipeId]: next }))
-                            }
-                          />
+                          {filtroEquipesCampanha ? (
+                            <div className="mt-2 space-y-2">
+                              <SeletorCampanhas
+                                opcoes={opcoes}
+                                selecionadas={vinculosEquipe[eq.equipeId] ?? []}
+                                onChange={(escolhidas) =>
+                                  setVinculosEquipe((prev) => ({ ...prev, [eq.equipeId]: escolhidas }))
+                                }
+                              />
+                              {(vinculosEquipe[eq.equipeId] ?? []).map((campanha) => (
+                                <div key={campanha.chave} className="flex items-center justify-between gap-2 text-xs">
+                                  <span className="truncate">{campanha.nome}</span>
+                                  <Quantidade
+                                    value={cotasEquipe[eq.equipeId]?.[campanha.chave] ?? 0}
+                                    onChange={(next) =>
+                                      setCotasEquipe((prev) => ({
+                                        ...prev,
+                                        [eq.equipeId]: {
+                                          ...(prev[eq.equipeId] ?? {}),
+                                          [campanha.chave]: next,
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -1002,6 +1190,28 @@ export function LeadsDistribuirDialog({
                     {destino === "equipes" ? somaEquipes : destino === "corretores" ? somaCorretores : "—"}
                   </span>
                 </div>
+                {destino === "equipes" ? (
+                  <div className="flex justify-between gap-3 text-muted-foreground">
+                    <span>Ficam no pool</span>
+                    <span className="font-medium text-foreground">
+                      {Math.max(0, resumo.disponiveis - somaEquipes)}
+                    </span>
+                  </div>
+                ) : null}
+                {destino === "equipes" && filtroEquipesCampanha
+                  ? resumo.equipes
+                      .map((eq) => ({
+                        nome: eq.nome,
+                        qtd: Object.values(cotasEquipe[eq.equipeId] ?? {}).reduce((s, n) => s + n, 0),
+                      }))
+                      .filter((eq) => eq.qtd > 0)
+                      .map((eq) => (
+                        <div key={eq.nome} className="flex justify-between gap-3 text-muted-foreground">
+                          <span className="truncate">{eq.nome}</span>
+                          <span className="font-medium text-foreground">{eq.qtd}</span>
+                        </div>
+                      ))
+                  : null}
               </div>
             </aside>
           </div>

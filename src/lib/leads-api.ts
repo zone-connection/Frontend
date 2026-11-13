@@ -454,8 +454,16 @@ export async function importLeads(
   });
 }
 
+export type DistribuirCampanha = {
+  chave: string;
+  nome: string;
+  canal: string;
+  leads: number;
+};
+
 export type DistribuirResumo = {
   disponiveis: number;
+  campanhas?: DistribuirCampanha[];
   equipes: Array<{
     equipeId: string;
     nome: string;
@@ -491,7 +499,11 @@ export async function fetchDistribuirResumo(): Promise<DistribuirResumo> {
 }
 
 export async function distribuirLeadsEquipes(
-  alocacoes: Array<{ equipeId: string; quantidade: number }>,
+  alocacoes: Array<{
+    equipeId: string;
+    quantidade: number;
+    porCampanha?: Array<{ chave: string; quantidade: number }>;
+  }>,
 ): Promise<{
   ok: boolean;
   total: number;
