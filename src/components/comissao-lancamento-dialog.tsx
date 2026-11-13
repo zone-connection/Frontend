@@ -1348,6 +1348,8 @@ export function ComissaoLancamentoDialog({
             </>
             )}
           </FormSection>
+          </>
+          )}
           </div>
 
           <ResumoComissaoPainel
