@@ -65,6 +65,7 @@ export function ConfigModulosOperacaoPanel() {
   const [gerenteVerLeadsGerais, setGerenteVerLeadsGerais] = useState(false);
   const [whatsappStaffCanSend, setWhatsappStaffCanSend] = useState(false);
   const [fichaAnaliseGuiada, setFichaAnaliseGuiada] = useState(false);
+  const [vendaDiretaFunil, setVendaDiretaFunil] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -84,6 +85,7 @@ export function ConfigModulosOperacaoPanel() {
       setGerenteVerLeadsGerais(data.gerenteVerLeadsGerais === true);
       setWhatsappStaffCanSend(data.whatsappStaffCanSend === true);
       setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
+      setVendaDiretaFunil(data.vendaDiretaFunil === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -171,6 +173,7 @@ export function ConfigModulosOperacaoPanel() {
         fichaAnaliseGuiada: checked,
       });
       setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
+      setVendaDiretaFunil(data.vendaDiretaFunil === true);
       patchSessionTenantModules(data.modules);
       await fetchMe();
       toast.success(
@@ -276,6 +279,36 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar a visibilidade dos clientes.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleVendaDiretaFunil(checked: boolean) {
+    if (!isAdmin) return;
+    setVendaDiretaFunil(checked);
+    if (checked) setFichaAnaliseGuiada(false);
+    setSavingKey("vendaDiretaFunil");
+    try {
+      const data = await updateTenantOperationModules({
+        vendaDiretaFunil: checked,
+      });
+      setVendaDiretaFunil(data.vendaDiretaFunil === true);
+      setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      toast.success(
+        checked
+          ? "O funil passa a registrar análise, aprovação e venda sem a ficha de documentação."
+          : "A venda pelo funil volta a depender da ficha, quando ela estiver ativa.",
+      );
+    } catch (err) {
+      setVendaDiretaFunil(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar a venda pelo funil.",
       );
     } finally {
       setSavingKey(null);
@@ -538,6 +571,40 @@ export function ConfigModulosOperacaoPanel() {
                 disabled={savingKey === "fichaAnaliseGuiada"}
                 onCheckedChange={(checked) => void toggleFichaAnaliseGuiada(checked)}
                 aria-label="Exigir ficha de documentação na análise"
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin ? (
+          <Card>
+            <CardHeader className="flex-row items-start gap-3 space-y-0">
+              <div className="rounded-lg border bg-muted/40 p-2">
+                <ClipboardList className="h-5 w-5 text-brand-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base">
+                  Venda direto pelo funil
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Quando ativo, a ficha de documentação deixa de ser obrigatória.
+                  Análise pede o empreendimento, aprovado só muda a etapa e a
+                  venda pede VGV, data e empreendimento. A venda aparece no
+                  módulo de Vendas. Ligar esta opção desliga a ficha na análise.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Registrar venda sem ficha</p>
+                <p className="text-xs text-muted-foreground">
+                  A proposta continua opcional e pode ser pulada até a venda.
+                </p>
+              </div>
+              <Switch
+                checked={vendaDiretaFunil}
+                disabled={savingKey === "vendaDiretaFunil"}
+                onCheckedChange={(checked) => void toggleVendaDiretaFunil(checked)}
+                aria-label="Registrar venda pelo funil sem ficha de documentação"
               />
             </CardContent>
           </Card>

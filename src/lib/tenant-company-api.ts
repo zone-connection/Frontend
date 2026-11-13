@@ -86,6 +86,7 @@ export type TenantModulesResponse = {
   corretoresCriamPropostas: boolean;
   muralChaves: boolean;
   fichaAnaliseGuiada: boolean;
+  vendaDiretaFunil: boolean;
 };
 
 export async function fetchTenantOperationModules(): Promise<TenantModulesResponse> {
@@ -104,6 +105,7 @@ export async function updateTenantOperationModules(input: {
   corretoresCriamPropostas?: boolean;
   muralChavesOptIn?: boolean;
   fichaAnaliseGuiada?: boolean;
+  vendaDiretaFunil?: boolean;
 }): Promise<TenantModulesResponse> {
   return apiFetch<TenantModulesResponse>("/tenant/modules", {
     method: "PATCH",

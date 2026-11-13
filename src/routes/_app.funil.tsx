@@ -147,6 +147,11 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import {
+  createProposta,
+  fetchPropostas,
+  type Proposta,
+} from "@/lib/propostas-api";
+import {
   Clock,
   User,
   CircleUser,
@@ -300,6 +305,22 @@ export function ComercialFunilBoard({
   const [recoveringStages, setRecoveringStages] = useState(false);
   const fichaGuiada =
     getSession()?.tenant?.modules?.fichaAnaliseGuiada === true;
+  const vendaDireta =
+    getSession()?.tenant?.modules?.vendaDiretaFunil === true;
+  const [propostasDoLead, setPropostasDoLead] = useState<Proposta[]>([]);
+  const [propostaAlvo, setPropostaAlvo] = useState<{
+    lead: Lead;
+    stage: StageId;
+  } | null>(null);
+  const [propostaId, setPropostaId] = useState("");
+  const [propostaValor, setPropostaValor] = useState("");
+  const [vendaDiretaAlvo, setVendaDiretaAlvo] = useState<{
+    lead: Lead;
+    stage: StageId;
+  } | null>(null);
+  const [vendaDiretaEmpId, setVendaDiretaEmpId] = useState("");
+  const [vendaDiretaData, setVendaDiretaData] = useState("");
+  const [vendaSemProposta, setVendaSemProposta] = useState(false);
   const [fichaEntrada, setFichaEntrada] = useState<{
     lead: Lead;
     stage: StageId;
@@ -1149,6 +1170,189 @@ export function ComercialFunilBoard({
     }
   }
 
+  async function carregarPropostasDoLead(leadId: string) {
+    try {
+      const lista = await fetchPropostas();
+      setPropostasDoLead(lista.filter((item) => item.leadId === leadId));
+    } catch {
+      setPropostasDoLead([]);
+    }
+  }
+
+  function abrirAnaliseDireta(lead: Lead, stage: StageId) {
+    setFichaConstrutoraId(lead.construtoraId ?? "");
+    setFichaEmpreendimentoId(lead.empreendimentoId ?? "");
+    setFichaEntrada({ lead, stage });
+    void loadCatalogoFicha();
+  }
+
+  function abrirPropostaDireta(lead: Lead, stage: StageId) {
+    setPropostaId("");
+    setPropostaValor("");
+    setPropostaAlvo({ lead, stage });
+    void carregarPropostasDoLead(lead.id);
+  }
+
+  function abrirVendaDireta(lead: Lead, stage: StageId) {
+    setVendaDiretaEmpId(lead.empreendimentoId ?? "");
+    setVendaDiretaData(new Date().toISOString().slice(0, 10));
+    setVendaVgv("");
+    setVendaSemProposta(false);
+    setPropostaId("");
+    setPropostaValor("");
+    setVendaDiretaAlvo({ lead, stage });
+    void loadCatalogoFicha();
+    void carregarPropostasDoLead(lead.id);
+  }
+
+  function construtoraDoEmpreendimento(empreendimentoId: string) {
+    const emp = empreendimentos.find((item) => item.id === empreendimentoId);
+    return emp?.construtoraId ?? "";
+  }
+
+  async function confirmarAnaliseDireta() {
+    if (!fichaEntrada) return;
+    const construtoraId = construtoraDoEmpreendimento(fichaEmpreendimentoId);
+    if (!fichaEmpreendimentoId || !construtoraId) {
+      toast.error("Selecione o empreendimento.");
+      return;
+    }
+    setFichaSaving(true);
+    try {
+      await updateLeadStage(fichaEntrada.lead.id, fichaEntrada.stage, {
+        construtoraId,
+        empreendimentoId: fichaEmpreendimentoId,
+        ...(isCorretor ? { omitTriagem: true } : {}),
+      });
+      toast.success(`${fichaEntrada.lead.nome} entrou em análise.`);
+      setFichaEntrada(null);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível mover o lead.",
+      );
+    } finally {
+      setFichaSaving(false);
+    }
+  }
+
+  async function garantirProposta(lead: Lead, empreendimentoId?: string) {
+    if (propostaId) return propostaId;
+    const valor = parseOptionalMoneyInput(propostaValor);
+    if (valor == null) return null;
+    const construtoraId = empreendimentoId
+      ? construtoraDoEmpreendimento(empreendimentoId)
+      : lead.construtoraId ?? undefined;
+    const criada = await createProposta({
+      leadId: lead.id,
+      clienteNome: lead.nome,
+      clienteTelefone: lead.telefone,
+      construtoraId: construtoraId || null,
+      empreendimentoId: empreendimentoId || lead.empreendimentoId || null,
+      valor,
+      status: "rascunho",
+    });
+    return criada.id;
+  }
+
+  async function confirmarPropostaDireta(pular: boolean) {
+    if (!propostaAlvo) return;
+    setFichaSaving(true);
+    try {
+      if (!pular) {
+        const id = await garantirProposta(propostaAlvo.lead);
+        if (!id) {
+          toast.error("Escolha uma proposta ou informe o valor para criar uma.");
+          return;
+        }
+      }
+      await updateLeadStage(propostaAlvo.lead.id, propostaAlvo.stage, {
+        ...(isCorretor ? { omitTriagem: true } : {}),
+      });
+      toast.success(
+        pular
+          ? `${propostaAlvo.lead.nome} seguiu sem proposta. A pergunta volta na venda.`
+          : `${propostaAlvo.lead.nome} foi para a etapa de proposta.`,
+      );
+      setPropostaAlvo(null);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível registrar a proposta.",
+      );
+    } finally {
+      setFichaSaving(false);
+    }
+  }
+
+  async function confirmarVendaDireta() {
+    if (!vendaDiretaAlvo) return;
+    const vgv = parseOptionalMoneyInput(vendaVgv);
+    const construtoraId = construtoraDoEmpreendimento(vendaDiretaEmpId);
+    if (!vendaDiretaEmpId || !construtoraId) {
+      toast.error("Selecione o empreendimento.");
+      return;
+    }
+    if (vgv == null) {
+      toast.error("Informe o VGV.");
+      return;
+    }
+    if (!vendaDiretaData) {
+      toast.error("Informe a data da venda.");
+      return;
+    }
+    setFichaSaving(true);
+    try {
+      if (!vendaSemProposta) {
+        const id = await garantirProposta(vendaDiretaAlvo.lead, vendaDiretaEmpId);
+        if (!id) {
+          toast.error(
+            "Escolha uma proposta, crie uma ou ligue a venda sem proposta.",
+          );
+          return;
+        }
+      }
+      const { lead, stage } = vendaDiretaAlvo;
+      const docs = await fetchDocumentacoes();
+      const existente = docs.find((item) => item.leadId === lead.id);
+      const fonte = documentacaoFontes[0] || "Funil";
+      if (existente) {
+        await updateDocumentacao(existente.id, {
+          construtoraId,
+          empreendimentoId: vendaDiretaEmpId,
+          status1: "Aprovado",
+          status2: "Vendido",
+          vgv,
+          dataVenda: vendaDiretaData,
+        });
+      } else {
+        await createDocumentacao({
+          leadId: lead.id,
+          nome: lead.nome,
+          construtoraId,
+          empreendimentoId: vendaDiretaEmpId,
+          fonte,
+          status1: "Aprovado",
+          status2: "Vendido",
+          vgv,
+          dataVenda: vendaDiretaData,
+          corretorId: lead.corretorId,
+        });
+      }
+      await updateLeadStage(lead.id, stage, {
+        construtoraId,
+        empreendimentoId: vendaDiretaEmpId,
+        ...(isCorretor ? { omitTriagem: true } : {}),
+      });
+      toast.success(`${lead.nome} foi vendido e a venda entrou no módulo de Vendas.`);
+      setVendaDiretaAlvo(null);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível registrar a venda.",
+      );
+    } finally {
+      setFichaSaving(false);
+    }
+  }
+
   async function confirmarEntradaAnalise() {
     if (!fichaEntrada) return;
     if (!fichaConstrutoraId || !fichaEmpreendimentoId || !fichaFonte) {
@@ -1349,6 +1553,18 @@ export function ComercialFunilBoard({
     }
 
     const papel = funnelStages.find((s) => s.id === stage)?.papel;
+    if (vendaDireta && papel === "analise") {
+      abrirAnaliseDireta(lead, stage);
+      return;
+    }
+    if (vendaDireta && papel === "proposta") {
+      abrirPropostaDireta(lead, stage);
+      return;
+    }
+    if (vendaDireta && papel === "venda") {
+      abrirVendaDireta(lead, stage);
+      return;
+    }
     if (fichaGuiada && papel === "analise") {
       setFichaConstrutoraId("");
       setFichaEmpreendimentoId("");
@@ -1500,6 +1716,24 @@ export function ComercialFunilBoard({
     }
 
     const papelDetalhe = funnelStages.find((s) => s.id === stage)?.papel;
+    if (vendaDireta && papelDetalhe === "analise") {
+      const target = detailLead;
+      setDetailLead(null);
+      abrirAnaliseDireta(target, stage);
+      return;
+    }
+    if (vendaDireta && papelDetalhe === "proposta") {
+      const target = detailLead;
+      setDetailLead(null);
+      abrirPropostaDireta(target, stage);
+      return;
+    }
+    if (vendaDireta && papelDetalhe === "venda") {
+      const target = detailLead;
+      setDetailLead(null);
+      abrirVendaDireta(target, stage);
+      return;
+    }
     if (fichaGuiada && papelDetalhe === "analise") {
       const target = detailLead;
       setDetailLead(null);
@@ -2292,7 +2526,221 @@ export function ComercialFunilBoard({
         }}
       />
 
-      <Dialog open={!!fichaEntrada} onOpenChange={(open) => !open && !fichaSaving && setFichaEntrada(null)}>
+      <Dialog
+        open={!!fichaEntrada && vendaDireta}
+        onOpenChange={(open) => !open && !fichaSaving && setFichaEntrada(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Entrar em análise</DialogTitle>
+            <DialogDescription>
+              {fichaEntrada
+                ? `Escolha o empreendimento de ${fichaEntrada.lead.nome}. A construtora vem junto.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Empreendimento</Label>
+              <Select
+                value={fichaEmpreendimentoId}
+                onValueChange={(id) => {
+                  setFichaEmpreendimentoId(id);
+                  setFichaConstrutoraId(construtoraDoEmpreendimento(id));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {empreendimentos.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Construtora</Label>
+              <Input
+                readOnly
+                value={
+                  construtoras.find((item) => item.id === construtoraDoEmpreendimento(fichaEmpreendimentoId))?.nome
+                  ?? "Selecione o empreendimento"
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={fichaSaving} onClick={() => setFichaEntrada(null)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={fichaSaving} onClick={() => void confirmarAnaliseDireta()}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!propostaAlvo}
+        onOpenChange={(open) => !open && !fichaSaving && setPropostaAlvo(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Proposta</DialogTitle>
+            <DialogDescription>
+              {propostaAlvo
+                ? `Quer registrar uma proposta de ${propostaAlvo.lead.nome} agora? Se pular, a pergunta volta na venda.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {propostasDoLead.length > 0 ? (
+              <div className="space-y-1.5">
+                <Label>Proposta existente</Label>
+                <Select value={propostaId} onValueChange={setPropostaId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {propostasDoLead.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.codigo} · {item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <Label>Ou crie uma com o valor</Label>
+              <Input
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={propostaValor}
+                onChange={(ev) => {
+                  setPropostaValor(maskMoneyInput(ev.target.value));
+                  setPropostaId("");
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={fichaSaving} onClick={() => void confirmarPropostaDireta(true)}>
+              Seguir sem proposta
+            </Button>
+            <Button type="button" disabled={fichaSaving} onClick={() => void confirmarPropostaDireta(false)}>
+              Registrar e avançar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!vendaDiretaAlvo}
+        onOpenChange={(open) => !open && !fichaSaving && setVendaDiretaAlvo(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar venda</DialogTitle>
+            <DialogDescription>
+              {vendaDiretaAlvo
+                ? `Informe o VGV, a data e confirme o empreendimento de ${vendaDiretaAlvo.lead.nome}.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Empreendimento</Label>
+              <Select value={vendaDiretaEmpId} onValueChange={setVendaDiretaEmpId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {empreendimentos.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Construtora</Label>
+              <Input
+                readOnly
+                value={
+                  construtoras.find((item) => item.id === construtoraDoEmpreendimento(vendaDiretaEmpId))?.nome
+                  ?? "Selecione o empreendimento"
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>VGV</Label>
+              <Input
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={vendaVgv}
+                onChange={(ev) => setVendaVgv(maskMoneyInput(ev.target.value))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Data da venda</Label>
+              <Input
+                type="date"
+                value={vendaDiretaData}
+                onChange={(ev) => setVendaDiretaData(ev.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Venda sem proposta</p>
+                <p className="text-xs text-muted-foreground">
+                  Desligado, escolha ou crie uma proposta antes de confirmar.
+                </p>
+              </div>
+              <Switch
+                checked={vendaSemProposta}
+                onCheckedChange={setVendaSemProposta}
+                aria-label="Registrar a venda sem proposta"
+              />
+            </div>
+            {vendaSemProposta ? null : (
+              <>
+                {propostasDoLead.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <Label>Proposta</Label>
+                    <Select value={propostaId} onValueChange={setPropostaId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {propostasDoLead.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.codigo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+                <div className="space-y-1.5">
+                  <Label>Criar proposta com o valor</Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="R$ 0,00"
+                    value={propostaValor}
+                    onChange={(ev) => {
+                      setPropostaValor(maskMoneyInput(ev.target.value));
+                      setPropostaId("");
+                    }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={fichaSaving} onClick={() => setVendaDiretaAlvo(null)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={fichaSaving} onClick={() => void confirmarVendaDireta()}>
+              Confirmar venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!fichaEntrada && !vendaDireta} onOpenChange={(open) => !open && !fichaSaving && setFichaEntrada(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Entrar em análise</DialogTitle>
