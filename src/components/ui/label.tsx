@@ -30,7 +30,11 @@ const Label = React.forwardRef<
       className={cn(labelVariants(), Icon && "inline-flex items-center gap-1.5", className)}
       {...props}
     >
-      {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+      {Icon ? (
+        <span className="grid size-5 shrink-0 place-items-center rounded-md bg-[#E7F6FC] text-[#079ED4] dark:bg-[#132833]">
+          <Icon className="size-3" />
+        </span>
+      ) : null}
       {children}
     </LabelPrimitive.Root>
   );

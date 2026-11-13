@@ -201,6 +201,7 @@ export type UpdateComissaoInput = Partial<ComissaoPercentuais> &
     dataPrevistaRecebimento?: string;
     status?: ComissaoStatus;
     observacao?: string;
+    notaFiscalId?: string | null;
   };
 
 export type VisaoGeralResponse = {

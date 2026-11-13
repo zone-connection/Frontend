@@ -160,7 +160,7 @@ export function FormSection({
         {icon ? (
           <span
             className={cn(
-              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-white text-primary dark:border-white/10 dark:bg-[#1c2430]",
+              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#079ED4] text-white shadow-[0_6px_14px_rgba(7,158,212,0.28)]",
               iconClassName,
             )}
           >

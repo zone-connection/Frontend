@@ -85,6 +85,7 @@ import {
 } from "@/lib/financeiro-mock";
 import {
   ArrowDownRight,
+  ArrowRight,
   ArrowUpRight,
   Building2,
   Loader2,
@@ -221,6 +222,7 @@ function Page() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [passo, setPasso] = useState(0);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MovimentoFinanceiro | null>(
     null,
@@ -454,6 +456,7 @@ function Page() {
     setFormMode("create");
     setEditingId(null);
     setForm(emptyForm(categorias[0] || ""));
+    setPasso(0);
     setOpen(true);
   }
 
@@ -471,6 +474,7 @@ function Page() {
     setFormMode("edit");
     setEditingId(m.id);
     setForm(toForm(m, categorias[0] || ""));
+    setPasso(0);
     setOpen(true);
   }
 
@@ -795,6 +799,7 @@ function Page() {
             setFormMode("create");
             setEditingId(null);
             setForm(emptyForm());
+            setPasso(0);
           }
         }}
         icon={<ArrowUpRight className="w-5 h-5" />}
@@ -804,8 +809,21 @@ function Page() {
         description="Registre uma entrada ou saída financeira."
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <FormDialogBody>
-            <FormSection title="Dados do lançamento">
+          <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5">
+            <div className="space-y-4">
+            <ol className="flex items-center gap-2 overflow-x-auto pb-1">
+              {["Dados do lançamento", "Confirmação"].map((label, index) => (
+                <li key={label} className="flex items-center gap-2">
+                  <button type="button" onClick={() => setPasso(index)} className="flex items-center gap-2">
+                    <span className={cn("grid size-7 place-items-center rounded-full text-xs font-semibold", passo >= index ? "bg-[#079ED4] text-white" : "bg-[#E6EEF2] text-[#5C6B76]")}>{index + 1}</span>
+                    <span className={cn("whitespace-nowrap text-sm", passo === index ? "font-semibold text-[#0B3148]" : "text-[#8B98A3]")}>{label}</span>
+                  </button>
+                  {index < 1 ? <span className="mx-1 hidden h-px w-8 bg-[#E2E8EC] sm:block" /> : null}
+                </li>
+              ))}
+            </ol>
+            {passo === 0 && (
+            <FormSection title="Dados do lançamento" description="Informe as principais informações da entrada ou saída.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="mov-data">Data *</Label>
@@ -864,13 +882,26 @@ function Page() {
                     </div>
                   </div>
                 ) : null}
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2">
                   <Label htmlFor="mov-desc">Descrição *</Label>
                   <Input
                     id="mov-desc"
                     value={form.descricao}
                     onChange={(e) => setField("descricao", e.target.value)}
                     placeholder="Ex.: Comissão da venda apto 1204"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mov-valor">Valor *</Label>
+                  <Input
+                    id="mov-valor"
+                    inputMode="numeric"
+                    value={form.valor}
+                    onChange={(e) =>
+                      setField("valor", maskMoneyInput(e.target.value))
+                    }
+                    placeholder="0,00"
                     required
                   />
                 </div>
@@ -907,7 +938,7 @@ function Page() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label>{catalogLabel} *</Label>
                     {canCreateFin ? (
@@ -934,28 +965,6 @@ function Page() {
                         : "Buscar centro de custo…"
                     }
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    {isPlatform
-                      ? form.tipo === "entrada"
-                        ? "Categoria usada nas entradas."
-                        : "Centro de custo usado nas saídas."
-                      : form.tipo === "entrada"
-                        ? "Cadastro do Centro de recebimentos."
-                        : "Cadastro do Centro de despesas."}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mov-valor">Valor *</Label>
-                  <Input
-                    id="mov-valor"
-                    inputMode="numeric"
-                    value={form.valor}
-                    onChange={(e) =>
-                      setField("valor", maskMoneyInput(e.target.value))
-                    }
-                    placeholder="0,00"
-                    required
-                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
@@ -974,7 +983,7 @@ function Page() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2">
                   <Label>Forma de pagamento</Label>
                   <Select
                     value={form.formaPagamento}
@@ -994,23 +1003,69 @@ function Page() {
                 </div>
               </div>
             </FormSection>
+            )}
+            {passo === 1 && (
+              <FormSection title="Confirmação" description="Confira os dados antes de salvar.">
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div><dt className="text-xs text-[#8B98A3]">Tipo</dt><dd className="font-medium">{form.tipo === "entrada" ? "Entrada" : "Saída"}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">Data</dt><dd className="font-medium">{form.data ? formatDate(form.data) : "—"}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">Descrição</dt><dd className="font-medium">{form.descricao || "—"}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">{catalogLabel}</dt><dd className="font-medium">{form.categoria || "—"}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">{parceiroLabel}</dt><dd className="font-medium">{parceiros.find((item) => item.id === form.parceiroId)?.nome || "—"}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">Valor</dt><dd className="font-medium">{brl(parseValor(form.valor) || 0)}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">Status</dt><dd className="font-medium">{statusLabel(form.status)}</dd></div>
+                  <div><dt className="text-xs text-[#8B98A3]">Forma de pagamento</dt><dd className="font-medium">{form.formaPagamento || "—"}</dd></div>
+                </dl>
+              </FormSection>
+            )}
+            </div>
+            <aside className="lg:sticky lg:top-0">
+              <div className="overflow-hidden rounded-2xl border border-[#D3EBF5] bg-white shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
+                <div className="flex items-center gap-2 border-b border-[#E7F6FC] bg-[#F4FAFD] px-4 py-3 text-sm font-medium text-[#0B3148] dark:border-white/10 dark:bg-[#132833] dark:text-white">
+                  <span className="grid size-7 place-items-center rounded-lg bg-[#079ED4] text-white">
+                    <ArrowUpRight className="size-3.5" />
+                  </span>
+                  Resumo
+                </div>
+                <div className="p-4">
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">Tipo</dt><dd className="font-medium text-[#079ED4]">{form.tipo === "entrada" ? "Entrada" : "Saída"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">Data</dt><dd>{form.data ? formatDate(form.data) : "—"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">Descrição</dt><dd className="truncate">{form.descricao || "—"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">{catalogLabel}</dt><dd className="truncate">{form.categoria || "—"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">{parceiroLabel}</dt><dd className="truncate">{parceiros.find((item) => item.id === form.parceiroId)?.nome || "—"}</dd></div>
+                </dl>
+                <div className="mt-4 flex items-end justify-between rounded-xl bg-[#E7F6FC] px-3 py-3 dark:bg-[#132833]">
+                  <span className="text-sm text-[#05749E]">Valor</span>
+                  <span className="text-2xl font-semibold text-[#079ED4]">{brl(parseValor(form.valor) || 0)}</span>
+                </div>
+                </div>
+              </div>
+            </aside>
           </FormDialogBody>
           <FormDialogActions>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => (passo === 0 ? setOpen(false) : setPasso((atual) => atual - 1))}
               disabled={saving}
             >
-              Cancelar
+              {passo === 0 ? "Cancelar" : "Voltar"}
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving
-                ? "Salvando…"
-                : formMode === "edit"
-                  ? "Salvar alterações"
-                  : "Salvar lançamento"}
-            </Button>
+            {passo < 1 ? (
+              <Button type="button" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} onClick={() => setPasso((atual) => atual + 1)}>
+                Próximo
+                <ArrowRight className="ml-1.5 size-4" />
+              </Button>
+            ) : (
+              <Button type="submit" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} disabled={saving}>
+                {saving
+                  ? "Salvando…"
+                  : formMode === "edit"
+                    ? "Salvar alterações"
+                    : "Salvar lançamento"}
+              </Button>
+            )}
           </FormDialogActions>
         </form>
       </FormDialogShell>

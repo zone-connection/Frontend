@@ -143,6 +143,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertTriangle,
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpRight,
   Banknote,
   Building2,
@@ -172,7 +173,7 @@ const NONE = "__none__";
 const FORMAS = ["Pix", "TED", "Boleto", "Dinheiro", "Cartão", "Outro"] as const;
 
 type QuickKind = "parceiro" | "categoria" | null;
-type TituloFormTab = "dados" | "cobranca" | "contrato";
+type TituloFormTab = "dados" | "cobranca" | "contrato" | "confirmacao";
 type GrupoParcelaTipo = "adesao" | "mensalidade";
 
 function tituloStatusChipClass(status: string) {
@@ -553,14 +554,6 @@ export function FinanceiroTitulosPanel({
   const [status, setStatus] = useState<StatusTitulo | "todos">("todos");
   const [categoriaFiltro, setCategoriaFiltro] = useState("todos");
   const catalogLabel = tipo === "receber" ? "Categoria" : "Centro de custo";
-  const catalogHint =
-    getSession()?.role === "super_admin"
-      ? tipo === "receber"
-        ? "Categoria usada nos títulos a receber."
-        : "Centro de custo usado nos títulos a pagar."
-      : tipo === "receber"
-        ? "Cadastro do Centro de recebimentos."
-        : "Cadastro do Centro de despesas.";
   const [open, setOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit" | "edit-grupo">(
     "create",
@@ -612,6 +605,15 @@ export function FinanceiroTitulosPanel({
     isPlatformAdmin || session?.role === "admin";
   const isAssinaturaPlataforma = isPlatformAdmin && tipo === "receber";
   const [comoContrato, setComoContrato] = useState(false);
+  const passosTitulo: { id: TituloFormTab; label: string }[] = comoContrato
+    ? [
+        { id: "dados", label: tipo === "pagar" ? "Dados e pagamento" : "Dados e cobrança" },
+        { id: "contrato", label: "Contrato" },
+      ]
+    : [
+        { id: "dados", label: tipo === "pagar" ? "Dados e pagamento" : "Dados e cobrança" },
+        { id: "confirmacao", label: "Confirmação" },
+      ];
   const [hideValues] = useHideFinanceiroValues();
   const canCreateFin = !readOnly && canFinanceiroAction(session, "create");
   const canEditFin = !readOnly && canFinanceiroAction(session, "edit");
@@ -2403,7 +2405,6 @@ export function FinanceiroTitulosPanel({
         open={open}
         onOpenChange={setOpen}
         icon={<Banknote className="w-5 h-5" />}
-        className="max-w-3xl rounded-3xl"
         title={
           formMode === "create"
             ? comoContrato
@@ -2423,131 +2424,70 @@ export function FinanceiroTitulosPanel({
                 : "Conta a pagar vinculada ao fluxo de caixa."
         }
         footer={
-          <FormDialogActions
-            hint={
-              formMode === "create"
-                ? "Os campos com * são obrigatórios."
-                : undefined
-            }
-          >
+          <FormDialogActions>
             <Button
               type="button"
               variant="outline"
               className={SOFT_BTN}
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                const atual = passosTitulo.findIndex((item) => item.id === formTab);
+                if (atual <= 0) setOpen(false);
+                else setFormTab(passosTitulo[atual - 1].id);
+              }}
             >
-              Cancelar
+              {passosTitulo.findIndex((item) => item.id === formTab) <= 0 ? "Cancelar" : "Voltar"}
             </Button>
-            <Button
-              type="submit"
-              form="titulo-form"
-              loading={saving}
-              loadingText="Salvando..."
-              className={BRAND_GRADIENT_BTN}
-              style={BRAND_GRADIENT_STYLE}
-            >
-              Salvar
-            </Button>
+            {passosTitulo.findIndex((item) => item.id === formTab) < passosTitulo.length - 1 ? (
+              <Button
+                type="button"
+                className={BRAND_GRADIENT_BTN}
+                style={BRAND_GRADIENT_STYLE}
+                onClick={() => {
+                  const atual = passosTitulo.findIndex((item) => item.id === formTab);
+                  setFormTab(passosTitulo[Math.min(passosTitulo.length - 1, atual + 1)].id);
+                }}
+              >
+                Próximo
+                <ArrowRight className="ml-1.5 size-4" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                form="titulo-form"
+                loading={saving}
+                loadingText="Salvando..."
+                className={BRAND_GRADIENT_BTN}
+                style={BRAND_GRADIENT_STYLE}
+              >
+                Salvar
+              </Button>
+            )}
           </FormDialogActions>
         }
       >
-        <FormDialogBody>
+        <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5">
           <form
             id="titulo-form"
             className="space-y-5 [&_label]:text-xs [&_label]:font-medium [&_label]:text-muted-foreground"
             onSubmit={onSubmit}
           >
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-2xl border border-teal-100/80 bg-teal-50 px-3.5 py-3 dark:border-teal-900/40 dark:bg-teal-950/25">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Tipo
-                </p>
-                <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold">
-                  {tipo === "receber" ? (
-                    <ArrowDownLeft className="h-3.5 w-3.5 text-teal-600" />
-                  ) : (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-orange-600" />
-                  )}
-                  {tipo === "receber" ? "A receber" : "A pagar"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-violet-100/80 bg-violet-50 px-3.5 py-3 dark:border-violet-900/40 dark:bg-violet-950/25">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Recorrência
-                </p>
-                <p className="mt-1 truncate text-sm font-semibold">
-                  {comoContrato
-                    ? "Contrato"
-                    : parcelado && formMode === "create"
-                      ? recorrenciaIndeterminada
-                        ? "Mensal contínua"
-                        : (RECORRENCIAS.find((r) => r.value === recorrencia)
-                            ?.label ?? "Parcelado")
-                      : parcelado
-                        ? "Parcelado"
-                        : "Parcela única"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-emerald-100/80 bg-emerald-50 px-3.5 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Total
-                </p>
-                <p className="mt-1 text-sm font-semibold tabular-nums">
-                  {comoContrato
-                    ? brl(
-                        (parseValor(contratoForm.valorAdesao) || 0) +
-                          (parseValor(contratoForm.valorMensalidade) || 0) *
-                            (Number(qtdParcelas) || 1),
-                      )
-                    : form.valor
-                      ? parcelado && formMode === "create"
-                        ? recorrenciaIndeterminada
-                          ? "Mensal"
-                          : brl(
-                              (parseValor(form.valor) || 0) *
-                                (Number(qtdParcelas) || 1),
-                            )
-                        : brl(parseValor(form.valor) || 0)
-                      : "—"}
-                </p>
-              </div>
-            </div>
-
-            <Tabs
-              value={formTab}
-              onValueChange={(value) => setFormTab(value as TituloFormTab)}
-            >
-              <TabsList
-                className={cn(
-                  FORM_STEP_LIST,
-                  comoContrato ? "grid-cols-3" : "grid-cols-2",
-                )}
-              >
-                <TabsTrigger
-                  value="dados"
-                  className={cn("group", FORM_STEP_TRIGGER)}
-                >
-                  <span className={FORM_STEP_INDEX}>1</span>
-                  Dados
-                </TabsTrigger>
-                <TabsTrigger
-                  value="cobranca"
-                  className={cn("group", FORM_STEP_TRIGGER)}
-                >
-                  <span className={FORM_STEP_INDEX}>2</span>
-                  {tipo === "pagar" ? "Pagamento" : "Cobrança"}
-                </TabsTrigger>
-                {comoContrato ? (
-                  <TabsTrigger
-                    value="contrato"
-                    className={cn("group", FORM_STEP_TRIGGER)}
-                  >
-                    <span className={FORM_STEP_INDEX}>3</span>
-                    Contrato
-                  </TabsTrigger>
-                ) : null}
-              </TabsList>
-            </Tabs>
+            <ol className="flex items-center gap-2 overflow-x-auto pb-1">
+              {passosTitulo.map((item, index) => {
+                const ativo = item.id === formTab;
+                const feito = passosTitulo.findIndex((passo) => passo.id === formTab) > index;
+                return (
+                  <li key={item.id} className="flex items-center gap-2">
+                    <button type="button" onClick={() => setFormTab(item.id)} className="flex items-center gap-2">
+                      <span className={cn("grid size-7 place-items-center rounded-full text-xs font-semibold", ativo || feito ? "bg-[#079ED4] text-white" : "bg-[#E6EEF2] text-[#5C6B76]")}>
+                        {index + 1}
+                      </span>
+                      <span className={cn("whitespace-nowrap text-sm", ativo ? "font-semibold text-[#0B3148]" : "text-[#8B98A3]")}>{item.label}</span>
+                    </button>
+                    {index < passosTitulo.length - 1 ? <span className="mx-1 hidden h-px w-8 bg-[#E2E8EC] sm:block" /> : null}
+                  </li>
+                );
+              })}
+            </ol>
 
             <FormSection
               icon={
@@ -2561,27 +2501,37 @@ export function FinanceiroTitulosPanel({
               }
               className={FORM_SECTION}
               title={
-                formTab === "dados"
-                  ? "Identificação"
-                  : formTab === "contrato"
-                    ? "Configuração do contrato"
+                formTab === "contrato"
+                  ? "Configuração do contrato"
+                  : formTab === "confirmacao"
+                    ? "Confirmação"
                     : tipo === "pagar"
-                      ? "Pagamento e recorrência"
-                      : "Cobrança e parcelas"
+                      ? "Dados e pagamento"
+                      : "Dados e cobrança"
               }
               description={
-                formTab === "dados"
-                  ? "Descreva o título e classifique fornecedor, centro e tipo."
-                  : formTab === "contrato"
-                    ? "Valores de adesão, mensalidade e vigência."
+                formTab === "contrato"
+                  ? "Valores de adesão, mensalidade e vigência."
+                  : formTab === "confirmacao"
+                    ? "Revise os dados antes de salvar."
                     : tipo === "pagar"
-                      ? "Informe vencimento, valor e se a conta se repete."
-                      : "Informe vencimento, valor e se a cobrança se repete."
+                      ? "Descrição, fornecedor, vencimento e valor."
+                      : "Descrição, parceiro, vencimento e valor."
               }
             >
-              <div className="grid gap-3 sm:grid-cols-2">
+              {formTab === "confirmacao" ? (
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <DetailItem label="Descrição" value={form.descricao || "—"} />
+                  <DetailItem label={tipo === "pagar" ? "Fornecedor" : "Parceiro"} value={parceiros.find((item) => item.id === form.parceiroId)?.nome || "—"} />
+                  <DetailItem label={catalogLabel} value={form.categoria || "—"} />
+                  <DetailItem label="Valor" value={brl(parseValor(form.valor) || 0)} />
+                  <DetailItem label="Vencimento" value={form.vencimento ? formatDate(form.vencimento) : "—"} />
+                  <DetailItem label="Status" value={statusLabel(form.status)} />
+                </dl>
+              ) : null}
+              <div className={cn("grid items-end gap-3 sm:grid-cols-2", formTab === "confirmacao" && "hidden")}>
                 {!comoContrato && formTab === "dados" ? (
-                  <div className="sm:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <Label>Descrição *</Label>
                     <Input
                       value={form.descricao}
@@ -2593,7 +2543,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {formTab === "dados" ? (
-                  <div className="sm:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label>
                         {tipo === "pagar" ? "Fornecedor" : "Parceiro"}
@@ -2680,13 +2630,6 @@ export function FinanceiroTitulosPanel({
                       >
                         Contrato
                       </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {isAssinaturaPlataforma
-                          ? "Gera adesão + mensalidades vinculadas à imobiliária."
-                          : tipo === "receber"
-                            ? "Gera adesão + mensalidades vinculadas ao cliente."
-                            : "Adesão opcional e mensalidades do fornecedor. Para conta fixa simples (aluguel, condomínio), use recorrência abaixo."}
-                      </p>
                     </div>
                   </div>
                 ) : null}
@@ -2712,17 +2655,13 @@ export function FinanceiroTitulosPanel({
                       >
                         Comissão
                       </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Abre o mesmo cadastro de Comissões: venda, percentuais
-                        e prévia do cálculo.
-                      </p>
                     </div>
                   </div>
                 ) : null}
                 {!comoContrato &&
                 formMode === "create" &&
                 formTab === "dados" ? (
-                  <div className="sm:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <Label>Conta fixa ou recorrente</Label>
                     <Select
                       value={recorrencia}
@@ -2741,18 +2680,11 @@ export function FinanceiroTitulosPanel({
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {recorrencia === "unica"
-                        ? tipo === "pagar"
-                          ? "Um único lançamento. Para aluguel, condomínio ou assinatura no período, escolha a frequência — valor e vencimentos ficam em Pagamento."
-                          : "Um único lançamento. Para repetir no período, escolha a frequência — valor e vencimentos ficam em Cobrança."
-                        : "Gera um lançamento por vencimento no fluxo de caixa. Informe valor, 1º vencimento e quantidade na aba seguinte."}
-                    </p>
                   </div>
                 ) : null}
                 {tipo === "pagar" &&
                 (formTab === "dados" || formMode === "edit-grupo") ? (
-                  <div className="sm:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <Label>Tipo de despesa *</Label>
                     <div className={cn(FILTER_VISTA_WRAP, "h-9 p-0.5")}>
                       <Button
@@ -2788,10 +2720,6 @@ export function FinanceiroTitulosPanel({
                         Variável
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Fixa: aluguel, folha, assinatura. Variável: marketing,
-                      comissão, compra avulsa.
-                    </p>
                   </div>
                 ) : null}
                 {comoContrato &&
@@ -3064,7 +2992,7 @@ export function FinanceiroTitulosPanel({
                   </>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 formMode === "create" ? (
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label>Recorrência</Label>
@@ -3093,7 +3021,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 formMode === "edit" ? (
                   <div
                     className={cn(
@@ -3128,7 +3056,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 formMode !== "edit-grupo" ? (
                   <>
                     <div className="space-y-1.5">
@@ -3180,7 +3108,7 @@ export function FinanceiroTitulosPanel({
                   </>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 parcelado &&
                 formMode === "create" &&
                 recorrencia === "mensal" ? (
@@ -3216,7 +3144,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 parcelado &&
                 formMode === "create" &&
                 !recorrenciaIndeterminada ? (
@@ -3241,7 +3169,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {!comoContrato &&
-                formTab === "cobranca" &&
+                (formTab === "dados" || formTab === "cobranca") &&
                 parcelado &&
                 formMode === "edit" ? (
                   <div className="space-y-1.5">
@@ -3255,12 +3183,12 @@ export function FinanceiroTitulosPanel({
                     />
                   </div>
                 ) : null}
-                {(formTab === "cobranca" &&
+                {((formTab === "dados" || formTab === "cobranca") &&
                   !comoContrato &&
                   parcelado &&
                   formMode === "create" &&
                   parcelasDraft.length > 0) ||
-                (formTab === "cobranca" && formMode === "edit-grupo") ? (
+                ((formTab === "dados" || formTab === "cobranca") && formMode === "edit-grupo") ? (
                   <div className="sm:col-span-2 space-y-2">
                     <Label>
                       {formMode === "edit-grupo"
@@ -3414,8 +3342,8 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {formTab === "dados" ||
-                (formMode === "edit-grupo" && formTab === "cobranca") ? (
-                  <div className="sm:col-span-2 space-y-1.5">
+                (formMode === "edit-grupo" && (formTab === "dados" || formTab === "cobranca")) ? (
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label>{catalogLabel} *</Label>
                       <Button
@@ -3456,9 +3384,6 @@ export function FinanceiroTitulosPanel({
                           : "Buscar centro de custo…"
                       }
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      {catalogHint}
-                    </p>
                   </div>
                 ) : null}
                 {formMode !== "edit-grupo" &&
@@ -3500,6 +3425,23 @@ export function FinanceiroTitulosPanel({
               </div>
             </FormSection>
           </form>
+          <aside className="lg:sticky lg:top-0">
+            <div className="rounded-2xl border border-[#E2E8EC] bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
+              <p className="text-sm font-medium text-[#0B3148] dark:text-white">
+                {tipo === "pagar" ? "Resumo da conta" : "Resumo da cobrança"}
+              </p>
+              <div className="mt-3 rounded-xl bg-[#E7F6FC] px-3 py-3 dark:bg-[#132833]">
+                <p className="text-xs text-[#05749E]">Valor</p>
+                <p className="text-2xl font-semibold text-[#0B3148] dark:text-white">{brl(parseValor(form.valor) || 0)}</p>
+              </div>
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">Vencimento</dt><dd>{form.vencimento ? formatDate(form.vencimento) : "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">{tipo === "pagar" ? "Fornecedor" : "Parceiro"}</dt><dd className="truncate">{parceiros.find((item) => item.id === form.parceiroId)?.nome || "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">{catalogLabel}</dt><dd className="truncate">{form.categoria || form.centro || "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-[#8B98A3]">Status</dt><dd>{statusLabel(form.status)}</dd></div>
+              </dl>
+            </div>
+          </aside>
         </FormDialogBody>
       </FormDialogShell>
 
