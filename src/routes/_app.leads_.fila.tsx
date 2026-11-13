@@ -8,17 +8,23 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getSession } from "@/lib/auth";
+import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import { ApiError } from "@/lib/api";
 import {
+  addFilaEquipe,
   addFilaMembro,
+  fetchFilaCampanhas,
   fetchFilaElegiveis,
   fetchFilaHistorico,
   fetchFilaPainel,
   removeFilaMembro,
   reordenarFila,
   setFilaAtiva,
+  setFilaCampanhasMembro,
+  setFilaFiltros,
   setFilaPrazo,
   setFilaMembroAtivo,
+  type FilaCampanha,
   type FilaElegivel,
   type FilaEvento,
   type FilaPainel,
@@ -56,18 +62,25 @@ function Page() {
   const [elegiveis, setElegiveis] = useState<FilaElegivel[]>([]);
   const [historico, setHistorico] = useState<FilaEvento[]>([]);
   const [userId, setUserId] = useState("");
+  const [equipeId, setEquipeId] = useState("");
+  const [campanhas, setCampanhas] = useState<FilaCampanha[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [minutos, setMinutos] = useState("10");
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
 
   async function load(periodo?: { de?: string; ate?: string }) {
-    const [next, livres, eventos] = await Promise.all([
+    const [next, livres, eventos, opcoes, listaEquipes] = await Promise.all([
       fetchFilaPainel(periodo?.de, periodo?.ate),
       fetchFilaElegiveis(),
       fetchFilaHistorico(),
+      fetchFilaCampanhas(),
+      fetchEquipes().catch(() => [] as Equipe[]),
     ]);
     setPainel(next);
+    setCampanhas(opcoes);
+    setEquipes(listaEquipes.filter((equipe) => equipe.status === "ativo"));
     setMinutos(String(next.redistribuirMinutos ?? 0));
     setElegiveis(livres);
     setHistorico(eventos);
@@ -100,13 +113,19 @@ function Page() {
     }
   }
 
-  function mover(index: number, delta: number) {
+  function mover(tipo: "corretor" | "equipe", index: number, delta: number) {
     if (!painel) return;
-    const ids = painel.membros.map((m) => m.id);
+    const corretores = painel.membros.filter((m) => m.tipo !== "equipe");
+    const deEquipe = painel.membros.filter((m) => m.tipo === "equipe");
+    const lista = (tipo === "equipe" ? deEquipe : corretores).map((m) => m.id);
     const next = index + delta;
-    if (next < 0 || next >= ids.length) return;
-    const [item] = ids.splice(index, 1);
-    ids.splice(next, 0, item);
+    if (next < 0 || next >= lista.length) return;
+    const [item] = lista.splice(index, 1);
+    lista.splice(next, 0, item);
+    const ids =
+      tipo === "equipe"
+        ? [...corretores.map((m) => m.id), ...lista]
+        : [...lista, ...deEquipe.map((m) => m.id)];
     void run(() => reordenarFila(ids));
   }
 
@@ -166,6 +185,38 @@ function Page() {
             >
               Salvar prazo
             </Button>
+            <div className="flex flex-col gap-2 text-sm">
+              <label className="flex items-center gap-2">
+                <Switch
+                  checked={Boolean(painel.filtroCampanhas)}
+                  onCheckedChange={(filtroCampanhas) =>
+                    void run(() =>
+                      setFilaFiltros({
+                        filtroCampanhas,
+                        outrosCanaisNaFila: Boolean(painel.outrosCanaisNaFila),
+                      }),
+                    )
+                  }
+                  aria-label="Filtrar por campanhas"
+                />
+                Filtrar por campanhas da Meta e da OLX
+              </label>
+              <label className="flex items-center gap-2">
+                <Switch
+                  checked={Boolean(painel.outrosCanaisNaFila)}
+                  onCheckedChange={(outrosCanaisNaFila) =>
+                    void run(() =>
+                      setFilaFiltros({
+                        filtroCampanhas: Boolean(painel.filtroCampanhas),
+                        outrosCanaisNaFila,
+                      }),
+                    )
+                  }
+                  aria-label="Distribuir outros canais"
+                />
+                Outros canais entram na fila
+              </label>
+            </div>
             <Switch
               checked={painel.ativa}
               onCheckedChange={(ativa) => void run(() => setFilaAtiva(ativa))}
@@ -238,7 +289,7 @@ function Page() {
               {painel.membros.length === 0 ? (
                 <li className="p-4 text-sm text-muted-foreground">Nenhum integrante na fila.</li>
               ) : (
-                painel.membros.map((membro, index) => (
+                painel.membros.filter((membro) => membro.tipo !== "equipe").map((membro, index) => (
                   <li key={membro.id} className="flex flex-wrap items-center gap-3 p-3">
                     <span className="w-8 text-center text-sm font-semibold tabular-nums text-primary">
                       {membro.ordem}
@@ -265,10 +316,31 @@ function Page() {
                           : ""}
                       </p>
                     </div>
-                    <Button type="button" size="icon" variant="outline" onClick={() => mover(index, -1)} aria-label="Subir">
+                    <label className="w-full text-xs text-muted-foreground sm:w-56">
+                      Campanhas
+                      <select
+                        multiple
+                        className="mt-1 block h-20 w-full rounded-md border bg-background px-2 py-1 text-sm text-foreground"
+                        value={(membro.campanhas ?? []).map((c) => c.chave)}
+                        onChange={(event) => {
+                          const chaves = Array.from(event.target.selectedOptions).map(
+                            (opcao) => opcao.value,
+                          );
+                          const escolhidas = campanhas.filter((c) => chaves.includes(c.chave));
+                          void run(() => setFilaCampanhasMembro(membro.id, escolhidas));
+                        }}
+                      >
+                        {campanhas.map((campanha) => (
+                          <option key={campanha.chave} value={campanha.chave}>
+                            {campanha.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Button type="button" size="icon" variant="outline" onClick={() => mover("corretor", index, -1)} aria-label="Subir">
                       <ArrowUp className="size-4" />
                     </Button>
-                    <Button type="button" size="icon" variant="outline" onClick={() => mover(index, 1)} aria-label="Descer">
+                    <Button type="button" size="icon" variant="outline" onClick={() => mover("corretor", index, 1)} aria-label="Descer">
                       <ArrowDown className="size-4" />
                     </Button>
                     <Button
@@ -287,6 +359,107 @@ function Page() {
                     </Button>
                   </li>
                 ))
+              )}
+            </ul>
+          </Card>
+          <Card className="space-y-3 p-4">
+            <p className="font-medium">Fila de equipes</p>
+            <p className="text-sm text-muted-foreground">
+              O lead cai no pool da equipe. A distribuição interna da equipe continua igual.
+              Com o prazo estourado e sem corretor, o lead volta ao pool do administrador.
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-56 flex-1 text-sm">
+                Adicionar equipe
+                <select
+                  className="mt-1 block w-full rounded-md border bg-background px-2 py-2 text-sm"
+                  value={equipeId}
+                  onChange={(e) => setEquipeId(e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {equipes
+                    .filter((equipe) => !painel.membros.some((m) => m.equipeId === equipe.id))
+                    .map((equipe) => (
+                      <option key={equipe.id} value={equipe.id}>
+                        {equipe.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <Button
+                type="button"
+                disabled={!equipeId}
+                onClick={() =>
+                  void run(async () => {
+                    await addFilaEquipe(equipeId);
+                    setEquipeId("");
+                  })
+                }
+              >
+                Adicionar equipe
+              </Button>
+            </div>
+            <ul className="divide-y rounded-xl border">
+              {painel.membros.filter((m) => m.tipo === "equipe").length === 0 ? (
+                <li className="p-4 text-sm text-muted-foreground">Nenhuma equipe na fila.</li>
+              ) : (
+                painel.membros
+                  .filter((m) => m.tipo === "equipe")
+                  .map((membro, index) => (
+                    <li key={membro.id} className="flex flex-wrap items-center gap-3 p-3">
+                      <span className="w-8 text-center text-sm font-semibold">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">
+                          {membro.nome}
+                          {membro.proximo ? (
+                            <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                              Próxima
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(membro.campanhas ?? []).map((c) => c.nome).join(", ") || "Sem campanhas"}
+                        </p>
+                      </div>
+                      <label className="w-full text-xs text-muted-foreground sm:w-56">
+                        Campanhas
+                        <select
+                          multiple
+                          className="mt-1 block h-20 w-full rounded-md border bg-background px-2 py-1 text-sm text-foreground"
+                          value={(membro.campanhas ?? []).map((c) => c.chave)}
+                          onChange={(event) => {
+                            const chaves = Array.from(event.target.selectedOptions).map(
+                              (opcao) => opcao.value,
+                            );
+                            const escolhidas = campanhas.filter((c) => chaves.includes(c.chave));
+                            void run(() => setFilaCampanhasMembro(membro.id, escolhidas));
+                          }}
+                        >
+                          {campanhas.map((campanha) => (
+                            <option key={campanha.chave} value={campanha.chave}>
+                              {campanha.nome}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <Button type="button" size="icon" variant="outline" onClick={() => mover("equipe", index, -1)} aria-label="Subir">
+                        <ArrowUp className="size-4" />
+                      </Button>
+                      <Button type="button" size="icon" variant="outline" onClick={() => mover("equipe", index, 1)} aria-label="Descer">
+                        <ArrowDown className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void run(() => setFilaMembroAtivo(membro.id, !membro.ativoNaFila))}
+                      >
+                        {membro.ativoNaFila ? "Desativar" : "Ativar"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => void run(() => removeFilaMembro(membro.id))}>
+                        Remover
+                      </Button>
+                    </li>
+                  ))
               )}
             </ul>
           </Card>

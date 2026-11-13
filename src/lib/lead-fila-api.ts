@@ -1,9 +1,18 @@
 import { apiFetch } from "@/lib/api";
 
+export type FilaCampanha = {
+  chave: string;
+  nome: string;
+  canal: "meta" | "olx" | string;
+};
+
 export type FilaMembro = {
   id: string;
-  userId: string;
+  tipo?: "corretor" | "equipe";
+  userId: string | null;
+  equipeId?: string | null;
   nome: string;
+  campanhas?: FilaCampanha[];
   avatar: string | null;
   role: string;
   cargo: string | null;
@@ -17,6 +26,8 @@ export type FilaMembro = {
 
 export type FilaPainel = {
   ativa: boolean;
+  filtroCampanhas?: boolean;
+  outrosCanaisNaFila?: boolean;
   redistribuirMinutos: number;
   ativos: number;
   inativos: number;
@@ -93,4 +104,29 @@ export function removeFilaMembro(id: string) {
 
 export function reordenarFila(ids: string[]) {
   return apiFetch("/leads/distribuir/fila/ordem", { method: "PUT", body: { ids } });
+}
+
+export function fetchFilaCampanhas() {
+  return apiFetch<FilaCampanha[]>("/leads/distribuir/fila/campanhas");
+}
+
+export function setFilaFiltros(filtros: {
+  filtroCampanhas: boolean;
+  outrosCanaisNaFila: boolean;
+}) {
+  return apiFetch("/leads/distribuir/fila/filtros", { method: "PATCH", body: filtros });
+}
+
+export function addFilaEquipe(equipeId: string) {
+  return apiFetch("/leads/distribuir/fila/equipes", {
+    method: "POST",
+    body: { equipeId },
+  });
+}
+
+export function setFilaCampanhasMembro(id: string, campanhas: FilaCampanha[]) {
+  return apiFetch(`/leads/distribuir/fila/membros/${id}/campanhas`, {
+    method: "PUT",
+    body: { campanhas },
+  });
 }
