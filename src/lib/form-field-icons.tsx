@@ -40,6 +40,10 @@ function texto(children: ReactNode): string {
 }
 
 const REGRAS: { teste: RegExp; icon: LucideIcon }[] = [
+  { teste: /parceiro|fornecedor|cliente|construtora/i, icon: Building2 },
+  { teste: /categoria|centro/i, icon: Tag },
+  { teste: /descri[cç][aã]o|observa/i, icon: Type },
+  { teste: /status|tipo\b|pagamento|forma/i, icon: BadgeCheck },
   { teste: /e-?mail/i, icon: Mail },
   { teste: /telefone|whatsapp|celular/i, icon: Phone },
   { teste: /nome|empresa|contato/i, icon: UserRound },

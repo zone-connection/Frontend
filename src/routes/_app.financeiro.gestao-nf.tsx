@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, FileWarning, Link2Off, Plus, Receipt } from "lucide-react";
+import { ArrowRight, FileText, FileWarning, Link2Off, Plus, Receipt } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -26,17 +26,24 @@ import {
   FormDialogShell,
   FormSection,
 } from "@/components/form-dialog";
+import { ArquivoNotaField } from "@/components/arquivo-nota-field";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { PagePanel } from "@/components/page-panel";
 import { FinanceiroFiltrosBar } from "@/components/financeiro-filtros";
 import { FILTRO_CAMPO } from "@/components/filtros-painel";
 import { TablePager } from "@/components/table-pager";
+import { IdSearchSelect } from "@/components/id-search-select";
+import { relationName } from "@/components/comissao-lancamento-dialog";
 import {
+  fetchComissoes,
   fetchNotasFiscais,
   fetchNotasFiscaisOpcoes,
   saveNotaFiscal,
+  updateComissao,
+  type Comissao,
   type NotaFiscal,
 } from "@/lib/financeiro-api";
+import { maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { brl, formatDate, type PeriodoFiltro } from "@/lib/financeiro-mock";
 import { TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
@@ -76,6 +83,9 @@ function Page() {
   const [empreendimento, setEmpreendimento] = useState("todos");
   const [arquivo, setArquivo] = useState<ArquivoFiltro>("todos");
   const [open, setOpen] = useState(false);
+  const [passo, setPasso] = useState(0);
+  const [comissoes, setComissoes] = useState<Comissao[]>([]);
+  const [comissaoId, setComissaoId] = useState("");
   const [editing, setEditing] = useState<NotaFiscal | null>(null);
   const [form, setForm] = useState(empty);
   const [file, setFile] = useState<File | null>(null);
@@ -149,7 +159,10 @@ function Page() {
     setEditing(null);
     setForm(empty);
     setFile(null);
+    setPasso(0);
+    setComissaoId("");
     setOpen(true);
+    void fetchComissoes().then(setComissoes).catch(() => setComissoes([]));
   }
 
   function startEdit(row: NotaFiscal) {
@@ -165,7 +178,15 @@ function Page() {
       dataEmissao: row.dataEmissao ?? "",
     });
     setFile(null);
+    setPasso(0);
+    setComissaoId("");
     setOpen(true);
+    void fetchComissoes()
+      .then((lista) => {
+        setComissoes(lista);
+        setComissaoId(lista.find((item) => item.notaFiscalId === row.id)?.id ?? "");
+      })
+      .catch(() => setComissoes([]));
   }
 
   async function submit(event: FormEvent) {
@@ -176,7 +197,7 @@ function Page() {
     }
     setSaving(true);
     try {
-      await saveNotaFiscal(
+      const salva = await saveNotaFiscal(
         {
           numero: form.numero.trim(),
           cliente: form.cliente,
@@ -185,11 +206,14 @@ function Page() {
           empreendimento: form.empreendimento,
           torreBloco: form.torreBloco,
           dataEmissao: form.dataEmissao || null,
-          vgv: form.vgv.trim() ? Number(form.vgv.replace(",", ".")) : null,
+          vgv: parseOptionalMoneyInput(form.vgv),
           file,
         },
         editing?.id,
       );
+      if (comissaoId) {
+        await updateComissao(comissaoId, { notaFiscalId: salva.id });
+      }
       setOpen(false);
       toast.success(editing ? "Nota atualizada." : "Nota cadastrada.");
       setRows(
@@ -371,43 +395,164 @@ function Page() {
         onOpenChange={setOpen}
         icon={<FileText className="size-5" />}
         title={editing ? "Editar NF" : "Nova NF"}
-        description="Só o número é obrigatório. Os demais dados podem ser preenchidos depois."
+        description="Cadastre a nota e, se quiser, vincule a um lançamento de comissão."
+        footer={
+          <FormDialogActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (passo === 0 ? setOpen(false) : setPasso((atual) => atual - 1))}
+              disabled={saving}
+            >
+              {passo === 0 ? "Cancelar" : "Voltar"}
+            </Button>
+            {passo < 2 ? (
+              <Button
+                type="button"
+                className={BRAND_GRADIENT_BTN}
+                style={BRAND_GRADIENT_STYLE}
+                onClick={() => {
+                  if (passo === 0 && !form.numero.trim()) {
+                    toast.error("Informe o número da NF.");
+                    return;
+                  }
+                  setPasso((atual) => atual + 1);
+                }}
+              >
+                Próximo
+                <ArrowRight className="ml-1.5 size-4" />
+              </Button>
+            ) : (
+              <Button type="submit" form="nf-form" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} disabled={saving}>
+                {saving ? "Salvando…" : "Salvar NF"}
+              </Button>
+            )}
+          </FormDialogActions>
+        }
       >
-        <form onSubmit={(event) => void submit(event)}>
-          <FormDialogBody>
-            <FormSection title="Nota">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Número da NF" required value={form.numero} onChange={(numero) => setForm({ ...form, numero })} />
-                <div className="space-y-1.5">
-                  <Label>Data de emissão</Label>
-                  <Input type="date" value={form.dataEmissao} onChange={(event) => setForm({ ...form, dataEmissao: event.target.value })} />
-                </div>
-                <Field label="Cliente" value={form.cliente} onChange={(cliente) => setForm({ ...form, cliente })} />
-                <Field label="Valor da venda (VGV)" value={form.vgv} onChange={(vgv) => setForm({ ...form, vgv })} />
-                <Field label="Corretor" value={form.corretor} onChange={(corretor) => setForm({ ...form, corretor })} />
-                <Field label="Construtora" value={form.construtora} onChange={(construtora) => setForm({ ...form, construtora })} />
-                <Field label="Empreendimento" value={form.empreendimento} onChange={(empreendimento) => setForm({ ...form, empreendimento })} />
-                <Field label="Torre / Bloco" value={form.torreBloco} onChange={(torreBloco) => setForm({ ...form, torreBloco })} />
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Arquivo da NF</Label>
-                  <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-                  {editing?.arquivoUrl ? (
-                    <a className="text-xs text-primary underline" href={editing.arquivoUrl} target="_blank" rel="noreferrer">
-                      Arquivo atual: {editing.arquivoNome || "abrir"}
-                    </a>
-                  ) : null}
+        <form id="nf-form" onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
+          <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-5">
+            <div className="space-y-4">
+              <PassosNf passo={passo} onChange={setPasso} />
+              {passo === 0 && (
+                <FormSection title="Dados da nota fiscal" icon={<FileText className="size-4 text-[#079ED4]" />} description="Só o número é obrigatório.">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Número da NF" required value={form.numero} onChange={(numero) => setForm({ ...form, numero })} />
+                    <div className="space-y-1.5">
+                      <Label>Data de emissão</Label>
+                      <Input type="date" value={form.dataEmissao} onChange={(event) => setForm({ ...form, dataEmissao: event.target.value })} />
+                    </div>
+                    <Field label="Cliente" value={form.cliente} onChange={(cliente) => setForm({ ...form, cliente })} />
+                    <Field label="Valor da venda (VGV)" value={form.vgv} onChange={(vgv) => setForm({ ...form, vgv: maskMoneyInput(vgv) })} />
+                    <Field label="Corretor" value={form.corretor} onChange={(corretor) => setForm({ ...form, corretor })} />
+                    <Field label="Construtora" value={form.construtora} onChange={(construtora) => setForm({ ...form, construtora })} />
+                    <Field label="Empreendimento" value={form.empreendimento} onChange={(empreendimento) => setForm({ ...form, empreendimento })} />
+                    <Field label="Torre / Bloco" value={form.torreBloco} onChange={(torreBloco) => setForm({ ...form, torreBloco })} />
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Arquivo da NF</Label>
+                      <ArquivoNotaField file={file} onChange={setFile} atualUrl={editing?.arquivoUrl} atualNome={editing?.arquivoNome} />
+                    </div>
+                  </div>
+                </FormSection>
+              )}
+              {passo === 1 && (
+                <FormSection title="Vinculação" icon={<Receipt className="size-4 text-[#079ED4]" />} description="Opcional. A nota pode ficar sem comissão.">
+                  <IdSearchSelect
+                    value={comissaoId}
+                    onChange={setComissaoId}
+                    placeholder="Sem vínculo"
+                    noneLabel="Sem vínculo"
+                    emptyLabel="Nenhuma comissão lançada"
+                    searchPlaceholder="Cliente, corretor ou empreendimento"
+                    options={comissoes.map((item) => ({
+                      id: item.id,
+                      label: relationName(item.cliente, "Comissão"),
+                      hint: [relationName(item.empreendimento, ""), relationName(item.corretor, "")].filter((parte) => parte && parte !== "—").join(" · "),
+                      keywords: [relationName(item.cliente, ""), relationName(item.corretor, ""), relationName(item.empreendimento, ""), item.notaFiscal?.numero ?? ""].join(" "),
+                    }))}
+                  />
+                </FormSection>
+              )}
+              {passo === 2 && (
+                <FormSection title="Confirmação" description="Confira os dados antes de salvar.">
+                  <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                    <Confirma label="Número" value={form.numero || "—"} />
+                    <Confirma label="Emissão" value={form.dataEmissao ? formatDate(form.dataEmissao) : "—"} />
+                    <Confirma label="Cliente" value={form.cliente || "—"} />
+                    <Confirma label="VGV" value={brl(parseOptionalMoneyInput(form.vgv) ?? 0)} />
+                    <Confirma label="Corretor" value={form.corretor || "—"} />
+                    <Confirma label="Construtora" value={form.construtora || "—"} />
+                    <Confirma label="Empreendimento" value={form.empreendimento || "—"} />
+                    <Confirma label="Torre / bloco" value={form.torreBloco || "—"} />
+                    <Confirma label="Arquivo" value={file?.name || editing?.arquivoNome || "Nenhum"} />
+                    <Confirma label="Comissão" value={comissoes.find((item) => item.id === comissaoId) ? relationName(comissoes.find((item) => item.id === comissaoId)?.cliente) : "Sem vínculo"} />
+                  </dl>
+                </FormSection>
+              )}
+            </div>
+            <aside className="lg:sticky lg:top-0">
+              <div className="rounded-2xl bg-[#0B3148] p-5 text-white shadow-sm">
+                <p className="text-sm font-medium text-white/80">Resumo da NF</p>
+                <p className="mt-3 text-3xl font-semibold tracking-tight">{brl(parseOptionalMoneyInput(form.vgv) ?? 0)}</p>
+                <p className="text-xs text-white/60">Valor da venda (VGV)</p>
+                <dl className="mt-4 space-y-2 border-t border-white/10 pt-4 text-sm">
+                  <ResumoLinha label="Número" value={form.numero || "—"} />
+                  <ResumoLinha label="Cliente" value={form.cliente || "—"} />
+                  <ResumoLinha label="Corretor" value={form.corretor || "—"} />
+                  <ResumoLinha label="Empreendimento" value={form.empreendimento || "—"} />
+                </dl>
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-[#E7F6FC] px-3 py-3 text-[#05749E]">
+                  <span className="text-sm font-medium">Comissão</span>
+                  <span className="text-sm font-semibold">
+                    {comissoes.find((item) => item.id === comissaoId) ? relationName(comissoes.find((item) => item.id === comissaoId)?.cliente) : "Sem vínculo"}
+                  </span>
                 </div>
               </div>
-            </FormSection>
+            </aside>
           </FormDialogBody>
-          <FormDialogActions>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="submit" className={BRAND_GRADIENT_BTN} style={BRAND_GRADIENT_STYLE} disabled={saving}>
-              {saving ? "Salvando…" : "Salvar"}
-            </Button>
-          </FormDialogActions>
         </form>
       </FormDialogShell>
+    </div>
+  );
+}
+
+const PASSOS_NF = ["Dados da NF", "Vinculação", "Confirmação"] as const;
+
+function PassosNf({ passo, onChange }: { passo: number; onChange: (passo: number) => void }) {
+  return (
+    <ol className="flex items-center gap-2 overflow-x-auto pb-1">
+      {PASSOS_NF.map((label, index) => {
+        const ativo = index === passo;
+        return (
+          <li key={label} className="flex items-center gap-2">
+            <button type="button" onClick={() => onChange(index)} className="flex items-center gap-2">
+              <span className={`grid size-7 place-items-center rounded-full text-xs font-semibold ${ativo || index < passo ? "bg-[#079ED4] text-white" : "bg-[#E6EEF2] text-[#5C6B76]"}`}>
+                {index + 1}
+              </span>
+              <span className={`whitespace-nowrap text-sm ${ativo ? "font-semibold text-[#0B3148]" : "text-[#8B98A3]"}`}>{label}</span>
+            </button>
+            {index < PASSOS_NF.length - 1 ? <span className="mx-1 hidden h-px w-8 bg-[#E2E8EC] sm:block" /> : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function Confirma({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-[#8B98A3]">{label}</dt>
+      <dd className="font-medium text-[#0B3148]">{value}</dd>
+    </div>
+  );
+}
+
+function ResumoLinha({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-white/60">{label}</dt>
+      <dd className="truncate font-medium">{value}</dd>
     </div>
   );
 }

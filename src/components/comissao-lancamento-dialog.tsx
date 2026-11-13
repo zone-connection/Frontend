@@ -6,6 +6,7 @@ import {
   FormDialogShell,
   FormSection,
 } from "@/components/form-dialog";
+import { ArquivoNotaField } from "@/components/arquivo-nota-field";
 import { IdSearchSelect } from "@/components/id-search-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -60,14 +61,20 @@ import {
   type ComissaoStatus,
   type VendaElegivelComissao,
 } from "@/lib/financeiro-api";
+import { BRAND_GRADIENT_BTN, BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
 import { brl, formatDate } from "@/lib/financeiro-mock";
 import { formatMoneyInput, maskMoneyInput, parseOptionalMoneyInput } from "@/lib/money-input";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRight,
+  CalendarDays,
   Check,
   ChevronsUpDown,
+  FileText,
+  Home,
   Loader2,
   Percent,
+  Trophy,
 } from "lucide-react";
 
 export type OrigemVendaComissao = "existente" | "avulsa";
@@ -269,6 +276,8 @@ export function ComissaoLancamentoDialog({
   const [registrarDocumentacao, setRegistrarDocumentacao] = useState(
     readRegistrarDocumentacao,
   );
+  const [passo, setPasso] = useState(0);
+  const [premiacaoAberta, setPremiacaoAberta] = useState(false);
 
   const isAvulsa = mode === "create" && form.origemVenda === "avulsa";
 
@@ -321,6 +330,8 @@ export function ComissaoLancamentoDialog({
       return;
     }
     setComprovante(null);
+    setPasso(0);
+    setPremiacaoAberta(Number(editing?.valorPremiacao ?? 0) > 0);
     setNotaArquivo(null);
     setNotaNumero("");
     setNotaFiscalId(editing?.notaFiscalId ?? editing?.notaFiscal?.id ?? "");
@@ -660,15 +671,33 @@ export function ComissaoLancamentoDialog({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => (passo === 0 ? onOpenChange(false) : setPasso((atual) => atual - 1))}
             disabled={saving}
           >
-            Cancelar
+            {passo === 0 ? "Cancelar" : "Voltar"}
           </Button>
-          <Button type="submit" form="commission-form" disabled={saving}>
-            {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Salvar comissão
-          </Button>
+          {passo < 1 ? (
+            <Button
+              type="button"
+              className={BRAND_GRADIENT_BTN}
+              style={BRAND_GRADIENT_STYLE}
+              onClick={() => setPasso((atual) => atual + 1)}
+            >
+              Próximo
+              <ArrowRight className="ml-1.5 size-4" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              form="commission-form"
+              className={BRAND_GRADIENT_BTN}
+              style={BRAND_GRADIENT_STYLE}
+              disabled={saving}
+            >
+              {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Salvar comissão
+            </Button>
+          )}
         </FormDialogActions>
       }
     >
@@ -677,10 +706,11 @@ export function ComissaoLancamentoDialog({
         onSubmit={handleSubmit}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start lg:gap-5">
-          <div className="space-y-5">
-          {mode === "create" && (
-            <FormSection title="Origem da venda">
+        <FormDialogBody className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-5">
+          <div className="space-y-4">
+          <PassosLancamento passo={passo} onChange={setPasso} />
+          {passo === 0 && mode === "create" && (
+            <FormSection title="Origem da venda" icon={<Home className="size-4 text-[#079ED4]" />} description="Informe como a venda foi gerada.">
               <div className="grid gap-2 sm:grid-cols-2">
                 <Button
                   type="button"
@@ -932,7 +962,7 @@ export function ComissaoLancamentoDialog({
             </FormSection>
           )}
 
-          {!isAvulsa && saleSummary && (
+          {passo === 0 && !isAvulsa && saleSummary && (
             <FormSection title="Resumo da venda">
               <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 <Summary
@@ -967,7 +997,8 @@ export function ComissaoLancamentoDialog({
             </FormSection>
           )}
 
-          <FormSection title="Recebimento">
+          {passo === 1 && (
+          <FormSection title="Recebimento" icon={<CalendarDays className="size-4 text-[#079ED4]" />}>
             <div className="max-w-xs space-y-2">
               <Label htmlFor="comissao-data-prevista">
                 Data prevista de recebimento
@@ -981,14 +1012,24 @@ export function ComissaoLancamentoDialog({
                 }
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Nesta data as fatias entram em Contas a receber e no fluxo como
-                previsão. Ao marcar como paga, o fluxo registra o recebimento.
-              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="comissao-comprovante">Comprovante</Label>
+              <input
+                id="comissao-comprovante"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+                onChange={(event) =>
+                  setComprovante(event.target.files?.[0] ?? null)
+                }
+              />
             </div>
           </FormSection>
+          )}
 
-          <FormSection title="Nota fiscal">
+          {passo === 1 && (
+          <FormSection title="Nota fiscal" icon={<FileText className="size-4 text-[#079ED4]" />}>
             <p className="text-xs text-muted-foreground">
               Opcional. Anexe um arquivo para criar a NF ou escolha uma já cadastrada.
             </p>
@@ -997,9 +1038,9 @@ export function ComissaoLancamentoDialog({
                 <Label>Número da NF do arquivo</Label>
                 <Input value={notaNumero} onChange={(event) => setNotaNumero(event.target.value)} placeholder="Obrigatório só se enviar arquivo" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Arquivo</Label>
-                <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(event) => setNotaArquivo(event.target.files?.[0] ?? null)} />
+                <ArquivoNotaField file={notaArquivo} onChange={setNotaArquivo} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1029,7 +1070,9 @@ export function ComissaoLancamentoDialog({
               />
             </div>
           </FormSection>
+          )}
 
+          {passo === 1 && (
           <FormSection title="Observação">
             <div className="space-y-2">
               <Label htmlFor="comissao-observacao">Observação</Label>
@@ -1044,10 +1087,11 @@ export function ComissaoLancamentoDialog({
               />
             </div>
           </FormSection>
-          </div>
+          )}
 
-          <div className="space-y-5">
-          <FormSection title="Percentuais">
+          {passo === 0 && (
+          <>
+          <FormSection title="Comissão" icon={<Percent className="size-4 text-[#079ED4]" />} description="Imobiliária sobre o VGV, depois ISS, depois tributos. A líquida é rateada abaixo.">
             {isSolo ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1171,7 +1215,29 @@ export function ComissaoLancamentoDialog({
             )}
           </FormSection>
 
-          <FormSection title="Premiação">
+          <FormSection
+            title="Premiação"
+            icon={<Trophy className="size-4 text-[#079ED4]" />}
+            description="Opcional. Não entra no rateio de 100% da líquida."
+          >
+            <button
+              type="button"
+              className={cn(
+                "relative h-6 w-11 rounded-full transition",
+                premiacaoAberta ? "bg-[#079ED4]" : "bg-[#E2E8EC]",
+              )}
+              aria-pressed={premiacaoAberta}
+              onClick={() => setPremiacaoAberta((atual) => !atual)}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 size-5 rounded-full bg-white shadow transition",
+                  premiacaoAberta ? "left-5" : "left-0.5",
+                )}
+              />
+            </button>
+            {premiacaoAberta && (
+            <>
             <p className="text-xs text-muted-foreground">
               {isSolo
                 ? "Valor à parte da comissão. Cada percentual incide sobre o saldo da etapa anterior (uso pessoal → tributos → caixa)."
@@ -1279,60 +1345,162 @@ export function ComissaoLancamentoDialog({
                 />
               </div>
             )}
-          </FormSection>
-
-          <FormSection title="Comprovante">
-            <div className="space-y-1.5">
-              <Label htmlFor="comissao-comprovante">
-                Foto ou PDF do pagamento
-              </Label>
-              <input
-                id="comissao-comprovante"
-                type="file"
-                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
-                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
-                onChange={(event) =>
-                  setComprovante(event.target.files?.[0] ?? null)
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                O corretor desta comissão também vê o arquivo no detalhe.
-              </p>
-            </div>
-          </FormSection>
-
-          <FormSection title="Prévia do cálculo" className="bg-muted/20">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Summary label="Comissão bruta" value={brl(preview.gross)} />
-              <Summary label="ISS" value={brl(preview.iss)} />
-              <Summary label="Tributos" value={brl(preview.taxes)} />
-              <Summary
-                label="Comissão líquida"
-                value={brl(preview.net)}
-                emphasized
-              />
-              <Summary
-                label={isSolo ? "Uso pessoal" : "Corretor"}
-                value={brl(preview.broker)}
-              />
-              {!isSolo ? (
-                <Summary label="Gerente" value={brl(preview.manager)} />
-              ) : null}
-              <Summary label="Caixa" value={brl(preview.cash)} />
-              {!isSolo ? (
-                <Summary label="Sócios" value={brl(preview.partners)} />
-              ) : null}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isSolo
-                ? "Bruta = VGV × % comissão; ISS sobre a bruta; tributos sobre o saldo; líquida segue para caixa e uso pessoal."
-                : "Imobiliária, depois ISS, depois tributos. A líquida segue o rateio de corretor, gerente, caixa e sócios."}
-            </p>
+            </>
+            )}
           </FormSection>
           </div>
+
+          <ResumoComissaoPainel
+            isSolo={isSolo}
+            vgv={previewVgv}
+            preview={preview}
+            premiacao={premiacaoValor}
+            premiacaoPreview={premiacaoPreview}
+          />
         </FormDialogBody>
       </form>
     </FormDialogShell>
+  );
+}
+
+const PASSOS = ["Origem e comissão", "Recebimento e documentos"] as const;
+
+function PassosLancamento({
+  passo,
+  onChange,
+}: {
+  passo: number;
+  onChange: (passo: number) => void;
+}) {
+  return (
+    <ol className="flex items-center gap-2 overflow-x-auto pb-1">
+      {PASSOS.map((label, index) => {
+        const ativo = index === passo;
+        const feito = index < passo;
+        return (
+          <li key={label} className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(index)}
+              className="flex items-center gap-2"
+            >
+              <span
+                className={cn(
+                  "grid size-7 place-items-center rounded-full text-xs font-semibold",
+                  ativo || feito
+                    ? "bg-[#079ED4] text-white"
+                    : "bg-[#E6EEF2] text-[#5C6B76]",
+                )}
+              >
+                {index + 1}
+              </span>
+              <span
+                className={cn(
+                  "whitespace-nowrap text-sm",
+                  ativo ? "font-semibold text-[#0B3148]" : "text-[#8B98A3]",
+                )}
+              >
+                {label}
+              </span>
+            </button>
+            {index < PASSOS.length - 1 ? (
+              <span className="mx-1 hidden h-px w-8 bg-[#E2E8EC] sm:block" />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ResumoComissaoPainel({
+  isSolo,
+  vgv,
+  preview,
+  premiacao,
+  premiacaoPreview,
+}: {
+  isSolo: boolean;
+  vgv: number;
+  preview: {
+    gross: number;
+    iss: number;
+    taxes: number;
+    net: number;
+    broker: number;
+    manager: number;
+    cash: number;
+    partners: number;
+  };
+  premiacao: number;
+  premiacaoPreview: {
+    corretor: number;
+    imposto: number;
+    imobiliaria: number;
+    gerente: number;
+    restante: number;
+  };
+}) {
+  const fatias = [
+    { label: isSolo ? "Uso pessoal" : "Corretor", valor: preview.broker, pct: preview.net ? (preview.broker / preview.net) * 100 : 0 },
+    ...(!isSolo
+      ? [{ label: "Gerente", valor: preview.manager, pct: preview.net ? (preview.manager / preview.net) * 100 : 0 }]
+      : []),
+    { label: "Caixa", valor: preview.cash, pct: preview.net ? (preview.cash / preview.net) * 100 : 0 },
+    ...(!isSolo
+      ? [{ label: "Sócios", valor: preview.partners, pct: preview.net ? (preview.partners / preview.net) * 100 : 0 }]
+      : []),
+  ];
+  return (
+    <aside className="space-y-3 lg:sticky lg:top-0">
+      <div className="rounded-2xl bg-[#0B3148] p-5 text-white shadow-sm">
+        <p className="text-sm font-medium text-white/80">Resumo da comissão</p>
+        <p className="mt-3 text-3xl font-semibold tracking-tight">{brl(preview.gross)}</p>
+        <p className="text-xs text-white/60">Comissão bruta</p>
+        <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+          {fatias.map((fatia) => (
+            <div key={fatia.label} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-[#079ED4]" />
+                {fatia.label}
+              </span>
+              <span className="text-white/70">{fatia.pct.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%</span>
+              <span className="font-medium">{brl(fatia.valor)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-[#F3C98B]/20 px-3 py-2 text-sm text-[#F8E2BC]">
+          <span className="inline-flex items-center gap-2">
+            <Trophy className="size-4" />
+            Premiação
+          </span>
+          <span>{brl(premiacao)}</span>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-[#E2E8EC] bg-white p-4 text-sm shadow-sm dark:border-white/10 dark:bg-[#1c2430]">
+        <p className="mb-3 font-medium text-[#0B3148] dark:text-white">Resumo geral</p>
+        <dl className="space-y-2">
+          <LinhaResumo label="Valor da venda" value={brl(vgv)} />
+          <LinhaResumo label="ISS" value={brl(preview.iss)} />
+          <LinhaResumo label="Tributos" value={brl(preview.taxes)} />
+          <LinhaResumo label="Comissão líquida" value={brl(preview.net)} />
+          <LinhaResumo label="Premiação restante" value={brl(premiacaoPreview.restante)} />
+        </dl>
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-[#E7F6FC] px-3 py-3 dark:bg-[#132833]">
+          <span className="text-sm font-medium text-[#05749E]">Total líquido</span>
+          <span className="text-lg font-semibold text-[#079ED4]">{brl(preview.net)}</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function LinhaResumo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-[#5C6B76]">{label}</dt>
+      <dd className="font-medium text-[#0B3148] dark:text-white">{value}</dd>
+    </div>
   );
 }
 
