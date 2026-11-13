@@ -239,7 +239,7 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
     id: "parentesco-sem-conjuge",
     titulo: "Declaração de parentesco (sem cônjuge)",
     descricao:
-      "Parenteco, residência e ausência de rendimentos — sem cônjuge do parente.",
+      "Parentesco, residência e ausência de rendimentos, com o endereço do cliente.",
     fields: [
       {
         key: "nomeParente",
@@ -278,6 +278,13 @@ export const CONTRATO_TEMPLATES: ContratoTemplate[] = [
         label: "CPF do proponente",
         type: "cpf",
         required: true,
+      },
+      {
+        key: "endereco",
+        label: "Endereço do cliente",
+        type: "text",
+        required: true,
+        placeholder: "Rua, número, bairro, cidade, UF e CEP",
       },
       { key: "data", label: "Data", type: "date", required: true },
     ],
