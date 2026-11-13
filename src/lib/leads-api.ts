@@ -516,7 +516,11 @@ export async function distribuirLeadsEquipes(
 }
 
 export async function distribuirLeadsCorretores(input: {
-  alocacoes?: Array<{ corretorId: string; quantidade: number }>;
+  alocacoes?: Array<{
+    corretorId: string;
+    quantidade: number;
+    porCampanha?: Array<{ chave: string; quantidade: number }>;
+  }>;
   porCorretor?: number;
   leadIds?: string[];
 }): Promise<{

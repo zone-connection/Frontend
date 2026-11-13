@@ -528,6 +528,9 @@ export function LeadsDistribuirDialog({
   const [qtdCorretores, setQtdCorretores] = useState<Record<string, number>>(
     {},
   );
+  const [filtroCorretoresCampanha, setFiltroCorretoresCampanha] = useState(false);
+  const [vinculosCorretor, setVinculosCorretor] = useState<Record<string, FilaCampanha[]>>({});
+  const [cotasCorretor, setCotasCorretor] = useState<Record<string, Record<string, number>>>({});
   const [corretorPreferido, setCorretorPreferido] = useState("");
 
   const load = useCallback(async () => {
@@ -570,11 +573,15 @@ export function LeadsDistribuirDialog({
       0,
     );
   }, [cotasEquipe, filtroEquipesCampanha, qtdEquipes]);
-  const somaCorretores = useMemo(
-    () =>
-      Object.values(qtdCorretores).reduce((s, n) => s + (Number(n) || 0), 0),
-    [qtdCorretores],
-  );
+  const somaCorretores = useMemo(() => {
+    if (!filtroCorretoresCampanha) {
+      return Object.values(qtdCorretores).reduce((s, n) => s + (Number(n) || 0), 0);
+    }
+    return Object.values(cotasCorretor).reduce(
+      (s, cotas) => s + Object.values(cotas).reduce((a, n) => a + (Number(n) || 0), 0),
+      0,
+    );
+  }, [cotasCorretor, filtroCorretoresCampanha, qtdCorretores]);
   const disponiveis = usarSelecao
     ? selecionados.length
     : (resumo?.disponiveis ?? 0);
@@ -618,6 +625,23 @@ export function LeadsDistribuirDialog({
       });
       setQtdEquipes(next);
       toast.success("Quantidades divididas entre as equipes. Confirme para enviar.");
+      return;
+    }
+    if (filtroCorretoresCampanha) {
+      const campanhas = (resumo.campanhas ?? []).filter((c) => c.canal !== "outro" && c.leads > 0);
+      const next: Record<string, Record<string, number>> = {};
+      for (const corretor of resumo.corretores) next[corretor.id] = {};
+      for (const campanha of campanhas) {
+        const corretores = resumo.corretores.filter((c) =>
+          (vinculosCorretor[c.id] ?? []).some((v) => v.chave === campanha.chave),
+        );
+        const partes = splitEvenly(campanha.leads, corretores.length);
+        corretores.forEach((c, i) => {
+          next[c.id][campanha.chave] = partes[i] ?? 0;
+        });
+      }
+      setCotasCorretor(next);
+      toast.success("Leads divididos pelas campanhas de cada corretor.");
       return;
     }
     const online = resumo.corretores.filter((c) => c.online);
@@ -742,12 +766,22 @@ export function LeadsDistribuirDialog({
           `${result.total} lead(s) enviados às equipes (ainda sem corretor individual).`,
         );
       } else {
-        const result = await distribuirLeadsCorretores({
-          alocacoes: resumo.corretores.map((c) => ({
-            corretorId: c.id,
-            quantidade: Number(qtdCorretores[c.id]) || 0,
-          })),
-        });
+        const alocacoes = filtroCorretoresCampanha
+          ? resumo.corretores.map((c) => {
+              const porCampanha = Object.entries(cotasCorretor[c.id] ?? {})
+                .map(([chave, quantidade]) => ({ chave, quantidade: Number(quantidade) || 0 }))
+                .filter((item) => item.quantidade > 0);
+              return {
+                corretorId: c.id,
+                quantidade: porCampanha.reduce((s, item) => s + item.quantidade, 0),
+                porCampanha,
+              };
+            })
+          : resumo.corretores.map((c) => ({
+              corretorId: c.id,
+              quantidade: Number(qtdCorretores[c.id]) || 0,
+            }));
+        const result = await distribuirLeadsCorretores({ alocacoes });
         const detalhe = result.distribuicao
           .filter((d) => d.quantidade > 0)
           .map((d) => `${d.nome}: ${d.quantidade}`)
@@ -1071,6 +1105,55 @@ export function LeadsDistribuirDialog({
                     }}
                   />
                 </div>
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5">
+                  <span>
+                    <span className="block text-sm font-semibold">Filtrar por campanhas</span>
+                    <span className="text-xs text-muted-foreground">
+                      Opcional. Desligado, a divisão continua igual para todos os corretores.
+                    </span>
+                  </span>
+                  <Switch
+                    checked={filtroCorretoresCampanha}
+                    onCheckedChange={setFiltroCorretoresCampanha}
+                    aria-label="Filtrar distribuição dos corretores por campanhas"
+                  />
+                </label>
+                {filtroCorretoresCampanha ? (
+                  <div className="mb-3 overflow-hidden rounded-2xl border">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/50 text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Campanha</th>
+                          <th className="px-3 py-2 font-medium">Leads</th>
+                          <th className="px-3 py-2 font-medium">Corretores</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(resumo.campanhas ?? []).map((campanha) => {
+                          const corretores = resumo.corretores.filter((c) =>
+                            (vinculosCorretor[c.id] ?? []).some((v) => v.chave === campanha.chave),
+                          );
+                          return (
+                            <tr key={campanha.chave} className="border-t">
+                              <td className="px-3 py-2">{campanha.nome}</td>
+                              <td className="px-3 py-2 tabular-nums">{campanha.leads}</td>
+                              <td className="px-3 py-2">
+                                {campanha.canal === "outro"
+                                  ? "Ficam no pool"
+                                  : corretores.map((c) => c.nome).join(", ") || "Nenhum"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-t font-semibold">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2 tabular-nums">{resumo.disponiveis}</td>
+                          <td className="px-3 py-2">{somaCorretores} na distribuição</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
                 {resumo.corretores.length === 0 ? (
                   <p className="rounded-2xl border border-dashed px-4 py-8 text-center text-sm text-amber-600">
                     Cadastre corretores ativos em Usuários para poder distribuir.
@@ -1078,36 +1161,83 @@ export function LeadsDistribuirDialog({
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {resumo.corretores.map((c) => {
-                      const qtd = qtdCorretores[c.id] ?? 0;
+                      const qtd = filtroCorretoresCampanha
+                        ? Object.values(cotasCorretor[c.id] ?? {}).reduce((s, n) => s + n, 0)
+                        : (qtdCorretores[c.id] ?? 0);
+                      const opcoes = [
+                        { chave: "olx:grupo", nome: "Grupo OLX", canal: "olx" },
+                        { chave: "olx:mcmv", nome: "MCMV OLX", canal: "olx" },
+                        ...(resumo.campanhas ?? [])
+                          .filter((campanha) => campanha.canal === "meta")
+                          .map((campanha) => ({
+                            chave: campanha.chave,
+                            nome: campanha.nome,
+                            canal: campanha.canal,
+                          })),
+                      ];
                       return (
                         <div
                           key={c.id}
                           className={
                             qtd > 0
-                              ? "flex items-center gap-3 rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
-                              : "flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm"
+                              ? "rounded-2xl border border-[#079ed4]/40 bg-[#079ed4]/8 p-3"
+                              : "rounded-2xl border bg-card p-3 shadow-sm"
                           }
                         >
-                          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
-                            {iniciais(c.nome)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">
-                              {c.nome}
-                              {c.online ? (
-                                <span className="ml-1.5 text-[11px] font-normal text-emerald-600">●</span>
-                              ) : null}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {c.equipeNome ?? "Sem equipe"}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4]/15 text-sm font-semibold text-[#075a82]">
+                              {iniciais(c.nome)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">
+                                {c.nome}
+                                {c.online ? (
+                                  <span className="ml-1.5 text-[11px] font-normal text-emerald-600">●</span>
+                                ) : null}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {c.equipeNome ?? "Sem equipe"}
+                              </p>
+                            </div>
+                            {filtroCorretoresCampanha ? (
+                              <span className="text-sm font-semibold tabular-nums text-[#079ed4]">{qtd}</span>
+                            ) : (
+                              <Quantidade
+                                value={qtdCorretores[c.id] ?? 0}
+                                onChange={(next) =>
+                                  setQtdCorretores((prev) => ({ ...prev, [c.id]: next }))
+                                }
+                              />
+                            )}
                           </div>
-                          <Quantidade
-                            value={qtd}
-                            onChange={(next) =>
-                              setQtdCorretores((prev) => ({ ...prev, [c.id]: next }))
-                            }
-                          />
+                          {filtroCorretoresCampanha ? (
+                            <div className="mt-2 space-y-2">
+                              <SeletorCampanhas
+                                opcoes={opcoes}
+                                selecionadas={vinculosCorretor[c.id] ?? []}
+                                onChange={(escolhidas) =>
+                                  setVinculosCorretor((prev) => ({ ...prev, [c.id]: escolhidas }))
+                                }
+                              />
+                              {(vinculosCorretor[c.id] ?? []).map((campanha) => (
+                                <div key={campanha.chave} className="flex items-center justify-between gap-2 text-xs">
+                                  <span className="truncate">{campanha.nome}</span>
+                                  <Quantidade
+                                    value={cotasCorretor[c.id]?.[campanha.chave] ?? 0}
+                                    onChange={(next) =>
+                                      setCotasCorretor((prev) => ({
+                                        ...prev,
+                                        [c.id]: {
+                                          ...(prev[c.id] ?? {}),
+                                          [campanha.chave]: next,
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -1190,14 +1320,32 @@ export function LeadsDistribuirDialog({
                     {destino === "equipes" ? somaEquipes : destino === "corretores" ? somaCorretores : "—"}
                   </span>
                 </div>
-                {destino === "equipes" ? (
+                {destino === "equipes" || destino === "corretores" ? (
                   <div className="flex justify-between gap-3 text-muted-foreground">
                     <span>Ficam no pool</span>
                     <span className="font-medium text-foreground">
-                      {Math.max(0, resumo.disponiveis - somaEquipes)}
+                      {Math.max(
+                        0,
+                        resumo.disponiveis - (destino === "equipes" ? somaEquipes : somaCorretores),
+                      )}
                     </span>
                   </div>
                 ) : null}
+                {destino === "corretores" && filtroCorretoresCampanha
+                  ? resumo.corretores
+                      .map((c) => ({
+                        id: c.id,
+                        nome: c.nome,
+                        qtd: Object.values(cotasCorretor[c.id] ?? {}).reduce((s, n) => s + n, 0),
+                      }))
+                      .filter((c) => c.qtd > 0)
+                      .map((c) => (
+                        <div key={c.id} className="flex justify-between gap-3 text-muted-foreground">
+                          <span className="truncate">{c.nome}</span>
+                          <span className="font-medium text-foreground">{c.qtd}</span>
+                        </div>
+                      ))
+                  : null}
                 {destino === "equipes" && filtroEquipesCampanha
                   ? resumo.equipes
                       .map((eq) => ({
