@@ -7,6 +7,7 @@ import {
   Loader2,
   Pause,
   Play,
+  Paperclip,
   Pencil,
   RefreshCw,
   Trash2,
@@ -76,6 +77,8 @@ import {
   readWhatsappMessagesCache,
   updateWhatsappTag,
   resumeWhatsappInboxChat,
+  sendWhatsappInboxMedia,
+  whatsappMediaTooBig,
   sendWhatsappInboxMessage,
   writeWhatsappMessagesCache,
   type WhatsappBubbleKind,
@@ -571,6 +574,39 @@ function WhatsappInboxPage() {
     }
   }
 
+  async function sendFile(file: File) {
+    if (!canSend || !activeId || sending) return;
+    const tooBig = whatsappMediaTooBig(file);
+    if (tooBig) {
+      toast.error(tooBig.title, { description: tooBig.description });
+      return;
+    }
+    const caption = draft.trim();
+    setSending(true);
+    try {
+      await sendWhatsappInboxMedia(activeId, file, caption);
+      setDraft("");
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.chatId === activeId
+            ? {
+                ...chat,
+                lastMessage: caption || file.name,
+                lastMessageAt: new Date().toISOString(),
+                aiPaused: true,
+              }
+            : chat,
+        ),
+      );
+      stickToBottom.current = true;
+      await loadMessages(activeId);
+    } catch (err) {
+      toast.error(errorMessage(err, "Não foi possível enviar o arquivo."));
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function send() {
     if (!canSend || !activeId || !draft.trim() || sending) return;
     const text = draft.trim();
@@ -749,8 +785,11 @@ function WhatsappInboxPage() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border bg-primary/[0.04]">
-        <div className="grid min-h-0 min-w-0 flex-1 overflow-hidden grid-rows-[minmax(0,16rem)_minmax(0,1fr)] lg:grid-rows-none lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col overflow-hidden border-b bg-primary/[0.03] lg:border-b-0 lg:border-r">
+        <div className="grid min-h-0 min-w-0 flex-1 overflow-hidden lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className={cn(
+          "flex min-h-0 flex-col overflow-hidden border-b bg-primary/[0.03] lg:border-b-0 lg:border-r",
+          active && "hidden lg:flex",
+        )}>
           <div className="shrink-0 space-y-2 border-b bg-primary/[0.04] p-3">
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
@@ -951,11 +990,24 @@ function WhatsappInboxPage() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col overflow-hidden">
+        <section className={cn(
+          "flex min-h-0 flex-col overflow-hidden",
+          !active && "hidden lg:flex",
+        )}>
           {active ? (
             <>
               <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-background/80 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 lg:hidden"
+                    onClick={() => setActiveId(null)}
+                    aria-label="Voltar para as conversas"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
                   <WhatsappChatAvatar
                     name={active.leadNome || active.name}
                     src={active.avatarUrl}
@@ -1080,6 +1132,32 @@ function WhatsappInboxPage() {
                     void send();
                   }}
                 >
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/x-m4v,audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/opus,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    disabled={sending}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) void sendFile(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    disabled={sending}
+                    title="Enviar foto, vídeo ou arquivo"
+                    onClick={(event) => {
+                      const input = event.currentTarget
+                        .previousElementSibling as HTMLInputElement | null;
+                      input?.click();
+                    }}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
                   <Textarea
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
@@ -1131,12 +1209,14 @@ function WhatsappInboxPage() {
         </section>
         </div>
         {active && leadPaneOpen ? (
+          <div className="hidden min-h-0 xl:contents">
           <WhatsappLeadSidePanel
             leadId={active.leadId}
             avatarUrl={active.avatarUrl}
             name={active.leadNome || active.name}
             onOpenFicha={() => void openLeadFicha()}
           />
+          </div>
         ) : null}
       </div>
       <LeadDetalheDialog

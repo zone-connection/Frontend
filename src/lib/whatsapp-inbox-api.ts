@@ -165,6 +165,59 @@ export async function fetchWhatsappInboxMessages(chatId: string) {
   };
 }
 
+const WHATSAPP_MEDIA_TOO_BIG = {
+  image: {
+    title: "Essa foto é grande demais",
+    description: "O WhatsApp aceita fotos de até 16 MB. Escolha uma imagem menor.",
+  },
+  video: {
+    title: "Esse vídeo é grande demais",
+    description: "O WhatsApp aceita vídeos de até 16 MB. Envie um vídeo mais curto ou mais leve.",
+  },
+  audio: {
+    title: "Esse áudio é grande demais",
+    description: "O WhatsApp aceita áudios de até 16 MB. Envie um áudio mais curto.",
+  },
+  document: {
+    title: "Esse arquivo é grande demais",
+    description: "O WhatsApp aceita arquivos de até 50 MB. Envie uma versão mais leve.",
+  },
+} as const;
+
+export function whatsappMediaTooBig(file: File): {
+  title: string;
+  description: string;
+} | null {
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  const kind =
+    type.startsWith("image/") || /\.(jpe?g|png|webp)$/.test(name)
+      ? "image"
+      : type.startsWith("video/") || /\.(mp4|m4v)$/.test(name)
+        ? "video"
+        : type.startsWith("audio/") || /\.(mp3|m4a|aac|ogg|opus)$/.test(name)
+          ? "audio"
+          : "document";
+  const limit =
+    kind === "document" ? 50 * 1024 * 1024 : 16 * 1024 * 1024;
+  if (file.size <= limit) return null;
+  return WHATSAPP_MEDIA_TOO_BIG[kind];
+}
+
+export async function sendWhatsappInboxMedia(
+  chatId: string,
+  file: File,
+  caption?: string,
+) {
+  const body = new FormData();
+  body.append("file", file);
+  if (caption?.trim()) body.append("caption", caption.trim());
+  return apiFetch<{ ok: true; aiPaused: true }>(
+    `/whatsapp/chats/${chatPath(chatId)}/media`,
+    { method: "POST", body },
+  );
+}
+
 export async function sendWhatsappInboxMessage(chatId: string, content: string) {
   return apiFetch<{ ok: true; aiPaused: true }>(
     `/whatsapp/chats/${chatPath(chatId)}/messages`,
