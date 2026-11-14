@@ -120,6 +120,7 @@ import {
 } from "@/components/lead-atividade-dialog";
 import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import {
+  createProposta,
   fetchPropostas,
   updateProposta,
   type Proposta,
@@ -146,11 +147,6 @@ import {
   maskMoneyInput,
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
-import {
-  createProposta,
-  fetchPropostas,
-  type Proposta,
-} from "@/lib/propostas-api";
 import {
   Clock,
   User,
@@ -307,7 +303,7 @@ export function ComercialFunilBoard({
     getSession()?.tenant?.modules?.fichaAnaliseGuiada === true;
   const vendaDireta =
     getSession()?.tenant?.modules?.vendaDiretaFunil === true;
-  const [propostasDoLead, setPropostasDoLead] = useState<Proposta[]>([]);
+  const [propostasDiretas, setPropostasDiretas] = useState<Proposta[]>([]);
   const [propostaAlvo, setPropostaAlvo] = useState<{
     lead: Lead;
     stage: StageId;
@@ -1173,9 +1169,9 @@ export function ComercialFunilBoard({
   async function carregarPropostasDoLead(leadId: string) {
     try {
       const lista = await fetchPropostas();
-      setPropostasDoLead(lista.filter((item) => item.leadId === leadId));
+      setPropostasDiretas(lista.filter((item) => item.leadId === leadId));
     } catch {
-      setPropostasDoLead([]);
+      setPropostasDiretas([]);
     }
   }
 
@@ -2593,13 +2589,13 @@ export function ComercialFunilBoard({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            {propostasDoLead.length > 0 ? (
+            {propostasDiretas.length > 0 ? (
               <div className="space-y-1.5">
                 <Label>Proposta existente</Label>
                 <Select value={propostaId} onValueChange={setPropostaId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {propostasDoLead.map((item) => (
+                    {propostasDiretas.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.codigo} · {item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </SelectItem>
@@ -2699,13 +2695,13 @@ export function ComercialFunilBoard({
             </div>
             {vendaSemProposta ? null : (
               <>
-                {propostasDoLead.length > 0 ? (
+                {propostasDiretas.length > 0 ? (
                   <div className="space-y-1.5">
                     <Label>Proposta</Label>
                     <Select value={propostaId} onValueChange={setPropostaId}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        {propostasDoLead.map((item) => (
+                        {propostasDiretas.map((item) => (
                           <SelectItem key={item.id} value={item.id}>
                             {item.codigo}
                           </SelectItem>
