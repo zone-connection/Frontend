@@ -2123,6 +2123,28 @@ export function ComercialFunilBoard({
                         >
                           {l.prioridade}
                         </Badge>
+                        {stage.papel === "analise" ||
+                        stage.papel === "aprovado" ||
+                        stage.papel === "reprovado" ||
+                        stage.papel === "venda" ? (
+                          <Badge
+                            className={cn(
+                              "h-5 w-auto shrink-0 rounded-full border-transparent px-2 py-0 text-[10px] font-semibold text-white",
+                              stage.papel === "analise" && "bg-[#2E90FA]",
+                              stage.papel === "aprovado" && "bg-[#12B76A]",
+                              stage.papel === "reprovado" && "bg-[#F04464]",
+                              stage.papel === "venda" && "bg-[#875BF7]",
+                            )}
+                          >
+                            {stage.papel === "analise"
+                              ? "Em análise"
+                              : stage.papel === "aprovado"
+                                ? "Aprovado"
+                                : stage.papel === "reprovado"
+                                  ? "Reprovado"
+                                  : "Vendido"}
+                          </Badge>
+                        ) : null}
                       </div>
                       <DocStatusFunilTags
                         status1={l.documentacaoStatus1}

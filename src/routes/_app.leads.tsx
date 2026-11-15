@@ -88,6 +88,7 @@ import {
   Inbox,
   Repeat,
   Briefcase,
+  BadgeCheck,
   UserCheck,
   UserX,
   ClipboardList,
@@ -117,10 +118,9 @@ import { LeadCadastroOrigemBadge } from "@/components/lead-cadastro-origem";
 import { TornarClienteDialog } from "@/components/tornar-cliente-button";
 import { EmpreendimentosInteressePanel } from "@/components/empreendimentos-interesse-panel";
 import {
-  catalogColorBadgeClass,
-  catalogColorBadgeStyle,
   DEFAULT_CATALOG_COLOR,
-  STATUS_CHIP_CLASS,
+  funnelStageHeaderClass,
+  funnelStageHeaderStyle,
 } from "@/lib/catalog-colors";
 import { getSession } from "@/lib/auth";
 import { BRAND_GRADIENT_STYLE } from "@/lib/brand-gradient";
@@ -452,6 +452,23 @@ function formProspeccaoToPayload(
       motivoFit: p.motivoFit.trim() || null,
     }) ?? null
   );
+}
+
+const ORIGEM_CHIP = [
+  "bg-[#F04464] text-white",
+  "bg-[#12B76A] text-white",
+  "bg-[#F79009] text-white",
+  "bg-[#2E90FA] text-white",
+  "bg-[#875BF7] text-white",
+  "bg-[#EE46BC] text-white",
+  "bg-[#0E9384] text-white",
+  "bg-[#EF6820] text-white",
+];
+
+function origemChipClass(origem: string) {
+  let n = 0;
+  for (const ch of origem) n = (n + ch.charCodeAt(0)) % ORIGEM_CHIP.length;
+  return ORIGEM_CHIP[n];
 }
 
 const emptyForm = (origemDefault = ""): FormState => ({
@@ -1151,13 +1168,25 @@ function LeadsPage() {
     ].join("|"),
   );
 
+  const leadDoCorretorFiltro = (l: Lead) => {
+    if (isCorretor || corretorFilter === "all") return true;
+    if (corretorFilter === "__none__") return !l.corretorId && !l.equipeId;
+    if (corretorFilter === "__equipe_pool__") return !l.corretorId && Boolean(l.equipeId);
+    return l.corretorId === corretorFilter;
+  };
+
+  const leadsDoFiltroCorretor = useMemo(
+    () => leads.filter(leadDoCorretorFiltro),
+    [leads, isCorretor, corretorFilter],
+  );
+
   const distribuicaoCounts = useMemo(() => {
     let chegaram = 0;
     let retrabalho = 0;
     let distribuidos = 0;
     let reatribuidos = 0;
     let meus = 0;
-    for (const l of leads) {
+    for (const l of leadsDoFiltroCorretor) {
       if (isLeadRetrabalho(l)) retrabalho += 1;
       else if (isLeadChegou(l)) chegaram += 1;
       else if (isLeadDistribuido(l)) distribuidos += 1;
@@ -1170,29 +1199,40 @@ function LeadsPage() {
       distribuidos,
       reatribuidos,
       meus,
-      todos: leads.length,
+      todos: leadsDoFiltroCorretor.length,
     };
-  }, [leads, user?.id, isGerente]);
+  }, [leadsDoFiltroCorretor, user?.id, isGerente]);
+
+  const corretorEspecifico =
+    !isCorretor &&
+    corretorFilter !== "all" &&
+    corretorFilter !== "__none__" &&
+    corretorFilter !== "__equipe_pool__";
 
   const kpiCounts = useMemo(() => {
     let alta = 0;
     let novos = 0;
-    for (const l of leads) {
+    let aprovados = 0;
+    for (const l of leadsDoFiltroCorretor) {
       if (l.prioridade === "Alta") alta += 1;
       const stage = funnelStages.find((s) => s.id === l.stage);
       if (stage?.papel === "inicial" || l.stage === "novo") novos += 1;
+      if (stage?.papel === "aprovado") aprovados += 1;
     }
+    const perdas = lostLeads.filter(leadDoCorretorFiltro).length;
     return {
-      total: leads.length,
+      total: leadsDoFiltroCorretor.length,
       alta,
       novos,
+      aprovados,
+      perdas,
       chegaram: distribuicaoCounts.chegaram,
       retrabalho: distribuicaoCounts.retrabalho,
       distribuidos: distribuicaoCounts.distribuidos,
       reatribuidos: distribuicaoCounts.reatribuidos,
       meus: distribuicaoCounts.meus,
     };
-  }, [leads, funnelStages, distribuicaoCounts]);
+  }, [leadsDoFiltroCorretor, funnelStages, distribuicaoCounts, lostLeads, corretorFilter, isCorretor]);
 
   /** Contagem de leads ativos por corretor (respeita demais filtros, ignora filtro de corretor). */
   const leadsAtivosPorCorretor = useMemo(() => {
@@ -3648,7 +3688,9 @@ function LeadsPage() {
       <div
         className={cn(
           "mb-4 grid grid-cols-2 items-start gap-3",
-          isPlatformAdmin
+          corretorEspecifico
+            ? "sm:grid-cols-2 xl:grid-cols-4"
+            : isPlatformAdmin
             ? "lg:grid-cols-2"
             : isCorretor
               ? "sm:grid-cols-3"
@@ -3657,6 +3699,65 @@ function LeadsPage() {
                 : "xl:grid-cols-6",
         )}
       >
+        {corretorEspecifico ? (
+          <>
+            <LeadKpi
+              label="Total de leads"
+              value={kpiCounts.total}
+              icon={Users}
+              tone="blue"
+              active
+              onClick={() => {
+                setDistribuicaoFilter("all");
+                setPrioridadeFilter("all");
+                setStageFilter("all");
+                setParadosFilter(false);
+              }}
+            />
+            <LeadKpi
+              label="Leads em perda"
+              value={kpiCounts.perdas}
+              icon={UserX}
+              tone="rose"
+              onClick={() => {}}
+            />
+            <LeadKpi
+              label="Reatribuídos"
+              value={kpiCounts.reatribuidos}
+              icon={UserRoundCog}
+              tone="blue-4"
+              active={distribuicaoFilter === "reatribuidos"}
+              onClick={() => {
+                setDistribuicaoFilter(
+                  distribuicaoFilter === "reatribuidos" ? "all" : "reatribuidos",
+                );
+                setPrioridadeFilter("all");
+                setStageFilter("all");
+                setParadosFilter(false);
+              }}
+            />
+            <LeadKpi
+              label="Aprovados no funil"
+              value={kpiCounts.aprovados}
+              icon={BadgeCheck}
+              tone="emerald"
+              active={
+                funnelStages.find((s) => s.id === stageFilter)?.papel === "aprovado"
+              }
+              onClick={() => {
+                const aprovado =
+                  funnelStages.find((s) => s.papel === "aprovado")?.id ?? null;
+                setDistribuicaoFilter("all");
+                setPrioridadeFilter("all");
+                setParadosFilter(false);
+                setStageFilter(
+                  aprovado && stageFilter === aprovado ? "all" : (aprovado ?? "all"),
+                );
+              }}
+            />
+          </>
+        ) : (
+        <>
         <LeadKpi
           label="Total de leads"
           value={kpiCounts.total}
@@ -3800,6 +3901,8 @@ function LeadsPage() {
             setPrioridadeFilter(prioridadeFilter === "Alta" ? "all" : "Alta")
           }
         />
+        </>
+        )}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -4199,10 +4302,6 @@ function LeadsPage() {
                   color: DEFAULT_CATALOG_COLOR,
                   papel: null,
                 };
-                const isNovoStage =
-                  stage.papel === "inicial" ||
-                  stage.id === "novo" ||
-                  l.stage === "novo";
                 return (
                   <TableRow
                     key={l.id}
@@ -4279,15 +4378,10 @@ function LeadsPage() {
                     <TableCell>
                       <Badge
                         className={cn(
-                          catalogColorBadgeClass(stage.color),
-                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
-                          isNovoStage && "badge-novo-glow",
+                          funnelStageHeaderClass(stage.color),
+                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full border-transparent px-2.5 text-white shadow-none hover:brightness-110",
                         )}
-                        style={
-                          isNovoStage
-                            ? undefined
-                            : catalogColorBadgeStyle(stage.color)
-                        }
+                        style={funnelStageHeaderStyle(stage.color)}
                         title={stage.name}
                       >
                         {stage.name}
@@ -4319,7 +4413,16 @@ function LeadsPage() {
                       </>
                     ) : null}
                     <TableCell className="truncate" title={l.origem || undefined}>
-                      {l.origem || (
+                      {l.origem ? (
+                        <span
+                          className={cn(
+                            "inline-flex max-w-[9rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                            origemChipClass(l.origem),
+                          )}
+                        >
+                          <span className="truncate">{l.origem}</span>
+                        </span>
+                      ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>

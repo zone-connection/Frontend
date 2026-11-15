@@ -243,11 +243,11 @@ export function prioridadeBadgeClass(prioridade: Lead["prioridade"]): string {
   const size = STATUS_CHIP_CLASS;
   switch (prioridade) {
     case "Alta":
-      return `${size} border-transparent bg-destructive/15 text-destructive hover:bg-destructive/20`;
+      return `${size} border-transparent bg-[#F04464] text-white hover:bg-[#F04464]`;
     case "Média":
-      return `${size} border-transparent bg-amber-100 text-amber-800 hover:bg-amber-100/90`;
+      return `${size} border-transparent bg-[#F79009] text-white hover:bg-[#F79009]`;
     case "Baixa":
-      return `${size} border-transparent bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20`;
+      return `${size} border-transparent bg-[#2E90FA] text-white hover:bg-[#2E90FA]`;
     default:
       return `${size} border-transparent bg-secondary text-secondary-foreground`;
   }
