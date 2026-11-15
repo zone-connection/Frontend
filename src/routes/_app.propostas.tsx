@@ -120,7 +120,6 @@ import {
   fetchDocumentacoes,
   type Documentacao,
 } from "@/lib/documentacao-api";
-import { isStatusAprovadoDoc } from "@/lib/documentacao-status";
 import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
@@ -654,10 +653,6 @@ function equipeName(p: Proposta): string {
   return p.lead?.equipe?.name ?? "—";
 }
 
-function isLeadAprovado(lead: Lead, aprovadosPorDoc: Set<string>): boolean {
-  if (lead.analise?.status === "aprovado") return true;
-  return aprovadosPorDoc.has(lead.id);
-}
 
 function isUsableLeadEmail(email?: string | null): boolean {
   const n = (email ?? "").trim().toLowerCase();
@@ -1045,9 +1040,6 @@ function Page() {
   const [imovelPickerOpen, setImovelPickerOpen] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [documentacoes, setDocumentacoes] = useState<Documentacao[]>([]);
-  const [aprovadosPorDoc, setAprovadosPorDoc] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [loading, setLoading] = useState(true);
   const showPropostaSkeleton = useDeferredLoading(
     loading && items.length === 0 && usadosPropostas.length === 0,
@@ -1153,13 +1145,6 @@ function Page() {
       setItems(propostas);
       setUsadosPropostas(propostasUsado);
       setDocumentacoes(docs);
-      setAprovadosPorDoc(
-        new Set(
-          docs.flatMap((d) =>
-            isStatusAprovadoDoc(d.status1) && d.leadId ? [d.leadId] : [],
-          ),
-        ),
-      );
       setConstrutoras(cons);
       setEmpreendimentos(emps);
       setCaptacoesCatalogo(caps);
@@ -1310,10 +1295,10 @@ function Page() {
             (l) => l.corretorId === user.id || l.corretor === user.name,
           )
         : leads;
-    return scoped
-      .filter((l) => isLeadAprovado(l, aprovadosPorDoc))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [leads, user, isManager, propostaSoMinha, aprovadosPorDoc]);
+    return [...scoped].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR"),
+    );
+  }, [leads, user, isManager, propostaSoMinha]);
 
   const selectedLead = useMemo(() => {
     if (!form.leadId) return null;
@@ -3047,7 +3032,7 @@ function Page() {
                 <FormSection title="Cliente">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2 space-y-1.5">
-                      <Label>Lead / cliente aprovado (opcional)</Label>
+                      <Label>Lead / cliente (opcional)</Label>
                       <Popover
                         modal
                         open={leadPickerOpen}
@@ -3078,7 +3063,7 @@ function Page() {
                             <CommandInput placeholder="Nome ou telefone..." />
                             <CommandList>
                               <CommandEmpty>
-                                Nenhum lead/cliente aprovado encontrado.
+                                Nenhum lead encontrado.
                               </CommandEmpty>
                               <CommandGroup>
                                 <CommandItem
@@ -3135,8 +3120,7 @@ function Page() {
                         </PopoverContent>
                       </Popover>
                       <p className="text-[11px] text-muted-foreground">
-                        Lista apenas leads e clientes com análise ou
-                        documentação aprovada.
+                        Lista todos os leads e clientes.
                       </p>
                     </div>
                     <div className="space-y-1.5">
