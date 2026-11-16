@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { PLATFORM_TENANT_ID } from "@/lib/platform-tenant";
 import {
   baixarTitulo,
   createDespesaTipo,
@@ -525,6 +526,30 @@ function groupSummary(titulos: TituloFinanceiro[]) {
   };
 }
 
+function compactConta(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/** Admin da operação Zone Connection (plataforma ou tenant com esse nome). */
+function isContaAdmZoneConnection(session: ReturnType<typeof getSession>) {
+  if (!session) return false;
+  if (session.role === "super_admin") return true;
+  if (session.role !== "admin") return false;
+  if (
+    session.tenantId === PLATFORM_TENANT_ID ||
+    session.tenant?.id === PLATFORM_TENANT_ID
+  ) {
+    return true;
+  }
+  const name = compactConta(session.tenant?.name ?? "");
+  const slug = compactConta(session.tenant?.slug ?? "");
+  return name.includes("zoneconnection") || slug.includes("zoneconnection");
+}
+
 export function FinanceiroTitulosPanel({
   tipo,
   title,
@@ -600,6 +625,8 @@ export function FinanceiroTitulosPanel({
   const [valorGrupoParcelas, setValorGrupoParcelas] = useState("");
   const [formTab, setFormTab] = useState<TituloFormTab>("dados");
   const session = getSession();
+  const aReceberSegueFiltro =
+    tipo === "receber" && isContaAdmZoneConnection(session);
   const isPlatformAdmin = session?.role === "super_admin";
   const canUseContrato =
     isPlatformAdmin || session?.role === "admin";
@@ -901,7 +928,8 @@ export function FinanceiroTitulosPanel({
       r.status === "atrasado"
         ? Number(r.valorAtualizado ?? r.valor) || 0
         : principal(r);
-    const baseAberto = tipo === "receber" ? items : rows;
+    const baseAberto =
+      tipo === "receber" && !aReceberSegueFiltro ? items : rows;
     const aberto = baseAberto
       .filter((r) => r.status === "aberto")
       .reduce((s, r) => s + principal(r), 0);
@@ -912,7 +940,7 @@ export function FinanceiroTitulosPanel({
       .filter((r) => r.status === "pago")
       .reduce((s, r) => s + principal(r), 0);
     return { aberto, atrasado, pago, aReceber: aberto + atrasado };
-  }, [rows, items, tipo]);
+  }, [rows, items, tipo, aReceberSegueFiltro]);
 
   const displayRows = useMemo(
     () => buildDisplayRows(rows, vistaParcelas),
@@ -1712,7 +1740,19 @@ export function FinanceiroTitulosPanel({
         className="mb-4"
         title={
           tipo === "receber"
-            ? "Tudo a receber"
+            ? aReceberSegueFiltro
+              ? dataDe || dataAte
+                ? "A receber no período"
+                : mesNome
+                  ? `A receber em ${mesNome}`
+                  : periodo === "trimestre"
+                    ? "A receber no trimestre"
+                    : periodo === "ano"
+                      ? "A receber no ano"
+                      : periodo === "tudo"
+                        ? "A receber no total"
+                        : "A receber neste mês"
+              : "Tudo a receber"
             : dataDe || dataAte
             ? "Indicadores do período"
             : mesNome
@@ -1727,7 +1767,9 @@ export function FinanceiroTitulosPanel({
         }
         description={
           tipo === "receber"
-            ? "A receber soma tudo em aberto e atrasado, de qualquer mês, inclusive comissão. Recebido segue o período filtrado."
+            ? aReceberSegueFiltro
+              ? "A receber e atrasado seguem o mês atual ou o período do filtro. Recebido segue o mesmo recorte."
+              : "A receber soma tudo em aberto e atrasado, de qualquer mês, inclusive comissão. Recebido segue o período filtrado."
             : "Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
         }
       >
@@ -1736,7 +1778,9 @@ export function FinanceiroTitulosPanel({
           variant="dash"
           label={
             tipo === "receber"
-              ? "A receber"
+              ? aReceberSegueFiltro
+                ? `A receber ${periodoKpi}`
+                : "A receber"
               : `A pagar ${periodoKpi}`
           }
           value={tipo === "receber" ? kpis.aReceber : kpis.aberto}
@@ -1746,7 +1790,11 @@ export function FinanceiroTitulosPanel({
         />
         <FinanceKpiCard
           variant="dash"
-          label={tipo === "receber" ? "Atrasado" : `Atrasado ${periodoKpi}`}
+          label={
+            tipo === "receber" && !aReceberSegueFiltro
+              ? "Atrasado"
+              : `Atrasado ${periodoKpi}`
+          }
           value={kpis.atrasado}
           icon={AlertTriangle}
           tone="rose"
