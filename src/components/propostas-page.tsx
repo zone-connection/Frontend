@@ -310,10 +310,13 @@ const STATUS_OPTIONS: { value: PropostaStatus | "todos"; label: string }[] = [
   { value: "expirada", label: "Expirada" },
 ];
 
-type ParcelasForm = {
+type ParcelaGrupo = {
   quantidade: string;
   valor: string;
-  extras: string[];
+};
+
+type ParcelasForm = ParcelaGrupo & {
+  extras: ParcelaGrupo[];
 };
 
 type PropostaFormSection =
@@ -585,12 +588,15 @@ function parcelasSubtotal(p: ParcelasForm): number {
   return expandParcelas(p).reduce((sum, n) => sum + n, 0);
 }
 
+function expandGrupo(grupo: ParcelaGrupo): number[] {
+  const q = parseQuantidade(grupo.quantidade);
+  const v = parseMoney(grupo.valor);
+  if (!q || v == null || v <= 0) return [];
+  return Array.from({ length: q }, () => v);
+}
+
 function expandParcelas(p: ParcelasForm): number[] {
-  const q = parseQuantidade(p.quantidade);
-  const v = parseMoney(p.valor);
-  const base =
-    !q || v == null || v <= 0 ? [] : Array.from({ length: q }, () => v);
-  return [...base, ...valoresPositivos(p.extras)];
+  return [p, ...p.extras].flatMap(expandGrupo);
 }
 
 function sinaisNumeros(valores: string[]): number[] {
@@ -630,20 +636,23 @@ function formComposicaoTotal(form: FormState): number {
   return simples + listas;
 }
 
+function agruparParcelas(values: number[]): ParcelaGrupo[] {
+  const grupos: Array<{ quantidade: number; valor: number }> = [];
+  for (const value of values) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.valor === value) ultimo.quantidade += 1;
+    else grupos.push({ quantidade: 1, valor: value });
+  }
+  return grupos.map((grupo) => ({
+    quantidade: String(grupo.quantidade),
+    valor: formatMoneyInput(grupo.valor),
+  }));
+}
+
 function toParcelasForm(values: number[] | null | undefined): ParcelasForm {
   if (!values?.length) return emptyParcelas();
-  const first = values[0] ?? 0;
-  let quantidade = 0;
-  const extras: string[] = [];
-  for (const value of values) {
-    if (value === first && extras.length === 0) quantidade += 1;
-    else extras.push(formatMoneyInput(value));
-  }
-  return {
-    quantidade: String(quantidade),
-    valor: formatMoneyInput(first),
-    extras,
-  };
+  const [primeiro, ...extras] = agruparParcelas(values);
+  return { ...primeiro, extras };
 }
 
 function parcelasResumo(values: number[]) {
@@ -4695,7 +4704,10 @@ function ParcelasQtyValueEditor({
             className="h-8 w-8 shrink-0"
             aria-label={`Adicionar ${title.toLowerCase()}`}
             onClick={() =>
-              onChange({ ...value, extras: [...value.extras, ""] })
+              onChange({
+                ...value,
+                extras: [...value.extras, { quantidade: "1", valor: "" }],
+              })
             }
           >
             <Plus className="h-4 w-4" />
@@ -4733,24 +4745,46 @@ function ParcelasQtyValueEditor({
         </div>
       </div>
       {allowExtras && value.extras.length > 0 ? (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
           {value.extras.map((extra, index) => (
             <div key={`${id}-extra-${index}`} className="flex items-end gap-2">
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Label htmlFor={`${id}-extra-${index}`}>
-                  Valor diferente (R$)
-                </Label>
-                <Input
-                  id={`${id}-extra-${index}`}
-                  inputMode="numeric"
-                  placeholder="0,00"
-                  value={extra}
-                  onChange={(e) => {
-                    const extras = value.extras.slice();
-                    extras[index] = maskMoneyInput(e.target.value);
-                    onChange({ ...value, extras });
-                  }}
-                />
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${id}-extra-${index}-qtd`}>Quantidade</Label>
+                  <Input
+                    id={`${id}-extra-${index}-qtd`}
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={extra.quantidade}
+                    onChange={(e) => {
+                      const extras = value.extras.slice();
+                      extras[index] = {
+                        ...extra,
+                        quantidade: e.target.value.replace(/\D/g, "").slice(0, 3),
+                      };
+                      onChange({ ...value, extras });
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${id}-extra-${index}-valor`}>
+                    Valor (R$)
+                  </Label>
+                  <Input
+                    id={`${id}-extra-${index}-valor`}
+                    inputMode="numeric"
+                    placeholder="0,00"
+                    value={extra.valor}
+                    onChange={(e) => {
+                      const extras = value.extras.slice();
+                      extras[index] = {
+                        ...extra,
+                        valor: maskMoneyInput(e.target.value),
+                      };
+                      onChange({ ...value, extras });
+                    }}
+                  />
+                </div>
               </div>
               <Button
                 type="button"
