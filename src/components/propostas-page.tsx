@@ -313,6 +313,7 @@ const STATUS_OPTIONS: { value: PropostaStatus | "todos"; label: string }[] = [
 type ParcelaGrupo = {
   quantidade: string;
   valor: string;
+  data: string;
 };
 
 type ParcelasForm = ParcelaGrupo & {
@@ -363,6 +364,7 @@ type FormState = {
   corretorId: string;
   valor: string;
   sinais: string[];
+  sinaisDatas: string[];
   apartado: string;
   preChaves: ParcelasForm;
   posChaves: ParcelasForm;
@@ -381,6 +383,7 @@ type FormState = {
 const emptyParcelas = (): ParcelasForm => ({
   quantidade: "",
   valor: "",
+  data: "",
   extras: [],
 });
 
@@ -425,6 +428,7 @@ const emptyForm = (): FormState => ({
   corretorId: "",
   valor: "",
   sinais: [""],
+  sinaisDatas: [""],
   apartado: "",
   preChaves: emptyParcelas(),
   posChaves: emptyParcelas(),
@@ -478,15 +482,21 @@ function OptionalField({
 function linhasIndividuais(
   descricao: string,
   values: number[],
+  datas: string[] = [],
 ): RelatorioLinha[] {
-  return values
-    .filter((value) => value > 0)
-    .map((value) => ({
-      qtd: "1",
-      descricao,
-      valor: brl(value),
-      subtotal: brl(value),
-    }));
+  return values.flatMap((value, index) => {
+    if (value <= 0) return [];
+    const data = dataBr(datas[index]);
+    return [
+      {
+        qtd: "1",
+        descricao,
+        valor: brl(value),
+        subtotal: brl(value),
+        ...(data ? { data } : {}),
+      },
+    ];
+  });
 }
 
 function linhaDeLista(
@@ -509,6 +519,10 @@ function linhasDoFormulario(form: FormState): RelatorioLinha[] {
     ...linhasIndividuais(
       PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
       sinaisNumeros(form.sinais),
+      form.sinais.flatMap((raw, index) => {
+        const valor = parseMoney(raw);
+        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
+      }),
     ),
   );
   for (const key of PROPOSTA_SIMPLES_KEYS) {
@@ -526,7 +540,7 @@ function linhasDoFormulario(form: FormState): RelatorioLinha[] {
     const descricao = PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase();
     const values = expandParcelas(form[key]);
     if (key === "intercaladas") {
-      linhas.push(...linhasIndividuais(descricao, values));
+      linhas.push(...linhasIndividuais(descricao, values, expandDatas(form[key])));
       continue;
     }
     const linha = linhaDeLista(descricao, values);
@@ -621,16 +635,35 @@ function sinaisNumeros(valores: string[]): number[] {
   return valoresPositivos(valores);
 }
 
+function sinaisSalvos(p: {
+  sinais?: number[] | null;
+  entrada: number | null;
+}): number[] {
+  return p.sinais?.length ? p.sinais : p.entrada != null ? [p.entrada] : [];
+}
+
 function toSinaisForm(p: {
   sinais?: number[] | null;
   entrada: number | null;
 }): string[] {
-  const lista = p.sinais?.length
-    ? p.sinais
-    : p.entrada != null
-      ? [p.entrada]
-      : [];
+  const lista = sinaisSalvos(p);
   return lista.length ? lista.map((n) => formatMoneyInput(n)) : [""];
+}
+
+function toSinaisDatas(p: {
+  sinais?: number[] | null;
+  entrada: number | null;
+  sinaisDatas?: string[] | null;
+}): string[] {
+  const lista = sinaisSalvos(p);
+  if (!lista.length) return [""];
+  return lista.map((_, index) => dataIso(p.sinaisDatas?.[index]));
+}
+
+function expandDatas(p: ParcelasForm): string[] {
+  return [p, ...p.extras].flatMap((grupo) =>
+    expandGrupo(grupo).map(() => dataIso(grupo.data)),
+  );
 }
 
 function formComposicaoTotal(form: FormState): number {
@@ -654,22 +687,41 @@ function formComposicaoTotal(form: FormState): number {
   return simples + listas;
 }
 
-function agruparParcelas(values: number[]): ParcelaGrupo[] {
-  const grupos: Array<{ quantidade: number; valor: number }> = [];
-  for (const value of values) {
+function dataIso(raw: string | null | undefined): string {
+  return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
+}
+
+function dataBr(raw: string | null | undefined): string {
+  const iso = dataIso(raw);
+  if (!iso) return "";
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function agruparParcelas(values: number[], datas: string[] = []): ParcelaGrupo[] {
+  const grupos: Array<{ quantidade: number; valor: number; data: string }> = [];
+  values.forEach((value, index) => {
+    const data = dataIso(datas[index]);
     const ultimo = grupos[grupos.length - 1];
-    if (ultimo && ultimo.valor === value) ultimo.quantidade += 1;
-    else grupos.push({ quantidade: 1, valor: value });
-  }
+    if (ultimo && ultimo.valor === value && ultimo.data === data) {
+      ultimo.quantidade += 1;
+    } else {
+      grupos.push({ quantidade: 1, valor: value, data });
+    }
+  });
   return grupos.map((grupo) => ({
     quantidade: String(grupo.quantidade),
     valor: formatMoneyInput(grupo.valor),
+    data: grupo.data,
   }));
 }
 
-function toParcelasForm(values: number[] | null | undefined): ParcelasForm {
+function toParcelasForm(
+  values: number[] | null | undefined,
+  datas?: string[] | null,
+): ParcelasForm {
   if (!values?.length) return emptyParcelas();
-  const [primeiro, ...extras] = agruparParcelas(values);
+  const [primeiro, ...extras] = agruparParcelas(values, datas ?? []);
   return { ...primeiro, extras };
 }
 
@@ -752,6 +804,7 @@ function patchFormFromLead(
       doc?.valorEntrada != null
         ? [formatMoneyInput(doc.valorEntrada)]
         : current.sinais,
+    sinaisDatas: doc?.valorEntrada != null ? [""] : current.sinaisDatas,
     fgts:
       doc?.valorFgts != null ? formatMoneyInput(doc.valorFgts) : current.fgts,
   };
@@ -1618,10 +1671,15 @@ export function PropostasPage() {
         return total > 0 ? total : null;
       })(),
       sinais: sinaisNumeros(form.sinais),
+      sinaisDatas: form.sinais.flatMap((raw, index) => {
+        const valor = parseMoney(raw);
+        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
+      }),
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
       intercaladas: expandParcelas(form.intercaladas),
+      intercaladasDatas: expandDatas(form.intercaladas),
       fgts: parseMoney(form.fgts),
       moraBem: parseMoney(form.moraBem),
       mcmv: parseMoney(form.mcmv),
@@ -1902,10 +1960,11 @@ export function PropostasPage() {
       corretorId: p.corretorId ?? "",
       valor: formatMoneyInput(p.valor),
       sinais: toSinaisForm(p),
+      sinaisDatas: toSinaisDatas(p),
       apartado: p.apartado != null ? formatMoneyInput(p.apartado) : "",
       preChaves: toParcelasForm(p.preChaves),
       posChaves: toParcelasForm(p.posChaves),
-      intercaladas: toParcelasForm(p.intercaladas),
+      intercaladas: toParcelasForm(p.intercaladas, p.intercaladasDatas),
       fgts: p.fgts != null ? formatMoneyInput(p.fgts) : "",
       moraBem: p.moraBem != null ? formatMoneyInput(p.moraBem) : "",
       mcmv: p.mcmv != null ? formatMoneyInput(p.mcmv) : "",
@@ -2073,10 +2132,15 @@ export function PropostasPage() {
         return total > 0 ? total : null;
       })(),
       sinais: sinaisNumeros(form.sinais),
+      sinaisDatas: form.sinais.flatMap((raw, index) => {
+        const valor = parseMoney(raw);
+        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
+      }),
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
       intercaladas: expandParcelas(form.intercaladas),
+      intercaladasDatas: expandDatas(form.intercaladas),
       fgts: parseMoney(form.fgts),
       moraBem: parseMoney(form.moraBem),
       mcmv: parseMoney(form.mcmv),
@@ -4035,8 +4099,9 @@ export function PropostasPage() {
                       id="sinais"
                       title="Sinal (R$)"
                       valores={form.sinais}
-                      onChange={(sinais) =>
-                        setForm((f) => ({ ...f, sinais }))
+                      datas={form.sinaisDatas}
+                      onChange={(sinais, sinaisDatas) =>
+                        setForm((f) => ({ ...f, sinais, sinaisDatas }))
                       }
                     />
                     {PROPOSTA_SIMPLES_KEYS.filter((key) => key !== "entrada").map(
@@ -4724,7 +4789,7 @@ function ParcelasQtyValueEditor({
             onClick={() =>
               onChange({
                 ...value,
-                extras: [...value.extras, { quantidade: "1", valor: "" }],
+                extras: [...value.extras, { quantidade: "1", valor: "", data: "" }],
               })
             }
           >
@@ -4762,6 +4827,17 @@ function ParcelasQtyValueEditor({
           />
         </div>
       </div>
+      {allowExtras ? (
+        <div className="mt-3 space-y-1.5">
+          <Label htmlFor={`${id}-data`}>Data (opcional)</Label>
+          <Input
+            id={`${id}-data`}
+            type="date"
+            value={value.data}
+            onChange={(e) => onChange({ ...value, data: e.target.value })}
+          />
+        </div>
+      ) : null}
       {allowExtras && value.extras.length > 0 ? (
         <div className="mt-3 space-y-3">
           {value.extras.map((extra, index) => (
@@ -4803,6 +4879,21 @@ function ParcelasQtyValueEditor({
                     }}
                   />
                 </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label htmlFor={`${id}-extra-${index}-data`}>
+                    Data (opcional)
+                  </Label>
+                  <Input
+                    id={`${id}-extra-${index}-data`}
+                    type="date"
+                    value={extra.data}
+                    onChange={(e) => {
+                      const extras = value.extras.slice();
+                      extras[index] = { ...extra, data: e.target.value };
+                      onChange({ ...value, extras });
+                    }}
+                  />
+                </div>
               </div>
               <Button
                 type="button"
@@ -4831,15 +4922,18 @@ function ValoresVariaveisEditor({
   id,
   title,
   valores,
+  datas,
   onChange,
 }: {
   id: string;
   title: string;
   valores: string[];
-  onChange: (next: string[]) => void;
+  datas: string[];
+  onChange: (valores: string[], datas: string[]) => void;
 }) {
   const total = sinaisNumeros(valores).reduce((sum, n) => sum + n, 0);
   const linhas = valores.length ? valores : [""];
+  const datasLinha = linhas.map((_, index) => datas[index] ?? "");
 
   return (
     <div className="space-y-1.5 sm:col-span-2">
@@ -4851,25 +4945,38 @@ function ValoresVariaveisEditor({
           variant="outline"
           className="h-8 w-8"
           aria-label="Adicionar sinal"
-          onClick={() => onChange([...linhas, ""])}
+          onClick={() => onChange([...linhas, ""], [...datasLinha, ""])}
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {linhas.map((valor, index) => (
-          <div key={`${id}-${index}`} className="flex items-center gap-2">
-            <Input
-              id={index === 0 ? `${id}-0` : undefined}
-              inputMode="numeric"
-              placeholder="0,00"
-              value={valor}
-              onChange={(e) => {
-                const next = linhas.slice();
-                next[index] = maskMoneyInput(e.target.value);
-                onChange(next);
-              }}
-            />
+          <div key={`${id}-${index}`} className="flex items-end gap-2">
+            <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+              <Input
+                id={index === 0 ? `${id}-0` : undefined}
+                inputMode="numeric"
+                placeholder="0,00"
+                value={valor}
+                aria-label="Valor do sinal"
+                onChange={(e) => {
+                  const next = linhas.slice();
+                  next[index] = maskMoneyInput(e.target.value);
+                  onChange(next, datasLinha);
+                }}
+              />
+              <Input
+                type="date"
+                value={datasLinha[index]}
+                aria-label="Data do sinal, opcional"
+                onChange={(e) => {
+                  const nextDatas = datasLinha.slice();
+                  nextDatas[index] = e.target.value;
+                  onChange(linhas, nextDatas);
+                }}
+              />
+            </div>
             {linhas.length > 1 ? (
               <Button
                 type="button"
@@ -4877,7 +4984,12 @@ function ValoresVariaveisEditor({
                 variant="ghost"
                 className="h-10 w-10 shrink-0"
                 aria-label="Remover sinal"
-                onClick={() => onChange(linhas.filter((_, i) => i !== index))}
+                onClick={() =>
+                  onChange(
+                    linhas.filter((_, i) => i !== index),
+                    datasLinha.filter((_, i) => i !== index),
+                  )
+                }
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

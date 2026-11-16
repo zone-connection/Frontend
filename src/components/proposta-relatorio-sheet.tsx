@@ -10,6 +10,7 @@ export type RelatorioLinha = {
   descricao: string;
   valor: string;
   subtotal: string;
+  data?: string;
 };
 
 const ORDEM = [
@@ -204,6 +205,34 @@ export function PropostaRelatorioSheet({
             Condições e valores da proposta
           </p>
 
+          <div className="mt-4 grid grid-cols-[1.1fr_1fr] overflow-hidden rounded-xl bg-[var(--pv-header)] text-white">
+            <div className="px-6 py-6">
+              <p className="text-[10px] tracking-[0.2em] text-[var(--pv-mist)]">
+                TOTAL DA COMPOSIÇÃO
+              </p>
+              <span className="mt-2 block h-px w-8 bg-[var(--pv-mist)]" />
+              <p className="mt-3 font-serif text-[28px] tabular-nums leading-none">
+                {brl(total)}
+              </p>
+            </div>
+            <div className="flex flex-col justify-center gap-4 border-l border-[var(--pv-divider)] px-6 py-6">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] tracking-[0.14em] text-[var(--pv-mist)]">
+                  DESCONTO DO IMÓVEL
+                </span>
+                <span className="text-[13px] tabular-nums">{brl(desconto)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] tracking-[0.14em] text-[var(--pv-mist)]">
+                  VALOR NEGOCIADO
+                </span>
+                <span className="text-[14px] font-medium tabular-nums">
+                  {brl(valorNegociado)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 overflow-hidden rounded-lg">
             <table className="w-full border-collapse text-[12px]">
               <thead>
@@ -241,6 +270,11 @@ export function PropostaRelatorioSheet({
                     <td className="px-4 py-3 tabular-nums">{linha.qtd}</td>
                     <td className="px-3 py-3 font-semibold uppercase">
                       {linha.descricao}
+                      {linha.data ? (
+                        <span className="mt-0.5 block text-[10px] font-normal normal-case tracking-normal text-[var(--pv-muted)]">
+                          {linha.data}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {linha.valor}
@@ -252,34 +286,6 @@ export function PropostaRelatorioSheet({
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[1.1fr_1fr] overflow-hidden rounded-xl bg-[var(--pv-header)] text-white">
-          <div className="px-6 py-6">
-            <p className="text-[10px] tracking-[0.2em] text-[var(--pv-mist)]">
-              TOTAL DA COMPOSIÇÃO
-            </p>
-            <span className="mt-2 block h-px w-8 bg-[var(--pv-mist)]" />
-            <p className="mt-3 font-serif text-[28px] tabular-nums leading-none">
-              {brl(total)}
-            </p>
-          </div>
-          <div className="flex flex-col justify-center gap-4 border-l border-[var(--pv-divider)] px-6 py-6">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] tracking-[0.14em] text-[var(--pv-mist)]">
-                DESCONTO DO IMÓVEL
-              </span>
-              <span className="text-[13px] tabular-nums">{brl(desconto)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] tracking-[0.14em] text-[var(--pv-mist)]">
-                VALOR NEGOCIADO
-              </span>
-              <span className="text-[14px] font-medium tabular-nums">
-                {brl(valorNegociado)}
-              </span>
-            </div>
           </div>
         </div>
       </div>
