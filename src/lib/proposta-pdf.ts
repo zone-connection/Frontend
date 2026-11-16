@@ -280,17 +280,13 @@ function compositionLines(p: Proposta): CompositionLine[] {
 
   for (const key of PROPOSTA_SIMPLES_KEYS) {
     if (key === "entrada" && p.sinais?.length) {
-      const values = p.sinais;
-      const equal = values.every((n) => n === values[0]);
-      lines.push({
-        label: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
-        detail: equal
-          ? values.length > 1
-            ? `${values.length} × ${brl(values[0] ?? 0)}`
-            : undefined
-          : values.map((value, index) => `${index + 1}º · ${brl(value)}`).join("  ·  "),
-        value: values.reduce((sum, n) => sum + n, 0),
-      });
+      for (const value of p.sinais) {
+        if (value <= 0) continue;
+        lines.push({
+          label: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+          value,
+        });
+      }
       continue;
     }
     const value = p[key as PropostaSimplesKey];
@@ -304,6 +300,14 @@ function compositionLines(p: Proposta): CompositionLine[] {
   for (const key of PROPOSTA_LISTA_KEYS) {
     const values = p[key as PropostaListaKey] ?? [];
     if (!values.length) continue;
+    const label = PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase();
+    if (key === "intercaladas") {
+      for (const value of values) {
+        if (value <= 0) continue;
+        lines.push({ label, value });
+      }
+      continue;
+    }
     const subtotal = values.reduce((sum, n) => sum + n, 0);
     const equal = values.every((n) => n === values[0]);
     const detail = equal
@@ -312,7 +316,7 @@ function compositionLines(p: Proposta): CompositionLine[] {
           .map((value, index) => `${index + 1}ª · ${brl(value)}`)
           .join("  ·  ");
     lines.push({
-      label: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      label,
       detail,
       value: subtotal,
     });
