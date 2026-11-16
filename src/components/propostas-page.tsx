@@ -475,6 +475,20 @@ function OptionalField({
   );
 }
 
+function linhasIndividuais(
+  descricao: string,
+  values: number[],
+): RelatorioLinha[] {
+  return values
+    .filter((value) => value > 0)
+    .map((value) => ({
+      qtd: "1",
+      descricao,
+      valor: brl(value),
+      subtotal: brl(value),
+    }));
+}
+
 function linhaDeLista(
   descricao: string,
   values: number[],
@@ -491,11 +505,12 @@ function linhaDeLista(
 
 function linhasDoFormulario(form: FormState): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
-  const sinal = linhaDeLista(
-    PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
-    sinaisNumeros(form.sinais),
+  linhas.push(
+    ...linhasIndividuais(
+      PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+      sinaisNumeros(form.sinais),
+    ),
   );
-  if (sinal) linhas.push(sinal);
   for (const key of PROPOSTA_SIMPLES_KEYS) {
     if (key === "entrada") continue;
     const value = moneyOrZero(form[key]);
@@ -508,10 +523,13 @@ function linhasDoFormulario(form: FormState): RelatorioLinha[] {
     });
   }
   for (const key of PROPOSTA_LISTA_KEYS) {
-    const linha = linhaDeLista(
-      PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      expandParcelas(form[key]),
-    );
+    const descricao = PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase();
+    const values = expandParcelas(form[key]);
+    if (key === "intercaladas") {
+      linhas.push(...linhasIndividuais(descricao, values));
+      continue;
+    }
+    const linha = linhaDeLista(descricao, values);
     if (linha) linhas.push(linha);
   }
   return ordenarLinhasRelatorio(linhas);
