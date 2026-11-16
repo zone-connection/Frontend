@@ -155,6 +155,7 @@ import {
   PROPOSTA_INFORMATIVA_KEYS,
   PROPOSTA_LISTA_KEYS,
   PROPOSTA_SIMPLES_KEYS,
+  type PropostaSimplesKey,
   PROPOSTA_STATUS_LABEL,
   propostaComposicaoTotal,
   propostaDiferenca,
@@ -326,6 +327,7 @@ const STATUS_OPTIONS: { value: PropostaStatus | "todos"; label: string }[] = [
 type ParcelasForm = {
   quantidade: string;
   valor: string;
+  extras: string[];
 };
 
 type PropostaFormSection =
@@ -371,7 +373,7 @@ type FormState = {
   unidade: string;
   corretorId: string;
   valor: string;
-  entrada: string;
+  sinais: string[];
   apartado: string;
   preChaves: ParcelasForm;
   posChaves: ParcelasForm;
@@ -390,6 +392,7 @@ type FormState = {
 const emptyParcelas = (): ParcelasForm => ({
   quantidade: "",
   valor: "",
+  extras: [],
 });
 
 const emptyForm = (): FormState => ({
@@ -432,7 +435,7 @@ const emptyForm = (): FormState => ({
   unidade: "",
   corretorId: "",
   valor: "",
-  entrada: "",
+  sinais: [""],
   apartado: "",
   preChaves: emptyParcelas(),
   posChaves: emptyParcelas(),
@@ -483,9 +486,29 @@ function OptionalField({
   );
 }
 
+function linhaDeLista(
+  descricao: string,
+  values: number[],
+): RelatorioLinha | null {
+  if (!values.length) return null;
+  const resumo = parcelasResumo(values);
+  return {
+    qtd: String(resumo.quantidade),
+    descricao,
+    valor: resumo.equal ? brl(resumo.valorUnitario) : "Valores variados",
+    subtotal: brl(resumo.subtotal),
+  };
+}
+
 function linhasDoFormulario(form: FormState): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
+  const sinal = linhaDeLista(
+    PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+    sinaisNumeros(form.sinais),
+  );
+  if (sinal) linhas.push(sinal);
   for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (key === "entrada") continue;
     const value = moneyOrZero(form[key]);
     if (value <= 0) continue;
     linhas.push({
@@ -496,23 +519,29 @@ function linhasDoFormulario(form: FormState): RelatorioLinha[] {
     });
   }
   for (const key of PROPOSTA_LISTA_KEYS) {
-    const parcela = form[key];
-    const qtd = parseQuantidade(parcela.quantidade);
-    const valor = moneyOrZero(parcela.valor);
-    if (!qtd || valor <= 0) continue;
-    linhas.push({
-      qtd: String(qtd),
-      descricao: PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
-      valor: brl(valor),
-      subtotal: brl(qtd * valor),
-    });
+    const linha = linhaDeLista(
+      PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase(),
+      expandParcelas(form[key]),
+    );
+    if (linha) linhas.push(linha);
   }
   return ordenarLinhasRelatorio(linhas);
 }
 
 function linhasDaProposta(p: Proposta): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
+  const sinalSalvo = p.sinais?.length
+    ? p.sinais
+    : p.entrada != null && p.entrada > 0
+      ? [p.entrada]
+      : [];
+  const sinal = linhaDeLista(
+    PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+    sinalSalvo,
+  );
+  if (sinal) linhas.push(sinal);
   for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (key === "entrada") continue;
     const value = p[key];
     if (value == null || value <= 0) continue;
     linhas.push({
@@ -597,27 +626,54 @@ function parseQuantidade(raw: string): number {
   return Math.min(n, 360);
 }
 
+function valoresPositivos(valores: string[]): number[] {
+  return valores
+    .map((raw) => parseMoney(raw))
+    .filter((n): n is number => n != null && n > 0);
+}
+
 function parcelasSubtotal(p: ParcelasForm): number {
-  return parseQuantidade(p.quantidade) * moneyOrZero(p.valor);
+  return expandParcelas(p).reduce((sum, n) => sum + n, 0);
 }
 
 function expandParcelas(p: ParcelasForm): number[] {
   const q = parseQuantidade(p.quantidade);
   const v = parseMoney(p.valor);
-  if (!q || v == null || v <= 0) return [];
-  return Array.from({ length: q }, () => v);
+  const base =
+    !q || v == null || v <= 0 ? [] : Array.from({ length: q }, () => v);
+  return [...base, ...valoresPositivos(p.extras)];
+}
+
+function sinaisNumeros(valores: string[]): number[] {
+  return valoresPositivos(valores);
+}
+
+function toSinaisForm(p: {
+  sinais?: number[] | null;
+  entrada: number | null;
+}): string[] {
+  const lista = p.sinais?.length
+    ? p.sinais
+    : p.entrada != null
+      ? [p.entrada]
+      : [];
+  return lista.length ? lista.map((n) => formatMoneyInput(n)) : [""];
 }
 
 function formComposicaoTotal(form: FormState): number {
-  const simples = PROPOSTA_SIMPLES_KEYS.reduce(
-    (sum, key) =>
+  const simples = PROPOSTA_SIMPLES_KEYS.reduce((sum, key) => {
+    if (
       PROPOSTA_INFORMATIVA_KEYS.includes(
         key as (typeof PROPOSTA_INFORMATIVA_KEYS)[number],
       )
-        ? sum
-        : sum + moneyOrZero(form[key]),
-    0,
-  );
+    ) {
+      return sum;
+    }
+    if (key === "entrada") {
+      return sum + sinaisNumeros(form.sinais).reduce((a, n) => a + n, 0);
+    }
+    return sum + moneyOrZero(form[key as Exclude<PropostaSimplesKey, "entrada">]);
+  }, 0);
   const listas = PROPOSTA_LISTA_KEYS.reduce(
     (sum, key) => sum + parcelasSubtotal(form[key]),
     0,
@@ -627,9 +683,17 @@ function formComposicaoTotal(form: FormState): number {
 
 function toParcelasForm(values: number[] | null | undefined): ParcelasForm {
   if (!values?.length) return emptyParcelas();
+  const first = values[0] ?? 0;
+  let quantidade = 0;
+  const extras: string[] = [];
+  for (const value of values) {
+    if (value === first && extras.length === 0) quantidade += 1;
+    else extras.push(formatMoneyInput(value));
+  }
   return {
-    quantidade: String(values.length),
-    valor: formatMoneyInput(values[0] ?? 0),
+    quantidade: String(quantidade),
+    valor: formatMoneyInput(first),
+    extras,
   };
 }
 
@@ -709,10 +773,10 @@ function patchFormFromLead(
       doc?.empreendimentoId ||
       current.empreendimentoId,
     valor: vgv != null ? formatMoneyInput(vgv) : current.valor,
-    entrada:
+    sinais:
       doc?.valorEntrada != null
-        ? formatMoneyInput(doc.valorEntrada)
-        : current.entrada,
+        ? [formatMoneyInput(doc.valorEntrada)]
+        : current.sinais,
     fgts:
       doc?.valorFgts != null ? formatMoneyInput(doc.valorFgts) : current.fgts,
   };
@@ -1501,7 +1565,12 @@ function Page() {
       corretorId: form.corretorId || null,
       autorId: user?.id ?? "preview",
       valor: moneyOrZero(form.valor),
-      entrada: parseMoney(form.entrada),
+      entrada: (() => {
+        const sinais = sinaisNumeros(form.sinais);
+        const total = sinais.reduce((sum, n) => sum + n, 0);
+        return total > 0 ? total : null;
+      })(),
+      sinais: sinaisNumeros(form.sinais),
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
@@ -1744,7 +1813,7 @@ function Page() {
       unidade: p.unidade ?? "",
       corretorId: p.corretorId ?? "",
       valor: formatMoneyInput(p.valor),
-      entrada: p.entrada != null ? formatMoneyInput(p.entrada) : "",
+      sinais: toSinaisForm(p),
       apartado: p.apartado != null ? formatMoneyInput(p.apartado) : "",
       preChaves: toParcelasForm(p.preChaves),
       posChaves: toParcelasForm(p.posChaves),
@@ -1901,7 +1970,12 @@ function Page() {
       unidade: form.unidade.trim() || null,
       corretorId: propostaSoMinha ? user?.id ?? null : form.corretorId || null,
       valor,
-      entrada: parseMoney(form.entrada),
+      entrada: (() => {
+        const sinais = sinaisNumeros(form.sinais);
+        const total = sinais.reduce((sum, n) => sum + n, 0);
+        return total > 0 ? total : null;
+      })(),
+      sinais: sinaisNumeros(form.sinais),
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
@@ -2681,15 +2755,26 @@ function Page() {
                     }
                     const value = selected[key];
                     if (value == null) return null;
+                    const detalhe =
+                      key === "entrada" && (selected.sinais?.length ?? 0) > 1
+                        ? selected.sinais!.map((n) => brl(n)).join(" · ")
+                        : null;
                     return (
                       <div
                         key={key}
                         className="flex items-center justify-between gap-3 px-3 py-2.5"
                       >
-                        <span className="text-sm text-muted-foreground">
-                          {PROPOSTA_COMPOSICAO_LABEL[key]}
-                        </span>
-                        <span className="text-sm font-medium tabular-nums">
+                        <div className="min-w-0">
+                          <div className="text-sm text-muted-foreground">
+                            {PROPOSTA_COMPOSICAO_LABEL[key]}
+                          </div>
+                          {detalhe ? (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              {detalhe}
+                            </div>
+                          ) : null}
+                        </div>
+                        <span className="text-sm font-medium tabular-nums shrink-0">
                           {brl(value)}
                         </span>
                       </div>
@@ -3829,17 +3914,27 @@ function Page() {
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {PROPOSTA_SIMPLES_KEYS.map((key) => (
-                      <MoneyField
-                        key={key}
-                        id={key}
-                        label={`${PROPOSTA_COMPOSICAO_LABEL[key]} (R$)`}
-                        value={form[key]}
-                        onChange={(value) =>
-                          setForm((f) => ({ ...f, [key]: value }))
-                        }
-                      />
-                    ))}
+                    <ValoresVariaveisEditor
+                      id="sinais"
+                      title="Sinal (R$)"
+                      valores={form.sinais}
+                      onChange={(sinais) =>
+                        setForm((f) => ({ ...f, sinais }))
+                      }
+                    />
+                    {PROPOSTA_SIMPLES_KEYS.filter((key) => key !== "entrada").map(
+                      (key) => (
+                        <MoneyField
+                          key={key}
+                          id={key}
+                          label={`${PROPOSTA_COMPOSICAO_LABEL[key]} (R$)`}
+                          value={form[key]}
+                          onChange={(value) =>
+                            setForm((f) => ({ ...f, [key]: value }))
+                          }
+                        />
+                      ),
+                    )}
                   </div>
 
                   <div className="grid gap-3 lg:grid-cols-3">
@@ -3849,6 +3944,7 @@ function Page() {
                         id={key}
                         title={PROPOSTA_COMPOSICAO_LABEL[key]}
                         value={form[key]}
+                        allowExtras={key === "intercaladas"}
                         onChange={(next) =>
                           setForm((f) => ({ ...f, [key]: next }))
                         }
@@ -4479,24 +4575,42 @@ function ParcelasQtyValueEditor({
   title,
   value,
   onChange,
+  allowExtras = false,
 }: {
   id: string;
   title: string;
   value: ParcelasForm;
   onChange: (next: ParcelasForm) => void;
+  allowExtras?: boolean;
 }) {
+  const subtotal = parcelasSubtotal(value);
   const q = parseQuantidade(value.quantidade);
   const unit = moneyOrZero(value.valor);
-  const subtotal = q * unit;
 
   return (
     <div className="flex h-full flex-col space-y-3 rounded-2xl border border-black/5 bg-card p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_rgba(15,23,42,0.05)]">
-      <div>
-        <div className="text-sm font-medium">{title}</div>
-        <div className="text-[11px] text-muted-foreground tabular-nums">
-          Subtotal {brl(subtotal)}
-          {q > 0 && unit > 0 ? ` · ${q} × ${brl(unit)}` : ""}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium">{title}</div>
+          <div className="text-[11px] text-muted-foreground tabular-nums">
+            Subtotal {brl(subtotal)}
+            {q > 0 && unit > 0 ? ` · ${q} × ${brl(unit)}` : ""}
+          </div>
         </div>
+        {allowExtras ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 shrink-0"
+            aria-label={`Adicionar ${title.toLowerCase()}`}
+            onClick={() =>
+              onChange({ ...value, extras: [...value.extras, ""] })
+            }
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
@@ -4528,6 +4642,112 @@ function ParcelasQtyValueEditor({
           />
         </div>
       </div>
+      {allowExtras && value.extras.length > 0 ? (
+        <div className="space-y-2">
+          {value.extras.map((extra, index) => (
+            <div key={`${id}-extra-${index}`} className="flex items-end gap-2">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label htmlFor={`${id}-extra-${index}`}>
+                  Valor diferente (R$)
+                </Label>
+                <Input
+                  id={`${id}-extra-${index}`}
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  value={extra}
+                  onChange={(e) => {
+                    const extras = value.extras.slice();
+                    extras[index] = maskMoneyInput(e.target.value);
+                    onChange({ ...value, extras });
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 shrink-0"
+                aria-label="Remover valor"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    extras: value.extras.filter((_, i) => i !== index),
+                  })
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ValoresVariaveisEditor({
+  id,
+  title,
+  valores,
+  onChange,
+}: {
+  id: string;
+  title: string;
+  valores: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const total = sinaisNumeros(valores).reduce((sum, n) => sum + n, 0);
+  const linhas = valores.length ? valores : [""];
+
+  return (
+    <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={`${id}-0`}>{title}</Label>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          aria-label="Adicionar sinal"
+          onClick={() => onChange([...linhas, ""])}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {linhas.map((valor, index) => (
+          <div key={`${id}-${index}`} className="flex items-center gap-2">
+            <Input
+              id={index === 0 ? `${id}-0` : undefined}
+              inputMode="numeric"
+              placeholder="0,00"
+              value={valor}
+              onChange={(e) => {
+                const next = linhas.slice();
+                next[index] = maskMoneyInput(e.target.value);
+                onChange(next);
+              }}
+            />
+            {linhas.length > 1 ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 shrink-0"
+                aria-label="Remover sinal"
+                onClick={() => onChange(linhas.filter((_, i) => i !== index))}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {linhas.length > 1 ? (
+        <p className="text-[11px] text-muted-foreground tabular-nums">
+          Soma dos sinais {brl(total)}
+        </p>
+      ) : null}
     </div>
   );
 }
