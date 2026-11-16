@@ -279,6 +279,20 @@ function compositionLines(p: Proposta): CompositionLine[] {
   const lines: CompositionLine[] = [];
 
   for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (key === "entrada" && p.sinais?.length) {
+      const values = p.sinais;
+      const equal = values.every((n) => n === values[0]);
+      lines.push({
+        label: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+        detail: equal
+          ? values.length > 1
+            ? `${values.length} × ${brl(values[0] ?? 0)}`
+            : undefined
+          : values.map((value, index) => `${index + 1}º · ${brl(value)}`).join("  ·  "),
+        value: values.reduce((sum, n) => sum + n, 0),
+      });
+      continue;
+    }
     const value = p[key as PropostaSimplesKey];
     if (value == null) continue;
     lines.push({

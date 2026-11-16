@@ -188,6 +188,18 @@ type PayRow = { qtd: string; descricao: string; valor: string; subtotal: string 
 function paymentRows(p: Proposta): PayRow[] {
   const rows: PayRow[] = [];
   for (const key of PROPOSTA_SIMPLES_KEYS) {
+    if (key === "entrada" && p.sinais?.length) {
+      const values = p.sinais;
+      const subtotal = values.reduce((sum, n) => sum + n, 0);
+      const equal = values.every((n) => n === values[0]);
+      rows.push({
+        qtd: String(values.length),
+        descricao: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+        valor: equal ? brl(values[0] ?? 0) : "valores variados",
+        subtotal: brl(subtotal),
+      });
+      continue;
+    }
     const value = p[key as PropostaSimplesKey];
     if (value == null) continue;
     rows.push({
