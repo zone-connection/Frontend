@@ -88,6 +88,7 @@ export type VendaUsado = {
   precoVenda: number | null;
   funilEtapaId: string;
   dataDisponibilizacao: string;
+  updatedAt?: string;
   observacoes: string;
   imovel: Imovel & { proprietario?: { id: string; nome: string } };
   responsavel: { id: string; name: string };
