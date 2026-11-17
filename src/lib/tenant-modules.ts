@@ -219,6 +219,9 @@ export function modulesFromTenantJson(
   if (typeof modules.muralChavesOptIn === "boolean") {
     (base as Record<string, boolean>).muralChavesOptIn = modules.muralChavesOptIn;
   }
+  if (modules.leadsFrios === true) {
+    (base as Record<string, boolean>).leadsFrios = true;
+  }
   // Compatibilidade com tenants antigos (só 6 chaves)
   return base;
 }

@@ -935,6 +935,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   function moduleMenuAllows(to: string) {
+    if (to === "/leads-frios" || to.startsWith("/leads-frios/")) {
+      return modules?.leadsFrios === true;
+    }
     if (to === "/mural-chaves" || to.startsWith("/mural-chaves/")) {
       return isModuleEnabled("muralChaves");
     }

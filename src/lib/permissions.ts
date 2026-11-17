@@ -289,6 +289,9 @@ export function canAccessRoute(
       return false;
     }
   }
+  if (path === "/leads-frios" || path.startsWith("/leads-frios/")) {
+    if (modules?.leadsFrios !== true) return false;
+  }
   if (path === "/orulo-oauth-callback") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;

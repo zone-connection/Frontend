@@ -66,6 +66,7 @@ export function ConfigModulosOperacaoPanel() {
   const [whatsappStaffCanSend, setWhatsappStaffCanSend] = useState(false);
   const [fichaAnaliseGuiada, setFichaAnaliseGuiada] = useState(false);
   const [vendaDiretaFunil, setVendaDiretaFunil] = useState(false);
+  const [leadsFrios, setLeadsFrios] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const session = getSession();
@@ -86,6 +87,7 @@ export function ConfigModulosOperacaoPanel() {
       setWhatsappStaffCanSend(data.whatsappStaffCanSend === true);
       setFichaAnaliseGuiada(data.fichaAnaliseGuiada === true);
       setVendaDiretaFunil(data.vendaDiretaFunil === true);
+      setLeadsFrios(data.leadsFrios === true);
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -281,6 +283,33 @@ export function ConfigModulosOperacaoPanel() {
         err instanceof ApiError
           ? err.message
           : "Não foi possível atualizar a visibilidade dos clientes.",
+      );
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function toggleLeadsFrios(checked: boolean) {
+    if (!isAdmin) return;
+    setLeadsFrios(checked);
+    setSavingKey("leadsFrios");
+    try {
+      const data = await updateTenantOperationModules({ leadsFrios: checked });
+      setLeadsFrios(data.leadsFrios === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      await router.invalidate();
+      toast.success(
+        checked
+          ? "Leads frios ativado. A base aparece no menu."
+          : "Leads frios desativado. A base sai do menu.",
+      );
+    } catch (err) {
+      setLeadsFrios(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar os leads frios.",
       );
     } finally {
       setSavingKey(null);
@@ -574,6 +603,37 @@ export function ConfigModulosOperacaoPanel() {
                 disabled={savingKey === "fichaAnaliseGuiada"}
                 onCheckedChange={(checked) => void toggleFichaAnaliseGuiada(checked)}
                 aria-label="Exigir ficha de documentação na análise"
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        {isAdmin ? (
+          <Card>
+            <CardHeader className="flex-row items-start gap-3 space-y-0">
+              <div className="rounded-lg border bg-muted/40 p-2">
+                <ClipboardList className="h-5 w-5 text-brand-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base">Leads frios</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Base compartilhada para subir planilha. O corretor puxa os
+                  leads para a própria carteira. Desligado, o menu some e a
+                  base não abre.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Ativar leads frios</p>
+                <p className="text-xs text-muted-foreground">
+                  Nasce desligado. Só aparece depois que o administrador liga.
+                </p>
+              </div>
+              <Switch
+                checked={leadsFrios}
+                disabled={savingKey === "leadsFrios"}
+                onCheckedChange={(checked) => void toggleLeadsFrios(checked)}
+                aria-label="Ativar base de leads frios"
               />
             </CardContent>
           </Card>
