@@ -328,6 +328,20 @@ export function HistoryTimeline({
                               (changedStage ? stageName : `Manteve ${stageName}`)}
                           </Badge>
                         )}
+                        {ev.tipo === "visita" ||
+                        ev.tipo === "ligacao" ||
+                        ev.tipo === "reuniao" ||
+                        ev.tipo === "outro" ? (
+                          <Badge variant="outline" className="rounded-full text-[10px]">
+                            {ev.tipo === "visita"
+                              ? "Visita"
+                              : ev.tipo === "ligacao"
+                                ? "Ligação"
+                                : ev.tipo === "reuniao"
+                                  ? "Reunião"
+                                  : "Outro"}
+                          </Badge>
+                        ) : null}
                         <Badge variant="outline" className="rounded-full text-[10px]">
                           {ev.origem === "funil"
                             ? "Funil"

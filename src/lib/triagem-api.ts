@@ -31,6 +31,7 @@ export interface TriagemEvent {
   textoAnterior: string | null;
   stageAnterior: string | null;
   stageNovo: string | null;
+  tipo?: "visita" | "ligacao" | "reuniao" | "outro" | null;
   origem: TriagemOrigem;
   createdAt: string;
   editedAt: string | null;
@@ -60,6 +61,7 @@ export type CreateTriagemInput = {
   leadId: string;
   texto: string;
   origem: TriagemOrigem;
+  tipo?: "visita" | "ligacao" | "reuniao" | "outro";
   stage?: string;
   stageAnterior?: string;
 };

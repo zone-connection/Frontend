@@ -79,7 +79,7 @@ function toLocalIso(date: string, time: string) {
   return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
 }
 
-function activityTitle(tipo: ActivityTipo, nome: string) {
+export function activityTitle(tipo: ActivityTipo, nome: string) {
   if (tipo === "ligacao") return `Ligação ${nome}`;
   if (tipo === "visita") return `Visita ${nome}`;
   if (tipo === "retirada_chave") return `Retirada de chave ${nome}`;
@@ -88,10 +88,234 @@ function activityTitle(tipo: ActivityTipo, nome: string) {
   return `Atividade ${nome}`;
 }
 
-function defaultSchedule() {
+export function defaultSchedule() {
   const start = roundNextHalfHour();
   const end = new Date(start.getTime() + 30 * 60_000);
   return { data: ymd(start), inicio: hm(start), fim: hm(end) };
+}
+
+export type CompromissoRascunho = {
+  titulo: string;
+  data: string;
+  inicio: string;
+  fim: string;
+  empreendimentoId: string;
+  muralChaveId: string;
+};
+
+export function compromissoInicial(
+  tipo: ActivityTipo,
+  nome: string,
+): CompromissoRascunho {
+  const agenda = defaultSchedule();
+  return {
+    titulo: activityTitle(tipo, nome),
+    data: agenda.data,
+    inicio: agenda.inicio,
+    fim: agenda.fim,
+    empreendimentoId: "",
+    muralChaveId: "",
+  };
+}
+
+export function validarCompromisso(
+  tipo: ActivityTipo,
+  rascunho: CompromissoRascunho,
+): string | null {
+  if (rascunho.titulo.trim().length < 2) return "Informe o título do compromisso.";
+  if (!rascunho.data) return "Informe a data do compromisso.";
+  const startsAt = toLocalIso(rascunho.data, rascunho.inicio);
+  const endsAt = toLocalIso(rascunho.data, rascunho.fim);
+  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+    return "O horário de término deve ser depois do início.";
+  }
+  if (tipo === "retirada_chave" && !rascunho.muralChaveId) {
+    return "Selecione a chave da retirada.";
+  }
+  return null;
+}
+
+export async function criarCompromisso(input: {
+  leadId: string;
+  leadNome: string;
+  tipo: ActivityTipo;
+  stage: string;
+  stageName: string;
+  observacoes?: string;
+  rascunho: CompromissoRascunho;
+}) {
+  const vinculaChave =
+    input.tipo === "visita" || input.tipo === "retirada_chave";
+  await createAgendamento({
+    leadId: input.leadId,
+    titulo: input.rascunho.titulo.trim(),
+    tipo: input.tipo,
+    escopo: "pessoal",
+    startsAt: toLocalIso(input.rascunho.data, input.rascunho.inicio),
+    endsAt: toLocalIso(input.rascunho.data, input.rascunho.fim),
+    funilStage: input.stage,
+    observacoes:
+      input.observacoes?.trim() ||
+      `Atividade do lead · etapa ${input.stageName}.`,
+    empreendimentoId: vinculaChave
+      ? input.rascunho.empreendimentoId || null
+      : null,
+    muralChaveId: vinculaChave ? input.rascunho.muralChaveId || null : null,
+  });
+}
+
+export function CompromissoCampos({
+  tipo,
+  value,
+  onChange,
+  disabled,
+  idPrefix,
+}: {
+  tipo: ActivityTipo;
+  value: CompromissoRascunho;
+  onChange: (next: CompromissoRascunho) => void;
+  disabled?: boolean;
+  idPrefix: string;
+}) {
+  const vinculaChave = tipo === "visita" || tipo === "retirada_chave";
+  const [empreendimentos, setEmpreendimentos] = useState<
+    { id: string; nome: string }[]
+  >([]);
+  const [chaves, setChaves] = useState<MuralChave[]>([]);
+
+  useEffect(() => {
+    if (!vinculaChave) return;
+    let cancelado = false;
+    void fetchEmpreendimentos({ ativo: true })
+      .then((rows) => {
+        if (!cancelado) {
+          setEmpreendimentos(rows.map((item) => ({ id: item.id, nome: item.nome })));
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setEmpreendimentos([]);
+      });
+    void fetchMuralChaves()
+      .then((rows) => {
+        if (!cancelado) setChaves(rows);
+      })
+      .catch(() => {
+        if (!cancelado) setChaves([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [vinculaChave]);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-border/80 bg-muted/30 p-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`${idPrefix}-titulo`}>Título do compromisso</Label>
+          <Input
+            id={`${idPrefix}-titulo`}
+            value={value.titulo}
+            onChange={(e) => onChange({ ...value, titulo: e.target.value })}
+            maxLength={160}
+            disabled={disabled}
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`${idPrefix}-data`}>Data</Label>
+          <Input
+            id={`${idPrefix}-data`}
+            type="date"
+            value={value.data}
+            onChange={(e) => onChange({ ...value, data: e.target.value })}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+      {vinculaChave ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Empreendimento</Label>
+            <Select
+              value={value.empreendimentoId || "__none__"}
+              onValueChange={(next) =>
+                onChange({
+                  ...value,
+                  empreendimentoId: next === "__none__" ? "" : next,
+                })
+              }
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Opcional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">—</SelectItem>
+                {empreendimentos.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Chave (opc.)</Label>
+            <Select
+              value={value.muralChaveId || "__none__"}
+              onValueChange={(next) => {
+                const chave = chaves.find((item) => item.id === next);
+                onChange({
+                  ...value,
+                  muralChaveId: next === "__none__" ? "" : next,
+                  empreendimentoId:
+                    value.empreendimentoId || chave?.empreendimento?.id || "",
+                });
+              }}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar chave" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">—</SelectItem>
+                {chaves
+                  .filter((chave) => chave.status === "disponivel")
+                  .filter(
+                    (chave) =>
+                      !value.empreendimentoId ||
+                      !chave.empreendimento ||
+                      chave.empreendimento.id === value.empreendimentoId,
+                  )
+                  .map((chave) => (
+                    <SelectItem key={chave.id} value={chave.id}>
+                      {chave.identificador}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor={`${idPrefix}-inicio`}>Início</Label>
+          <TimePicker
+            id={`${idPrefix}-inicio`}
+            value={value.inicio}
+            onChange={(inicio) => onChange({ ...value, inicio })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`${idPrefix}-fim`}>Término</Label>
+          <TimePicker
+            id={`${idPrefix}-fim`}
+            value={value.fim}
+            onChange={(fim) => onChange({ ...value, fim })}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function LeadAtividadeDialog({

@@ -115,7 +115,12 @@ import {
   type FunilTarefaPrompt,
 } from "@/components/funil-tarefa-dialog";
 import {
+  CompromissoCampos,
+  compromissoInicial,
+  criarCompromisso,
   LeadAtividadeDialog,
+  validarCompromisso,
+  type CompromissoRascunho,
   type LeadAtividadePrompt,
 } from "@/components/lead-atividade-dialog";
 import { fetchLeadById, mapApiLead } from "@/lib/leads-api";
@@ -166,6 +171,9 @@ import {
   LifeBuoy,
   Users,
   Settings,
+  Home,
+  MoreHorizontal,
+  ArrowRight,
 } from "lucide-react";
 import { SkeletonKanban } from "@/components/skeletons";
 import { useDeferredLoading } from "@/hooks/use-deferred-loading";
@@ -208,6 +216,235 @@ function leadMatchesStage(
   return stageKey(leadStage) === stageKey(columnId);
 }
 const MAX_HISTORICO_TEXTO = 400;
+
+const HISTORICO_TIPOS = [
+  {
+    id: "visita",
+    label: "Visita",
+    hint: "Imóvel ou plantão",
+    placeholder: "O que o cliente viu, o que gostou e o próximo passo…",
+    icon: Home,
+  },
+  {
+    id: "ligacao",
+    label: "Ligação",
+    hint: "Contato por telefone",
+    placeholder: "O que foi falado na ligação e o que ficou combinado…",
+    icon: Phone,
+  },
+  {
+    id: "reuniao",
+    label: "Reunião",
+    hint: "Encontro com o cliente",
+    placeholder: "Pauta da reunião, decisões e o que falta resolver…",
+    icon: Users,
+  },
+  {
+    id: "outro",
+    label: "Outro",
+    hint: "WhatsApp, e-mail ou nota",
+    placeholder: "Descreva o contato ou a observação deste atendimento…",
+    icon: MoreHorizontal,
+  },
+] as const;
+
+type HistoricoTipoId = (typeof HISTORICO_TIPOS)[number]["id"];
+
+function HistoricoRegistroForm({
+  value,
+  onChange,
+  texto,
+  onTextoChange,
+  textoId,
+  disabled,
+  leadNome,
+  deEtapa,
+  paraEtapa,
+  permitirCompromisso,
+  marcarCompromisso,
+  onMarcarCompromisso,
+  compromisso,
+  onCompromisso,
+  compromissoId,
+}: {
+  value: HistoricoTipoId | null;
+  onChange: (value: HistoricoTipoId) => void;
+  texto: string;
+  onTextoChange: (value: string) => void;
+  textoId: string;
+  disabled?: boolean;
+  leadNome?: string;
+  deEtapa?: string;
+  paraEtapa?: string;
+  permitirCompromisso?: boolean;
+  marcarCompromisso: boolean;
+  onMarcarCompromisso: (ativo: boolean) => void;
+  compromisso: CompromissoRascunho | null;
+  onCompromisso: (next: CompromissoRascunho) => void;
+  compromissoId: string;
+}) {
+  const selecionado = HISTORICO_TIPOS.find((tipo) => tipo.id === value);
+  return (
+    <div className="space-y-4">
+      {deEtapa && paraEtapa ? (
+        <div className="rounded-2xl border border-border/80 bg-muted/40 px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Mudança de etapa
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium text-foreground">{leadNome}</span>
+            <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border">
+              {deEtapa}
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              {paraEtapa}
+            </span>
+          </div>
+        </div>
+      ) : leadNome ? (
+        <div className="rounded-2xl border border-border/80 bg-muted/40 px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Cliente
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-foreground">{leadNome}</p>
+          <p className="text-xs text-muted-foreground">
+            A etapa do funil permanece a mesma.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        <Label>Como foi o contato</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {HISTORICO_TIPOS.map((tipo) => {
+            const selected = value === tipo.id;
+            const Icon = tipo.icon;
+            return (
+              <button
+                key={tipo.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  onChange(tipo.id);
+                  if (marcarCompromisso && compromisso && leadNome) {
+                    const padroes = HISTORICO_TIPOS.map((item) =>
+                      item.id === "visita"
+                        ? `Visita ${leadNome}`
+                        : item.id === "ligacao"
+                          ? `Ligação ${leadNome}`
+                          : item.id === "reuniao"
+                            ? `Reunião ${leadNome}`
+                            : `Atividade ${leadNome}`,
+                    );
+                    if (
+                      !compromisso.titulo.trim() ||
+                      padroes.includes(compromisso.titulo)
+                    ) {
+                      onCompromisso({
+                        ...compromisso,
+                        titulo:
+                          tipo.id === "visita"
+                            ? `Visita ${leadNome}`
+                            : tipo.id === "ligacao"
+                              ? `Ligação ${leadNome}`
+                              : tipo.id === "reuniao"
+                                ? `Reunião ${leadNome}`
+                                : `Atividade ${leadNome}`,
+                      });
+                    }
+                  }
+                }}
+                className={cn(
+                  "flex items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
+                  selected
+                    ? "border-primary bg-primary/10 shadow-sm"
+                    : "border-border bg-background hover:border-primary/30 hover:bg-muted/40",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">
+                    {tipo.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {tipo.hint}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={textoId}>Relato</Label>
+          <span className="text-xs text-muted-foreground">
+            {texto.length}/{MAX_HISTORICO_TEXTO}
+          </span>
+        </div>
+        <Textarea
+          id={textoId}
+          value={texto}
+          onChange={(e) => onTextoChange(e.target.value)}
+          placeholder={
+            selecionado?.placeholder ??
+            "Escolha o tipo e descreva o que aconteceu…"
+          }
+          maxLength={MAX_HISTORICO_TEXTO}
+          rows={5}
+          disabled={disabled}
+          className="min-h-28 resize-none rounded-2xl"
+        />
+      </div>
+
+      {permitirCompromisso ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 px-3 py-3">
+            <div className="min-w-0">
+              <Label htmlFor={`${compromissoId}-switch`} className="text-sm">
+                Marcar compromisso
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Agenda este contato na mesma hora, com o tipo escolhido acima.
+              </p>
+            </div>
+            <Switch
+              id={`${compromissoId}-switch`}
+              checked={marcarCompromisso}
+              disabled={disabled || !value}
+              onCheckedChange={(ativo) => {
+                onMarcarCompromisso(ativo);
+                if (ativo && value && leadNome && !compromisso) {
+                  onCompromisso(compromissoInicial(value, leadNome));
+                }
+              }}
+            />
+          </div>
+          {marcarCompromisso && compromisso && value ? (
+            <CompromissoCampos
+              tipo={value}
+              value={compromisso}
+              onChange={onCompromisso}
+              disabled={disabled}
+              idPrefix={compromissoId}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /** Largura da coluna (w-72) + gap (gap-3) — um passo de scroll. */
 const COLUMN_STEP_PX = 288 + 12;
@@ -664,7 +901,17 @@ export function ComercialFunilBoard({
     fromStageName: string;
   } | null>(null);
   const [triagemTexto, setTriagemTexto] = useState("");
+  const [triagemTipo, setTriagemTipo] = useState<HistoricoTipoId | null>(null);
+  const [manualTriagemTipo, setManualTriagemTipo] = useState<HistoricoTipoId | null>(
+    null,
+  );
   const [triagemSaving, setTriagemSaving] = useState(false);
+  const [triagemCompromissoOn, setTriagemCompromissoOn] = useState(false);
+  const [triagemCompromisso, setTriagemCompromisso] =
+    useState<CompromissoRascunho | null>(null);
+  const [manualCompromissoOn, setManualCompromissoOn] = useState(false);
+  const [manualCompromisso, setManualCompromisso] =
+    useState<CompromissoRascunho | null>(null);
   const triagemFinalizedRef = useRef(false);
   const pendingTarefaRef = useRef<{ lead: Lead; stage: StageId } | null>(null);
   const [tarefaPrompt, setTarefaPrompt] = useState<FunilTarefaPrompt | null>(
@@ -680,6 +927,8 @@ export function ComercialFunilBoard({
   const [manualTriagem, setManualTriagem] = useState<{
     leadId: string;
     leadNome: string;
+    stage: StageId;
+    stageName: string;
   } | null>(null);
   const [manualTriagemTexto, setManualTriagemTexto] = useState("");
   const [manualTriagemSaving, setManualTriagemSaving] = useState(false);
@@ -726,6 +975,9 @@ export function ComercialFunilBoard({
       funnelStages.find((s) => s.id === lead.stage)?.name ?? lead.stage;
     triagemFinalizedRef.current = false;
     setTriagemTexto("");
+    setTriagemTipo(null);
+    setTriagemCompromissoOn(false);
+    setTriagemCompromisso(null);
     setTriagemPrompt({
       leadId: lead.id,
       leadNome: lead.nome,
@@ -739,10 +991,13 @@ export function ComercialFunilBoard({
   function closeTriagemPrompt() {
     setTriagemPrompt(null);
     setTriagemTexto("");
+    setTriagemTipo(null);
+    setTriagemCompromissoOn(false);
+    setTriagemCompromisso(null);
     setTriagemSaving(false);
   }
 
-  async function registerFunilTriagem(texto: string) {
+  async function registerFunilTriagem(texto: string, incluirCompromisso = false) {
     if (!triagemPrompt || triagemFinalizedRef.current) return;
     triagemFinalizedRef.current = true;
     setTriagemSaving(true);
@@ -751,10 +1006,43 @@ export function ComercialFunilBoard({
         leadId: triagemPrompt.leadId,
         texto,
         origem: "funil",
+        tipo: incluirCompromisso ? triagemTipo ?? undefined : undefined,
         stage: triagemPrompt.stage,
         stageAnterior: triagemPrompt.fromStage,
       });
-      toast.success("Histórico registrado na Triagem.");
+      let compromissoFalhou = false;
+      if (
+        incluirCompromisso &&
+        triagemCompromissoOn &&
+        triagemCompromisso &&
+        triagemTipo
+      ) {
+        try {
+          await criarCompromisso({
+            leadId: triagemPrompt.leadId,
+            leadNome: triagemPrompt.leadNome,
+            tipo: triagemTipo,
+            stage: triagemPrompt.stage,
+            stageName: triagemPrompt.stageName,
+            observacoes: texto,
+            rascunho: triagemCompromisso,
+          });
+        } catch (err) {
+          compromissoFalhou = true;
+          toast.error(
+            err instanceof ApiError
+              ? err.message
+              : "O histórico foi salvo, mas o compromisso não.",
+          );
+        }
+      }
+      if (!compromissoFalhou) {
+        toast.success(
+          incluirCompromisso && triagemCompromissoOn
+            ? "Histórico e compromisso registrados."
+            : "Histórico registrado na Triagem.",
+        );
+      }
       closeTriagemPrompt();
       finishTriagemThenTarefa();
       void refreshLeads({ silent: true });
@@ -779,12 +1067,24 @@ export function ComercialFunilBoard({
   function openManualTriagem(lead: Lead) {
     if (!canWriteTriagem) return;
     setManualTriagemTexto("");
-    setManualTriagem({ leadId: lead.id, leadNome: lead.nome });
+    setManualTriagemTipo(null);
+    setManualCompromissoOn(false);
+    setManualCompromisso(null);
+    setManualTriagem({
+      leadId: lead.id,
+      leadNome: lead.nome,
+      stage: lead.stage,
+      stageName:
+        funnelStages.find((s) => s.id === lead.stage)?.name ?? lead.stage,
+    });
   }
 
   function closeManualTriagem() {
     setManualTriagem(null);
     setManualTriagemTexto("");
+    setManualTriagemTipo(null);
+    setManualCompromissoOn(false);
+    setManualCompromisso(null);
     setManualTriagemSaving(false);
   }
 
@@ -814,6 +1114,10 @@ export function ComercialFunilBoard({
   async function saveManualTriagem() {
     if (!manualTriagem) return;
     const texto = manualTriagemTexto.trim();
+    if (!manualTriagemTipo) {
+      toast.error("Escolha se foi visita, ligação, reunião ou outro.");
+      return;
+    }
     if (!texto) {
       toast.error("Escreva o relato do histórico.");
       return;
@@ -824,14 +1128,37 @@ export function ComercialFunilBoard({
       );
       return;
     }
+    if (manualCompromissoOn) {
+      const erro = manualCompromisso
+        ? validarCompromisso(manualTriagemTipo, manualCompromisso)
+        : "Informe o compromisso.";
+      if (erro) {
+        toast.error(erro);
+        return;
+      }
+    }
     setManualTriagemSaving(true);
     try {
       await createTriagemEvent({
         leadId: manualTriagem.leadId,
         texto,
         origem: "manual",
+        tipo: manualTriagemTipo,
       });
-      toast.success("Histórico registrado (etapa mantida).");
+      if (manualCompromissoOn && manualCompromisso) {
+        await criarCompromisso({
+          leadId: manualTriagem.leadId,
+          leadNome: manualTriagem.leadNome,
+          tipo: manualTriagemTipo,
+          stage: manualTriagem.stage,
+          stageName: manualTriagem.stageName,
+          observacoes: texto,
+          rascunho: manualCompromisso,
+        });
+        toast.success("Histórico e compromisso registrados.");
+      } else {
+        toast.success("Histórico registrado (etapa mantida).");
+      }
       closeManualTriagem();
       void refreshLeads({ silent: true });
     } catch (err) {
@@ -848,6 +1175,10 @@ export function ComercialFunilBoard({
   async function saveTriagemHistory() {
     if (!triagemPrompt) return;
     const texto = triagemTexto.trim();
+    if (!triagemTipo) {
+      toast.error("Escolha se foi visita, ligação, reunião ou outro.");
+      return;
+    }
     if (!texto) {
       toast.error("Escreva o relato do histórico ou pule esta etapa.");
       return;
@@ -858,7 +1189,16 @@ export function ComercialFunilBoard({
       );
       return;
     }
-    await registerFunilTriagem(texto);
+    if (triagemCompromissoOn) {
+      const erro = triagemCompromisso
+        ? validarCompromisso(triagemTipo, triagemCompromisso)
+        : "Informe o compromisso.";
+      if (erro) {
+        toast.error(erro);
+        return;
+      }
+    }
+    await registerFunilTriagem(texto, true);
   }
 
   const updateScrollButtons = useCallback(() => {
@@ -3103,40 +3443,38 @@ export function ComercialFunilBoard({
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[90vh] max-w-lg gap-5 overflow-y-auto">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <ClipboardList className="w-5 h-5" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                <ClipboardList className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <DialogTitle>Registrar histórico?</DialogTitle>
+                <DialogTitle>Registrar histórico</DialogTitle>
                 <DialogDescription>
-                  {triagemPrompt
-                    ? `${triagemPrompt.leadNome} foi movido para ${triagemPrompt.stageName}. Deseja registrar um relato nesta mudança de etapa?`
-                    : null}
+                  Guarde o contato desta mudança de etapa. Sem o relato, a etapa
+                  continua e o histórico fica só com a movimentação.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <div className="space-y-2 py-1">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="funil-historico-texto">Relato</Label>
-              <span className="text-xs text-muted-foreground">
-                {triagemTexto.length}/{MAX_HISTORICO_TEXTO}
-              </span>
-            </div>
-            <Textarea
-              id="funil-historico-texto"
-              value={triagemTexto}
-              onChange={(e) => setTriagemTexto(e.target.value)}
-              placeholder="Ex.: Cliente pediu simulação do empreendimento X…"
-              maxLength={MAX_HISTORICO_TEXTO}
-              rows={4}
-              disabled={triagemSaving}
-              autoFocus
-            />
-          </div>
+          <HistoricoRegistroForm
+            value={triagemTipo}
+            onChange={setTriagemTipo}
+            texto={triagemTexto}
+            onTextoChange={setTriagemTexto}
+            textoId="funil-historico-texto"
+            disabled={triagemSaving}
+            leadNome={triagemPrompt?.leadNome}
+            deEtapa={triagemPrompt?.fromStageName}
+            paraEtapa={triagemPrompt?.stageName}
+            permitirCompromisso={canAgenda}
+            marcarCompromisso={triagemCompromissoOn}
+            onMarcarCompromisso={setTriagemCompromissoOn}
+            compromisso={triagemCompromisso}
+            onCompromisso={setTriagemCompromisso}
+            compromissoId="funil-historico-compromisso"
+          />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
@@ -3166,40 +3504,35 @@ export function ComercialFunilBoard({
           if (!open && !manualTriagemSaving) closeManualTriagem();
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[90vh] max-w-lg gap-5 overflow-y-auto">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <ClipboardList className="w-5 h-5" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                <ClipboardList className="h-5 w-5" />
               </div>
               <div className="space-y-1">
                 <DialogTitle>Registrar histórico</DialogTitle>
                 <DialogDescription>
-                  {manualTriagem
-                    ? `Relato sobre ${manualTriagem.leadNome}. A etapa do funil não será alterada.`
-                    : null}
+                  Anote um contato sem mover o lead de etapa.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <div className="space-y-2 py-1">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="funil-manual-historico-texto">Relato</Label>
-              <span className="text-xs text-muted-foreground">
-                {manualTriagemTexto.length}/{MAX_HISTORICO_TEXTO}
-              </span>
-            </div>
-            <Textarea
-              id="funil-manual-historico-texto"
-              value={manualTriagemTexto}
-              onChange={(e) => setManualTriagemTexto(e.target.value)}
-              placeholder="Ex.: Cliente pediu simulação do empreendimento X…"
-              maxLength={MAX_HISTORICO_TEXTO}
-              rows={4}
-              disabled={manualTriagemSaving}
-              autoFocus
-            />
-          </div>
+          <HistoricoRegistroForm
+            value={manualTriagemTipo}
+            onChange={setManualTriagemTipo}
+            texto={manualTriagemTexto}
+            onTextoChange={setManualTriagemTexto}
+            textoId="funil-manual-historico-texto"
+            disabled={manualTriagemSaving}
+            leadNome={manualTriagem?.leadNome}
+            permitirCompromisso={canAgenda}
+            marcarCompromisso={manualCompromissoOn}
+            onMarcarCompromisso={setManualCompromissoOn}
+            compromisso={manualCompromisso}
+            onCompromisso={setManualCompromisso}
+            compromissoId="funil-manual-compromisso"
+          />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
