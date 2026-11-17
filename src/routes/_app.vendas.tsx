@@ -329,7 +329,11 @@ function VendasDocumentacaoPage() {
     : (abas[0]?.id ?? "lancamentos");
   const comVgv = Route.useSearch().comVgv === true;
   const isSolo = user?.tenant?.plano === "solo";
-  const ownSalesOnly = isCorretorLike(user?.role);
+  const verVendasGerais =
+    user?.permissions?.modules?.vendas === true ||
+    user?.permissions?.modules?.documentacao === true ||
+    user?.permissions?.modules?.financeiro === true;
+  const ownSalesOnly = isCorretorLike(user?.role) && !verVendasGerais;
   const showTeamFilters = !isSolo && !ownSalesOnly;
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";
@@ -360,10 +364,11 @@ function VendasDocumentacaoPage() {
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
   const [page, setPage] = useState(1);
-  const [periodo, setPeriodo] = useState<"30" | "90" | "365" | "all">("all");
+  const [periodo, setPeriodo] = useState<"30" | "90" | "365" | "all" | "custom">("all");
   const PAGE_SIZE = 20;
 
   useEffect(() => {
+    if (periodo === "custom") return;
     const range = rangeForPeriod(periodo);
     setDraft((prev) => ({ ...prev, ...range }));
     setApplied((prev) => ({ ...prev, ...range }));
@@ -770,7 +775,7 @@ function VendasDocumentacaoPage() {
           <Select
             value={periodo}
             onValueChange={(value) =>
-              setPeriodo(value as "30" | "90" | "365" | "all")
+              setPeriodo(value as "30" | "90" | "365" | "all" | "custom")
             }
           >
             <SelectTrigger className="h-10 w-[190px] rounded-xl border-[#E2E8EC] bg-white shadow-sm">
@@ -780,9 +785,40 @@ function VendasDocumentacaoPage() {
               <SelectItem value="30">Últimos 30 dias</SelectItem>
               <SelectItem value="90">Últimos 90 dias</SelectItem>
               <SelectItem value="365">Últimos 12 meses</SelectItem>
+              <SelectItem value="custom">De / até</SelectItem>
               <SelectItem value="all">Todo o período</SelectItem>
             </SelectContent>
           </Select>
+          {periodo === "custom" ? (
+            <div className="flex items-center gap-2 rounded-xl border border-[#E2E8EC] bg-white px-3 shadow-sm">
+              <CalendarDays className="size-4 text-[#8B98A3]" />
+              <input
+                type="date"
+                aria-label="Data inicial"
+                value={applied.dataDe}
+                max={applied.dataAte || undefined}
+                onChange={(event) => {
+                  const dataDe = event.target.value;
+                  setDraft((prev) => ({ ...prev, dataDe }));
+                  setApplied((prev) => ({ ...prev, dataDe }));
+                }}
+                className="h-10 bg-transparent text-sm text-[#344054] outline-none"
+              />
+              <span className="text-sm text-[#8B98A3]">até</span>
+              <input
+                type="date"
+                aria-label="Data final"
+                value={applied.dataAte}
+                min={applied.dataDe || undefined}
+                onChange={(event) => {
+                  const dataAte = event.target.value;
+                  setDraft((prev) => ({ ...prev, dataAte }));
+                  setApplied((prev) => ({ ...prev, dataAte }));
+                }}
+                className="h-10 bg-transparent text-sm text-[#344054] outline-none"
+              />
+            </div>
+          ) : null}
           <Button asChild className={APPLY_FILTERS_BTN}>
             <Link to="/documentacao">Ver documentação</Link>
           </Button>
@@ -793,6 +829,8 @@ function VendasDocumentacaoPage() {
           lancamentos={verLancamentos ? filtered : []}
           usados={verUsados}
           locacao={verLocacao}
+          dataDe={applied.dataDe}
+          dataAte={applied.dataAte}
         />
       ) : null}
       {abaAtiva === "usados" ? <VendasUsadosPanel /> : null}
@@ -1513,10 +1551,14 @@ function VendasTodosPanel({
   lancamentos,
   usados,
   locacao,
+  dataDe,
+  dataAte,
 }: {
   lancamentos: Documentacao[];
   usados: boolean;
   locacao: boolean;
+  dataDe: string;
+  dataAte: string;
 }) {
   const [usadosItems, setUsadosItems] = useState<VendaUsado[]>([]);
   const [loading, setLoading] = useState(usados);
@@ -1566,6 +1608,7 @@ function VendasTodosPanel({
     referencia: string;
     responsavel: string;
     valor: string;
+    dia: string;
   }[] = [
     ...lancamentos.map((doc) => ({
       id: `lanc-${doc.id}`,
@@ -1574,6 +1617,7 @@ function VendasTodosPanel({
       referencia: doc.empreendimento?.nome ?? "—",
       responsavel: doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—",
       valor: doc.vgv != null ? brl(doc.vgv) : "—",
+      dia: dateDay(doc.dataVenda) || dateDay(doc.createdAt),
     })),
     ...usadosItems.map((item) => ({
       id: `usado-${item.id}`,
@@ -1582,6 +1626,7 @@ function VendasTodosPanel({
       referencia: enderecoUsado(item) || "Imóvel",
       responsavel: item.responsavel?.name ?? "—",
       valor: item.precoVenda != null ? brl(item.precoVenda) : "—",
+      dia: dateDay(item.updatedAt),
     })),
     ...(locacao
       ? LOCACOES_MOCK.map((row) => ({
@@ -1591,9 +1636,16 @@ function VendasTodosPanel({
           referencia: row.imovel,
           responsavel: row.corretor,
           valor: row.aluguel,
+          dia: "",
         }))
       : []),
-  ];
+  ].filter((row) => {
+    if (!dataDe && !dataAte) return true;
+    if (!row.dia) return false;
+    if (dataDe && row.dia < dataDe) return false;
+    if (dataAte && row.dia > dataAte) return false;
+    return true;
+  });
 
   const termo = normalize(busca);
   const visiveis = termo
@@ -1655,7 +1707,9 @@ function VendasTodosPanel({
             <TableRow>
               <TableCell colSpan={5} className="py-14 text-center text-sm text-[#5C6B76]">
                 {linhas.length === 0
-                  ? "Nenhuma venda nas operações ativas."
+                  ? dataDe || dataAte
+                    ? "Nenhuma venda neste período."
+                    : "Nenhuma venda nas operações ativas."
                   : "Nenhuma venda encontrada para essa busca."}
               </TableCell>
             </TableRow>
