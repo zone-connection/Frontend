@@ -48,6 +48,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -83,6 +84,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -115,6 +117,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   corretor: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -177,6 +180,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   treinee: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -210,6 +214,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
 const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/dashboard",
   "/leads",
+  "/leads-frios",
   "/whatsapp",
   "/caca-lead",
   "/funil",

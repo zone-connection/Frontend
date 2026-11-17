@@ -148,6 +148,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi, fetchIndicadoresPeriodo } from "@/lib/leads-api";
+import { devolverLeadFrio } from "@/lib/leads-frios-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -4352,6 +4353,11 @@ function LeadsPage() {
                                 <MeuLeadBadge />
                               )}
                             <LeadOrigemLiberacaoBadge lead={l} />
+                            {l.origemBaseFria ? (
+                              <Badge className="h-5 rounded-full bg-sky-100 px-1.5 text-[10px] text-sky-800 hover:bg-sky-100">
+                                Base fria
+                              </Badge>
+                            ) : null}
                             {lostLeads.some((lost) => lost.id === l.id) ? (
                               <Badge className="h-5 rounded-full bg-rose-100 px-1.5 text-[10px] text-rose-700 hover:bg-rose-100">
                                 Perdido
@@ -4365,6 +4371,29 @@ function LeadsPage() {
                           <div className="truncate text-[10px] text-muted-foreground">
                             {l.telefone}
                           </div>
+                          {l.origemBaseFria && l.corretorId === user?.id ? (
+                            <button
+                              type="button"
+                              className="mt-1 text-[10px] font-medium text-sky-700 hover:underline"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void devolverLeadFrio(l.id)
+                                  .then(async () => {
+                                    toast.success("Lead devolvido à base fria, com os dados atuais.");
+                                    await refresh();
+                                  })
+                                  .catch((err: unknown) => {
+                                    toast.error(
+                                      err instanceof ApiError
+                                        ? err.message
+                                        : "Não foi possível devolver o lead.",
+                                    );
+                                  });
+                              }}
+                            >
+                              Devolver à base fria
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     </TableCell>

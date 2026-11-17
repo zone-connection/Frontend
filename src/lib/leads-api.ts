@@ -88,6 +88,9 @@ export interface ApiLead {
   atrasoLiberadoAt?: string | null;
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   roletaRedistribuido?: boolean;
+  origemBaseFria?: boolean;
+  baseFria?: boolean;
+  baseFriaEm?: string | null;
   createdAt: string;
   updatedAt: string;
   reatribuicoes?: Array<{ actor: { role: string } | null }>;
@@ -177,6 +180,7 @@ export function mapApiLead(api: ApiLead): Lead {
     atrasoLiberadoAt: api.atrasoLiberadoAt ?? null,
     triagemOrigemHerdada: api.triagemOrigemHerdada ?? null,
     roletaRedistribuido: api.roletaRedistribuido ?? false,
+    origemBaseFria: api.origemBaseFria ?? false,
     construtoraId: api.construtoraId ?? null,
     construtora: api.construtora ?? null,
     empreendimentoId: api.empreendimentoId ?? null,
