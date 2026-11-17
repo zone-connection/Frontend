@@ -364,7 +364,11 @@ function VendasDocumentacaoPage() {
     : (abas[0]?.id ?? "lancamentos");
   const comVgv = Route.useSearch().comVgv === true;
   const isSolo = user?.tenant?.plano === "solo";
-  const ownSalesOnly = isCorretorLike(user?.role);
+  const verVendasGerais =
+    user?.permissions?.modules?.vendas === true ||
+    user?.permissions?.modules?.documentacao === true ||
+    user?.permissions?.modules?.financeiro === true;
+  const ownSalesOnly = isCorretorLike(user?.role) && !verVendasGerais;
   const showTeamFilters = !isSolo && !ownSalesOnly;
   const canView = canViewModule(user, "vendas");
   const canEdit = user?.role === "admin";

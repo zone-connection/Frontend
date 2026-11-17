@@ -629,7 +629,9 @@ export function FinanceiroTitulosPanel({
     tipo === "receber" && isContaAdmZoneConnection(session);
   const isPlatformAdmin = session?.role === "super_admin";
   const canUseContrato =
-    isPlatformAdmin || session?.role === "admin";
+    isPlatformAdmin ||
+    session?.role === "admin" ||
+    session?.permissions?.modules?.financeiro === true;
   const isAssinaturaPlataforma = isPlatformAdmin && tipo === "receber";
   const [comoContrato, setComoContrato] = useState(false);
   const passosTitulo: { id: TituloFormTab; label: string }[] = comoContrato
@@ -645,12 +647,7 @@ export function FinanceiroTitulosPanel({
   const canCreateFin = !readOnly && canFinanceiroAction(session, "create");
   const canEditFin = !readOnly && canFinanceiroAction(session, "edit");
   const canDeleteFin = !readOnly && canFinanceiroAction(session, "delete");
-  const canLancarComissao =
-    tipo === "receber" &&
-    canCreateFin &&
-    (session?.role === "admin" ||
-      session?.role === "super_admin" ||
-      session?.role === "financeiro");
+  const canLancarComissao = tipo === "receber" && canCreateFin;
   const [comissaoDialogOpen, setComissaoDialogOpen] = useState(false);
   const [parcelarAdesao, setParcelarAdesao] = useState(false);
   const [qtdParcelasAdesao, setQtdParcelasAdesao] = useState("2");
