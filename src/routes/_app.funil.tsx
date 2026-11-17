@@ -1314,6 +1314,7 @@ export function ComercialFunilBoard({
           status2: "Vendido",
           vgv,
           dataVenda: vendaDiretaData,
+          vendaSemProposta,
         });
       } else {
         await createDocumentacao({
@@ -1327,6 +1328,7 @@ export function ComercialFunilBoard({
           vgv,
           dataVenda: vendaDiretaData,
           corretorId: lead.corretorId,
+          vendaSemProposta,
         });
       }
       await updateLeadStage(lead.id, stage, {
