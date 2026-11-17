@@ -521,13 +521,41 @@ export function mergePermissions(
   };
 }
 
+function grantActionsOfExtraModules(
+  role: Role,
+  stored: UserPermissions | null | undefined,
+  merged: UserPermissions,
+  plano?: string | null,
+) {
+  if (!stored?.modules) return;
+  const defaults = defaultsFromRole(role, plano);
+  for (const item of PERMISSION_MODULES) {
+    if (stored.modules[item.key] !== true) continue;
+    if (defaults.modules[item.key] === true) continue;
+    merged.modules[item.key] = true;
+    for (const action of PERMISSION_ACTIONS) {
+      const sameModule = action.module === item.key;
+      const comissao =
+        item.key === "comissao" && action.key === "financeiro.comissao";
+      const financeiro =
+        item.key === "financeiro" && action.module === "financeiro";
+      if (sameModule || comissao || financeiro) {
+        merged.actions[action.key] = true;
+      }
+    }
+  }
+}
+
 export function effectivePermissions(
   role: Role,
   stored?: UserPermissions | null,
   plano?: string | null,
 ): UserPermissions {
   const merged = mergePermissions(defaultsFromRole(role, plano), stored);
-  if (role === "corretor") merged.modules.presenca = false;
+  if (role === "corretor" && stored?.modules?.presenca !== true) {
+    merged.modules.presenca = false;
+  }
+  grantActionsOfExtraModules(role, stored, merged, plano);
   return merged;
 }
 

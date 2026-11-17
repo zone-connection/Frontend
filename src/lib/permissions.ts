@@ -11,6 +11,7 @@ import {
 import {
   actionForFinancePath,
   canUserAction,
+  defaultsFromRole,
   effectivePermissions,
   hasUserModule,
   moduleForPath,
@@ -509,10 +510,18 @@ export function isCorretorLike(role: string | null | undefined): boolean {
   return role === "corretor" || role === "treinee";
 }
 
-/** Corretor/treinee só vê comissões depois de ter venda vinculada. */
+/** Corretor/treinee só vê comissões depois de ter venda vinculada, salvo permissão extra. */
 export function canSeeComissao(user: AuthUser | null | undefined): boolean {
   if (!user) return false;
   if (!isCorretorLike(user.role)) return true;
+  const defaults = defaultsFromRole(user.role, user.tenant?.plano);
+  const financeiroExtra =
+    user.permissions?.modules?.financeiro === true &&
+    defaults.modules.financeiro !== true;
+  const comissaoExtra =
+    user.permissions?.modules?.comissao === true &&
+    defaults.modules.comissao !== true;
+  if (financeiroExtra || comissaoExtra) return true;
   return user.temVendaVinculada !== false;
 }
 
