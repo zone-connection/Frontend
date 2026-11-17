@@ -167,6 +167,7 @@ export function ConfigModulosOperacaoPanel() {
   async function toggleFichaAnaliseGuiada(checked: boolean) {
     if (!isAdmin) return;
     setFichaAnaliseGuiada(checked);
+    if (checked) setVendaDiretaFunil(false);
     setSavingKey("fichaAnaliseGuiada");
     try {
       const data = await updateTenantOperationModules({
@@ -183,6 +184,7 @@ export function ConfigModulosOperacaoPanel() {
       );
     } catch (err) {
       setFichaAnaliseGuiada(!checked);
+      if (checked) setVendaDiretaFunil(vendaDiretaFunil);
       toast.error(
         err instanceof ApiError
           ? err.message
@@ -305,6 +307,7 @@ export function ConfigModulosOperacaoPanel() {
       );
     } catch (err) {
       setVendaDiretaFunil(!checked);
+      if (checked) setFichaAnaliseGuiada(fichaAnaliseGuiada);
       toast.error(
         err instanceof ApiError
           ? err.message
@@ -567,7 +570,7 @@ export function ConfigModulosOperacaoPanel() {
                 </p>
               </div>
               <Switch
-                checked={fichaAnaliseGuiada}
+                checked={fichaAnaliseGuiada && !vendaDiretaFunil}
                 disabled={savingKey === "fichaAnaliseGuiada"}
                 onCheckedChange={(checked) => void toggleFichaAnaliseGuiada(checked)}
                 aria-label="Exigir ficha de documentação na análise"
@@ -601,7 +604,7 @@ export function ConfigModulosOperacaoPanel() {
                 </p>
               </div>
               <Switch
-                checked={vendaDiretaFunil}
+                checked={vendaDiretaFunil && !fichaAnaliseGuiada}
                 disabled={savingKey === "vendaDiretaFunil"}
                 onCheckedChange={(checked) => void toggleVendaDiretaFunil(checked)}
                 aria-label="Registrar venda pelo funil sem ficha de documentação"
