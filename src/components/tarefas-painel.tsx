@@ -9,9 +9,11 @@ import {
   List,
   ListTodo,
   Plus,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FiltroSelectNativo } from "@/components/filtros-painel";
 import {
   addDays,
@@ -137,6 +139,13 @@ export function TarefasPainel({
   const [prioridade, setPrioridade] = useState("todas");
   const [responsavelId, setResponsavelId] = useState("");
   const dia = anchor || hoje;
+  const filtrosAtivos = [
+    busca.trim() !== "",
+    prioridade !== "todas",
+    responsavelId !== "",
+    ordem !== "proximas",
+    dia !== hoje,
+  ].filter(Boolean).length;
   const abertas = items.filter((item) => item.status === "aberta");
   const hojeCount = abertas.filter((item) => item.data === hoje).length;
   const proximas = abertas.filter((item) => item.data > hoje).length;
@@ -297,13 +306,6 @@ export function TarefasPainel({
         <section className="min-w-0 rounded-2xl border border-[#EEF2F6] bg-white shadow-sm">
           <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F4F7] px-3 py-3">
             <div className="flex gap-1">
-            <Link
-              to="/lembretes"
-              search={{ origem: "captacao" }}
-              className="inline-flex shrink-0 items-center rounded-lg bg-secondary px-3 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent"
-            >
-              Captação
-            </Link>
             {PERIODOS.map((item) => {
               const ativo = visao === item.id || (item.id === "lista" && visao === "dia");
               return (
@@ -330,54 +332,91 @@ export function TarefasPainel({
             })}
             </div>
             {visao === "lista" || visao === "dia" ? (
-              <label className="inline-flex items-center gap-2 rounded-lg border border-[#E6EBF0] bg-white px-3 py-2 text-sm text-[#344054]">
-                <CalendarDays className="size-4 text-[#98A2B3]" />
-                <input
-                  type="date"
-                  className="bg-transparent outline-none"
-                  value={dia}
-                  onChange={(event) => event.target.value && onAnchor(event.target.value)}
-                  aria-label="Data das tarefas"
-                />
-              </label>
+              <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={recorte} onChange={(event) => setRecorte(event.target.value as typeof recorte)} aria-label="Status">
+                <option value="dia">Status</option>
+                <option value="pendentes">Pendentes</option>
+                <option value="andamento">Em andamento</option>
+                <option value="concluidas">Concluídas hoje</option>
+                <option value="atrasadas">Atrasadas</option>
+              </select>
             ) : null}
-            {visao === "lista" || visao === "dia" ? (
-              <>
-                <input
-                  value={busca}
-                  onChange={(event) => setBusca(event.target.value)}
-                  placeholder="Buscar tarefa..."
-                  className="h-10 min-w-40 flex-1 rounded-lg border border-[#E6EBF0] px-3 text-sm outline-none"
-                />
-                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={recorte} onChange={(event) => setRecorte(event.target.value as typeof recorte)} aria-label="Status">
-                  <option value="dia">Status</option>
-                  <option value="pendentes">Pendentes</option>
-                  <option value="andamento">Em andamento</option>
-                  <option value="concluidas">Concluídas hoje</option>
-                  <option value="atrasadas">Atrasadas</option>
-                </select>
-                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={prioridade} onChange={(event) => setPrioridade(event.target.value)} aria-label="Prioridade">
-                  <option value="todas">Prioridade</option>
-                  <option value="alta">Alta</option>
-                  <option value="media">Média</option>
-                  <option value="baixa">Baixa</option>
-                </select>
-                <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm text-[#344054]" value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} aria-label="Responsável">
-                  <option value="">Responsável</option>
-                  {responsaveis.map((pessoa) => (
-                    <option key={pessoa.id} value={pessoa.id}>{pessoa.name}</option>
-                  ))}
-                </select>
-                <label className="inline-flex items-center gap-1 text-sm text-[#667085]">
-                  Ordenar por:
-                  <select className="h-10 rounded-lg border border-[#E6EBF0] bg-white px-2 font-medium text-[#16324A]" value={ordem} onChange={(event) => setOrdem(event.target.value as typeof ordem)}>
-                    <option value="proximas">Mais próximas</option>
-                    <option value="distantes">Mais distantes</option>
-                    <option value="prioridade">Prioridade</option>
-                  </select>
-                </label>
-              </>
-            ) : null}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#E6EBF0] bg-white px-3 text-sm font-medium text-[#344054] hover:bg-[#F8FAFC]"
+                >
+                  <SlidersHorizontal className="size-4 text-[#667085]" />
+                  Filtros
+                  {filtrosAtivos > 0 ? (
+                    <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#079ED4] text-[11px] font-semibold text-white">
+                      {filtrosAtivos}
+                    </span>
+                  ) : null}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 space-y-3 p-4">
+                <Link
+                  to="/lembretes"
+                  search={{ origem: "captacao" }}
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-secondary px-3 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Captação
+                </Link>
+                {visao === "lista" || visao === "dia" ? (
+                  <>
+                    <label className="block space-y-1 text-xs font-medium text-[#667085]">
+                      Data
+                      <span className="flex items-center gap-2 rounded-lg border border-[#E6EBF0] bg-white px-3 py-2 text-sm font-normal text-[#344054]">
+                        <CalendarDays className="size-4 text-[#98A2B3]" />
+                        <input
+                          type="date"
+                          className="w-full bg-transparent outline-none"
+                          value={dia}
+                          onChange={(event) => event.target.value && onAnchor(event.target.value)}
+                          aria-label="Data das tarefas"
+                        />
+                      </span>
+                    </label>
+                    <label className="block space-y-1 text-xs font-medium text-[#667085]">
+                      Busca
+                      <input
+                        value={busca}
+                        onChange={(event) => setBusca(event.target.value)}
+                        placeholder="Buscar tarefa..."
+                        className="h-10 w-full rounded-lg border border-[#E6EBF0] px-3 text-sm font-normal text-[#344054] outline-none"
+                      />
+                    </label>
+                    <label className="block space-y-1 text-xs font-medium text-[#667085]">
+                      Prioridade
+                      <select className="h-10 w-full rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm font-normal text-[#344054]" value={prioridade} onChange={(event) => setPrioridade(event.target.value)} aria-label="Prioridade">
+                        <option value="todas">Todas</option>
+                        <option value="alta">Alta</option>
+                        <option value="media">Média</option>
+                        <option value="baixa">Baixa</option>
+                      </select>
+                    </label>
+                    <label className="block space-y-1 text-xs font-medium text-[#667085]">
+                      Responsável
+                      <select className="h-10 w-full rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm font-normal text-[#344054]" value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} aria-label="Responsável">
+                        <option value="">Todos</option>
+                        {responsaveis.map((pessoa) => (
+                          <option key={pessoa.id} value={pessoa.id}>{pessoa.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block space-y-1 text-xs font-medium text-[#667085]">
+                      Ordenar por
+                      <select className="h-10 w-full rounded-lg border border-[#E6EBF0] bg-white px-2 text-sm font-normal text-[#344054]" value={ordem} onChange={(event) => setOrdem(event.target.value as typeof ordem)}>
+                        <option value="proximas">Mais próximas</option>
+                        <option value="distantes">Mais distantes</option>
+                        <option value="prioridade">Prioridade</option>
+                      </select>
+                    </label>
+                  </>
+                ) : null}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {visao === "lista" || visao === "dia" ? null : (

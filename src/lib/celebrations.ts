@@ -130,6 +130,7 @@ export async function celebrateAfterDocumentacao(
     for (const meta of metas) {
       if (meta.percentual < 100) continue;
       if (!metaRelevant(meta, corretorId, session.role)) continue;
+      if (meta.tipo === "leads" || meta.tipo === "ligacoes") continue;
       if (meta.tipo === "documentacoes" && !opts.docCreated) continue;
       if (meta.tipo === "vendas" && !opts.becameVendido) continue;
       if (meta.tipo === "vgv" && !opts.becameVendido) continue;

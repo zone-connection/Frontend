@@ -35,7 +35,9 @@ import {
   FileText,
   Loader2,
   Pencil,
+  Phone,
   Target,
+  UserPlus,
   Trash2,
   Trophy,
   UserRound,
@@ -919,18 +921,24 @@ const META_TIPO_ICON: Record<MetaTipo, LucideIcon> = {
   vendas: Target,
   documentacoes: FileText,
   vgv: Wallet,
+  leads: UserPlus,
+  ligacoes: Phone,
 };
 
 const META_TIPO_WELL: Record<MetaTipo, string> = {
   vendas: "bg-[#079ed4] text-white",
   documentacoes: "bg-[#057aa8] text-white",
   vgv: "bg-[#053647] text-white",
+  leads: "bg-[#0e8f6e] text-white",
+  ligacoes: "bg-[#3B6FD8] text-white",
 };
 
 const META_TIPO_CARD: Record<MetaTipo, string> = {
   vendas: "bg-card border-border border-l-[#079ed4] text-foreground",
   documentacoes: "bg-card border-border border-l-[#057aa8] text-foreground",
   vgv: "bg-card border-border border-l-[#053647] text-foreground",
+  leads: "bg-card border-border border-l-[#0e8f6e] text-foreground",
+  ligacoes: "bg-card border-border border-l-[#3B6FD8] text-foreground",
 };
 
 const META_TIPO_SOFT: Record<MetaTipo, string> = {
@@ -939,6 +947,8 @@ const META_TIPO_SOFT: Record<MetaTipo, string> = {
   documentacoes:
     "bg-[#057aa8]/12 text-[#04648a] dark:text-[#5bc4e8] border-[#057aa8]/30",
   vgv: "bg-[#053647]/10 text-[#053647] dark:bg-white/10 dark:text-slate-100 border-[#053647]/25 dark:border-white/20",
+  leads: "bg-[#0e8f6e]/12 text-[#0b6b53] dark:text-[#7ddec4] border-[#0e8f6e]/30",
+  ligacoes: "bg-[#3B6FD8]/12 text-[#2a4f9e] dark:text-[#9bb6f0] border-[#3B6FD8]/30",
 };
 
 export function MetaTipoPicker({

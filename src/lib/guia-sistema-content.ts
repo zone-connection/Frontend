@@ -815,17 +815,17 @@ export const GUIA_GROUPS: GuiaGroup[] = [
         href: "/metas",
         who: "Admin define imobiliária, gerente e corretor. Gerente define a equipe. Corretor acompanha (e pode ter meta pessoal).",
         summary:
-          "Alvo de vendas, documentações ou VGV, em período diário até anual. O realizado sobe sozinho conforme as fichas do período.",
+          "Alvo de vendas, documentações, VGV, leads criados ou ligações, em período diário até anual. O realizado sobe sozinho no período.",
         actions: [
           {
             title: "Criar meta",
             detail:
-              "Tipo (vendas / docs / VGV), período, valor, escopo (corretor, gerente/equipe, imobiliária).",
+              "Tipo (vendas, docs, VGV, leads criados ou ligações), período, valor, escopo (corretor, gerente/equipe, imobiliária).",
           },
           {
             title: "Acompanhar o progresso",
             detail:
-              "Barra = realizado ÷ meta. Vendas e VGV usam Status 2 Vendido; documentações usam fichas criadas no período.",
+              "Barra = realizado ÷ meta. Vendas e VGV usam Status 2 Vendido; documentações usam fichas criadas no período; leads usam captações criadas; ligações usam o histórico com tipo Ligação.",
           },
           {
             title: "Editar ou encerrar",
