@@ -49,6 +49,16 @@ export type DashboardCorretor = {
       categoria: "pessoal" | "compartilhada";
     }[];
   };
+  metas: Array<{
+    id: string;
+    titulo: string | null;
+    tipo: string;
+    periodo: string;
+    escopo: string;
+    valor: number;
+    atual: number;
+    percentual: number;
+  }>;
 };
 
 export type DashboardAdmin = {
