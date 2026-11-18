@@ -1641,7 +1641,7 @@ export function ComercialFunilBoard({
         const id = await garantirProposta(vendaDiretaAlvo.lead, vendaDiretaEmpId);
         if (!id) {
           toast.error(
-            "Escolha uma proposta, crie uma ou ligue a venda sem proposta.",
+            "Escolha uma proposta ativa ou ligue a venda sem proposta.",
           );
           return;
         }
@@ -3048,7 +3048,7 @@ export function ComercialFunilBoard({
               <div>
                 <p className="text-sm font-medium">Venda sem proposta</p>
                 <p className="text-xs text-muted-foreground">
-                  Desligado, escolha ou crie uma proposta antes de confirmar.
+                  Desligado, escolha uma proposta ativa deste lead antes de confirmar.
                 </p>
               </div>
               <Switch
@@ -3058,35 +3058,28 @@ export function ComercialFunilBoard({
               />
             </div>
             {vendaSemProposta ? null : (
-              <>
-                {propostasDiretas.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <Label>Proposta</Label>
-                    <Select value={propostaId} onValueChange={setPropostaId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {propostasDiretas.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.codigo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="space-y-1.5">
+                <Label>Proposta</Label>
+                <Select value={propostaId} onValueChange={setPropostaId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a proposta ativa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {propostasDiretas
+                      .filter((item) => item.status !== "recusada" && item.status !== "expirada")
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {`${item.empreendimento?.nome?.trim() || "Sem empreendimento"} · ${item.lead?.nome?.trim() || item.clienteNome || vendaDiretaAlvo?.lead.nome || "Sem lead"} · ${item.unidade?.trim() || "Sem unidade"}`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {propostasDiretas.filter((item) => item.status !== "recusada" && item.status !== "expirada").length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma proposta ativa deste lead.
+                  </p>
                 ) : null}
-                <div className="space-y-1.5">
-                  <Label>Criar proposta com o valor</Label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="R$ 0,00"
-                    value={propostaValor}
-                    onChange={(ev) => {
-                      setPropostaValor(maskMoneyInput(ev.target.value));
-                      setPropostaId("");
-                    }}
-                  />
-                </div>
-              </>
+              </div>
             )}
           </div>
           <DialogFooter>
