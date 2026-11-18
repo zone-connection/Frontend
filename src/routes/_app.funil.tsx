@@ -1891,14 +1891,6 @@ export function ComercialFunilBoard({
     }
 
     const papel = funnelStages.find((s) => s.id === stage)?.papel;
-    if (vendaDireta && papel === "analise") {
-      abrirAnaliseDireta(lead, stage);
-      return;
-    }
-    if (vendaDireta && papel === "proposta") {
-      abrirPropostaDireta(lead, stage);
-      return;
-    }
     if (vendaDireta && papel === "venda") {
       abrirVendaDireta(lead, stage);
       return;
@@ -2054,18 +2046,6 @@ export function ComercialFunilBoard({
     }
 
     const papelDetalhe = funnelStages.find((s) => s.id === stage)?.papel;
-    if (vendaDireta && papelDetalhe === "analise") {
-      const target = detailLead;
-      setDetailLead(null);
-      abrirAnaliseDireta(target, stage);
-      return;
-    }
-    if (vendaDireta && papelDetalhe === "proposta") {
-      const target = detailLead;
-      setDetailLead(null);
-      abrirPropostaDireta(target, stage);
-      return;
-    }
     if (vendaDireta && papelDetalhe === "venda") {
       const target = detailLead;
       setDetailLead(null);
