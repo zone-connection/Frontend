@@ -825,7 +825,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
           {
             title: "Acompanhar o progresso",
             detail:
-              "Barra = realizado ÷ meta. Vendas e VGV usam Status 2 Vendido; documentações usam fichas criadas no período; leads usam captações criadas; ligações usam o histórico com tipo Ligação.",
+              "Barra = realizado ÷ meta. Vendas e VGV usam Status 2 Vendido; documentações usam fichas criadas no período; leads usam o cadastro do lead; ligações usam o histórico com tipo Ligação; agendamentos usam visitas e reuniões da agenda, dos lembretes ou do histórico.",
           },
           {
             title: "Editar ou encerrar",
