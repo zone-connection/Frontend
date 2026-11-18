@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 
-export const META_TIPOS = ["vendas", "documentacoes", "vgv", "leads", "ligacoes"] as const;
+export const META_TIPOS = ["vendas", "documentacoes", "vgv", "leads", "ligacoes", "agendamentos"] as const;
 export type MetaTipo = (typeof META_TIPOS)[number];
 
 export const META_PERIODOS = [
@@ -22,6 +22,7 @@ export const META_TIPO_LABEL: Record<MetaTipo, string> = {
   vgv: "VGV",
   leads: "Leads criados",
   ligacoes: "Ligações",
+  agendamentos: "Agendamentos",
 };
 
 export const META_PERIODO_LABEL: Record<MetaPeriodo, string> = {

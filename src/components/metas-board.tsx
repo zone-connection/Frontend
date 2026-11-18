@@ -923,6 +923,7 @@ const META_TIPO_ICON: Record<MetaTipo, LucideIcon> = {
   vgv: Wallet,
   leads: UserPlus,
   ligacoes: Phone,
+  agendamentos: CalendarDays,
 };
 
 const META_TIPO_WELL: Record<MetaTipo, string> = {
@@ -931,6 +932,7 @@ const META_TIPO_WELL: Record<MetaTipo, string> = {
   vgv: "bg-[#053647] text-white",
   leads: "bg-[#0e8f6e] text-white",
   ligacoes: "bg-[#3B6FD8] text-white",
+  agendamentos: "bg-[#7C3AED] text-white",
 };
 
 const META_TIPO_CARD: Record<MetaTipo, string> = {
@@ -939,6 +941,7 @@ const META_TIPO_CARD: Record<MetaTipo, string> = {
   vgv: "bg-card border-border border-l-[#053647] text-foreground",
   leads: "bg-card border-border border-l-[#0e8f6e] text-foreground",
   ligacoes: "bg-card border-border border-l-[#3B6FD8] text-foreground",
+  agendamentos: "bg-card border-border border-l-[#7C3AED] text-foreground",
 };
 
 const META_TIPO_SOFT: Record<MetaTipo, string> = {
@@ -949,6 +952,7 @@ const META_TIPO_SOFT: Record<MetaTipo, string> = {
   vgv: "bg-[#053647]/10 text-[#053647] dark:bg-white/10 dark:text-slate-100 border-[#053647]/25 dark:border-white/20",
   leads: "bg-[#0e8f6e]/12 text-[#0b6b53] dark:text-[#7ddec4] border-[#0e8f6e]/30",
   ligacoes: "bg-[#3B6FD8]/12 text-[#2a4f9e] dark:text-[#9bb6f0] border-[#3B6FD8]/30",
+  agendamentos: "bg-[#7C3AED]/12 text-[#5B21B6] dark:text-[#d4c4f7] border-[#7C3AED]/30",
 };
 
 export function MetaTipoPicker({

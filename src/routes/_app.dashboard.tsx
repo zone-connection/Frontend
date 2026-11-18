@@ -125,6 +125,7 @@ const META_TIPO_LABEL: Record<string, string> = {
   vgv: "VGV",
   leads: "Leads criados",
   ligacoes: "Ligações",
+  agendamentos: "Agendamentos",
 };
 
 const MESES_PT = [
