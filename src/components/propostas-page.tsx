@@ -1214,6 +1214,14 @@ export function PropostasPage() {
       valor: embed.seed.valor ?? "",
     });
     setOpen(true);
+    if (!embed.seed.leadId) return;
+    void fetchLeadById(embed.seed.leadId)
+      .then((api) => {
+        setForm((current) => patchFormFromLead(current, mapApiLead(api)));
+      })
+      .catch(() => {
+        /* mantém o que já veio do funil */
+      });
   }, [
     embed?.seed.nome,
     embed?.seed.leadId,
@@ -2085,7 +2093,7 @@ export function PropostasPage() {
     }
 
     const payload: CreatePropostaInput = {
-      leadId: form.leadId || null,
+      leadId: embed?.seed.leadId || form.leadId || null,
       clienteNome: form.clienteNome.trim(),
       clienteTelefone: form.clienteTelefone
         ? phoneDigits(form.clienteTelefone)

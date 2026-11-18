@@ -110,10 +110,7 @@ import { leadVisivelNoFunilEmUso } from "@/lib/funil-lead-visibilidade";
 import { fetchFunilAtivo, recoverFunilEtapas, type Funil } from "@/lib/funis-api";
 import { createTriagemEvent } from "@/lib/triagem-api";
 import { TriagemFunilDialog } from "@/components/triagem-funil-dialog";
-import {
-  FunilTarefaDialog,
-  type FunilTarefaPrompt,
-} from "@/components/funil-tarefa-dialog";
+import { PropostaCadastroDialog } from "@/components/propostas-page";
 import {
   CompromissoCampos,
   compromissoInicial,
@@ -458,6 +455,13 @@ const FUNIL_FILTER =
   "h-9 w-auto min-w-0 max-w-64 gap-2 rounded-full border-border/80 bg-card px-3 text-sm font-medium text-foreground shadow-sm hover:border-primary/40 hover:bg-card [&>span]:line-clamp-none [&>span]:flex [&>span]:min-w-0 [&>span]:items-center";
 const FUNIL_FILTER_ON = "border-primary/50 bg-primary/10 text-primary";
 
+function rotuloProposta(item: Proposta) {
+  const empreendimento = item.empreendimento?.nome?.trim() || "Sem empreendimento";
+  const lead = item.lead?.nome?.trim() || item.clienteNome?.trim() || "Sem lead";
+  const unidade = item.unidade?.trim() || "Sem unidade";
+  return `${empreendimento} · ${lead} · ${unidade}`;
+}
+
 export const Route = createFileRoute("/_app/funil")({
   validateSearch: (search: Record<string, unknown>) => ({
     lead: typeof search.lead === "string" ? search.lead : undefined,
@@ -546,6 +550,8 @@ export function ComercialFunilBoard({
     stage: StageId;
   } | null>(null);
   const [propostaId, setPropostaId] = useState("");
+  const [propostaPickerOpen, setPropostaPickerOpen] = useState(false);
+  const [criarProposta, setCriarProposta] = useState(false);
   const [propostaValor, setPropostaValor] = useState("");
   const [vendaDiretaAlvo, setVendaDiretaAlvo] = useState<{
     lead: Lead;
@@ -913,10 +919,6 @@ export function ComercialFunilBoard({
   const [manualCompromisso, setManualCompromisso] =
     useState<CompromissoRascunho | null>(null);
   const triagemFinalizedRef = useRef(false);
-  const pendingTarefaRef = useRef<{ lead: Lead; stage: StageId } | null>(null);
-  const [tarefaPrompt, setTarefaPrompt] = useState<FunilTarefaPrompt | null>(
-    null,
-  );
   const [atividadePrompt, setAtividadePrompt] =
     useState<LeadAtividadePrompt | null>(null);
 
@@ -933,39 +935,12 @@ export function ComercialFunilBoard({
   const [manualTriagemTexto, setManualTriagemTexto] = useState("");
   const [manualTriagemSaving, setManualTriagemSaving] = useState(false);
 
-  function offerTarefaAfterMove(lead: Lead, stage: StageId) {
-    const stageName = funnelStages.find((s) => s.id === stage)?.name ?? stage;
-    setTarefaPrompt({
-      leadId: lead.id,
-      leadNome: lead.nome,
-      stage,
-      stageName,
-    });
-  }
-
   function afterStageAdvanced(lead: Lead, stage: StageId) {
-    pendingTarefaRef.current = { lead, stage };
-    if (canWriteTriagem) {
-      offerTriagemHistory(lead, stage);
-      return;
-    }
-    pendingTarefaRef.current = null;
-    offerTarefaAfterMove(lead, stage);
-  }
-
-  function finishTriagemThenTarefa() {
-    const pending = pendingTarefaRef.current;
-    pendingTarefaRef.current = null;
-    if (!pending) return;
-    window.setTimeout(() => {
-      offerTarefaAfterMove(pending.lead, pending.stage);
-    }, 150);
+    if (canWriteTriagem) offerTriagemHistory(lead, stage);
   }
 
   function cancelStageFollowUps() {
-    pendingTarefaRef.current = null;
     closeTriagemPrompt();
-    setTarefaPrompt(null);
   }
 
   function offerTriagemHistory(lead: Lead, stage: StageId) {
@@ -1044,7 +1019,6 @@ export function ComercialFunilBoard({
         );
       }
       closeTriagemPrompt();
-      finishTriagemThenTarefa();
       void refreshLeads({ silent: true });
     } catch (err) {
       triagemFinalizedRef.current = false;
@@ -1509,7 +1483,7 @@ export function ComercialFunilBoard({
   async function carregarPropostasDoLead(leadId: string) {
     try {
       const lista = await fetchPropostas();
-      setPropostasDiretas(lista.filter((item) => item.leadId === leadId));
+      setPropostasDiretas(lista);
     } catch {
       setPropostasDiretas([]);
     }
@@ -1536,6 +1510,7 @@ export function ComercialFunilBoard({
     setVendaSemProposta(false);
     setPropostaId("");
     setPropostaValor("");
+    setCriarProposta(false);
     setVendaDiretaAlvo({ lead, stage });
     void loadCatalogoFicha();
     void carregarPropostasDoLead(lead.id);
@@ -3028,7 +3003,7 @@ export function ComercialFunilBoard({
               <div>
                 <p className="text-sm font-medium">Venda sem proposta</p>
                 <p className="text-xs text-muted-foreground">
-                  Desligado, escolha uma proposta ativa deste lead antes de confirmar.
+                  Desligado, escolha uma proposta antes de confirmar.
                 </p>
               </div>
               <Switch
@@ -3039,26 +3014,59 @@ export function ComercialFunilBoard({
             </div>
             {vendaSemProposta ? null : (
               <div className="space-y-1.5">
-                <Label>Proposta</Label>
-                <Select value={propostaId} onValueChange={setPropostaId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a proposta ativa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {propostasDiretas
-                      .filter((item) => item.status !== "recusada" && item.status !== "expirada")
-                      .map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {`${item.empreendimento?.nome?.trim() || "Sem empreendimento"} · ${item.lead?.nome?.trim() || item.clienteNome || vendaDiretaAlvo?.lead.nome || "Sem lead"} · ${item.unidade?.trim() || "Sem unidade"}`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {propostasDiretas.filter((item) => item.status !== "recusada" && item.status !== "expirada").length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Nenhuma proposta ativa deste lead.
-                  </p>
-                ) : null}
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Proposta</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setCriarProposta(true)}
+                  >
+                    <Plus className="mr-1 size-3.5" />
+                    Criar proposta
+                  </Button>
+                </div>
+                <Popover open={propostaPickerOpen} onOpenChange={setPropostaPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="h-9 w-full justify-between px-3 font-normal"
+                    >
+                      <span className="truncate">
+                        {propostasDiretas.find((item) => item.id === propostaId)
+                          ? rotuloProposta(propostasDiretas.find((item) => item.id === propostaId)!)
+                          : "Buscar proposta"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar empreendimento, lead ou unidade" />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma proposta encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {propostasDiretas.map((item) => (
+                            <CommandItem
+                              key={item.id}
+                              value={`${item.empreendimento?.nome ?? ""} ${item.lead?.nome ?? item.clienteNome} ${item.unidade ?? ""} ${item.codigo}`}
+                              onSelect={() => {
+                                setPropostaId(item.id);
+                                setPropostaPickerOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 size-4", propostaId === item.id ? "opacity-100" : "opacity-0")} />
+                              <span className="truncate">{rotuloProposta(item)}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
           </div>
@@ -3072,6 +3080,29 @@ export function ComercialFunilBoard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PropostaCadastroDialog
+        open={criarProposta && !!vendaDiretaAlvo}
+        seed={{
+          nome: vendaDiretaAlvo?.lead.nome,
+          leadId: vendaDiretaAlvo?.lead.id,
+          construtoraId: vendaDiretaAlvo?.lead.construtoraId ?? undefined,
+          empreendimentoId: vendaDiretaEmpId || vendaDiretaAlvo?.lead.empreendimentoId || undefined,
+          corretorId: vendaDiretaAlvo?.lead.corretorId ?? undefined,
+          valor: vendaVgv || undefined,
+        }}
+        onOpenChange={(open) => {
+          if (!open) setCriarProposta(false);
+        }}
+        onCreated={(proposta) => {
+          setPropostasDiretas((prev) => [
+            proposta,
+            ...prev.filter((item) => item.id !== proposta.id),
+          ]);
+          setPropostaId(proposta.id);
+          setCriarProposta(false);
+        }}
+      />
 
       <Dialog open={!!fichaEntrada && !vendaDireta} onOpenChange={(open) => !open && !fichaSaving && setFichaEntrada(null)}>
         <DialogContent className="max-w-md">
@@ -3390,14 +3421,6 @@ export function ComercialFunilBoard({
         canWrite={canWriteTriagem}
         onOpenDetails={openDetailFromTriagem}
         onLeadTouched={() => {
-          void refreshLeads({ silent: true });
-        }}
-      />
-
-      <FunilTarefaDialog
-        prompt={tarefaPrompt}
-        onClose={() => setTarefaPrompt(null)}
-        onCreated={() => {
           void refreshLeads({ silent: true });
         }}
       />
