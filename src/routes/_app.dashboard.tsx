@@ -57,8 +57,11 @@ import {
   Kanban,
   KeyRound,
   Percent,
+  Phone,
   SlidersHorizontal,
+  Target,
   TrendingUp,
+  UserPlus,
   UserRound,
   Building2,
   Plus,
@@ -147,6 +150,73 @@ const MESES_PT = [
 
 function money(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+const META_PERIODO_CURTO: Record<string, string> = {
+  diaria: "Hoje",
+  semanal: "Esta semana",
+  mensal: "Este mês",
+  trimestral: "Trimestre",
+  semestral: "Semestre",
+  anual: "Este ano",
+};
+
+const META_CARD_STYLE: Record<string, { bar: string; chip: string; icon: typeof Target }> = {
+  vendas: { bar: "bg-[#079ED4]", chip: "bg-[#E7F4FA] text-[#0B6E96]", icon: Target },
+  documentacoes: { bar: "bg-[#057aa8]", chip: "bg-[#E7F4FA] text-[#04648a]", icon: FileText },
+  vgv: { bar: "bg-[#053647]", chip: "bg-[#EEF3F6] text-[#053647]", icon: Wallet },
+  leads: { bar: "bg-[#0e8f6e]", chip: "bg-[#E7F6F1] text-[#0b6b53]", icon: UserPlus },
+  ligacoes: { bar: "bg-[#3B6FD8]", chip: "bg-[#E7F0FF] text-[#2a4f9e]", icon: Phone },
+  agendamentos: { bar: "bg-[#7C3AED]", chip: "bg-[#F3EEFF] text-[#5B21B6]", icon: CalendarDays },
+};
+
+function MetaProgressoCard({
+  meta,
+}: {
+  meta: DashboardCorretor["metas"][number];
+}) {
+  const estilo = META_CARD_STYLE[meta.tipo] ?? META_CARD_STYLE.vendas;
+  const Icon = estilo.icon;
+  const nome = meta.titulo?.trim() || META_TIPO_LABEL[meta.tipo] || meta.tipo;
+  const valor =
+    meta.tipo === "vgv"
+      ? `${money(meta.atual)} de ${money(meta.valor)}`
+      : `${meta.atual.toLocaleString("pt-BR")} de ${meta.valor.toLocaleString("pt-BR")}`;
+  const falta = Math.max(0, meta.valor - meta.atual);
+  const restante =
+    meta.percentual >= 100
+      ? "Meta batida"
+      : meta.tipo === "vgv"
+        ? `Faltam ${money(falta)}`
+        : `Faltam ${falta.toLocaleString("pt-BR")}`;
+
+  return (
+    <article className="flex min-w-0 flex-col rounded-2xl border border-[#E6EEF3] bg-white p-4 shadow-[0_8px_24px_rgba(11,49,72,0.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <span className={cn("inline-flex size-10 items-center justify-center rounded-xl", estilo.chip)}>
+          <Icon className="size-4" />
+        </span>
+        <span className="rounded-full bg-[#F4F7F8] px-2.5 py-1 text-[11px] font-semibold text-[#5C6B76]">
+          {META_PERIODO_CURTO[meta.periodo] ?? meta.periodo}
+        </span>
+      </div>
+      <p className="mt-3 truncate text-sm font-semibold text-[#0B3148]">{nome}</p>
+      <p className="mt-0.5 text-xs text-[#8B98A3]">{META_TIPO_LABEL[meta.tipo] ?? meta.tipo}</p>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <p className="text-2xl font-semibold tabular-nums tracking-tight text-[#0B3148]">
+          {meta.percentual}%
+        </p>
+        <p className="pb-0.5 text-right text-xs text-[#5C6B76]">{valor}</p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#EEF3F6]">
+        <div
+          className={cn("h-full rounded-full", estilo.bar)}
+          style={{ width: `${Math.min(100, meta.percentual)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs font-medium text-[#5C6B76]">{restante}</p>
+    </article>
+  );
 }
 
 const DASHBOARD_PAGE_SIZE = 5;
@@ -2016,6 +2086,36 @@ function DashboardCorretorView() {
         title="Dashboard"
         description={`Visão da sua carteira em ${mesLabel}.`}
       />
+
+      <section className="rounded-2xl border border-[#E2E8EC] bg-gradient-to-br from-[#F7FBFD] via-white to-[#F4F7FF] p-4 shadow-[0_8px_24px_rgba(11,49,72,0.05)] sm:p-5">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#079ED4]">
+              Suas metas
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-[#0B3148]">
+              O que falta para bater o período
+            </h2>
+          </div>
+          <Link
+            to="/metas"
+            className="text-sm font-medium text-[#079ED4] hover:text-[#057aa8]"
+          >
+            Ver metas
+          </Link>
+        </div>
+        {(summary.metas ?? []).length === 0 ? (
+          <p className="rounded-xl border border-dashed border-[#D5E2EA] bg-white/70 px-4 py-6 text-sm text-[#5C6B76]">
+            Nenhuma meta ativa agora. Quando houver uma meta para você ou para a imobiliária, o progresso aparece aqui.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {(summary.metas ?? []).map((meta) => (
+              <MetaProgressoCard key={meta.id} meta={meta} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <PagePanel
         inset="muted"
