@@ -88,6 +88,9 @@ export interface ApiLead {
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   roletaRedistribuido?: boolean;
   historicoPendente?: boolean;
+  origemBaseFria?: boolean;
+  baseFria?: boolean;
+  baseFriaEm?: string | null;
   createdAt: string;
   updatedAt: string;
   reatribuicoes?: Array<{ actor: { role: string } | null }>;
@@ -178,6 +181,7 @@ export function mapApiLead(api: ApiLead): Lead {
     triagemOrigemHerdada: api.triagemOrigemHerdada ?? null,
     roletaRedistribuido: api.roletaRedistribuido ?? false,
     historicoPendente: api.historicoPendente ?? false,
+    origemBaseFria: api.origemBaseFria ?? false,
     construtoraId: api.construtoraId ?? null,
     construtora: api.construtora ?? null,
     empreendimentoId: api.empreendimentoId ?? null,
@@ -408,6 +412,8 @@ export type ImportLeadInput = {
   bairro?: string;
   prioridade?: Lead["prioridade"];
   renda?: number | null;
+  tipoRenda?: string | null;
+  estadoCivil?: string | null;
   corretorId?: string;
   prospeccao?: LeadProspeccao | null;
 };

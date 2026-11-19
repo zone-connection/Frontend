@@ -78,6 +78,8 @@ export type Funil = {
   ativo: boolean;
   inatividadeValor: number;
   inatividadeUnidade: "minutos" | "horas" | "dias";
+  /** Desligado: o lead não é marcado nem notificado como atrasado. */
+  notificarAtraso?: boolean;
   atrasoLiberacaoAtiva?: boolean;
   atrasoLiberacaoDestino?: "caca_lead" | "retrabalho";
   atrasoLiberacaoValor?: number;
@@ -146,6 +148,7 @@ export async function updateFunil(
     tipo?: FunilTipo;
     inatividadeValor?: number;
     inatividadeUnidade?: "minutos" | "horas" | "dias";
+    notificarAtraso?: boolean;
     atrasoLiberacaoAtiva?: boolean;
     atrasoLiberacaoDestino?: "caca_lead" | "retrabalho";
     atrasoLiberacaoValor?: number;

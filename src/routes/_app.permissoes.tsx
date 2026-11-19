@@ -99,24 +99,22 @@ function Page() {
   }
 
   function setModule(key: string, value: boolean) {
-    if (selected?.role === "corretor" && key === "presenca") return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next: UserPermissions = {
         modules: { ...prev.modules, [key]: value },
         actions: { ...prev.actions },
       };
-      if (key === "leadsPerdidos") next.actions["leads.viewLost"] = value;
-      if (key === "leads") next.actions["leads.view"] = value;
-      if (key === "financeiro") {
-        next.actions["financeiro.access"] = value;
-        if (value) {
-          next.actions["financeiro.pagar.view"] = true;
-          next.actions["financeiro.receber.view"] = true;
-          next.actions["financeiro.fluxo"] = true;
+      for (const action of PERMISSION_ACTIONS) {
+        const sameModule = action.module === key;
+        const comissao =
+          key === "comissao" && action.key === "financeiro.comissao";
+        const financeiro =
+          key === "financeiro" && action.module === "financeiro";
+        if (sameModule || comissao || financeiro) {
+          next.actions[action.key] = value;
         }
       }
-      if (key === "comissao") next.actions["financeiro.comissao"] = value;
       return next;
     });
   }
@@ -313,11 +311,7 @@ function Page() {
                           <span className="text-sm">{mod.label}</span>
                           <Switch
                             checked={draft.modules[mod.key] === true}
-                            disabled={
-                              !canEdit ||
-                              (selected?.role === "corretor" &&
-                                mod.key === "presenca")
-                            }
+                            disabled={!canEdit}
                             onCheckedChange={(v) => setModule(mod.key, v)}
                           />
                         </label>

@@ -1064,8 +1064,23 @@ function PropostaActionMenus({
 }
 
 function Page() {
+  const search = Route.useSearch();
+  return <PropostasScreen search={search} />;
+}
+
+export function PropostasScreen({
+  search,
+  embedded,
+}: {
+  search: { id?: string; origem?: "lancamento" | "usado" };
+  embedded?: {
+    lead: Lead;
+    onCreated: (proposta: Proposta) => void;
+    onClose: () => void;
+  };
+}) {
   const navigate = useNavigate();
-  const { id: abrirId, origem: origemSearch } = Route.useSearch();
+  const { id: abrirId, origem: origemSearch } = search;
   const origem: OrigemProposta = origemSearch ?? "todos";
   const user = getSession();
   const isManager = user ? canViewTeamData(user.role) : false;
@@ -1962,7 +1977,7 @@ function Page() {
     }
 
     const payload: CreatePropostaInput = {
-      leadId: form.leadId || null,
+      leadId: embedded?.lead.id || form.leadId || null,
       clienteNome: form.clienteNome.trim(),
       clienteTelefone: form.clienteTelefone
         ? phoneDigits(form.clienteTelefone)
@@ -2036,6 +2051,7 @@ function Page() {
           }
         }
         toast.success("Proposta criada.");
+        if (embedded) embedded.onCreated(criada);
       } else if (editingId) {
         await updateProposta(editingId, payload);
         if (form.vinculoImovelId) {
@@ -2095,8 +2111,24 @@ function Page() {
     }
   }
 
+  useEffect(() => {
+    if (!embedded) return;
+    setFormMode("create");
+    setEditingId(null);
+    setForm(patchFormFromLead(emptyForm(), embedded.lead));
+    setFormSection("usuario");
+    setOpen(true);
+    void fetchLeadById(embedded.lead.id)
+      .then((api) => {
+        setForm((current) => patchFormFromLead(current, mapApiLead(api)));
+      })
+      .catch(() => {
+        /* mantém os dados já conhecidos do lead */
+      });
+  }, [embedded?.lead.id]);
+
   return (
-    <div>
+    <div className={embedded ? "hidden" : undefined}>
       <PageHeader
         eyebrow="Propostas"
         title="Propostas"
@@ -3079,7 +3111,10 @@ function Page() {
 
       <FormDialogShell
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next && embedded) embedded.onClose();
+        }}
         className="max-w-7xl"
         icon={<FileText className="w-5 h-5" />}
         title={formMode === "create" ? "Nova proposta" : "Editar proposta"}

@@ -124,6 +124,7 @@ export const ALL_TENANT_MODULE_KEYS: TenantModuleKey[] =
 export const ROUTE_MODULE_KEY: Record<string, TenantModuleKey> = {
   "/dashboard": "dashboard",
   "/leads": "leads",
+  "/leads-frios": "leads",
   "/whatsapp": "leads",
   "/caca-lead": "leads",
   "/atrasos": "leads",
@@ -218,6 +219,9 @@ export function modulesFromTenantJson(
   if (typeof modules.muralChavesOptIn === "boolean") {
     (base as Record<string, boolean>).muralChavesOptIn = modules.muralChavesOptIn;
   }
+  if (modules.leadsFrios === true) {
+    (base as Record<string, boolean>).leadsFrios = true;
+  }
   // Compatibilidade com tenants antigos (só 6 chaves)
   return base;
 }
@@ -259,6 +263,7 @@ export const SOLO_BLOCKED_ROUTES = [
 const SOLO_ENABLED = new Set<TenantModuleKey>([
   "dashboard",
   "leads",
+  "leadsPerdidos",
   "funil",
   "agenda",
   "imoveis",

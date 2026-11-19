@@ -31,6 +31,7 @@ import {
   Percent,
   Goal,
   UserX,
+  Snowflake,
   Network,
   Menu,
   X,
@@ -218,6 +219,7 @@ function pathMatchesPrefix(pathname: string, prefix: string) {
 
 const LANCAMENTO_NAV_LEAVES: NavLeaf[] = [
   { to: "/leads", label: "Leads", icon: Users },
+  { to: "/leads-frios", label: "Leads frios", icon: Snowflake },
   { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
   { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
   { to: "/triagem", label: "Triagem", icon: ClipboardList },
@@ -277,6 +279,7 @@ function leafSection(grupo: string, leaf: NavLeaf): NavSection {
 const ATENDIMENTO_LEAVES: NavLeaf[] = [
   { to: "/lembretes", label: "Lembretes", icon: BellRing },
   { to: "/leads", label: "Leads", icon: Users },
+  { to: "/leads-frios", label: "Leads frios", icon: Snowflake },
   { to: "/whatsapp", label: "WhatsApp", icon: FaWhatsapp as LucideIcon },
   { to: "/caca-lead", label: "Caça-lead", icon: Crosshair },
   { to: "/triagem", label: "Triagem", icon: ClipboardList },
@@ -930,6 +933,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   function moduleMenuAllows(to: string) {
+    if (to === "/leads-frios" || to.startsWith("/leads-frios/")) {
+      return modules?.leadsFrios === true;
+    }
     if (to === "/mural-chaves" || to.startsWith("/mural-chaves/")) {
       return isModuleEnabled("muralChaves");
     }
@@ -2209,6 +2215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           !lockWhatsapp &&
           [
             "/leads",
+            "/leads-frios",
             "/whatsapp",
             "/caca-lead",
             "/funil",

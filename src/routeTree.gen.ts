@@ -40,6 +40,7 @@ import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
+import { Route as AppLeadsFriosRouteImport } from './routes/_app.leads-frios'
 import { Route as AppLembretesRouteImport } from './routes/_app.lembretes'
 import { Route as AppLocacaoRouteImport } from './routes/_app.locacao'
 import { Route as AppMelhoriasRouteImport } from './routes/_app.melhorias'
@@ -283,6 +284,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppLeadsPerdidosRoute = AppLeadsPerdidosRouteImport.update({
   id: '/leads-perdidos',
   path: '/leads-perdidos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadsFriosRoute = AppLeadsFriosRouteImport.update({
+  id: '/leads-frios',
+  path: '/leads-frios',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLembretesRoute = AppLembretesRouteImport.update({
@@ -788,6 +794,7 @@ export interface FileRoutesByFullPath {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/leads-frios': typeof AppLeadsFriosRoute
   '/lembretes': typeof AppLembretesRoute
   '/locacao': typeof AppLocacaoRoute
   '/melhorias': typeof AppMelhoriasRoute
@@ -908,6 +915,7 @@ export interface FileRoutesByTo {
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/leads-frios': typeof AppLeadsFriosRoute
   '/lembretes': typeof AppLembretesRoute
   '/locacao': typeof AppLocacaoRoute
   '/melhorias': typeof AppMelhoriasRoute
@@ -1027,6 +1035,7 @@ export interface FileRoutesById {
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
+  '/_app/leads-frios': typeof AppLeadsFriosRoute
   '/_app/lembretes': typeof AppLembretesRoute
   '/_app/locacao': typeof AppLocacaoRoute
   '/_app/melhorias': typeof AppMelhoriasRoute
@@ -1151,6 +1160,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/leads-frios'
     | '/lembretes'
     | '/locacao'
     | '/melhorias'
@@ -1271,6 +1281,7 @@ export interface FileRouteTypes {
     | '/imoveis-usados'
     | '/leads'
     | '/leads-perdidos'
+    | '/leads-frios'
     | '/lembretes'
     | '/locacao'
     | '/melhorias'
@@ -1389,6 +1400,7 @@ export interface FileRouteTypes {
     | '/_app/imoveis-usados'
     | '/_app/leads'
     | '/_app/leads-perdidos'
+    | '/_app/leads-frios'
     | '/_app/lembretes'
     | '/_app/locacao'
     | '/_app/melhorias'
@@ -1717,6 +1729,13 @@ declare module '@tanstack/react-router' {
       path: '/leads-perdidos'
       fullPath: '/leads-perdidos'
       preLoaderRoute: typeof AppLeadsPerdidosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/leads-frios': {
+      id: '/_app/leads-frios'
+      path: '/leads-frios'
+      fullPath: '/leads-frios'
+      preLoaderRoute: typeof AppLeadsFriosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/lembretes': {
@@ -2537,6 +2556,7 @@ interface AppRouteChildren {
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
+  AppLeadsFriosRoute: typeof AppLeadsFriosRoute
   AppLembretesRoute: typeof AppLembretesRoute
   AppLocacaoRoute: typeof AppLocacaoRoute
   AppMelhoriasRoute: typeof AppMelhoriasRoute
@@ -2589,6 +2609,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
+  AppLeadsFriosRoute: AppLeadsFriosRoute,
   AppLembretesRoute: AppLembretesRoute,
   AppLocacaoRoute: AppLocacaoRoute,
   AppMelhoriasRoute: AppMelhoriasRoute,

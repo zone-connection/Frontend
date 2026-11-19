@@ -126,9 +126,14 @@ function Page() {
   const session = getSession();
   const isSolo = session?.tenant?.plano === "solo";
   const role = session?.role;
+  const veVendasGerais =
+    isCorretorLike(role) && session?.permissions?.modules?.financeiro === true;
   const isFinanceTeam =
-    role === "admin" || role === "super_admin" || role === "financeiro";
-  const isCorretorViewer = isCorretorLike(role);
+    role === "admin" ||
+    role === "super_admin" ||
+    role === "financeiro" ||
+    veVendasGerais;
+  const isCorretorViewer = isCorretorLike(role) && !veVendasGerais;
   const preferCalendar = isCorretorViewer || role === "gerente";
   const [vista, setVista] = useState<ComissaoVista>(
     preferCalendar ? "calendario" : "tabela",

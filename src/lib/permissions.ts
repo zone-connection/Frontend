@@ -6,11 +6,13 @@ import {
   isTenantOperationEnabled,
   isTenantOperationKey,
   modulesFromTenantJson,
+  normalizeModulesForPlano,
   type TenantPlano,
 } from "@/lib/tenant-modules";
 import {
   actionForFinancePath,
   canUserAction,
+  defaultsFromRole,
   effectivePermissions,
   hasUserModule,
   moduleForPath,
@@ -46,6 +48,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -81,6 +84,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -113,6 +117,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   corretor: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -175,6 +180,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   treinee: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -271,12 +277,18 @@ export function canAccessRoute(
       return false;
     }
   }
+  if (path === "/leads-frios" || path.startsWith("/leads-frios/")) {
+    if (modules?.leadsFrios !== true) return false;
+  }
   if (path === "/orulo-oauth-callback") return true;
 
   if (!isFinanceiroPathAllowed(path, plano ?? null)) return false;
   if (!isSoloPathAllowed(path, plano ?? null)) return false;
 
-  const resolvedModules = modulesFromTenantJson(modules ?? undefined);
+  const rawModules = modulesFromTenantJson(modules ?? undefined);
+  const resolvedModules = plano
+    ? normalizeModulesForPlano(plano, rawModules)
+    : rawModules;
   const tenantKey = Object.entries(ROUTE_MODULE_KEY)
     .sort((a, b) => b[0].length - a[0].length)
     .find(([route]) => path === route || path.startsWith(`${route}/`))?.[1];
@@ -312,13 +324,21 @@ export function canAccessRoute(
       if (!allowed) return false;
       return effective.actions["financeiro.comissao"] !== false;
     }
-    if (effective.modules[permKey] !== true) return false;
+    if (effective.modules[permKey] !== true) {
+      const soloLost =
+        plano === "solo" &&
+        permKey === "leadsPerdidos" &&
+        (role === "admin" || role === "corretor") &&
+        resolvedModules.leadsPerdidos === true;
+      if (!soloLost) return false;
+    }
     if (permKey === "leads" && effective.actions["leads.view"] === false) {
       return false;
     }
     if (
       permKey === "leadsPerdidos" &&
-      effective.actions["leads.viewLost"] === false
+      effective.actions["leads.viewLost"] === false &&
+      !(plano === "solo" && (role === "admin" || role === "corretor"))
     ) {
       return false;
     }
@@ -497,10 +517,18 @@ export function isCorretorLike(role: string | null | undefined): boolean {
   return role === "corretor" || role === "treinee";
 }
 
-/** Corretor/treinee só vê comissões depois de ter venda vinculada. */
+/** Corretor/treinee só vê comissões depois de ter venda vinculada, salvo permissão extra. */
 export function canSeeComissao(user: AuthUser | null | undefined): boolean {
   if (!user) return false;
   if (!isCorretorLike(user.role)) return true;
+  const defaults = defaultsFromRole(user.role, user.tenant?.plano);
+  const financeiroExtra =
+    user.permissions?.modules?.financeiro === true &&
+    defaults.modules.financeiro !== true;
+  const comissaoExtra =
+    user.permissions?.modules?.comissao === true &&
+    defaults.modules.comissao !== true;
+  if (financeiroExtra || comissaoExtra) return true;
   return user.temVendaVinculada !== false;
 }
 

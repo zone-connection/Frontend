@@ -10,6 +10,7 @@ export const MENU_OCULTAVEIS = [
     items: [
       { to: "/lembretes", label: "Lembretes" },
       { to: "/leads", label: "Leads" },
+      { to: "/leads-frios", label: "Leads frios" },
       { to: "/whatsapp", label: "WhatsApp" },
       { to: "/caca-lead", label: "Caça-lead" },
       { to: "/triagem", label: "Triagem" },

@@ -816,6 +816,8 @@ function Clientes() {
           bairro: r.bairro || undefined,
           prioridade: r.prioridade,
           renda: r.renda,
+          tipoRenda: r.tipoRenda || undefined,
+          estadoCivil: r.estadoCivil || undefined,
         })),
         { tipo: "cliente" },
       );

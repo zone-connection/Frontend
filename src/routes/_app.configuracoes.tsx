@@ -314,8 +314,8 @@ function Config() {
   const isAdmin = user?.role === "admin";
   const isSolo = user?.tenant?.plano === "solo";
   const showOpsTabs = !isAnalista && !isTreinee && !isCorretor && !isPlatformAdmin;
-  const showFunil = !isAnalista && !isTreinee && !isCorretor;
-  const showAutomacoes = isAdmin;
+  const showFunil = !isAnalista && !isTreinee && (!isCorretor || isSolo);
+  const showAutomacoes = isAdmin || (isSolo && isCorretor);
   const showUsuarioExtraTab = showOpsTabs && isSolo;
   const showDocumentacao = !isTreinee && !isCorretor && !isPlatformAdmin;
   const showMotivos = !isTreinee && !isCorretor;

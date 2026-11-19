@@ -140,6 +140,8 @@ export interface Lead {
   roletaRedistribuido?: boolean;
   /** Corretor avançou a etapa sem registrar relato. */
   historicoPendente?: boolean;
+  /** Veio da base de leads frios. */
+  origemBaseFria?: boolean;
   /** Nome da equipe para exibição. */
   equipe?: string | null;
   construtoraId?: string | null;

@@ -13,8 +13,11 @@ export const LEAD_IO_COLUMNS = [
   "Nome",
   "Telefone",
   "Email",
-  "Localidade de interesse",
   "Origem",
+  "Região",
+  "Regime de Trabalho",
+  "Estado Civil",
+  "Renda Bruta",
 ] as const;
 
 /** Colunas da planilha de prospecção B2B (super tenant). */
@@ -53,6 +56,8 @@ export type ParsedImportLead = {
   bairro: string;
   prioridade: "Alta" | "Média" | "Baixa";
   renda: number | null;
+  tipoRenda: string;
+  estadoCivil: string;
   prospeccao?: LeadProspeccao | null;
   /** Linha inválida: motivo. */
   error?: string;
@@ -102,6 +107,11 @@ const HEADER_ALIASES: Record<string, string> = {
   localidade: "cidade",
   cidade: "cidade",
   city: "cidade",
+  regiao: "cidade",
+  "regime de trabalho": "tipoRenda",
+  "tipo de renda": "tipoRenda",
+  "estado civil": "estadoCivil",
+  "renda bruta": "renda",
   bairro: "bairro",
   prioridade: "prioridade",
   priority: "prioridade",
@@ -260,6 +270,8 @@ function buildLeadFromCells(
   const cidade = String(cells.cidade ?? "").trim();
   const bairro = String(cells.bairro ?? "").trim();
   const renda = parseRenda(cells.renda);
+  const tipoRenda = cellText(cells.tipoRenda).slice(0, 60);
+  const estadoCivil = cellText(cells.estadoCivil).slice(0, 40);
   const prospeccao: LeadProspeccao = {
     ...EMPTY_PROSPECCAO,
     endereco: cellText(cells.endereco) || "",
@@ -293,6 +305,8 @@ function buildLeadFromCells(
     bairro,
     prioridade: cells.prioridade ? parsePrioridade(cells.prioridade) : "Média",
     renda,
+    tipoRenda,
+    estadoCivil,
     prospeccao: hasProspeccao ? prospeccao : undefined,
   });
 }
@@ -399,15 +413,17 @@ function rowsFromMatrix(
         }
       });
     } else {
-      // Formato unificado sem cabeçalho:
-      // Nome | Telefone | Email | Localidade de interesse | Origem
+      // Nome | Telefone | Email | Origem | Região | Regime | Estado civil | Renda
       cells.nome = looksLikePersonName(String(row[0] ?? ""))
         ? row[0]
         : findNameInRow(row) || row[0];
       cells.telefone = row[1];
       cells.email = row[2];
-      cells.cidade = row[3];
-      cells.origem = row[4];
+      cells.origem = row[3];
+      cells.cidade = row[4];
+      cells.tipoRenda = row[5];
+      cells.estadoCivil = row[6];
+      cells.renda = row[7];
     }
 
     if (!looksLikePersonName(String(cells.nome ?? ""))) {
@@ -743,8 +759,11 @@ function leadsToSheetRows(leads: Lead[]): string[][] {
     l.nome || "",
     l.telefone || "",
     l.email || "",
-    l.cidade || "",
     l.origem || "",
+    l.cidade || "",
+    l.tipoRenda || "",
+    l.estadoCivil || "",
+    l.renda != null ? String(l.renda) : "",
   ]);
 }
 
@@ -795,8 +814,11 @@ export function exportLeadsToPdf(
       l.nome,
       l.telefone,
       l.email || "—",
-      l.cidade || "—",
       l.origem || "—",
+      l.cidade || "—",
+      l.tipoRenda || "—",
+      l.estadoCivil || "—",
+      l.renda != null ? String(l.renda) : "—",
     ]),
     styles: { fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [7, 158, 212] },
@@ -842,8 +864,11 @@ export function downloadImportTemplate(
           "Maria Silva",
           "(81) 98888-7777",
           "maria@email.com",
-          "Recife",
           "WhatsApp",
+          "Recife",
+          "CLT",
+          "Casado",
+          "5000",
         ],
       ]);
   XLSX.utils.book_append_sheet(

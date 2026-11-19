@@ -448,6 +448,7 @@ export function applyOperacaoFunilThreshold<
   funil: {
     inatividadeValor: number;
     inatividadeUnidade: PrazoUnidade;
+    notificarAtraso?: boolean;
     etapas: Array<{
       id: string;
       papel: string | null;
@@ -473,7 +474,7 @@ export function applyOperacaoFunilThreshold<
       {
         prazo,
         alertaPercent: etapa?.alertaAntecedenciaPercent,
-        terminal,
+        terminal: terminal || funil.notificarAtraso === false,
       },
     ),
   };

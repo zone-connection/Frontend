@@ -70,7 +70,11 @@ function isEtapaTerminal(etapa: FunilEtapa): boolean {
 
 export function ConfigAutomacoesPanel() {
   const session = getSession();
-  const canManageCacaLead = session?.role === "admin";
+  const isSolo = session?.tenant?.plano === "solo";
+  const canManageCacaLead =
+    session?.role === "admin" ||
+    session?.role === "super_admin" ||
+    (isSolo && session?.role === "corretor");
   const tenantModules = session?.tenant?.modules;
   const tiposVisiveis = useMemo(
     () => FUNIL_TIPOS.filter((tipo) => funilTipoVisivel(tipo, tenantModules)),
@@ -88,6 +92,7 @@ export function ConfigAutomacoesPanel() {
   const [saving, setSaving] = useState(false);
   const [savingEtapaId, setSavingEtapaId] = useState<string | null>(null);
 
+  const [notificarAtraso, setNotificarAtraso] = useState(true);
   const [inatividadeValor, setInatividadeValor] = useState("48");
   const [inatividadeUnidade, setInatividadeUnidade] =
     useState<PrazoUnidade>("horas");
@@ -138,6 +143,7 @@ export function ConfigAutomacoesPanel() {
 
   useEffect(() => {
     if (!selected) return;
+    setNotificarAtraso(selected.notificarAtraso !== false);
     setInatividadeValor(String(selected.inatividadeValor ?? 48));
     setInatividadeUnidade(selected.inatividadeUnidade ?? "horas");
     setAtrasoAtiva(selected.atrasoLiberacaoAtiva === true);
@@ -173,6 +179,30 @@ export function ConfigAutomacoesPanel() {
     setFunis((current) =>
       current.map((item) => (item.id === updated.id ? updated : item)),
     );
+  }
+
+  async function handleToggleNotificarAtraso(checked: boolean) {
+    if (!selected) return;
+    setNotificarAtraso(checked);
+    setSaving(true);
+    try {
+      const updated = await updateFunil(selected.id, {
+        notificarAtraso: checked,
+      });
+      applyFunil(updated);
+      toast.success(
+        checked
+          ? "Notificação de lead atrasado ativada."
+          : "Notificação de lead atrasado desativada.",
+      );
+    } catch (err) {
+      setNotificarAtraso(!checked);
+      toast.error(
+        errorMessage(err, "Não foi possível atualizar a notificação de atraso."),
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveInatividade() {
@@ -380,9 +410,21 @@ export function ConfigAutomacoesPanel() {
         <Card>
           <div className={cn("flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between", painelAtivo !== "inatividade" && "hidden")}>
             <div className="min-w-0">
-              <p className="text-sm font-medium">Alerta de inatividade</p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-medium">Notificar lead atrasado</p>
+                <Switch
+                  checked={notificarAtraso}
+                  disabled={saving}
+                  onCheckedChange={(checked) =>
+                    void handleToggleNotificarAtraso(checked)
+                  }
+                  aria-label="Notificar lead atrasado"
+                />
+              </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Sem movimento neste período, o card fica vermelho. Sempre ativo.
+                {notificarAtraso
+                  ? "Sem movimento neste período, o card fica vermelho e o sino avisa."
+                  : "Desativado. O lead não entra em atraso e ninguém é notificado."}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">

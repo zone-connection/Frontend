@@ -18,7 +18,7 @@ export const PERMISSION_GROUPS = [
 
 export const PERMISSION_MODULES = [
   { key: "dashboard", label: "Dashboard", routes: ["/dashboard"], group: "operacao" },
-  { key: "leads", label: "Leads", routes: ["/leads", "/whatsapp"], group: "operacao" },
+  { key: "leads", label: "Leads", routes: ["/leads", "/leads-frios", "/whatsapp"], group: "operacao" },
   { key: "funil", label: "Funil", routes: ["/funil"], group: "operacao" },
   { key: "triagem", label: "Triagem", routes: ["/triagem"], group: "operacao" },
   { key: "agenda", label: "Agenda", routes: ["/agenda"], group: "operacao" },
@@ -223,6 +223,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/guia",
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -240,6 +241,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -274,6 +276,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/dashboard",
     "/vendas",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -303,6 +306,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
   corretor: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -361,6 +365,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
   treinee: [
     "/dashboard",
     "/leads",
+    "/leads-frios",
     "/whatsapp",
     "/caca-lead",
     "/funil",
@@ -411,6 +416,9 @@ const GERENTE_BRONZE_ROUTES = [
 
 function routesForRole(role: Role, plano?: string | null): readonly string[] {
   if (role === "gerente" && plano === "bronze") return GERENTE_BRONZE_ROUTES;
+  if (role === "corretor" && plano === "solo") {
+    return [...ROLE_DEFAULT_ROUTES.corretor, "/leads-perdidos", "/configuracoes"];
+  }
   return ROLE_DEFAULT_ROUTES[role];
 }
 
@@ -521,13 +529,41 @@ export function mergePermissions(
   };
 }
 
+function grantActionsOfExtraModules(
+  role: Role,
+  stored: UserPermissions | null | undefined,
+  merged: UserPermissions,
+  plano?: string | null,
+) {
+  if (!stored?.modules) return;
+  const defaults = defaultsFromRole(role, plano);
+  for (const item of PERMISSION_MODULES) {
+    if (stored.modules[item.key] !== true) continue;
+    if (defaults.modules[item.key] === true) continue;
+    merged.modules[item.key] = true;
+    for (const action of PERMISSION_ACTIONS) {
+      const sameModule = action.module === item.key;
+      const comissao =
+        item.key === "comissao" && action.key === "financeiro.comissao";
+      const financeiro =
+        item.key === "financeiro" && action.module === "financeiro";
+      if (sameModule || comissao || financeiro) {
+        merged.actions[action.key] = true;
+      }
+    }
+  }
+}
+
 export function effectivePermissions(
   role: Role,
   stored?: UserPermissions | null,
   plano?: string | null,
 ): UserPermissions {
   const merged = mergePermissions(defaultsFromRole(role, plano), stored);
-  if (role === "corretor") merged.modules.presenca = false;
+  if (role === "corretor" && stored?.modules?.presenca !== true) {
+    merged.modules.presenca = false;
+  }
+  grantActionsOfExtraModules(role, stored, merged, plano);
   return merged;
 }
 
