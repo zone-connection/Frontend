@@ -11,7 +11,12 @@ import { PageHeader } from "@/components/app-shell";
 import { TablePager } from "@/components/table-pager";
 import { SkeletonPropertyCards } from "@/components/skeletons";
 import { useDeferredLoading } from "@/hooks/use-deferred-loading";
-import { nomeEstado, useConsultaCep } from "@/lib/cep-lookup";
+import {
+  consultarSeCepCompleto,
+  nomeEstado,
+  useConsultaCep,
+  type EnderecoCep,
+} from "@/lib/cep-lookup";
 import { useTablePager } from "@/lib/use-table-pager";
 import { Button } from "@/components/ui/button";
 import {
@@ -686,8 +691,6 @@ export function ImoveisPage({
     "todos" | "lancamentos" | "captacoes" | "orulo"
   >("todos");
   const [vista, setVista] = useImoveisVista();
-  const [kindPickOpen, setKindPickOpen] = useState(false);
-  const [unidadeCreateTick, setUnidadeCreateTick] = useState(0);
   const [unidadeEditRequest, setUnidadeEditRequest] = useState<{
     id: string;
     tick: number;
@@ -697,6 +700,25 @@ export function ImoveisPage({
     tick: number;
   } | null>(null);
   const { show: showCampo } = useImoveisCamposVisiveis();
+  function aplicarEnderecoDoCep(endereco: EnderecoCep, cep: string) {
+    const cidade = endereco.cidade.trim().toLocaleLowerCase("pt-BR");
+    const localidade = catalogoLocalidades.find(
+      (item) => item.nome.trim().toLocaleLowerCase("pt-BR") === cidade,
+    );
+    setForm((prev) => ({
+      ...prev,
+      vitrineCep: formatCep(endereco.cep || cep),
+      endereco: endereco.endereco || prev.endereco,
+      vitrineBairro: endereco.bairro || prev.vitrineBairro,
+      vitrineEstado: nomeEstado(endereco.uf) || prev.vitrineEstado,
+      ...(localidade
+        ? { novaLocalidade: false, localidadeId: localidade.id, localidadeNome: "" }
+        : endereco.cidade
+          ? { novaLocalidade: true, localidadeId: "", localidadeNome: endereco.cidade }
+          : {}),
+    }));
+  }
+
   const [catalogoLocalidades, setCatalogoLocalidades] = useState<Localidade[]>(
     [],
   );
@@ -878,7 +900,6 @@ export function ImoveisPage({
   }
 
   async function openQuickCreate() {
-    setKindPickOpen(false);
     setEditingId(null);
     setForm(emptyEmpreendimentoForm());
     setFormTab("identidade");
@@ -893,11 +914,6 @@ export function ImoveisPage({
     // só na montagem do assistente aberto pela captação
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [somenteDialogo]);
-
-  function openUnidadeCreate() {
-    setKindPickOpen(false);
-    setUnidadeCreateTick((n) => n + 1);
-  }
 
   async function toggleVisivelNoSite(item: Empreendimento, next: boolean) {
     if (!isAdmin) return;
@@ -1748,9 +1764,7 @@ export function ImoveisPage({
             {gerarPdfButton}
             {canCreate ? (
               <Button
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
                 className={IMOVEIS_GRADIENT_BTN}
                 style={IMOVEIS_GRADIENT_STYLE}
               >
@@ -1769,7 +1783,7 @@ export function ImoveisPage({
               {gerarPdfButton}
               {canCreate ? (
                 <Button
-                  onClick={() => setKindPickOpen(true)}
+                  onClick={() => void openQuickCreate()}
                   className={IMOVEIS_GRADIENT_BTN}
                   style={IMOVEIS_GRADIENT_STYLE}
                 >
@@ -2131,9 +2145,7 @@ export function ImoveisPage({
               <Button
                 className={`mt-2 ${IMOVEIS_GRADIENT_BTN}`}
                 style={IMOVEIS_GRADIENT_STYLE}
-                onClick={() =>
-                  embedded ? void openQuickCreate() : setKindPickOpen(true)
-                }
+                onClick={() => void openQuickCreate()}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Novo imóvel
@@ -2582,59 +2594,12 @@ export function ImoveisPage({
           search={search}
           vista={vista}
           proprietarioId={proprietarioId}
-          createTick={unidadeCreateTick}
+          createTick={0}
           editRequest={unidadeEditRequest}
           deleteRequest={unidadeDeleteRequest}
           onChanged={() => void loadCaptacaoImoveis()}
         />
       ) : null}
-
-      <Dialog open={kindPickOpen} onOpenChange={setKindPickOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-2xl">
-          <DialogHeader className="space-y-1.5 px-6 pb-2 pt-6">
-            <DialogTitle className="text-xl">O que você vai cadastrar?</DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed">
-              Escolha o tipo. Depois abrimos só o formulário certo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2">
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={() => void openQuickCreate()}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Building2 className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Lançamento
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Empreendimento da construtora: torres, plantas e tabela.
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="group flex flex-col items-start gap-3 rounded-2xl border border-border/80 bg-muted/30 p-4 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
-              onClick={openUnidadeCreate}
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                <Home className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-foreground">
-                  Captação ou usado
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Unidade de um dono. Entra na captação e no catálogo de empreendimentos.
-                </span>
-              </span>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <FormDialogShell
         open={matchesOpen}
@@ -3153,29 +3118,46 @@ export function ImoveisPage({
                 label={cepLoading ? "CEP — consultando..." : "CEP"}
                 htmlFor="imovel-vitrine-cep"
               >
-                <Input
-                  id="imovel-vitrine-cep"
-                  inputMode="numeric"
-                  value={form.vitrineCep}
-                  onChange={(event) =>
-                    setField("vitrineCep", formatCep(event.target.value))
-                  }
-                  onBlur={() => {
-                    void buscarCep(form.vitrineCep).then((endereco) => {
-                      if (!endereco) return;
-                      setForm((prev) => ({
-                        ...prev,
-                        vitrineCep: formatCep(endereco.cep || prev.vitrineCep),
-                        endereco: endereco.endereco || prev.endereco,
-                        vitrineBairro: endereco.bairro || prev.vitrineBairro,
-                        vitrineEstado:
-                          nomeEstado(endereco.uf) || prev.vitrineEstado,
-                      }));
-                    });
-                  }}
-                  placeholder="00000-000"
-                  maxLength={9}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="imovel-vitrine-cep"
+                    inputMode="numeric"
+                    value={form.vitrineCep}
+                    onChange={(event) => {
+                      const cep = formatCep(event.target.value);
+                      setField("vitrineCep", cep);
+                      consultarSeCepCompleto(cep, buscarCep, (endereco) =>
+                        aplicarEnderecoDoCep(endereco, cep),
+                      );
+                    }}
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    title="Buscar CEP"
+                    disabled={cepLoading}
+                    onClick={() => {
+                      const cep = form.vitrineCep;
+                      if (cep.replace(/\D/g, "").length !== 8) {
+                        toast.error("Informe o CEP com 8 dígitos.");
+                        return;
+                      }
+                      void buscarCep(cep).then((endereco) => {
+                        if (endereco) aplicarEnderecoDoCep(endereco, cep);
+                      });
+                    }}
+                  >
+                    {cepLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </FormField>
               <FormField label="Latitude" htmlFor="imovel-lat">
                 <Input
@@ -3203,7 +3185,7 @@ export function ImoveisPage({
           <FormSection
             icon={<Layers className="h-4 w-4" />}
             title="Tipo"
-            description="Classificação do produto. Admin, gerente, analista e treinee podem criar, editar e excluir tipos."
+            description="Padrão da API: Venda, Aluguel, Lançamento e Sala comercial. Quem administra o catálogo pode criar, editar e excluir outros tipos."
           >
             {canCreateCatalog ? (
               <div className="mb-2 flex justify-end">

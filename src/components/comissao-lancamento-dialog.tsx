@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
+import { uploadArquivo } from "@/lib/arquivos-api";
 import { getSession } from "@/lib/auth";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
@@ -263,6 +264,7 @@ export function ComissaoLancamentoDialog({
   const [loadingSales, setLoadingSales] = useState(false);
   const [salePickerOpen, setSalePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [comprovante, setComprovante] = useState<File | null>(null);
   const [notas, setNotas] = useState<NotaFiscal[]>([]);
   const [notaFiscalId, setNotaFiscalId] = useState("");
   const [notaArquivo, setNotaArquivo] = useState<File | null>(null);
@@ -324,8 +326,10 @@ export function ComissaoLancamentoDialog({
   useEffect(() => {
     if (!open) {
       setSalePickerOpen(false);
+      setComprovante(null);
       return;
     }
+    setComprovante(null);
     setPasso(0);
     setPremiacaoAberta(Number(editing?.valorPremiacao ?? 0) > 0);
     setNotaArquivo(null);
@@ -611,6 +615,24 @@ export function ComissaoLancamentoDialog({
                   observacao,
                   ...(notaId ? { notaFiscalId: notaId } : {}),
                 });
+      if (comprovante) {
+        try {
+          await uploadArquivo({
+            file: comprovante,
+            entityType: "financeiro_comissao",
+            entityId: saved.id,
+            nome: comprovante.name.replace(/\.[^.]+$/, "") || "Comprovante",
+            categoria: "outro",
+            tagIds: [],
+          });
+        } catch (err) {
+          toast.error(
+            err instanceof ApiError
+              ? err.message
+              : "A comissão foi salva, mas o comprovante não foi anexado.",
+          );
+        }
+      }
       onOpenChange(false);
       toast.success(
         created
@@ -990,10 +1012,18 @@ export function ComissaoLancamentoDialog({
                 }
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Nesta data as fatias entram em Contas a receber e no fluxo como
-                previsão. Ao marcar como paga, o fluxo registra o recebimento.
-              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="comissao-comprovante">Comprovante</Label>
+              <input
+                id="comissao-comprovante"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+                onChange={(event) =>
+                  setComprovante(event.target.files?.[0] ?? null)
+                }
+              />
             </div>
           </FormSection>
           )}

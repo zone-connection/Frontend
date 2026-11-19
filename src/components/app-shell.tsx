@@ -43,6 +43,7 @@ import {
   Receipt,
   TriangleAlert,
   ClipboardCheck,
+  Plug,
   KeyRound,
   Key,
   FileText,
@@ -423,6 +424,7 @@ const NAV_SECTIONS: NavSection[] = [
     platformOnly: true,
     items: [
       { to: "/tenants", label: "Clientes", icon: Building2 },
+      { to: "/integracoes", label: "Integrações", icon: Plug },
       { to: "/prospeccao", label: "Prospecção", icon: Target },
       { to: "/onboarding", label: "Implantação", icon: ClipboardList },
       { to: "/suporte", label: "Suporte", icon: Headset },
@@ -974,6 +976,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               !isNavGroup(item) &&
               (section.id === "financeiro" ||
                 item.to === "/tenants" ||
+                item.to === "/integracoes" ||
                 item.to === "/prospeccao" ||
                 item.to === "/perfil"),
           ),

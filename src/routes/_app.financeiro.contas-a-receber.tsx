@@ -11,8 +11,7 @@ function Page() {
     <FinanceiroTitulosPanel
       tipo="receber"
       title="Contas a receber"
-      description="Títulos a receber de clientes e parceiros — cadastro, parcelamento e baixa. Comissões ficam em Comissão."
-      ocultarComissao
+      description="Tudo que há para receber: títulos de clientes, contratos e as fatias de comissão a receber."
     />
   );
 }

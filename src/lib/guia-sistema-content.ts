@@ -735,7 +735,7 @@ export const GUIA_GROUPS: GuiaGroup[] = [
           {
             title: "Consultar e cadastrar",
             detail:
-              "Novo imóvel pergunta se é lançamento (construtora, torres, plantas) ou captação/usado (ficha do proprietário). A busca vale para os dois tipos.",
+              "Novo imóvel abre um único formulário. O tipo padrão segue a API: Venda, Aluguel, Lançamento ou Sala comercial. A imobiliária pode criar outros tipos.",
           },
           {
             title: "Ocultar do menu",

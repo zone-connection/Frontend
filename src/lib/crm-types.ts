@@ -138,7 +138,6 @@ export interface Lead {
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
   /** Passou para outro integrante porque o prazo da roleta esgotou. */
   roletaRedistribuido?: boolean;
-  /** Corretor avançou a etapa sem registrar relato. */
   historicoPendente?: boolean;
   /** Veio da base de leads frios. */
   origemBaseFria?: boolean;
@@ -205,6 +204,8 @@ export interface Lead {
   documentacaoStatus2?: string | null;
   /** VGV da documentação mais recente, em reais. */
   documentacaoVgv?: number | null;
+  /** Quantidade de propostas comerciais deste contato. */
+  propostasCount?: number;
   /** false quando o lead virou venda ou já tem VGV. */
   podeRedistribuir?: boolean;
   monitoramento?: LeadMonitoramento | null;

@@ -38,6 +38,7 @@ import { Route as AppGuiaRouteImport } from './routes/_app.guia'
 import { Route as AppGuiaSistemaRouteImport } from './routes/_app.guia-sistema'
 import { Route as AppImoveisRouteImport } from './routes/_app.imoveis'
 import { Route as AppImoveisUsadosRouteImport } from './routes/_app.imoveis-usados'
+import { Route as AppIntegracoesRouteImport } from './routes/_app.integracoes'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppLeadsPerdidosRouteImport } from './routes/_app.leads-perdidos'
 import { Route as AppLeadsFriosRouteImport } from './routes/_app.leads-frios'
@@ -66,6 +67,7 @@ import { Route as AppTriagemRouteImport } from './routes/_app.triagem'
 import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as DocsApiRouteImport } from './routes/docs.api'
 import { Route as ParceirosIndexRouteImport } from './routes/parceiros.index'
 import { Route as ParceirosImoveisRouteImport } from './routes/parceiros.imoveis'
 import { Route as ParceirosLoginRouteImport } from './routes/parceiros.login'
@@ -276,6 +278,11 @@ const AppImoveisUsadosRoute = AppImoveisUsadosRouteImport.update({
   path: '/imoveis-usados',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntegracoesRoute = AppIntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -415,6 +422,11 @@ const AppWhatsappRoute = AppWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
   getParentRoute: () => AppRoute,
+} as any)
+const DocsApiRoute = DocsApiRouteImport.update({
+  id: '/docs/api',
+  path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ParceirosIndexRoute = ParceirosIndexRouteImport.update({
   id: '/',
@@ -792,6 +804,7 @@ export interface FileRoutesByFullPath {
   '/guia-sistema': typeof AppGuiaSistemaRoute
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/integracoes': typeof AppIntegracoesRoute
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/leads-frios': typeof AppLeadsFriosRoute
@@ -820,6 +833,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AppUsuariosRoute
   '/vendas': typeof AppVendasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/docs/api': typeof DocsApiRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -913,6 +927,7 @@ export interface FileRoutesByTo {
   '/guia-sistema': typeof AppGuiaSistemaRoute
   '/imoveis': typeof AppImoveisRoute
   '/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/integracoes': typeof AppIntegracoesRoute
   '/leads': typeof AppLeadsRoute
   '/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/leads-frios': typeof AppLeadsFriosRoute
@@ -941,6 +956,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AppUsuariosRoute
   '/vendas': typeof AppVendasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/docs/api': typeof DocsApiRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -1033,6 +1049,7 @@ export interface FileRoutesById {
   '/_app/guia-sistema': typeof AppGuiaSistemaRoute
   '/_app/imoveis': typeof AppImoveisRoute
   '/_app/imoveis-usados': typeof AppImoveisUsadosRouteWithChildren
+  '/_app/integracoes': typeof AppIntegracoesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/leads-perdidos': typeof AppLeadsPerdidosRoute
   '/_app/leads-frios': typeof AppLeadsFriosRoute
@@ -1061,6 +1078,7 @@ export interface FileRoutesById {
   '/_app/usuarios': typeof AppUsuariosRoute
   '/_app/vendas': typeof AppVendasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
+  '/docs/api': typeof DocsApiRoute
   '/parceiros/imoveis': typeof ParceirosImoveisRoute
   '/parceiros/login': typeof ParceirosLoginRoute
   '/parceiros/oportunidades': typeof ParceirosOportunidadesRoute
@@ -1158,6 +1176,7 @@ export interface FileRouteTypes {
     | '/guia-sistema'
     | '/imoveis'
     | '/imoveis-usados'
+    | '/integracoes'
     | '/leads'
     | '/leads-perdidos'
     | '/leads-frios'
@@ -1186,6 +1205,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/vendas'
     | '/whatsapp'
+    | '/docs/api'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1279,6 +1299,7 @@ export interface FileRouteTypes {
     | '/guia-sistema'
     | '/imoveis'
     | '/imoveis-usados'
+    | '/integracoes'
     | '/leads'
     | '/leads-perdidos'
     | '/leads-frios'
@@ -1307,6 +1328,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/vendas'
     | '/whatsapp'
+    | '/docs/api'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1398,6 +1420,7 @@ export interface FileRouteTypes {
     | '/_app/guia-sistema'
     | '/_app/imoveis'
     | '/_app/imoveis-usados'
+    | '/_app/integracoes'
     | '/_app/leads'
     | '/_app/leads-perdidos'
     | '/_app/leads-frios'
@@ -1426,6 +1449,7 @@ export interface FileRouteTypes {
     | '/_app/usuarios'
     | '/_app/vendas'
     | '/_app/whatsapp'
+    | '/docs/api'
     | '/parceiros/imoveis'
     | '/parceiros/login'
     | '/parceiros/oportunidades'
@@ -1503,6 +1527,7 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  DocsApiRoute: typeof DocsApiRoute
   ProdutosCrmImobiliarioRoute: typeof ProdutosCrmImobiliarioRoute
   ProdutosIaWhatsappRoute: typeof ProdutosIaWhatsappRoute
   ProdutosSitesInstitucionaisRoute: typeof ProdutosSitesInstitucionaisRoute
@@ -1717,6 +1742,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImoveisUsadosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/integracoes': {
+      id: '/_app/integracoes'
+      path: '/integracoes'
+      fullPath: '/integracoes'
+      preLoaderRoute: typeof AppIntegracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/leads': {
       id: '/_app/leads'
       path: '/leads'
@@ -1912,6 +1944,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/whatsapp'
       preLoaderRoute: typeof AppWhatsappRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/docs/api': {
+      id: '/docs/api'
+      path: '/docs/api'
+      fullPath: '/docs/api'
+      preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/parceiros/': {
       id: '/parceiros/'
@@ -2554,6 +2593,7 @@ interface AppRouteChildren {
   AppGuiaSistemaRoute: typeof AppGuiaSistemaRoute
   AppImoveisRoute: typeof AppImoveisRoute
   AppImoveisUsadosRoute: typeof AppImoveisUsadosRouteWithChildren
+  AppIntegracoesRoute: typeof AppIntegracoesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppLeadsPerdidosRoute: typeof AppLeadsPerdidosRoute
   AppLeadsFriosRoute: typeof AppLeadsFriosRoute
@@ -2607,6 +2647,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGuiaSistemaRoute: AppGuiaSistemaRoute,
   AppImoveisRoute: AppImoveisRoute,
   AppImoveisUsadosRoute: AppImoveisUsadosRouteWithChildren,
+  AppIntegracoesRoute: AppIntegracoesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppLeadsPerdidosRoute: AppLeadsPerdidosRoute,
   AppLeadsFriosRoute: AppLeadsFriosRoute,
@@ -2712,6 +2753,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  DocsApiRoute: DocsApiRoute,
   ProdutosCrmImobiliarioRoute: ProdutosCrmImobiliarioRoute,
   ProdutosIaWhatsappRoute: ProdutosIaWhatsappRoute,
   ProdutosSitesInstitucionaisRoute: ProdutosSitesInstitucionaisRoute,

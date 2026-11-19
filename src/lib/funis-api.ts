@@ -8,7 +8,14 @@ export type FunilEtapaPapel =
   | "perdido"
   | "concluido"
   | "aprovado"
-  | "reprovado";
+  | "reprovado"
+  | "prospeccao_ativa"
+  | "frio"
+  | "qualificado"
+  | "agendado"
+  | "agendado_compra"
+  | "agendado_venda"
+  | "proposta";
 
 export type FunilTipo =
   | "comercial"

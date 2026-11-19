@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { linhaDeEndereco, useConsultaCep } from "@/lib/cep-lookup";
+import { consultarSeCepCompleto, linhaDeEndereco, useConsultaCep } from "@/lib/cep-lookup";
 import { formatCep, formatCpfCnpj, formatRg } from "@/lib/utils";
 
 export type ContatoContratoValues = {
@@ -83,12 +83,12 @@ export function ContatoContratoFields({ idPrefix, values, onChange }: Props) {
           inputMode="numeric"
           value={values.cep}
           disabled={loading}
-          onChange={(e) => onChange({ cep: formatCep(e.target.value) })}
-          onBlur={() => {
-            void buscar(values.cep).then((endereco) => {
-              if (!endereco) return;
+          onChange={(e) => {
+            const cep = formatCep(e.target.value);
+            onChange({ cep });
+            consultarSeCepCompleto(cep, buscar, (endereco) => {
               onChange({
-                cep: formatCep(endereco.cep || values.cep),
+                cep: formatCep(endereco.cep || cep),
                 endereco: linhaDeEndereco(endereco) || values.endereco,
               });
             });

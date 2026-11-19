@@ -183,21 +183,35 @@ function pdfText(value: unknown, fallback = "—") {
   return fallback;
 }
 
-type PayRow = { qtd: string; descricao: string; valor: string; subtotal: string };
+type PayRow = {
+  qtd: string;
+  descricao: string;
+  valor: string;
+  subtotal: string;
+  data?: string;
+};
+
+function dataBr(raw?: string | null): string {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  const [ano, mes, dia] = raw.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
 
 function paymentRows(p: Proposta): PayRow[] {
   const rows: PayRow[] = [];
   for (const key of PROPOSTA_SIMPLES_KEYS) {
     if (key === "entrada" && p.sinais?.length) {
-      for (const value of p.sinais) {
-        if (value <= 0) continue;
+      p.sinais.forEach((value, index) => {
+        if (value <= 0) return;
+        const data = dataBr(p.sinaisDatas?.[index]);
         rows.push({
           qtd: "1",
           descricao: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
           valor: brl(value),
           subtotal: brl(value),
+          ...(data ? { data } : {}),
         });
-      }
+      });
       continue;
     }
     const value = p[key as PropostaSimplesKey];
@@ -214,15 +228,17 @@ function paymentRows(p: Proposta): PayRow[] {
     if (!values.length) continue;
     const descricao = PROPOSTA_COMPOSICAO_LABEL[key].toUpperCase();
     if (key === "intercaladas") {
-      for (const value of values) {
-        if (value <= 0) continue;
+      values.forEach((value, index) => {
+        if (value <= 0) return;
+        const data = dataBr(p.intercaladasDatas?.[index]);
         rows.push({
           qtd: "1",
           descricao,
           valor: brl(value),
           subtotal: brl(value),
+          ...(data ? { data } : {}),
         });
-      }
+      });
       continue;
     }
     const subtotal = values.reduce((sum, n) => sum + n, 0);
@@ -467,7 +483,12 @@ export async function buildPropostaPdfVisual(
 
     slice.forEach((row) => {
       x = margin;
-      const cells = [row.qtd, row.descricao, row.valor, row.subtotal];
+        const cells = [
+          row.qtd,
+          row.data ? `${row.descricao}  ${row.data}` : row.descricao,
+          row.valor,
+          row.subtotal,
+        ];
       cells.forEach((cell, i) => {
         doc.setFont("helvetica", i === 1 || i === 3 ? "bold" : "normal");
         doc.setFontSize(9);
@@ -481,9 +502,10 @@ export async function buildPropostaPdfVisual(
       y += rowH;
     });
 
-    if (!withTotals) return y;
+    return y;
+  }
 
-    y += 16;
+  function drawTotals(y: number) {
     const barH = 86;
     doc.setFillColor(...HEADER);
     doc.roundedRect(margin, y, contentW, barH, 10, 10, "F");
@@ -528,10 +550,11 @@ export async function buildPropostaPdfVisual(
   paintChrome(true);
   let y = drawIntro(headerH + 36);
   y += 18;
+  y = drawTotals(y);
+  y += 16;
   const footerReserve = 48;
   const rowH = 28;
   const titleBlock = 32;
-  const totalsBlock = 16 + 86;
   let pending = tableRows;
   let first = true;
   let guard = 0;
@@ -539,17 +562,10 @@ export async function buildPropostaPdfVisual(
     guard += 1;
     const room = pageH - footerReserve - y;
     const titleH = first ? titleBlock : 0;
-    const fitWithTotals = Math.floor(
-      (room - titleH - totalsBlock) / rowH,
-    );
-    if (fitWithTotals >= pending.length && fitWithTotals > 0) {
-      drawTable(y, pending, first, true);
-      break;
-    }
     const fitPlain = Math.max(1, Math.floor((room - titleH) / rowH));
-    const count = Math.min(fitPlain, Math.max(1, pending.length - 1));
+    const count = Math.min(fitPlain, pending.length);
     if (count >= pending.length) {
-      drawTable(y, pending, first, true);
+      drawTable(y, pending, first, false);
       break;
     }
     drawTable(y, pending.slice(0, count), first, false);

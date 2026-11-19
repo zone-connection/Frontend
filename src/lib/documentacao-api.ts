@@ -67,12 +67,22 @@ export interface Documentacao {
   dataAnalise: string | null;
   dataVenda: string | null;
   vgv: number | null;
+  propostaId?: string | null;
+  vendaSemProposta?: boolean;
+  proposta?: {
+    id: string;
+    codigo: string;
+    valor: number;
+    status: string;
+    clienteNome: string;
+  } | null;
   obs: string | null;
   temEntrada: boolean;
   valorEntrada: number | null;
   temFgts: boolean;
   valorFgts: number | null;
   temDependente: boolean;
+  jornada?: Record<string, string | null> | null;
   createdAt: string;
   updatedAt: string;
   autor: {
@@ -117,12 +127,15 @@ export type CreateDocumentacaoInput = {
   dataAnalise?: string | null;
   dataVenda?: string | null;
   vgv?: number | null;
+  propostaId?: string | null;
+  vendaSemProposta?: boolean;
   obs?: string | null;
   temEntrada?: boolean;
   valorEntrada?: number | null;
   temFgts?: boolean;
   valorFgts?: number | null;
   temDependente?: boolean;
+  jornada?: Record<string, string | null> | null;
   /** Data de cadastro retroativa (YYYY-MM-DD ou ISO). */
   createdAt?: string | null;
 };
@@ -177,6 +190,16 @@ export async function createDocumentacao(
   return apiFetch<Documentacao>("/documentacao", {
     method: "POST",
     body: input,
+  });
+}
+
+export async function marcarJornadaVenda(
+  id: string,
+  jornada: Record<string, string | null>,
+): Promise<Documentacao> {
+  return apiFetch<Documentacao>(`/documentacao/${id}/jornada`, {
+    method: "PATCH",
+    body: { jornada },
   });
 }
 

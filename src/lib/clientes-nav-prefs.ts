@@ -38,11 +38,22 @@ export function setHideClientesFromSidebar(hide: boolean): void {
   window.dispatchEvent(new Event(CLIENTES_NAV_EVENT));
 }
 
+function tenantEscondeClientesDosUsuarios() {
+  const session = getSession();
+  if (!session || session.role === "admin" || session.role === "super_admin") {
+    return false;
+  }
+  return session.tenant?.modules?.hideClientesNav === true;
+}
+
 export function useHideClientesFromSidebar() {
-  const [hide, setHide] = useState(() => getHideClientesFromSidebar());
+  const [hide, setHide] = useState(
+    () => getHideClientesFromSidebar() || tenantEscondeClientesDosUsuarios(),
+  );
 
   useEffect(() => {
-    const sync = () => setHide(getHideClientesFromSidebar());
+    const sync = () =>
+      setHide(getHideClientesFromSidebar() || tenantEscondeClientesDosUsuarios());
     sync();
     window.addEventListener(CLIENTES_NAV_EVENT, sync);
     window.addEventListener("storage", sync);

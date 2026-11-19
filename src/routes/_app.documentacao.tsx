@@ -102,6 +102,8 @@ import {
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
+import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
+import { PropostaCadastroDialog } from "@/components/propostas-page";
 import {
   dedupeStatusOptions,
   docPipelineFromStatus1,
@@ -153,6 +155,9 @@ import {
   MoreHorizontal,
   Building,
   Building2,
+  Landmark,
+  KeyRound,
+  CalendarDays,
   Filter,
   Search,
   X,
@@ -170,6 +175,7 @@ import {
   Users,
   ClipboardList,
   RotateCcw,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -193,6 +199,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { IdSearchSelect } from "@/components/id-search-select";
+import { DocumentacaoPropostaPainel } from "@/components/documentacao-proposta-painel";
 
 const DOC_STATUS_CHIP = cn(STATUS_CHIP_CLASS, "justify-start text-left");
 
@@ -295,6 +302,8 @@ type FormState = {
   dataAnalise: string;
   dataVenda: string;
   vgv: string;
+  propostaId: string;
+  vendaSemProposta: boolean;
   obs: string;
   temEntrada: boolean;
   valorEntrada: string;
@@ -321,6 +330,8 @@ const emptyForm = (): FormState => ({
   dataAnalise: "",
   dataVenda: "",
   vgv: "",
+  propostaId: "",
+  vendaSemProposta: false,
   obs: "",
   temEntrada: false,
   valorEntrada: "",
@@ -664,6 +675,7 @@ function DocumentacaoPage() {
   const [importFileName, setImportFileName] = useState("");
 
   const [open, setOpen] = useState(false);
+  const [abaDoc, setAbaDoc] = useState<"ficha" | "proposta">("ficha");
   const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
   const [interessadosUsado, setInteressadosUsado] = useState<InteressadoUsado[]>(
     [],
@@ -675,6 +687,34 @@ function DocumentacaoPage() {
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [propostaFormOpen, setPropostaFormOpen] = useState(false);
+  const [propostaValoresId, setPropostaValoresId] = useState<string | null>(
+    null,
+  );
+  const propostaEscolhida =
+    propostas.find((item) => item.id === form.propostaId) ?? null;
+
+  useEffect(() => {
+    if (!open) return;
+    let ativo = true;
+    void fetchPropostas()
+      .then((lista) => {
+        if (!ativo) return;
+        setPropostas((atual) => {
+          const extras = atual.filter(
+            (item) => !lista.some((salva) => salva.id === item.id),
+          );
+          return [...extras, ...lista];
+        });
+      })
+      .catch(() => {
+        if (ativo) setPropostas((atual) => atual);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [open]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -1289,6 +1329,7 @@ function DocumentacaoPage() {
     if (!canCreateDoc) return;
     resetCreateForm();
     setCreateLocked(false);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1326,6 +1367,8 @@ function DocumentacaoPage() {
       dataAnalise: toDateInput(doc.dataAnalise),
       dataVenda: toDateInput(doc.dataVenda),
       vgv: doc.vgv != null ? formatMoneyInput(doc.vgv) : "",
+      propostaId: doc.propostaId ?? "",
+      vendaSemProposta: doc.vendaSemProposta ?? false,
       obs: doc.obs ?? "",
       temEntrada: doc.temEntrada ?? false,
       valorEntrada:
@@ -1340,6 +1383,7 @@ function DocumentacaoPage() {
     setFormMode("view");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1348,6 +1392,7 @@ function DocumentacaoPage() {
     setFormMode("edit");
     setEditingId(doc.id);
     fillFromDoc(doc);
+    setAbaDoc("ficha");
     requestLeads();
     setOpen(true);
   }
@@ -1360,6 +1405,14 @@ function DocumentacaoPage() {
     () => leads.filter((item) => item.tipo === "cliente"),
     [leads],
   );
+
+  function abrirCriarProposta() {
+    if (form.nome.trim().length < 2) {
+      toast.error("Informe o nome do cliente antes de criar a proposta.");
+      return;
+    }
+    setPropostaFormOpen(true);
+  }
 
   function applyContato(id: string) {
     const contact = leads.find((item) => item.id === id);
@@ -1378,15 +1431,13 @@ function DocumentacaoPage() {
   }
 
   function buildPayload(): CreateDocumentacaoInput | null {
-    const interessado = interessadosUsado.find(
-      (item) => item.id === form.interessadoId,
-    );
+    const contatoEscolhido = leads.find((item) => item.id === form.leadId);
     const nome =
       form.origem === "usado"
-        ? (interessado?.nome ?? "").trim()
+        ? (contatoEscolhido?.nome || form.nome).trim()
         : form.nome.trim();
-    if (form.origem === "usado" && !form.interessadoId) {
-      toast.error("Selecione o interessado.");
+    if (form.origem === "usado" && nome.length < 2) {
+      toast.error("Selecione o interessado ou informe o nome.");
       return null;
     }
     if (nome.length < 2) {
@@ -1406,6 +1457,18 @@ function DocumentacaoPage() {
     const dataVenda =
       form.dataVenda ||
       (vgv != null && vgv > 0 ? todayDateInput() : null);
+    if (
+      !form.vendaSemProposta &&
+      vgv != null &&
+      vgv > 0 &&
+      dataVenda &&
+      !form.propostaId
+    ) {
+      toast.error(
+        "Vincule uma proposta para lançar a venda com VGV e data de venda.",
+      );
+      return null;
+    }
 
     const leadVinculado =
       leads.some((item) => item.id === form.leadId) ? form.leadId : "";
@@ -1416,7 +1479,10 @@ function DocumentacaoPage() {
       empreendimentoId: form.empreendimentoId || null,
       origem: form.origem,
       proprietarioId: form.origem === "usado" ? form.proprietarioId || null : null,
-      interessadoId: form.origem === "usado" ? form.interessadoId || null : null,
+      interessadoId:
+        form.origem === "usado" && !leadVinculado
+          ? form.interessadoId || null
+          : null,
       matricula: form.origem === "usado" ? form.matricula.trim() : "",
       fonte: form.fonte,
       status1: form.status1.trim(),
@@ -1429,6 +1495,8 @@ function DocumentacaoPage() {
       dataAnalise: form.dataAnalise || null,
       dataVenda,
       vgv,
+      propostaId: form.propostaId || null,
+      vendaSemProposta: form.vendaSemProposta,
       obs: form.obs.trim() || null,
       temEntrada: form.temEntrada,
       valorEntrada: form.temEntrada
@@ -2869,33 +2937,40 @@ function DocumentacaoPage() {
               ? "Editar documentação"
               : "Documentação"
         }
-        className="max-w-2xl"
+        className={abaDoc === "proposta" ? "max-w-5xl" : "max-w-2xl"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <FormDialogBody>
-            <div className="mb-4 flex w-fit gap-1 rounded-lg border border-[#E2E8EC] bg-[#F4F7F8] p-1">
+            <div className="mb-4 flex w-fit gap-1 rounded-lg border bg-muted p-1">
               {(
                 [
-                  ["lancamento", "Lançamento"],
-                  ["usado", "Usados"],
+                  ["ficha", "Ficha"],
+                  ["proposta", "Proposta"],
                 ] as const
               ).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
-                  disabled={readOnly}
-                  onClick={() => setField("origem", id)}
+                  onClick={() => setAbaDoc(id)}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm font-medium",
-                    form.origem === id
-                      ? "bg-white text-[#0B3148] shadow-sm"
-                      : "text-[#5C6B76]",
+                    abaDoc === id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            {abaDoc === "proposta" ? (
+              <DocumentacaoPropostaPainel
+                leadId={form.leadId}
+                empreendimentoId={form.empreendimentoId}
+                clienteNome={form.nome}
+              />
+            ) : (
+            <>
             <FormSection title={form.origem === "usado" ? "Venda de usados" : "Dados da planilha"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 {form.origem === "lancamento" ? (
@@ -3039,18 +3114,42 @@ function DocumentacaoPage() {
                 <div className="space-y-2">
                   <Label>Interessado *</Label>
                   <IdSearchSelect
-                    value={form.interessadoId}
-                    options={interessadosUsado.map((item) => ({
+                    value={
+                      leads.some((item) => item.id === form.leadId)
+                        ? form.leadId
+                        : ""
+                    }
+                    options={leads.map((item) => ({
                       id: item.id,
-                      label: item.nome,
-                      keywords: `${item.nome} ${item.telefone}`,
+                      label: `${item.nome} · ${item.tipo === "cliente" ? "Cliente" : "Lead"}`,
+                      keywords: `${item.nome} ${item.telefone} ${item.tipo}`,
                     }))}
-                    onChange={(id) => setField("interessadoId", id)}
-                    placeholder="Selecione"
-                    searchPlaceholder="Pesquisar interessado…"
-                    emptyLabel="Nenhum interessado cadastrado"
+                    onChange={(id) => {
+                      if (!id) {
+                        setForm((prev) => ({
+                          ...prev,
+                          leadId: "",
+                          interessadoId: "",
+                        }));
+                        return;
+                      }
+                      applyContato(id);
+                      setField("interessadoId", "");
+                    }}
+                    placeholder="Lead ou cliente"
+                    noneLabel="Não está na lista"
+                    searchPlaceholder="Pesquisar lead ou cliente…"
+                    emptyLabel="Nenhum lead ou cliente cadastrado"
                     disabled={readOnly}
                   />
+                  {!leads.some((item) => item.id === form.leadId) && (
+                    <Input
+                      value={form.nome}
+                      onChange={(e) => setField("nome", e.target.value)}
+                      placeholder="Nome de quem não está na lista"
+                      disabled={readOnly}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="matricula">Matrícula</Label>
@@ -3344,6 +3443,239 @@ function DocumentacaoPage() {
                   />
                 </div>
 
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Proposta</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="venda-sem-proposta" className="text-xs font-normal">
+                        Venda sem proposta
+                      </Label>
+                      <Switch
+                        id="venda-sem-proposta"
+                        checked={form.vendaSemProposta}
+                        onCheckedChange={(checked) =>
+                          setField("vendaSemProposta", checked)
+                        }
+                        disabled={readOnly}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    {!readOnly ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-xs"
+                        onClick={abrirCriarProposta}
+                      >
+                        + Criar proposta
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={form.propostaId || "__none__"}
+                      onValueChange={(v) => {
+                        const id = v === "__none__" ? "" : v;
+                        setField("propostaId", id);
+                        setPropostaValoresId(id || null);
+                      }}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a proposta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem proposta</SelectItem>
+                        {propostas
+                          .filter(
+                            (item) =>
+                              !form.leadId ||
+                              !item.leadId ||
+                              item.leadId === form.leadId ||
+                              item.id === form.propostaId,
+                          )
+                          .map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {[
+                                item.codigo,
+                                item.clienteNome,
+                                item.construtora?.nome,
+                                item.empreendimento?.nome,
+                                item.unidade?.trim(),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      disabled={!form.propostaId}
+                      aria-expanded={propostaValoresId === form.propostaId}
+                      aria-label={
+                        propostaValoresId === form.propostaId
+                          ? "Ocultar resumo da proposta"
+                          : "Exibir resumo da proposta"
+                      }
+                      onClick={() =>
+                        setPropostaValoresId((atual) =>
+                          atual === form.propostaId ? null : form.propostaId,
+                        )
+                      }
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          propostaValoresId === form.propostaId && "rotate-180",
+                        )}
+                      />
+                    </Button>
+                  </div>
+                  {propostaEscolhida &&
+                  propostaValoresId === propostaEscolhida.id ? (
+                    <div className="overflow-hidden rounded-2xl border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Plano de pagamento</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(
+                            [
+                              ["Entrada", propostaEscolhida.entrada],
+                              ["FGTS", propostaEscolhida.fgts],
+                              [
+                                "Financiamento",
+                                propostaEscolhida.financiamento,
+                              ],
+                              [
+                                "Parcelas até as chaves",
+                                (propostaEscolhida.preChaves ?? []).reduce(
+                                  (soma, valor) => soma + valor,
+                                  0,
+                                ) || null,
+                              ],
+                              [
+                                "Parcelas depois das chaves",
+                                (propostaEscolhida.posChaves ?? []).reduce(
+                                  (soma, valor) => soma + valor,
+                                  0,
+                                ) || null,
+                              ],
+                            ] as Array<[string, number | null]>
+                          ).map(([nome, valor]) => {
+                            const PlanoIcon =
+                              nome === "FGTS"
+                                ? Landmark
+                                : nome === "Financiamento"
+                                  ? Building2
+                                  : nome.startsWith("Parcelas até")
+                                    ? KeyRound
+                                    : nome.startsWith("Parcelas depois")
+                                      ? CalendarDays
+                                      : Wallet;
+                            return (
+                              <TableRow key={nome}>
+                                <TableCell>
+                                  <span className="inline-flex items-center gap-2">
+                                    <PlanoIcon className="size-4 text-muted-foreground" />
+                                    {nome}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {typeof valor === "number" && valor > 0
+                                    ? brl(valor)
+                                    : "—"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      {form.vendaSemProposta
+                        ? "Venda sem proposta ativada. Dá para lançar com VGV e data de venda."
+                        : "Obrigatória quando a venda tem VGV e data de venda. Sem proposta, a jornada não fecha por completo."}
+                    </p>
+                  </div>
+                  <PropostaCadastroDialog
+                    open={propostaFormOpen}
+                    seed={{
+                      nome: form.nome,
+                      leadId: form.leadId,
+                      construtoraId: form.construtoraId,
+                      empreendimentoId: form.empreendimentoId,
+                      corretorId: form.corretorId,
+                      valor: form.vgv,
+                    }}
+                    onOpenChange={setPropostaFormOpen}
+                    onCreated={(proposta) => {
+                      const construtora =
+                        proposta.construtora ??
+                        construtoras.find(
+                          (item) => item.id === proposta.construtoraId,
+                        ) ??
+                        null;
+                      const empreendimento =
+                        proposta.empreendimento ??
+                        empreendimentos.find(
+                          (item) => item.id === proposta.empreendimentoId,
+                        ) ??
+                        null;
+                      const criada: Proposta = {
+                        ...proposta,
+                        construtora: construtora
+                          ? {
+                              id: construtora.id,
+                              nome: construtora.nome,
+                              cor:
+                                "cor" in construtora
+                                  ? construtora.cor
+                                  : null,
+                            }
+                          : null,
+                        empreendimento: empreendimento
+                          ? {
+                              id: empreendimento.id,
+                              nome: empreendimento.nome,
+                              cidade:
+                                "cidade" in empreendimento
+                                  ? empreendimento.cidade
+                                  : null,
+                            }
+                          : null,
+                      };
+                      setPropostas((lista) => [
+                        criada,
+                        ...lista.filter((item) => item.id !== criada.id),
+                      ]);
+                      setForm((atual) => ({
+                        ...atual,
+                        propostaId: criada.id,
+                      }));
+                      setPropostaValoresId(criada.id);
+                      setPropostaFormOpen(false);
+                      if (editingId) {
+                        void updateDocumentacao(editingId, {
+                          propostaId: criada.id,
+                        }).catch(() => {
+                          toast.error(
+                            "A proposta foi criada, mas não ficou vinculada à documentação.",
+                          );
+                        });
+                      }
+                    }}
+                  />
+
                 <div className="space-y-3 sm:col-span-2 rounded-lg border border-border/60 p-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Condições do cliente
@@ -3435,6 +3767,8 @@ function DocumentacaoPage() {
                 />
               </div>
             ) : null}
+            </>
+            )}
           </FormDialogBody>
           <FormDialogActions
             hint={
@@ -3443,7 +3777,7 @@ function DocumentacaoPage() {
                 : undefined
             }
           >
-            {formMode === "create" && (
+            {abaDoc === "ficha" && formMode === "create" && (
               <Button
                 type="button"
                 variant={createLocked ? "secondary" : "outline"}
@@ -3468,7 +3802,7 @@ function DocumentacaoPage() {
                   ? "Sair"
                   : "Cancelar"}
             </Button>
-            {!readOnly && (
+            {abaDoc === "ficha" && !readOnly && (
               <Button type="submit" loading={saving} loadingText="Salvando...">
                 Salvar
               </Button>

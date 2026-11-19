@@ -396,6 +396,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
 const GERENTE_BRONZE_ROUTES = [
   "/dashboard",
   "/leads",
+  "/leads-frios",
   "/caca-lead",
   "/funil",
   "/agenda",

@@ -32,6 +32,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
   super_admin: [
     "/perfil",
     "/tenants",
+    "/integracoes",
     "/prospeccao",
     "/financeiro/visao-geral",
     "/financeiro/clientes-fornecedores",
@@ -214,6 +215,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
 const GERENTE_BRONZE_ROUTES: readonly string[] = [
   "/dashboard",
   "/leads",
+  "/leads-frios",
   "/whatsapp",
   "/caca-lead",
   "/funil",
@@ -251,11 +253,22 @@ export function canAccessRoute(
   if (role === "super_admin") {
     if (path === "/perfil" || path.startsWith("/perfil/")) return true;
     if (path === "/tenants" || path.startsWith("/tenants/")) return true;
+    if (path === "/integracoes" || path.startsWith("/integracoes/")) return true;
     if (path === "/prospeccao" || path.startsWith("/prospeccao/")) return true;
     if (path === "/financeiro" || path.startsWith("/financeiro/")) return true;
     return false;
   }
   if (path === "/whatsapp" && options?.hasOzapConnection !== true) {
+    return false;
+  }
+  if (
+    modules?.hideClientesNav === true &&
+    role !== "admin" &&
+    (path === "/clientes" ||
+      path.startsWith("/clientes/") ||
+      path === "/funil-clientes" ||
+      path.startsWith("/funil-clientes/"))
+  ) {
     return false;
   }
   if (path === "/clientes-perdidos" || path.startsWith("/clientes-perdidos/")) {

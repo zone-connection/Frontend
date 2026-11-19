@@ -109,6 +109,18 @@ export function useConsultaCep(publico = false) {
   return { loading, buscar };
 }
 
+/** Dispara a consulta assim que os 8 dígitos estão no campo. */
+export function consultarSeCepCompleto(
+  cep: string,
+  buscar: (cep: string) => Promise<EnderecoCep | null>,
+  aplicar: (endereco: EnderecoCep) => void,
+) {
+  if (cep.replace(/\D/g, "").length !== 8) return;
+  void buscar(cep).then((endereco) => {
+    if (endereco) aplicar(endereco);
+  });
+}
+
 /** Campo de CEP que só serve para preencher o endereço ao lado. */
 export function CampoCep({
   id,
@@ -137,11 +149,10 @@ export function CampoCep({
         placeholder={loading ? "Consultando..." : "00000-000"}
         maxLength={9}
         className="h-10 bg-background"
-        onChange={(e) => setCep(formatCep(e.target.value))}
-        onBlur={() => {
-          void buscar(cep).then((endereco) => {
-            if (endereco) onEncontrado(endereco);
-          });
+        onChange={(e) => {
+          const valor = formatCep(e.target.value);
+          setCep(valor);
+          consultarSeCepCompleto(valor, buscar, onEncontrado);
         }}
       />
     </div>

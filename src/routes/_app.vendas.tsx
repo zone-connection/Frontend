@@ -1,19 +1,28 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  Banknote,
+  Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   BarChart3,
   CircleUser,
+  FileSignature,
   Filter,
   Globe,
+  HardHat,
+  Headset,
+  KeyRound,
+  Landmark,
   Loader2,
+  PenLine,
   Pencil,
   Search,
   UserRound,
   Users,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { DashDonut, DashDonutLegend } from "@/components/dash-donut";
@@ -54,7 +63,6 @@ import {
   VENDA_STATUS_LABEL,
   type VendaUsado,
 } from "@/lib/imoveis-usados-api";
-import { LOCACOES_MOCK } from "@/lib/modulos-mock";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { origemBadgeClass } from "@/lib/catalog-colors";
@@ -63,11 +71,13 @@ import {
   displayFonte,
   fetchDocumentacaoCorretores,
   fetchDocumentacoes,
+  marcarJornadaVenda,
   updateDocumentacao,
   type Documentacao,
   type DocumentacaoCorretor,
 } from "@/lib/documentacao-api";
 import { isStatusVendido } from "@/lib/documentacao-status";
+import { fetchPropostas, type Proposta } from "@/lib/propostas-api";
 import {
   fetchEmpreendimentos,
   type Empreendimento,
@@ -106,6 +116,31 @@ function brl(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+const ETAPAS_JORNADA = [
+  { id: "contrato", nome: "Contrato", icon: FileSignature },
+  { id: "assinatura", nome: "Assinatura", icon: PenLine },
+  { id: "obra", nome: "Obra", icon: HardHat },
+  { id: "chaves", nome: "Entrega de chaves", icon: KeyRound },
+  { id: "posVenda", nome: "Pós-venda", icon: Headset },
+] as const;
+
+type EtapaJornadaId = (typeof ETAPAS_JORNADA)[number]["id"];
+
+function iconePlano(nome: string): LucideIcon {
+  if (nome === "FGTS") return Landmark;
+  if (nome === "Financiamento") return Building2;
+  if (nome.startsWith("Parcelas até")) return KeyRound;
+  if (nome.startsWith("Parcelas depois")) return CalendarDays;
+  return Wallet;
+}
+
+function dataMarcada(valor: string | null) {
+  if (!valor) return "";
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return "";
+  return data.toLocaleDateString("pt-BR");
 }
 
 function normalize(value: string | null | undefined) {
@@ -226,7 +261,7 @@ function PersonCell({ name, detail }: { name: string; detail?: string }) {
         {initials(name)}
       </span>
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium text-[#1A242C]">{name}</div>
+        <div className="truncate text-sm font-medium text-foreground">{name}</div>
         {detail ? (
           <div className="truncate text-xs text-[#8B98A3]">{detail}</div>
         ) : null}
@@ -348,6 +383,9 @@ function VendasDocumentacaoPage() {
   const [editing, setEditing] = useState<Documentacao | null>(null);
   const [editForm, setEditForm] = useState<VendaEditForm>(emptyVendaEditForm);
   const [editOpen, setEditOpen] = useState(false);
+  const [fluxo, setFluxo] = useState<Documentacao | null>(null);
+  const [marcandoEtapa, setMarcandoEtapa] = useState(false);
+  const [propostaAceita, setPropostaAceita] = useState<Proposta | null>(null);
   const [saving, setSaving] = useState(false);
   const emptyFilters = useMemo(
     () => ({
@@ -373,6 +411,51 @@ function VendasDocumentacaoPage() {
     setDraft((prev) => ({ ...prev, ...range }));
     setApplied((prev) => ({ ...prev, ...range }));
   }, [periodo]);
+
+  useEffect(() => {
+    if (!fluxo?.leadId) {
+      setPropostaAceita(null);
+      return;
+    }
+    let ativo = true;
+    void fetchPropostas()
+      .then((lista) => {
+        if (!ativo) return;
+        const aceita = lista.find(
+          (item) => item.leadId === fluxo.leadId && item.status === "aceita",
+        );
+        setPropostaAceita(aceita ?? null);
+      })
+      .catch(() => {
+        if (ativo) setPropostaAceita(null);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [fluxo?.id, fluxo?.leadId]);
+
+  async function alternarEtapa(etapa: EtapaJornadaId) {
+    if (!fluxo || marcandoEtapa) return;
+    const atual = fluxo.jornada ?? {};
+    const jornada = {
+      ...atual,
+      [etapa]: atual[etapa] ? null : new Date().toISOString(),
+    };
+    setMarcandoEtapa(true);
+    try {
+      const atualizada = await marcarJornadaVenda(fluxo.id, jornada);
+      setFluxo(atualizada);
+      setDocs((lista) =>
+        lista.map((item) => (item.id === atualizada.id ? atualizada : item)),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Não foi possível marcar a etapa.",
+      );
+    } finally {
+      setMarcandoEtapa(false);
+    }
+  }
 
   useEffect(() => {
     if (!canView) {
@@ -744,15 +827,15 @@ function VendasDocumentacaoPage() {
             <span className="px-1.5">/</span>
             <span className="text-[#5C6B76]">Vendas</span>
           </p>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#0B3148]">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
             <BarChart3 className="size-5 text-[#079ED4]" />
             Vendas
           </h1>
-          <p className="mt-1 max-w-xl text-sm text-[#5C6B76]">
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Acompanhe o desempenho das suas vendas e filtre os resultados conforme o período e critérios desejados.
           </p>
           {abas.length > 1 ? (
-            <div className="mt-3 flex w-fit gap-1 rounded-xl border border-[#E2E8EC] bg-[#F4F7F8] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+            <div className="mt-3 flex w-fit gap-1 rounded-xl border bg-muted p-1">
               {abas.map((item) => (
                 <button
                   key={item.id}
@@ -761,8 +844,8 @@ function VendasDocumentacaoPage() {
                   className={cn(
                     "rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
                     abaAtiva === item.id
-                      ? "bg-white text-[#0B3148] shadow-sm ring-1 ring-[#E2E8EC]"
-                      : "text-[#5C6B76] hover:bg-white/70 hover:text-[#0B3148]",
+                      ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
                   )}
                 >
                   {item.label}
@@ -778,7 +861,7 @@ function VendasDocumentacaoPage() {
               setPeriodo(value as "30" | "90" | "365" | "all" | "custom")
             }
           >
-            <SelectTrigger className="h-10 w-[190px] rounded-xl border-[#E2E8EC] bg-white shadow-sm">
+            <SelectTrigger className="h-10 w-[190px] rounded-xl bg-background shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -829,6 +912,7 @@ function VendasDocumentacaoPage() {
           lancamentos={verLancamentos ? filtered : []}
           usados={verUsados}
           locacao={verLocacao}
+          onAcompanhar={setFluxo}
           dataDe={applied.dataDe}
           dataAte={applied.dataAte}
         />
@@ -1098,9 +1182,7 @@ function VendasDocumentacaoPage() {
                     <TableHead>Corretor</TableHead>
                     <TableHead>Data da venda</TableHead>
                     <TableHead className="text-right">VGV</TableHead>
-                    {canEdit ? (
-                      <TableHead className="text-right">Ações</TableHead>
-                    ) : null}
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1151,21 +1233,32 @@ function VendasDocumentacaoPage() {
                         <TableCell className="text-right font-medium tabular-nums whitespace-nowrap">
                           {doc.vgv != null ? brl(doc.vgv) : "—"}
                         </TableCell>
-                        {canEdit ? (
-                          <TableCell className="text-right">
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
                             <Button
                               type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Editar venda"
-                              onClick={() => void openEdit(doc)}
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => setFluxo(doc)}
                             >
-                              <Pencil className="h-4 w-4" />
-                              <span className="sr-only">Editar venda</span>
+                              Acompanhar
                             </Button>
-                          </TableCell>
-                        ) : null}
+                            {canEdit ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Editar venda"
+                                onClick={() => void openEdit(doc)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar venda</span>
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -1423,6 +1516,155 @@ function VendasDocumentacaoPage() {
       </FormDialogShell>
       </>
       ) : null}
+      <FormDialogShell
+        open={fluxo != null}
+        onOpenChange={(open) => {
+          if (!open) setFluxo(null);
+        }}
+        icon={<Wallet className="h-5 w-5" />}
+        title={fluxo?.nome ?? "Venda"}
+        description="Jornada do comprador nesta venda."
+        className="max-w-5xl"
+      >
+        {fluxo ? (
+          <FormDialogBody className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3 sm:col-span-2">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                  <Building2 className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Imóvel</p>
+                  <p className="mt-1 truncate text-lg font-semibold">{fluxo.empreendimento?.nome ?? "—"}</p>
+                  <p className="truncate text-sm text-muted-foreground">{fluxo.construtora?.nome ?? "Sem construtora"}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                  <Banknote className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Valor da venda</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">{fluxo.vgv != null ? brl(fluxo.vgv) : "—"}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 rounded-2xl border bg-card px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                  <UserRound className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Responsável</p>
+                  <p className="mt-1 truncate font-semibold">{fluxo.corretor?.name ?? fluxo.lead?.corretor?.name ?? "—"}</p>
+                  <p className="truncate text-sm text-muted-foreground">{fluxo.gerente?.name ?? "Sem gerente"}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Crédito · {fluxo.status1 || "—"}</Badge>
+              <Badge variant="outline">Venda · {fluxo.status2 || "—"}</Badge>
+              <Badge variant="outline">Análise · {dateBr(fluxo.dataAnalise) || "—"}</Badge>
+              <Badge variant="outline">Venda em · {dateBr(fluxo.dataVenda) || "—"}</Badge>
+              {propostaAceita ? (
+                <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  Proposta aceita · {propostaAceita.codigo} · {brl(propostaAceita.valor)}
+                </Badge>
+              ) : (
+                <Badge variant="outline">Sem proposta aceita</Badge>
+              )}
+            </div>
+            <div>
+              <p className="mb-3 text-sm font-medium">Jornada do comprador</p>
+              <div className="flex items-stretch overflow-x-auto pb-1">
+                {ETAPAS_JORNADA.map((etapa, index) => {
+                  const marcadaEm = fluxo.jornada?.[etapa.id] ?? null;
+                  const marcada = Boolean(marcadaEm);
+                  const EtapaIcon = etapa.icon;
+                  return (
+                    <div key={etapa.id} className="flex min-w-[8.5rem] flex-1 items-center">
+                      <button
+                        type="button"
+                        disabled={marcandoEtapa}
+                        onClick={() => void alternarEtapa(etapa.id)}
+                        className={cn(
+                          "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
+                          marcada
+                            ? "border-emerald-500 bg-emerald-500/15"
+                            : "bg-card hover:bg-muted",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "grid size-8 place-items-center rounded-full",
+                            marcada
+                              ? "bg-emerald-500 text-white"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          <EtapaIcon className="size-4" />
+                        </span>
+                        <p className="mt-2 text-sm font-medium">{etapa.nome}</p>
+                        <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                          {marcada ? dataMarcada(marcadaEm) : "Toque para marcar"}
+                        </p>
+                      </button>
+                      {index < ETAPAS_JORNADA.length - 1 ? (
+                        <div className="mx-1.5 h-1.5 w-6 shrink-0 overflow-hidden rounded-full bg-muted sm:w-10">
+                          <div
+                            className={cn(
+                              "h-full rounded-full bg-emerald-500 transition-all duration-300",
+                              marcada ? "w-full" : "w-0",
+                            )}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="overflow-hidden rounded-2xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plano de pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(propostaAceita
+                    ? [
+                        ["Entrada", propostaAceita.entrada],
+                        ["FGTS", propostaAceita.fgts],
+                        ["Financiamento", propostaAceita.financiamento],
+                        ["Parcelas até as chaves", (propostaAceita.preChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                        ["Parcelas depois das chaves", (propostaAceita.posChaves ?? []).reduce((s, n) => s + n, 0) || null],
+                      ]
+                    : [
+                        ["Entrada", fluxo.temEntrada ? fluxo.valorEntrada : null],
+                        ["FGTS", fluxo.temFgts ? fluxo.valorFgts : null],
+                      ]
+                  ).map(([nome, valor]) => {
+                    const PlanoIcon = iconePlano(String(nome));
+                    return (
+                    <TableRow key={String(nome)}>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-2">
+                          <PlanoIcon className="size-4 text-muted-foreground" />
+                          {nome}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {typeof valor === "number" && valor > 0 ? brl(valor) : "—"}
+                      </TableCell>
+                    </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </FormDialogBody>
+        ) : null}
+      </FormDialogShell>
     </div>
   );
 }
@@ -1483,7 +1725,7 @@ function VendasUsadosPanel() {
         <VendaKpi label="Vendidos" value={String(items.length)} icon={Filter} tone="teal" />
         <VendaKpi label="Valor de venda" value={brl(total)} icon={Wallet} tone="blue" />
       </div>
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1551,12 +1793,14 @@ function VendasTodosPanel({
   lancamentos,
   usados,
   locacao,
+  onAcompanhar,
   dataDe,
   dataAte,
 }: {
   lancamentos: Documentacao[];
   usados: boolean;
   locacao: boolean;
+  onAcompanhar: (doc: Documentacao) => void;
   dataDe: string;
   dataAte: string;
 }) {
@@ -1609,6 +1853,7 @@ function VendasTodosPanel({
     responsavel: string;
     valor: string;
     dia: string;
+    doc?: Documentacao;
   }[] = [
     ...lancamentos.map((doc) => ({
       id: `lanc-${doc.id}`,
@@ -1618,6 +1863,7 @@ function VendasTodosPanel({
       responsavel: doc.corretor?.name ?? doc.lead?.corretor?.name ?? "—",
       valor: doc.vgv != null ? brl(doc.vgv) : "—",
       dia: dateDay(doc.dataVenda) || dateDay(doc.createdAt),
+      doc,
     })),
     ...usadosItems.map((item) => ({
       id: `usado-${item.id}`,
@@ -1659,10 +1905,10 @@ function VendasTodosPanel({
     .filter((item) => item.total > 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-[0_8px_24px_rgba(11,49,72,0.05)]">
-      <div className="flex flex-col gap-3 border-b border-[#EEF2F4] bg-gradient-to-r from-[#F7FBFD] to-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-col gap-3 border-b bg-muted/40 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-[#0B3148]">
+          <span className="text-sm font-semibold text-foreground">
             {visiveis.length} {visiveis.length === 1 ? "venda" : "vendas"}
           </span>
           {resumo.map((item) => (
@@ -1688,24 +1934,25 @@ function VendasTodosPanel({
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
             placeholder="Cliente, referência ou responsável"
-            className="h-10 rounded-xl border-[#E2E8EC] bg-white pl-9 shadow-sm"
+            className="h-10 rounded-xl bg-background pl-9 shadow-sm"
           />
         </div>
       </div>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Tipo</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Cliente</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Referência</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Responsável</TableHead>
-            <TableHead className="h-11 bg-[#F7F9FA] text-right text-[11px] font-semibold uppercase tracking-wide text-[#8B98A3]">Valor</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tipo</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Referência</TableHead>
+            <TableHead className="h-11 bg-muted text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Responsável</TableHead>
+            <TableHead className="h-11 bg-muted text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</TableHead>
+            <TableHead className="h-11 bg-muted" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {visiveis.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-14 text-center text-sm text-[#5C6B76]">
+              <TableCell colSpan={6} className="py-14 text-center text-sm text-muted-foreground">
                 {linhas.length === 0
                   ? dataDe || dataAte
                     ? "Nenhuma venda neste período."
@@ -1715,7 +1962,7 @@ function VendasTodosPanel({
             </TableRow>
           ) : (
             visiveis.map((row) => (
-              <TableRow key={row.id} className="border-[#EEF2F4] hover:bg-[#F7FBFD]">
+              <TableRow key={row.id} className="hover:bg-muted/40">
                 <TableCell className="py-3.5">
                   <TipoVendaBadge tipo={row.tipo} />
                 </TableCell>
@@ -1723,13 +1970,26 @@ function VendasTodosPanel({
                   <PersonCell name={row.cliente} />
                 </TableCell>
                 <TableCell className="max-w-[280px] py-3.5">
-                  <span className="line-clamp-2 text-sm text-[#3D4C57]">{row.referencia}</span>
+                  <span className="line-clamp-2 text-sm text-foreground">{row.referencia}</span>
                 </TableCell>
                 <TableCell className="py-3.5">
                   <PersonCell name={row.responsavel} />
                 </TableCell>
-                <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-[#0B3148]">
+                <TableCell className="py-3.5 text-right text-sm font-semibold tabular-nums text-foreground">
                   {row.valor}
+                </TableCell>
+                <TableCell className="py-3.5 text-right">
+                  {row.doc ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => onAcompanhar(row.doc!)}
+                    >
+                      Acompanhar
+                    </Button>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))
@@ -1742,34 +2002,8 @@ function VendasTodosPanel({
 
 function VendasLocacaoPanel() {
   return (
-    <div>
-      <p className="mb-3 text-sm text-[#5C6B76]">
-        Carteira de locação do módulo ativo. Os contratos reais entram quando o aluguel deixar de ser demonstração.
-      </p>
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8EC] bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Interessado</TableHead>
-              <TableHead>Imóvel</TableHead>
-              <TableHead>Aluguel</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Corretor</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {LOCACOES_MOCK.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium">{row.nome}</TableCell>
-                <TableCell>{row.imovel}</TableCell>
-                <TableCell>{row.aluguel}</TableCell>
-                <TableCell>{row.etapa}</TableCell>
-                <TableCell>{row.corretor}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="rounded-2xl border bg-card px-6 py-14 text-center text-sm text-muted-foreground shadow-sm">
+      Nenhuma locação cadastrada.
     </div>
   );
 }

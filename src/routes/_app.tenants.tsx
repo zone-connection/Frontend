@@ -86,7 +86,12 @@ import {
   type TenantModuleKey,
   type TenantPlano,
 } from "@/lib/tenant-modules";
-import { formatCpfCnpj } from "@/lib/utils";
+import { cn, formatCpfCnpj } from "@/lib/utils";
+import {
+  FILTER_VISTA_BTN,
+  FILTER_VISTA_BTN_ACTIVE,
+  FILTER_VISTA_WRAP,
+} from "@/lib/filter-bar";
 import {
   ImageUploadField,
   assertImageFile,
@@ -99,6 +104,8 @@ import {
   Copy,
   DatabaseZap,
   KeyRound,
+  LayoutGrid,
+  LayoutList,
   Link2,
   Loader2,
   MessageCircle,
@@ -146,6 +153,26 @@ const emptyTenantForm = (): TenantForm => ({
   modules: modulesPresetForPlano("bronze"),
 });
 
+const PLANO_CHIP: Record<TenantPlano, string> = {
+  solo: "border-sky-400/50 bg-sky-500/15 text-sky-700 dark:text-sky-200",
+  bronze: "border-orange-700/50 bg-orange-800/20 text-orange-800 dark:text-orange-200",
+  prata: "border-slate-400/60 bg-slate-300/30 text-slate-700 dark:text-slate-100",
+  ouro: "border-amber-400/70 bg-amber-400/25 text-amber-800 dark:text-amber-200",
+};
+
+function PlanoBadge({ plano }: { plano: string | null | undefined }) {
+  const chave = (plano ?? "") as TenantPlano;
+  const classe = PLANO_CHIP[chave];
+  return (
+    <Badge
+      variant="outline"
+      className={cn("text-[10px]", classe)}
+    >
+      {PLANO_LABELS[chave] ?? plano ?? "—"}
+    </Badge>
+  );
+}
+
 function connectionLabels(item: Tenant): string[] {
   const labels: string[] = [];
   if (item.iaBotEnabled || item.hasOzapConnection) labels.push("IA");
@@ -165,6 +192,7 @@ function TenantsPage() {
   const [items, setItems] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [listFilter, setListFilter] = useState<TenantListFilter>("reais");
+  const [vista, setVista] = useState<"cards" | "tabela">("cards");
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -945,6 +973,7 @@ function TenantsPage() {
         }
       />
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <Tabs
         value={listFilter}
         onValueChange={(value) => setListFilter(value as TenantListFilter)}
@@ -976,6 +1005,29 @@ function TenantsPage() {
           </TabsTrigger>
         </TabsList>
       </Tabs>
+        <div className={FILTER_VISTA_WRAP}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(FILTER_VISTA_BTN, vista === "cards" && FILTER_VISTA_BTN_ACTIVE)}
+            onClick={() => setVista("cards")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="ml-1.5">Cards</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(FILTER_VISTA_BTN, vista === "tabela" && FILTER_VISTA_BTN_ACTIVE)}
+            onClick={() => setVista("tabela")}
+          >
+            <LayoutList className="h-4 w-4" />
+            <span className="ml-1.5">Tabela</span>
+          </Button>
+        </div>
+      </div>
 
       <Card>
         <CardContent className="p-0">
@@ -1006,6 +1058,85 @@ function TenantsPage() {
                       : "Nenhum cliente ativo nesta lista."}
               </p>
             </div>
+          ) : vista === "cards" ? (
+            <>
+              <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                {pager.pageItems.map((item) => {
+                  const conexoes = connectionLabels(item);
+                  return (
+                    <article
+                      key={item.id}
+                      className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-card p-4 shadow-sm dark:border-white/10"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted/40">
+                          {item.logoUrl ? (
+                            <img
+                              src={item.logoUrl}
+                              alt=""
+                              className="h-full w-full object-contain p-0.5"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-medium">{item.name}</p>
+                            {item.isTest ? (
+                              <Badge variant="secondary" className="shrink-0 text-[10px]">
+                                Teste
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <code className="text-[11px] text-muted-foreground">{item.slug}</code>
+                        </div>
+                        <Badge
+                          variant={item.status === "ativo" ? "default" : "secondary"}
+                          className={STATUS_CHIP_CLASS}
+                        >
+                          {item.status === "ativo" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <PlanoBadge plano={item.plano} />
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {item.documento ? formatCpfCnpj(item.documento) : "Sem documento"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {conexoes.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">Sem conexão</span>
+                        ) : (
+                          conexoes.map((c) => (
+                            <Badge key={c} variant="secondary" className="text-[10px]">
+                              {c}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                      <div className="mt-auto flex justify-end gap-1">
+                        <Button type="button" variant="ghost" size="icon" title="Conexões Meta / OZap" onClick={() => void openDetail(item)}>
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" title="Editar" onClick={() => void openEdit(item)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" title="Popular com dados de demonstração" disabled={populatingDemo} onClick={() => { setDemoLimparAntes(false); setDemoTarget(item); }}>
+                          <DatabaseZap className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" title="Excluir" className="text-destructive hover:text-destructive" onClick={() => setDeleteTenantTarget(item)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <TablePager page={pager.page} totalPages={pager.totalPages} total={pager.total} onPageChange={pager.setPage} />
+            </>
           ) : (
             <>
             <Table>
@@ -1063,9 +1194,7 @@ function TenantsPage() {
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize text-[10px]">
-                        {PLANO_LABELS[item.plano] ?? item.plano ?? "—"}
-                      </Badge>
+                      <PlanoBadge plano={item.plano} />
                     </TableCell>
                     <TableCell>
                       {conexoes.length === 0 ? (
@@ -1306,13 +1435,13 @@ function TenantsPage() {
                         }));
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={cn("border", PLANO_CHIP[form.plano])}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {(Object.keys(PLANO_LABELS) as TenantPlano[]).map(
                           (p) => (
-                            <SelectItem key={p} value={p}>
+                            <SelectItem key={p} value={p} className={PLANO_CHIP[p]}>
                               {PLANO_LABELS[p]} ({PLANO_MAX_USUARIOS[p]} users)
                             </SelectItem>
                           ),

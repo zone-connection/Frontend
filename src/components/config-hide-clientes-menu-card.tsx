@@ -1,27 +1,48 @@
 import { useState } from "react";
 import { UserCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import {
-  getHideClientesFromSidebar,
-  setHideClientesFromSidebar,
-} from "@/lib/clientes-nav-prefs";
-import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
+import { fetchMe, getSession, patchSessionTenantModules } from "@/lib/auth";
+import { updateTenantOperationModules } from "@/lib/tenant-company-api";
 
 export function ConfigHideClientesMenuCard() {
-  const [hideClientes, setHideClientes] = useState(() =>
-    getHideClientesFromSidebar(),
+  const isAdmin = getSession()?.role === "admin";
+  const [hideClientes, setHideClientes] = useState(
+    () => getSession()?.tenant?.modules?.hideClientesNav === true,
   );
+  const [saving, setSaving] = useState(false);
 
-  function toggleHideClientes(checked: boolean) {
+  async function toggleHideClientes(checked: boolean) {
+    if (!isAdmin || saving) return;
     setHideClientes(checked);
-    setHideClientesFromSidebar(checked);
-    toast.success(
-      checked
-        ? "Clientes e Funil de Clientes ocultos do seu menu."
-        : "Clientes e Funil de Clientes voltaram ao seu menu.",
-    );
+    setSaving(true);
+    try {
+      const data = await updateTenantOperationModules({
+        hideClientesNav: checked,
+      });
+      setHideClientes(data.hideClientesNav === true);
+      patchSessionTenantModules(data.modules);
+      await fetchMe();
+      toast.success(
+        checked
+          ? "Clientes ficou oculto para os usuários. O administrador continua vendo."
+          : "Clientes voltou para todos os usuários.",
+      );
+    } catch (err) {
+      setHideClientes(!checked);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar o módulo de Clientes.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
+
+  if (!isAdmin) return null;
 
   return (
     <Card>
@@ -34,22 +55,23 @@ export function ConfigHideClientesMenuCard() {
             Clientes e Funil de Clientes
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Preferência só sua. Os outros usuários do tenant continuam vendo o
-            menu. As telas seguem acessíveis pelo endereço.
+            Desliga o módulo para os usuários da imobiliária. O administrador
+            continua com Clientes e o Funil de Clientes.
           </p>
         </div>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">Ocultar do menu</p>
+          <p className="text-sm font-medium">Desativar para os usuários</p>
           <p className="text-xs text-muted-foreground">
-            Some Clientes e Funil de Clientes da sua barra lateral.
+            Some do menu e bloqueia o acesso. O admin não perde o módulo.
           </p>
         </div>
         <Switch
           checked={hideClientes}
-          onCheckedChange={toggleHideClientes}
-          aria-label="Ocultar Clientes e Funil de Clientes do menu"
+          disabled={saving}
+          onCheckedChange={(checked) => void toggleHideClientes(checked)}
+          aria-label="Desativar Clientes para os usuários"
         />
       </CardContent>
     </Card>
