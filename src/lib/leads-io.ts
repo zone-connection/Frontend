@@ -199,9 +199,63 @@ function parseRenda(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return Math.max(0, Math.round(value));
   }
-  const digits = String(value).replace(/\D/g, "");
-  if (!digits) return null;
-  return Number(digits);
+  const raw = String(value).trim().replace(/[^\d,.-]/g, "");
+  if (!raw) return null;
+  let n: number;
+  if (raw.includes(",")) {
+    n = Number(raw.replace(/\./g, "").replace(",", "."));
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) {
+    n = Number(raw.replace(/\./g, ""));
+  } else {
+    n = Number(raw);
+  }
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.round(n));
+}
+
+const TIPO_RENDA_CANON = [
+  "CLT",
+  "Autônomo",
+  "Empresário",
+  "Funcionário público",
+  "Aposentado",
+  "Renda mista",
+  "Outros",
+];
+
+const ESTADO_CIVIL_CANON = [
+  "Solteiro",
+  "Casado",
+  "Divorciado",
+  "Viúvo",
+  "União estável",
+];
+
+function canonTipoRenda(value: string): string {
+  const n = normalizeHeader(value);
+  if (!n) return "";
+  const hit = TIPO_RENDA_CANON.find((opt) => normalizeHeader(opt) === n);
+  if (hit) return hit;
+  if (n.includes("clt") || n.includes("assalari") || n.includes("carteira")) return "CLT";
+  if (n.includes("autonom")) return "Autônomo";
+  if (n.includes("empres")) return "Empresário";
+  if (n.includes("public")) return "Funcionário público";
+  if (n.includes("aposent")) return "Aposentado";
+  if (n.includes("mista")) return "Renda mista";
+  return value.trim().slice(0, 60);
+}
+
+function canonEstadoCivil(value: string): string {
+  const n = normalizeHeader(value);
+  if (!n) return "";
+  const hit = ESTADO_CIVIL_CANON.find((opt) => normalizeHeader(opt) === n);
+  if (hit) return hit;
+  if (n.startsWith("solteir")) return "Solteiro";
+  if (n.startsWith("casad")) return "Casado";
+  if (n.startsWith("divorci") || n.startsWith("separad")) return "Divorciado";
+  if (n.startsWith("viuv")) return "Viúvo";
+  if (n.includes("estavel")) return "União estável";
+  return value.trim().slice(0, 40);
 }
 
 /** Remove hora colada no nome (ex.: "13:56 Fernando" → "Fernando"). */
@@ -270,8 +324,8 @@ function buildLeadFromCells(
   const cidade = String(cells.cidade ?? "").trim();
   const bairro = String(cells.bairro ?? "").trim();
   const renda = parseRenda(cells.renda);
-  const tipoRenda = cellText(cells.tipoRenda).slice(0, 60);
-  const estadoCivil = cellText(cells.estadoCivil).slice(0, 40);
+  const tipoRenda = canonTipoRenda(cellText(cells.tipoRenda));
+  const estadoCivil = canonEstadoCivil(cellText(cells.estadoCivil));
   const prospeccao: LeadProspeccao = {
     ...EMPTY_PROSPECCAO,
     endereco: cellText(cells.endereco) || "",

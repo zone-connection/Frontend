@@ -1877,8 +1877,11 @@ function Clientes() {
                       <th className="p-2 font-medium">Nome</th>
                       <th className="p-2 font-medium">Telefone</th>
                       <th className="p-2 font-medium">Email</th>
-                      <th className="p-2 font-medium">Localidade de interesse</th>
                       <th className="p-2 font-medium">Origem</th>
+                      <th className="p-2 font-medium">Região</th>
+                      <th className="p-2 font-medium">Regime de Trabalho</th>
+                      <th className="p-2 font-medium">Estado Civil</th>
+                      <th className="p-2 font-medium">Renda Bruta</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1886,8 +1889,11 @@ function Clientes() {
                       <td className="p-2">Maria Silva</td>
                       <td className="p-2 tabular-nums">(81) 98888-7777</td>
                       <td className="p-2">maria@email.com</td>
-                      <td className="p-2">Recife</td>
                       <td className="p-2">WhatsApp</td>
+                      <td className="p-2">Recife</td>
+                      <td className="p-2">CLT</td>
+                      <td className="p-2">Casado</td>
+                      <td className="p-2 tabular-nums">5000</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1906,7 +1912,7 @@ function Clientes() {
                   Telefone já com DDD, ex.: (81) 98888-7777 ou 81 98888-7777
                 </li>
                 <li>
-                  Email, Localidade de interesse e Origem são opcionais
+                  Email, origem, região, regime de trabalho, estado civil e renda bruta são opcionais
                 </li>
                 <li>Uma linha = um cliente</li>
                 <li>
@@ -1965,7 +1971,7 @@ function Clientes() {
             <DialogTitle>Confirmar importação</DialogTitle>
             <DialogDescription>
               {importFileName ? `Arquivo: ${importFileName}. ` : ""}
-              Formato: Nome, Telefone, Email, Localidade de interesse e Origem.
+              Formato: Nome, Telefone, Email, Origem, Região, Regime de Trabalho, Estado Civil e Renda Bruta.
             </DialogDescription>
           </DialogHeader>
           {(() => {

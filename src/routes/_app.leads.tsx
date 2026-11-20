@@ -3040,6 +3040,12 @@ function LeadsPage() {
                         {opt}
                       </SelectItem>
                     ))}
+                    {form.tipoRenda &&
+                    !TIPO_RENDA_OPTIONS.includes(
+                      form.tipoRenda as (typeof TIPO_RENDA_OPTIONS)[number],
+                    ) ? (
+                      <SelectItem value={form.tipoRenda}>{form.tipoRenda}</SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -3066,6 +3072,18 @@ function LeadsPage() {
                     <SelectItem value="Divorciado">Divorciado</SelectItem>
                     <SelectItem value="Viúvo">Viúvo</SelectItem>
                     <SelectItem value="União estável">União estável</SelectItem>
+                    {form.estadoCivil &&
+                    ![
+                      "Solteiro",
+                      "Casado",
+                      "Divorciado",
+                      "Viúvo",
+                      "União estável",
+                    ].includes(form.estadoCivil) ? (
+                      <SelectItem value={form.estadoCivil}>
+                        {form.estadoCivil}
+                      </SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -4673,8 +4691,11 @@ function LeadsPage() {
                         <th className="px-3 py-2 font-medium">Nome</th>
                         <th className="px-3 py-2 font-medium">Telefone</th>
                         <th className="px-3 py-2 font-medium">Email</th>
-                        <th className="px-3 py-2 font-medium">Localidade</th>
                         <th className="px-3 py-2 font-medium">Origem</th>
+                        <th className="px-3 py-2 font-medium">Região</th>
+                        <th className="px-3 py-2 font-medium">Regime de Trabalho</th>
+                        <th className="px-3 py-2 font-medium">Estado Civil</th>
+                        <th className="px-3 py-2 font-medium">Renda Bruta</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -4682,8 +4703,11 @@ function LeadsPage() {
                         <td className="px-3 py-2.5">Maria Silva</td>
                         <td className="px-3 py-2.5 tabular-nums">(81) 98888-7777</td>
                         <td className="px-3 py-2.5">maria@email.com</td>
-                        <td className="px-3 py-2.5">Recife</td>
                         <td className="px-3 py-2.5">WhatsApp</td>
+                        <td className="px-3 py-2.5">Recife</td>
+                        <td className="px-3 py-2.5">CLT</td>
+                        <td className="px-3 py-2.5">Casado</td>
+                        <td className="px-3 py-2.5 tabular-nums">5000</td>
                       </tr>
                     </tbody>
                   </table>
@@ -4715,7 +4739,7 @@ function LeadsPage() {
                   <span>
                     {isPlatformAdmin
                       ? "Endereço, redes, fit, produto e fonte são opcionais e entram na ficha de prospecção."
-                      : "Email, localidade de interesse e origem são opcionais."}
+                      : "Email, origem, região, regime de trabalho, estado civil e renda bruta são opcionais."}
                   </span>
                 </li>
                 <li className="flex gap-2">
@@ -4786,7 +4810,7 @@ function LeadsPage() {
               {importFileName ? `Arquivo: ${importFileName}. ` : ""}
               {isPlatformAdmin
                 ? "Lê a aba de leads da planilha de prospecção (Empresa, telefone, município, produto, fit e demais campos)."
-                : "Formato: Nome, Telefone, Email, Localidade de interesse e Origem."}
+                : "Formato: Nome, Telefone, Email, Origem, Região, Regime de Trabalho, Estado Civil e Renda Bruta."}
             </DialogDescription>
           </DialogHeader>
           {(() => {
@@ -4845,7 +4869,7 @@ function LeadsPage() {
                           <th className="p-2 font-medium">Email</th>
                         )}
                         <th className="p-2 font-medium">
-                          {isPlatformAdmin ? "Município" : "Localidade"}
+                          {isPlatformAdmin ? "Município" : "Região"}
                         </th>
                         {isPlatformAdmin ? (
                           <>
@@ -4854,6 +4878,13 @@ function LeadsPage() {
                           </>
                         ) : (
                           <th className="p-2 font-medium">Origem</th>
+                        )}
+                        {isPlatformAdmin ? null : (
+                          <>
+                            <th className="p-2 font-medium">Regime</th>
+                            <th className="p-2 font-medium">Estado civil</th>
+                            <th className="p-2 font-medium">Renda bruta</th>
+                          </>
                         )}
                         <th className="p-2 font-medium">Status</th>
                       </tr>
@@ -4961,6 +4992,15 @@ function LeadsPage() {
                                   row.origem || "—"
                                 )}
                               </td>
+                            )}
+                            {isPlatformAdmin ? null : (
+                              <>
+                                <td className="p-2">{row.tipoRenda || "—"}</td>
+                                <td className="p-2">{row.estadoCivil || "—"}</td>
+                                <td className="p-2 tabular-nums">
+                                  {row.renda != null ? row.renda : "—"}
+                                </td>
+                              </>
                             )}
                             <td className="p-2">
                               {row.error ? (
