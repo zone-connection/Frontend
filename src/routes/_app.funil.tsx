@@ -150,11 +150,6 @@ import {
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
 import {
-  createProposta,
-  fetchPropostas,
-  type Proposta,
-} from "@/lib/propostas-api";
-import {
   Clock,
   User,
   CircleUser,
