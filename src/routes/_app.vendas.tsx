@@ -65,7 +65,6 @@ import {
 } from "@/lib/imoveis-usados-api";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
-import { LOCACOES_MOCK } from "@/lib/modulos-mock";
 import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
@@ -912,7 +911,6 @@ function VendasDocumentacaoPage() {
         <VendasTodosPanel
           lancamentos={verLancamentos ? filtered : []}
           usados={verUsados}
-          locacao={verLocacao}
           onAcompanhar={setFluxo}
           dataDe={applied.dataDe}
           dataAte={applied.dataAte}
@@ -1793,14 +1791,12 @@ function TipoVendaBadge({ tipo }: { tipo: string }) {
 function VendasTodosPanel({
   lancamentos,
   usados,
-  locacao,
   onAcompanhar,
   dataDe,
   dataAte,
 }: {
   lancamentos: Documentacao[];
   usados: boolean;
-  locacao: boolean;
   onAcompanhar: (doc: Documentacao) => void;
   dataDe: string;
   dataAte: string;
@@ -1875,17 +1871,6 @@ function VendasTodosPanel({
       valor: item.precoVenda != null ? brl(item.precoVenda) : "—",
       dia: dateDay(item.updatedAt),
     })),
-    ...(locacao
-      ? LOCACOES_MOCK.map((row) => ({
-          id: row.id,
-          tipo: "Locação",
-          cliente: row.nome,
-          referencia: row.imovel,
-          responsavel: row.corretor,
-          valor: row.aluguel,
-          dia: "",
-        }))
-      : []),
   ].filter((row) => {
     if (!dataDe && !dataAte) return true;
     if (!row.dia) return false;
