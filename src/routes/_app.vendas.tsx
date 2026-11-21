@@ -65,6 +65,7 @@ import {
 } from "@/lib/imoveis-usados-api";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
+import { LOCACOES_MOCK } from "@/lib/modulos-mock";
 import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
 import {
