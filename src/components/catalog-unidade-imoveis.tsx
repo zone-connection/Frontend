@@ -15,6 +15,7 @@ import {
 } from "@/components/form-dialog";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import {
   CAPTACAO_IMOVEL_TIPO_LABEL,
   CAPTACAO_ORIGENS_PADRAO,
@@ -111,6 +112,10 @@ export function CatalogUnidadeImoveis({
   const { origens } = useCatalog();
   const origemOpcoes = origens.length ? origens : [...CAPTACAO_ORIGENS_PADRAO];
   const me = getSession();
+  const captacaoAtiva = isTenantOperationEnabled(
+    me?.tenant?.modules,
+    "captacao",
+  );
   const [items, setItems] = useState<Imovel[]>([]);
   const [vendas, setVendas] = useState<VendaUsado[]>([]);
   const [proprietarios, setProprietarios] = useState<Proprietario[]>([]);
@@ -279,8 +284,9 @@ export function CatalogUnidadeImoveis({
     let proprietarioId = form.proprietarioId;
     if (!proprietarioId && donoRapido) {
       const nome = donoNome.trim();
-      if (!nome) {
-        toast.error("Informe o nome do proprietário.");
+      const telefone = donoTelefone.trim();
+      if (!nome || !telefone) {
+        toast.error("Informe o nome e o telefone do proprietário.");
         return;
       }
     }
@@ -325,7 +331,7 @@ export function CatalogUnidadeImoveis({
         for (const file of pendingFotos) {
           saved = await uploadCaptacaoImovelFoto(saved.id, file);
         }
-        if (iniciarCaptacao) {
+        if (iniciarCaptacao && captacaoAtiva) {
           await createCaptacao({
             proprietarioId,
             imovelId: saved.id,
@@ -335,7 +341,7 @@ export function CatalogUnidadeImoveis({
             valorPretendido: parseOptionalMoneyInput(valorPretendido),
             valorAvaliacao: parseOptionalMoneyInput(valorAvaliacao),
           });
-        } else {
+        } else if (captacaoAtiva) {
           const funisCaptacao = await fetchFunis("captacao");
           const funilCaptacao =
             funisCaptacao.find((funil) => funil.ativo) ?? funisCaptacao[0];
@@ -688,7 +694,7 @@ export function CatalogUnidadeImoveis({
                     {donoRapido ? (
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label>Nome</Label>
+                          <Label>Nome *</Label>
                           <Input
                             value={donoNome}
                             onChange={(e) => setDonoNome(e.target.value)}
@@ -696,7 +702,7 @@ export function CatalogUnidadeImoveis({
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label>Telefone</Label>
+                          <Label>Telefone *</Label>
                           <Input
                             value={donoTelefone}
                             onChange={(e) => setDonoTelefone(e.target.value)}
@@ -706,12 +712,74 @@ export function CatalogUnidadeImoveis({
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        O imóvel entra na captação já captado e no estoque de usados.
+                        Nome e telefone bastam. O acesso ao portal do proprietário não é criado.
                       </p>
                     )}
                   </div>
                 ),
               }}
+              aposIdentificacao={
+                iniciarCaptacao && captacaoAtiva && !editing ? (
+                  <div className="space-y-3 rounded-2xl border border-border/80 bg-background p-4">
+                    <p className="text-sm font-medium">Processo da captação</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label>Responsável</Label>
+                        <select
+                          className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
+                          value={responsavelCaptacaoId}
+                          onChange={(e) => setResponsavelCaptacaoId(e.target.value)}
+                        >
+                          {responsaveis.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Origem</Label>
+                        <select
+                          className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
+                          value={origemCaptacao}
+                          onChange={(e) => setOrigemCaptacao(e.target.value)}
+                        >
+                          {origemOpcoes.map((o) => (
+                            <option key={o} value={o}>
+                              {o}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Valor pretendido</Label>
+                        <Input
+                          value={valorPretendido}
+                          onChange={(e) =>
+                            setValorPretendido(maskMoneyInput(e.target.value))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Valor de avaliação</Label>
+                        <Input
+                          value={valorAvaliacao}
+                          onChange={(e) =>
+                            setValorAvaliacao(maskMoneyInput(e.target.value))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Checkbox
+                        checked={exclusividadeCaptacao}
+                        onCheckedChange={(v) => setExclusividadeCaptacao(v === true)}
+                      />
+                      Exclusividade
+                    </label>
+                  </div>
+                ) : null
+              }
               foto={{
                 items: imovelFotoItens({
                   fotos: form.fotos,
@@ -793,66 +861,6 @@ export function CatalogUnidadeImoveis({
                 },
               }}
             />
-            {iniciarCaptacao && !editing ? (
-              <div className="mt-4 space-y-3 rounded-2xl border border-border/80 bg-background p-4">
-                <p className="text-sm font-medium">Processo da captação</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label>Responsável</Label>
-                    <select
-                      className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
-                      value={responsavelCaptacaoId}
-                      onChange={(e) => setResponsavelCaptacaoId(e.target.value)}
-                    >
-                      {responsaveis.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Origem</Label>
-                    <select
-                      className="flex h-10 w-full rounded-xl border border-border/80 bg-background px-3 text-sm shadow-sm"
-                      value={origemCaptacao}
-                      onChange={(e) => setOrigemCaptacao(e.target.value)}
-                    >
-                      {origemOpcoes.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Valor pretendido</Label>
-                    <Input
-                      value={valorPretendido}
-                      onChange={(e) =>
-                        setValorPretendido(maskMoneyInput(e.target.value))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Valor de avaliação</Label>
-                    <Input
-                      value={valorAvaliacao}
-                      onChange={(e) =>
-                        setValorAvaliacao(maskMoneyInput(e.target.value))
-                      }
-                    />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <Checkbox
-                    checked={exclusividadeCaptacao}
-                    onCheckedChange={(v) => setExclusividadeCaptacao(v === true)}
-                  />
-                  Exclusividade
-                </label>
-              </div>
-            ) : null}
             {iniciarCaptacao && !editing ? null : (
             <div className="mt-4 space-y-3 rounded-2xl border border-border/80 bg-background p-4">
               {editing ? (

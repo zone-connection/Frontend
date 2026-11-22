@@ -159,7 +159,6 @@ import {
   PROPOSTA_INFORMATIVA_KEYS,
   PROPOSTA_LISTA_KEYS,
   PROPOSTA_SIMPLES_KEYS,
-  type PropostaSimplesKey,
   PROPOSTA_STATUS_LABEL,
   propostaComposicaoTotal,
   propostaDiferenca,

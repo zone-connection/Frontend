@@ -29,9 +29,11 @@ import {
 import { defaultRouteForRole } from "@/lib/permissions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LoginPageSkeleton } from "@/components/skeletons";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
+  pendingComponent: LoginPageSkeleton,
   // SSR ativo: evita mismatch Suspense (servidor) vs página (cliente) no React 19.
   head: () => ({
     meta: [

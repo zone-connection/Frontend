@@ -241,6 +241,7 @@ export function ImovelFichaFields({
   foto,
   hideStepFooter,
   onNavigation,
+  aposIdentificacao,
 }: {
   value: ImovelFichaValues;
   onChange: (next: ImovelFichaValues) => void;
@@ -256,6 +257,8 @@ export function ImovelFichaFields({
   /** O dialog de criação desenha Voltar/Continuar no rodapé, como no lançamento. */
   hideStepFooter?: boolean;
   onNavigation?: (nav: ImovelFichaNavigation) => void;
+  /** Conteúdo extra só no passo de identificação. */
+  aposIdentificacao?: ReactNode;
 }) {
   const sections = cadastro ? CADASTRO_SECTIONS : FICHA_SECTIONS;
   const [section, setSection] = useState<ImovelFormSectionId>(sections[0]!.id);
@@ -387,6 +390,7 @@ export function ImovelFichaFields({
               ))}
             </select>
           </Field>
+          {aposIdentificacao}
         </FormSection>
       ) : null}
 
@@ -432,8 +436,8 @@ export function ImovelFichaFields({
       {section === "unidade" ? (
         <FormSection
           icon={<BedDouble className="h-3.5 w-3.5" />}
-          title="Unidade"
-          description="Metragem, cômodos e vagas da ficha."
+          title="Unidade e condomínio"
+          description="Metragem da unidade e dados do condomínio."
         >
           <Field label="Complemento">
             <Input
@@ -497,15 +501,6 @@ export function ImovelFichaFields({
               </div>
             </Field>
           </div>
-        </FormSection>
-      ) : null}
-
-      {section === "condominio" ? (
-        <FormSection
-          icon={<Building2 className="h-3.5 w-3.5" />}
-          title="Condomínio"
-          description="O que aparece na visão geral do empreendimento."
-        >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Field
               label="Tipo (visão geral)"
@@ -667,8 +662,7 @@ const FICHA_SECTIONS: Array<{
   label: string;
 }> = [
   { id: "foto", label: "Foto" },
-  { id: "unidade", label: "Unidade" },
-  { id: "condominio", label: "Condomínio" },
+  { id: "unidade", label: "Unidade e condomínio" },
   { id: "anuncio", label: "Anúncio" },
   { id: "caracteristicas", label: "Características" },
   { id: "notas", label: "Notas" },

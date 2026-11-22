@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
-import { LayoutDashboard } from "lucide-react";
+import { Building2, LayoutDashboard } from "lucide-react";
 
 const TABS = [
   { to: "/captacao/visao-geral", label: "Visão geral", icon: LayoutDashboard },
+  { to: "/captacao/captacoes", label: "Captações", icon: Building2 },
 ] as const;
 
 export const Route = createFileRoute("/_app/captacao")({

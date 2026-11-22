@@ -35,6 +35,7 @@ export const MENU_OCULTAVEIS = [
   {
     grupo: "Captação",
     items: [
+      { to: "/captacao/captacoes", label: "Captações" },
       { to: "/captacao/funil", label: "Funil de captação" },
       { to: "/captacao/proprietarios", label: "Proprietários" },
       { to: "/mural-chaves", label: "Mural de chaves" },

@@ -1,14 +1,17 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, useRouterState } from "@tanstack/react-router";
 // O entry antigo ficou cacheado na CDN como HTML. Mudar este módulo gera outro hash.
-import { PagePendingSkeleton } from "@/components/skeletons";
+import { RoutePendingSkeleton } from "@/components/skeletons";
 import { recoverStaleChunks } from "@/lib/recover-stale-chunks";
 import { routeTree } from "./routeTree.gen";
 
 recoverStaleChunks();
 
 function ModulePending() {
-  return <PagePendingSkeleton />;
+  const pathname = useRouterState({
+    select: (state) => state.resolvedLocation?.pathname ?? state.location.pathname,
+  });
+  return <RoutePendingSkeleton pathname={pathname} />;
 }
 
 export const getRouter = () => {

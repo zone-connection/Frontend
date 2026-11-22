@@ -102,7 +102,7 @@ export type EmpreendimentoVitrine = {
 
 export type CreateEmpreendimentoInput = {
   nome: string;
-  construtoraId: string;
+  construtoraId?: string | null;
   cidade?: string;
   cor?: string | null;
   localidadeId?: string | null;

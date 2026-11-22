@@ -723,6 +723,7 @@ export function ImoveisPage({
     [],
   );
   const [quickOpen, setQuickOpen] = useState(false);
+  const [imovelCaptacaoTick, setImovelCaptacaoTick] = useState(0);
   const [formTab, setFormTab] = useState<EmpreendimentoFormTab>("identidade");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -971,7 +972,7 @@ export function ImoveisPage({
       return;
     }
 
-    let construtoraId = form.construtoraId;
+    let construtoraId = form.construtoraId || null;
     if (form.novaConstrutora) {
       if (form.construtoraNome.trim().length < 2) {
         setFormTab("identidade");
@@ -980,7 +981,7 @@ export function ImoveisPage({
       }
     } else if (!construtoraId) {
       setFormTab("identidade");
-      toast.error("Selecione a construtora ou crie uma nova.");
+      toast.error("No lançamento, selecione a construtora ou crie uma nova.");
       return;
     }
 
@@ -1750,6 +1751,32 @@ export function ImoveisPage({
     </Button>
   );
 
+  function NovoImovelMenu({ className }: { className?: string }) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className={cn(IMOVEIS_GRADIENT_BTN, className)}
+            style={IMOVEIS_GRADIENT_STYLE}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Novo imóvel
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => void openQuickCreate()}>
+            Lançamento
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setImovelCaptacaoTick((tick) => tick + 1)}
+          >
+            Imóvel pronto
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   return (
     <div className={somenteDialogo ? "hidden" : undefined}>
       {embedded ? (
@@ -1762,16 +1789,7 @@ export function ImoveisPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {gerarPdfButton}
-            {canCreate ? (
-              <Button
-                onClick={() => void openQuickCreate()}
-                className={IMOVEIS_GRADIENT_BTN}
-                style={IMOVEIS_GRADIENT_STYLE}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Novo imóvel
-              </Button>
-            ) : null}
+            {canCreate ? <NovoImovelMenu /> : null}
           </div>
         </div>
       ) : (
@@ -1781,16 +1799,7 @@ export function ImoveisPage({
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {gerarPdfButton}
-              {canCreate ? (
-                <Button
-                  onClick={() => void openQuickCreate()}
-                  className={IMOVEIS_GRADIENT_BTN}
-                  style={IMOVEIS_GRADIENT_STYLE}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Novo imóvel
-                </Button>
-              ) : null}
+              {canCreate ? <NovoImovelMenu /> : null}
             </div>
           }
         />
@@ -2142,14 +2151,7 @@ export function ImoveisPage({
                   : "Nenhum resultado para a busca."}
             </p>
             {items.length === 0 && captacaoImoveis.length === 0 && estoqueUsados.length === 0 && canCreate && (
-              <Button
-                className={`mt-2 ${IMOVEIS_GRADIENT_BTN}`}
-                style={IMOVEIS_GRADIENT_STYLE}
-                onClick={() => void openQuickCreate()}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Novo imóvel
-              </Button>
+              <NovoImovelMenu className="mt-2" />
             )}
           </CardContent>
         </Card>
@@ -2594,7 +2596,8 @@ export function ImoveisPage({
           search={search}
           vista={vista}
           proprietarioId={proprietarioId}
-          createTick={0}
+          createTick={imovelCaptacaoTick}
+          iniciarCaptacao
           editRequest={unidadeEditRequest}
           deleteRequest={unidadeDeleteRequest}
           onChanged={() => void loadCaptacaoImoveis()}

@@ -302,6 +302,7 @@ const IMOVEIS_VENDAS_LEAVES: NavLeaf[] = [
 ];
 
 const CAPTACAO_LEAVES: NavLeaf[] = [
+  { to: "/captacao/captacoes", label: "Captações", icon: Building2 },
   { to: "/captacao/funil", label: "Funil de captação", icon: Funnel },
   { to: "/captacao/proprietarios", label: "Proprietários", icon: Users },
   { to: "/mural-chaves", label: "Mural de chaves", icon: Key },

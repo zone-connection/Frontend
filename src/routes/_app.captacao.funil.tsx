@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { CaptacaoDetalheDialog } from "@/components/captacao-detalhe-dialog";
+import { CatalogUnidadeImoveis } from "@/components/catalog-unidade-imoveis";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import {
   FunilScrollControls,
@@ -83,6 +84,7 @@ function CaptacaoFunilPage() {
   const [filterMonitoramento, setFilterMonitoramento] =
     useState<MonitoramentoFiltro>("todos");
   const scrollBoard = useRef<((direction: -1 | 1) => void) | null>(null);
+  const [cadastroTick, setCadastroTick] = useState(0);
 
   const onScrollChange = useCallback((state: { left: boolean; right: boolean }) => {
     setCanScroll(state);
@@ -285,15 +287,13 @@ function CaptacaoFunilPage() {
                 </Button>
               )}
               <Button
-                asChild
                 size="sm"
                 className={cn("h-8 rounded-full", BRAND_GRADIENT_BTN)}
                 style={BRAND_GRADIENT_STYLE}
+                onClick={() => setCadastroTick((tick) => tick + 1)}
               >
-                <Link to="/captacao/captacoes">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Nova captação
-                </Link>
+                <Plus className="mr-1 h-4 w-4" />
+                Nova captação
               </Button>
             </div>
             <FunilScrollControls
@@ -471,6 +471,12 @@ function CaptacaoFunilPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <CatalogUnidadeImoveis
+        hideList
+        createTick={cadastroTick}
+        iniciarCaptacao
+        onChanged={() => void load()}
+      />
     </>
   );
 }
