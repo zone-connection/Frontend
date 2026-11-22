@@ -930,11 +930,8 @@ export function reiniciarNovidadeAnuncio(): void {
   }
 }
 
-export function isNavPathNovo(to: string): boolean {
-  const path = to.split("?")[0];
-  return NOVIDADES.some((item) =>
-    item.navPaths.some((route) => path === route || path.startsWith(`${route}/`)),
-  );
+export function isNavPathNovo(_to: string): boolean {
+  return false;
 }
 
 export function isPageNovo(
