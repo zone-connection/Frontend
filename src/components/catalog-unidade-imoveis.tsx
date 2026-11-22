@@ -215,7 +215,7 @@ export function CatalogUnidadeImoveis({
       setEditing(null);
       clearPendingFoto();
       setForm({ ...emptyForm, proprietarioId: proprietarioId ?? "" });
-      setDonoRapido(false);
+      setDonoRapido(true);
       setDonoNome("");
       setDonoTelefone("");
       setResponsavelCaptacaoId(me?.id ?? "");
@@ -674,47 +674,42 @@ export function CatalogUnidadeImoveis({
                 },
                 depoisDoProprietario: (
                   <div className="space-y-2 rounded-xl border border-border/80 bg-background p-3">
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-primary"
-                      onClick={() => {
-                        setDonoRapido((open) => !open);
-                        if (!donoRapido) {
-                          setForm((current) => ({
-                            ...current,
-                            proprietarioId: "",
-                          }));
-                        }
-                      }}
-                    >
-                      {donoRapido
-                        ? "Usar um proprietário já cadastrado"
-                        : "Criar proprietário rápido"}
-                    </button>
-                    {donoRapido ? (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label>Nome *</Label>
-                          <Input
-                            value={donoNome}
-                            onChange={(e) => setDonoNome(e.target.value)}
-                            placeholder="Nome do dono"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Telefone *</Label>
-                          <Input
-                            value={donoTelefone}
-                            onChange={(e) => setDonoTelefone(e.target.value)}
-                            placeholder="(00) 00000-0000"
-                          />
-                        </div>
+                    <p className="text-sm font-medium">Novo proprietário</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label>Nome *</Label>
+                        <Input
+                          value={donoNome}
+                          onChange={(e) => {
+                            setDonoRapido(true);
+                            setDonoNome(e.target.value);
+                            setForm((current) => ({
+                              ...current,
+                              proprietarioId: "",
+                            }));
+                          }}
+                          placeholder="Nome do dono"
+                        />
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Nome e telefone bastam. O acesso ao portal do proprietário não é criado.
-                      </p>
-                    )}
+                      <div className="space-y-1.5">
+                        <Label>Telefone *</Label>
+                        <Input
+                          value={donoTelefone}
+                          onChange={(e) => {
+                            setDonoRapido(true);
+                            setDonoTelefone(e.target.value);
+                            setForm((current) => ({
+                              ...current,
+                              proprietarioId: "",
+                            }));
+                          }}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Nome e telefone bastam. O acesso ao portal do proprietário não é criado. Se escolher alguém na lista acima, esses campos são ignorados.
+                    </p>
                   </div>
                 ),
               }}

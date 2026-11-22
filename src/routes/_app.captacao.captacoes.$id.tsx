@@ -185,7 +185,7 @@ function CaptacaoDetalhePage() {
           )}
           {fotos.length > 1 ? (
             <div className="mx-auto mt-4 grid max-w-4xl grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-              {fotos.slice(0, 15).map((foto, index) => (
+              {fotos.slice(0, IMOVEL_MAX_FOTOS).map((foto, index) => (
                 <button
                   key={foto.id}
                   type="button"

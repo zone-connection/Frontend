@@ -3,7 +3,7 @@ import type { LeadMonitoramento } from "@/lib/lead-monitoramento";
 
 export type PessoaTipo = "fisica" | "juridica";
 
-export const IMOVEL_MAX_FOTOS = 15;
+export const IMOVEL_MAX_FOTOS = 30;
 
 export type CaptacaoImovelTipo =
   | "apartamento"
