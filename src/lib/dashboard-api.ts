@@ -317,9 +317,12 @@ export type DashboardRankingCorretor = {
   visitas: number;
   documentacoes: number;
   aprovacoes: number;
+  reprovacoes?: number;
   vendas: DashboardMetric;
   vgv: DashboardMetric;
   taxaConversao: DashboardMetric;
+  taxaDocumentacao?: DashboardMetric;
+  taxaReprovacao?: DashboardMetric;
   taxaAprovacao: DashboardMetric;
   perdidos: number;
   meta: DashboardRankingMeta | null;
@@ -353,11 +356,14 @@ export type DashboardRanking = {
     entradas: number;
     documentacoes: number;
     aprovacoes: number;
+    reprovacoes?: number;
     vendas: number;
     vgv: number;
     visitas: number;
     perdidos: number;
     taxaConversao: number;
+    taxaDocumentacao?: number;
+    taxaReprovacao?: number;
     taxaAprovacao: number;
     corretores: number;
     gerentes: number;

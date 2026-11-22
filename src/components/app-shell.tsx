@@ -495,7 +495,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [analiseAlert, setAnaliseAlert] = useState<Notificacao | null>(null);
   adiarLembretesRef.current =
     Boolean(user) &&
-    (novidadeAnuncioPendente() ||
+    (novidadeAnuncioPendente(isModuleEnabled("financeiro")) ||
       loginLembretesOpen ||
       (typeof sessionStorage !== "undefined" &&
         sessionStorage.getItem(LOGIN_LEMBRETES_FLAG) === "1"));
@@ -661,7 +661,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
     if (loginLembretesOpen) return;
-    if (novidadeAnuncioPendente()) setAnuncioOpen(true);
+    if (novidadeAnuncioPendente(isModuleEnabled("financeiro"))) setAnuncioOpen(true);
   }, [user, loginLembretesOpen]);
 
   const fecharAnuncio = useCallback(() => {
@@ -688,7 +688,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setLoginLembretesOpen(false);
     setLoginLembretes([]);
     setLoginAtividades([]);
-    if (novidadeAnuncioPendente()) {
+    if (novidadeAnuncioPendente(isModuleEnabled("financeiro"))) {
       setAnuncioOpen(true);
       return;
     }
@@ -2263,6 +2263,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       />
 
       <NovidadeAnuncioDialog
+        financeiroLiberado={isModuleEnabled("financeiro")}
         open={anuncioOpen}
         onOpenChange={(open) => {
           if (!open) fecharAnuncio();

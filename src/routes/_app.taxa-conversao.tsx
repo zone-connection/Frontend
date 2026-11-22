@@ -71,11 +71,13 @@ export const Route = createFileRoute("/_app/taxa-conversao")({
 type SortKey = "taxa" | "vendas" | "docs" | "vgv" | "nome";
 
 const chartConfig = {
-  documentacoes: { label: "Documentações", color: "hsl(199 89% 48%)" },
-  aprovacoes: { label: "Aprovações", color: "hsl(262 83% 58%)" },
-  vendas: { label: "Vendas", color: "hsl(160 84% 39%)" },
-  taxa: { label: "Doc → venda %", color: "hsl(199 89% 38%)" },
-  taxaAprovacao: { label: "Aprov. → venda %", color: "hsl(262 83% 58%)" },
+  leads: { label: "Leads recebidos", color: "hsl(199 89% 48%)" },
+  documentacoes: { label: "Subiram documentação", color: "hsl(262 83% 58%)" },
+  vendas: { label: "Viraram venda", color: "hsl(160 84% 39%)" },
+  reprovacoes: { label: "Reprovaram", color: "hsl(347 77% 50%)" },
+  taxaDoc: { label: "% documentação", color: "hsl(262 83% 58%)" },
+  taxa: { label: "% venda", color: "hsl(160 84% 32%)" },
+  taxaReprovacao: { label: "% reprovado", color: "hsl(347 77% 50%)" },
 } satisfies ChartConfig;
 
 const GRANULARIDADE_OPTIONS: {
@@ -299,11 +301,13 @@ function Page() {
           (c.nome.split(" ").length > 1
             ? ` ${c.nome.split(" ").at(-1)?.[0]}.`
             : ""),
+        leads: c.entradas.valor,
         documentacoes: c.documentacoes,
-        aprovacoes: c.aprovacoes ?? 0,
         vendas: c.vendas.valor,
+        reprovacoes: c.reprovacoes ?? 0,
         taxa: c.taxaConversao.valor,
-        taxaAprovacao: c.taxaAprovacao?.valor ?? 0,
+        taxaDoc: c.taxaDocumentacao?.valor ?? 0,
+        taxaReprovacao: c.taxaReprovacao?.valor ?? 0,
       }));
   }, [corretoresFiltrados]);
 
@@ -468,59 +472,51 @@ function Page() {
       <section
         className={
           isPlatformAdmin
-            ? "mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4"
-            : "mb-4 grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6"
+            ? "mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4"
+            : "mb-4 grid grid-cols-2 gap-3 md:grid-cols-4"
         }
       >
-        {isPlatformAdmin ? null : (
+        {isPlatformAdmin || !ranking ? null : (
           <FinanceKpiCard
-            label="Documentações"
-            value={conv.documentacoes.valor}
-            evolucaoPct={conv.documentacoes.evolucaoPct}
-            valorMesAnterior={conv.documentacoes.valorMesAnterior}
-            icon={FileText}
+            label="Leads recebidos"
+            value={ranking.totais.entradas}
+            icon={UsersRound}
             tone="blue"
             format="number"
           />
         )}
-        {isPlatformAdmin ? null : (
+        {isPlatformAdmin || !ranking ? null : (
           <FinanceKpiCard
-            label="Aprovações"
-            value={conv.aprovacoes?.valor ?? 0}
-            evolucaoPct={conv.aprovacoes?.evolucaoPct ?? null}
-            valorMesAnterior={conv.aprovacoes?.valorMesAnterior ?? 0}
-            icon={Goal}
+            label="Subiram documentação"
+            value={ranking.totais.documentacoes}
+            icon={FileText}
             tone="violet"
             format="number"
+            detail={`${(ranking.totais.taxaDocumentacao ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% dos leads`}
           />
         )}
         <FinanceKpiCard
-          label="Vendas"
-          value={conv.vendas.valor}
-          evolucaoPct={conv.vendas.evolucaoPct}
-          valorMesAnterior={conv.vendas.valorMesAnterior}
+          label="Viraram venda"
+          value={isPlatformAdmin ? conv.vendas.valor : ranking?.totais.vendas ?? 0}
+          evolucaoPct={isPlatformAdmin ? conv.vendas.evolucaoPct : undefined}
+          valorMesAnterior={isPlatformAdmin ? conv.vendas.valorMesAnterior : undefined}
           icon={TrendingUp}
           tone="emerald"
           format="number"
+          detail={
+            isPlatformAdmin
+              ? undefined
+              : `${(ranking?.totais.taxaConversao ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% dos leads`
+          }
         />
-        <FinanceKpiCard
-          label="Doc. → venda"
-          value={conv.taxa.valor}
-          evolucaoPct={conv.taxa.evolucaoPct}
-          valorMesAnterior={conv.taxa.valorMesAnterior}
-          icon={Percent}
-          tone="blue"
-          format="percent"
-        />
-        {isPlatformAdmin ? null : (
+        {isPlatformAdmin || !ranking ? null : (
           <FinanceKpiCard
-            label="Aprov. → venda"
-            value={conv.taxaAprovacao?.valor ?? 0}
-            evolucaoPct={conv.taxaAprovacao?.evolucaoPct ?? null}
-            valorMesAnterior={conv.taxaAprovacao?.valorMesAnterior ?? 0}
-            icon={Percent}
-            tone="violet"
-            format="percent"
+            label="Reprovaram"
+            value={ranking.totais.reprovacoes ?? 0}
+            icon={UserX}
+            tone="rose"
+            format="number"
+            detail={`${(ranking.totais.taxaReprovacao ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% dos leads`}
           />
         )}
         <FinanceKpiCard
@@ -531,26 +527,6 @@ function Page() {
           icon={Wallet}
           tone="teal"
         />
-        <FinanceKpiCard
-          label="Leads perdidos"
-          value={admin.perdidos.mes.valor}
-          evolucaoPct={admin.perdidos.mes.evolucaoPct}
-          valorMesAnterior={admin.perdidos.mes.valorMesAnterior}
-          icon={UserX}
-          tone="rose"
-          format="number"
-          invertEvolucao
-        />
-        {isPlatformAdmin || !ranking ? null : (
-          <FinanceKpiCard
-            label="Taxa geral (ranking)"
-            value={ranking.totais.taxaConversao}
-            icon={Goal}
-            tone="orange"
-            format="percent"
-            suffix={`· ${ranking.totais.visitas} visitas`}
-          />
-        )}
       </section>
 
       {mostrarRecorte ? (
@@ -625,9 +601,9 @@ function Page() {
       <div className="grid gap-4 lg:grid-cols-2 mb-4 min-w-0">
         <Card className="min-w-0 overflow-hidden rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Documentações × vendas</CardTitle>
+            <CardTitle className="text-base">Leads, documentação e venda</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Top 8 corretores por taxa (filtro aplicado).
+              Top 8 corretores. A base é o lead recebido no período.
             </p>
           </CardHeader>
           <CardContent className="min-w-0">
@@ -663,17 +639,26 @@ function Page() {
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Legend />
                     <Bar
+                      dataKey="leads"
+                      name="Leads recebidos"
+                      fill="var(--color-leads)"
+                      radius={[3, 3, 0, 0]}
+                    />
+                    <Bar
                       dataKey="documentacoes"
+                      name="Subiram documentação"
                       fill="var(--color-documentacoes)"
                       radius={[3, 3, 0, 0]}
                     />
                     <Bar
-                      dataKey="aprovacoes"
-                      fill="var(--color-aprovacoes)"
+                      dataKey="reprovacoes"
+                      name="Reprovaram"
+                      fill="var(--color-reprovacoes)"
                       radius={[3, 3, 0, 0]}
                     />
                     <Bar
                       dataKey="vendas"
+                      name="Viraram venda"
                       fill="var(--color-vendas)"
                       radius={[3, 3, 0, 0]}
                     />
@@ -688,7 +673,7 @@ function Page() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Taxa por corretor (%)</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Conversão = vendas ÷ documentações e vendas ÷ aprovações.
+              Cada percentual divide pelo total de leads que o corretor recebeu.
             </p>
           </CardHeader>
           <CardContent className="min-w-0">
@@ -735,13 +720,21 @@ function Page() {
                     />
                     <Legend />
                     <Bar
+                      dataKey="taxaDoc"
+                      name="% documentação"
+                      fill="var(--color-taxaDoc)"
+                      radius={[3, 3, 0, 0]}
+                    />
+                    <Bar
                       dataKey="taxa"
+                      name="% venda"
                       fill="var(--color-taxa)"
                       radius={[3, 3, 0, 0]}
                     />
                     <Bar
-                      dataKey="taxaAprovacao"
-                      fill="var(--color-taxaAprovacao)"
+                      dataKey="taxaReprovacao"
+                      name="% reprovado"
+                      fill="var(--color-taxaReprovacao)"
                       radius={[3, 3, 0, 0]}
                     />
                   </BarChart>
@@ -774,14 +767,12 @@ function Page() {
                 <tr className="border-b text-left">
                   <th className="pb-2 pr-2 font-medium w-10">#</th>
                   <th className="pb-2 pr-2 font-medium">Corretor</th>
+                  <th className="pb-2 pr-2 font-medium text-right">Leads</th>
                   <th className="pb-2 pr-2 font-medium text-right">Docs</th>
-                  <th className="pb-2 pr-2 font-medium text-right">Aprov.</th>
                   <th className="pb-2 pr-2 font-medium text-right">Vendas</th>
+                  <th className="pb-2 pr-2 font-medium text-right">Reprov.</th>
                   <th className="pb-2 pr-2 font-medium text-right">
-                    Doc → venda
-                  </th>
-                  <th className="pb-2 pr-2 font-medium text-right">
-                    Aprov. → venda
+                    % venda
                   </th>
                   <th className="pb-2 pr-2 font-medium text-right">VGV</th>
                   <th className="pb-2 pr-2 font-medium text-right">Visitas</th>
@@ -943,10 +934,10 @@ function CorretorConversaoRow({
         </div>
       </td>
       <td className="py-2.5 pr-2 text-right">
-        <div className="tabular-nums font-medium">{row.documentacoes}</div>
+        <div className="tabular-nums font-medium">{row.entradas.valor}</div>
       </td>
       <td className="py-2.5 pr-2 text-right">
-        <div className="tabular-nums font-medium">{row.aprovacoes ?? 0}</div>
+        <div className="tabular-nums font-medium">{row.documentacoes}</div>
       </td>
       <td className="py-2.5 pr-2 text-right">
         <div className="tabular-nums font-medium">{row.vendas.valor}</div>
@@ -954,6 +945,9 @@ function CorretorConversaoRow({
           value={row.vendas.evolucaoPct}
           previous={row.vendas.valorMesAnterior}
         />
+      </td>
+      <td className="py-2.5 pr-2 text-right">
+        <div className="tabular-nums font-medium">{row.reprovacoes ?? 0}</div>
       </td>
       <td className="py-2.5 pr-2 text-right">
         <Badge
@@ -971,25 +965,6 @@ function CorretorConversaoRow({
         </Badge>
         <div className="mt-0.5">
           <EvolucaoBadge value={row.taxaConversao.evolucaoPct} />
-        </div>
-      </td>
-      <td className="py-2.5 pr-2 text-right">
-        <Badge
-          variant="outline"
-          className={cn(
-            "tabular-nums font-semibold",
-            (row.taxaAprovacao?.valor ?? 0) >= 20
-              ? "border-transparent bg-violet-500/15 text-violet-700 dark:text-violet-300"
-              : "border-transparent bg-muted text-muted-foreground",
-          )}
-        >
-          {(row.taxaAprovacao?.valor ?? 0).toLocaleString("pt-BR", {
-            maximumFractionDigits: 1,
-          })}
-          %
-        </Badge>
-        <div className="mt-0.5">
-          <EvolucaoBadge value={row.taxaAprovacao?.evolucaoPct ?? null} />
         </div>
       </td>
       <td className="py-2.5 pr-2 text-right tabular-nums font-medium">

@@ -26,7 +26,28 @@ export type Novidade = {
 
 const ANUNCIO_STORAGE_KEY = "crm-novidade-anuncio-vista";
 
+const ANUNCIO_INADIMPLENTES_ID = "financeiro-inadimplentes";
+/** Visível em 22, 23 e 24/11/2026. */
+const ANUNCIO_INADIMPLENTES_ATE = "2026-11-25";
+
 export const NOVIDADES: Novidade[] = [
+  {
+    id: ANUNCIO_INADIMPLENTES_ID,
+    title: "Mais controle sobre seus títulos em atraso",
+    kicker: "Novidade",
+    publishedAt: "2026-11-22",
+    summary:
+      "O financeiro agora identifica automaticamente contas a receber e a pagar que ultrapassaram a data de vencimento e ainda não foram quitadas.",
+    where: "Financeiro → Visão geral, Contas a receber e Contas a pagar.",
+    href: "/financeiro/visao-geral",
+    hrefLabel: "Ver financeiro",
+    status: "Disponível para clientes que utilizam o módulo Financeiro.",
+    dropHint:
+      "Contas a receber vencidas são sinalizadas como inadimplentes, enquanto contas a pagar em atraso ficam destacadas para facilitar o acompanhamento.",
+    agora: ["Acompanhe seus vencimentos"],
+    navPaths: ["/financeiro"],
+    pagePaths: ["/financeiro/visao-geral"],
+  },
   {
     id: "pos-venda-card",
     title: "Card do pós-venda com a venda completa",
@@ -864,12 +885,25 @@ export const NOVIDADES: Novidade[] = [
   },
 ];
 
-export function anuncioNovidadeAtual(): Novidade | null {
-  return null;
+function hojeIsoLocal() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
-export function novidadeAnuncioPendente(): boolean {
-  const item = anuncioNovidadeAtual();
+export function anuncioNovidadeAtual(
+  financeiroLiberado = false,
+): Novidade | null {
+  if (!financeiroLiberado) return null;
+  if (hojeIsoLocal() >= ANUNCIO_INADIMPLENTES_ATE) return null;
+  return (
+    NOVIDADES.find((item) => item.id === ANUNCIO_INADIMPLENTES_ID) ?? null
+  );
+}
+
+export function novidadeAnuncioPendente(financeiroLiberado = false): boolean {
+  const item = anuncioNovidadeAtual(financeiroLiberado);
   if (!item || typeof window === "undefined") return false;
   try {
     return sessionStorage.getItem(ANUNCIO_STORAGE_KEY) !== item.id;
@@ -879,10 +913,8 @@ export function novidadeAnuncioPendente(): boolean {
 }
 
 export function marcarNovidadeAnuncioVista(): void {
-  const item = anuncioNovidadeAtual();
-  if (!item) return;
   try {
-    sessionStorage.setItem(ANUNCIO_STORAGE_KEY, item.id);
+    sessionStorage.setItem(ANUNCIO_STORAGE_KEY, ANUNCIO_INADIMPLENTES_ID);
   } catch {
     // armazenamento indisponível: o aviso só não persiste
   }
