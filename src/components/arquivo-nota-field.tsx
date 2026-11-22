@@ -7,11 +7,13 @@ export function ArquivoNotaField({
   onChange,
   atualUrl,
   atualNome,
+  lendo = false,
 }: {
   file: File | null;
   onChange: (file: File | null) => void;
   atualUrl?: string;
   atualNome?: string;
+  lendo?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -49,9 +51,9 @@ export function ArquivoNotaField({
           {file ? <FileText className="size-5" /> : <Upload className="size-5" />}
         </span>
         <span className="text-sm font-medium text-[#0B3148]">
-          {file ? file.name : "Clique para enviar ou arraste o arquivo aqui"}
+          {lendo ? "Lendo a nota…" : file ? file.name : "Clique para enviar ou arraste o arquivo aqui"}
         </span>
-        <span className="text-xs text-[#8B98A3]">PDF ou Word</span>
+        <span className="text-xs text-[#8B98A3]">PDF com texto selecionável preenche os campos. Word só anexa.</span>
       </button>
       {file ? (
         <button

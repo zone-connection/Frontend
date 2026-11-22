@@ -785,6 +785,26 @@ export async function fetchNotasFiscaisOpcoes(): Promise<{
   return apiFetch("/financeiro/notas-fiscais/opcoes");
 }
 
+export type NotaFiscalPdfLeitura = {
+  numero: string | null;
+  dataEmissao: string | null;
+  cliente: string | null;
+  vgv: string | null;
+  corretor: string | null;
+  construtora: string | null;
+  empreendimento: string | null;
+  torreBloco: string | null;
+};
+
+export async function lerNotaFiscalPdf(file: File): Promise<NotaFiscalPdfLeitura> {
+  const body = new FormData();
+  body.set("file", file);
+  return apiFetch<NotaFiscalPdfLeitura>("/financeiro/notas-fiscais/ler-pdf", {
+    method: "POST",
+    body,
+  });
+}
+
 export async function saveNotaFiscal(
   input: Partial<NotaFiscal> & { numero: string; file?: File | null },
   id?: string,

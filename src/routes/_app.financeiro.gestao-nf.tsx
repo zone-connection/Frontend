@@ -38,6 +38,7 @@ import {
   fetchComissoes,
   fetchNotasFiscais,
   fetchNotasFiscaisOpcoes,
+  lerNotaFiscalPdf,
   saveNotaFiscal,
   updateComissao,
   type Comissao,
@@ -89,7 +90,37 @@ function Page() {
   const [editing, setEditing] = useState<NotaFiscal | null>(null);
   const [form, setForm] = useState(empty);
   const [file, setFile] = useState<File | null>(null);
+  const [lendoPdf, setLendoPdf] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  function preencherDoPdf(leitura: Awaited<ReturnType<typeof lerNotaFiscalPdf>>) {
+    setForm((atual) => ({
+      numero: atual.numero.trim() || leitura.numero || "",
+      cliente: atual.cliente.trim() || leitura.cliente || "",
+      vgv: atual.vgv.trim() || (leitura.vgv ? maskMoneyInput(leitura.vgv) : ""),
+      corretor: atual.corretor.trim() || leitura.corretor || "",
+      construtora: atual.construtora.trim() || leitura.construtora || "",
+      empreendimento: atual.empreendimento.trim() || leitura.empreendimento || "",
+      torreBloco: atual.torreBloco.trim() || leitura.torreBloco || "",
+      dataEmissao: atual.dataEmissao || leitura.dataEmissao || "",
+    }));
+  }
+
+  async function escolherArquivo(next: File | null) {
+    setFile(next);
+    if (!next || !/\.pdf$/i.test(next.name)) return;
+    setLendoPdf(true);
+    try {
+      const leitura = await lerNotaFiscalPdf(next);
+      preencherDoPdf(leitura);
+      const achou = Object.values(leitura).some(Boolean);
+      toast.success(achou ? "Campos reconhecidos no PDF. Confira antes de salvar." : "O PDF foi lido, mas nenhum campo foi reconhecido.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível ler o PDF.");
+    } finally {
+      setLendoPdf(false);
+    }
+  }
 
   async function loadOpcoes() {
     try {
@@ -450,7 +481,7 @@ function Page() {
                     <Field label="Torre / Bloco" value={form.torreBloco} onChange={(torreBloco) => setForm({ ...form, torreBloco })} />
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label>Arquivo da NF</Label>
-                      <ArquivoNotaField file={file} onChange={setFile} atualUrl={editing?.arquivoUrl} atualNome={editing?.arquivoNome} />
+                      <ArquivoNotaField file={file} onChange={(next) => void escolherArquivo(next)} atualUrl={editing?.arquivoUrl} atualNome={editing?.arquivoNome} lendo={lendoPdf} />
                     </div>
                   </div>
                 </FormSection>
