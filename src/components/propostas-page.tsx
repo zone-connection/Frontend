@@ -255,11 +255,18 @@ function initialsNome(nome: string) {
 type OrigemProposta = "todos" | "lancamento" | "usado";
 
 type PropostaUsadoLista = PropostaUsado & {
+  interessado: PropostaUsado["interessado"] & { telefone?: string | null };
+  responsavel: PropostaUsado["responsavel"] & {
+    equipe?: { id: string; name: string } | null;
+  };
   vendaUsado?: {
     id: string;
     imovel: {
       titulo?: string;
       cidade?: string;
+      bairro?: string;
+      logradouro?: string;
+      numero?: string;
       fotoUrl?: string | null;
       tipo?: string;
       id?: string;
@@ -364,6 +371,7 @@ type FormState = {
   valor: string;
   sinais: string[];
   sinaisDatas: string[];
+  sinaisNomes: string[];
   apartado: string;
   preChaves: ParcelasForm;
   posChaves: ParcelasForm;
@@ -428,6 +436,7 @@ const emptyForm = (): FormState => ({
   valor: "",
   sinais: [""],
   sinaisDatas: [""],
+  sinaisNomes: [""],
   apartado: "",
   preChaves: emptyParcelas(),
   posChaves: emptyParcelas(),
@@ -482,14 +491,16 @@ function linhasIndividuais(
   descricao: string,
   values: number[],
   datas: string[] = [],
+  nomes: string[] = [],
 ): RelatorioLinha[] {
   return values.flatMap((value, index) => {
     if (value <= 0) return [];
     const data = dataBr(datas[index]);
+    const nome = nomes[index]?.trim();
     return [
       {
         qtd: "1",
-        descricao,
+        descricao: nome ? nome.toUpperCase() : descricao,
         valor: brl(value),
         subtotal: brl(value),
         ...(data ? { data } : {}),
@@ -515,14 +526,15 @@ function linhaDeLista(
 function linhasDoFormulario(form: FormState): RelatorioLinha[] {
   const linhas: RelatorioLinha[] = [];
   linhas.push(
-    ...linhasIndividuais(
-      PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
-      sinaisNumeros(form.sinais),
-      form.sinais.flatMap((raw, index) => {
-        const valor = parseMoney(raw);
-        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
-      }),
-    ),
+    ...(() => {
+      const sinais = sinaisPreenchidos(form);
+      return linhasIndividuais(
+        PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+        sinais.valores,
+        sinais.datas,
+        sinais.nomes,
+      );
+    })(),
   );
   for (const key of PROPOSTA_SIMPLES_KEYS) {
     if (key === "entrada") continue;
@@ -657,6 +669,30 @@ function toSinaisDatas(p: {
   const lista = sinaisSalvos(p);
   if (!lista.length) return [""];
   return lista.map((_, index) => dataIso(p.sinaisDatas?.[index]));
+}
+
+function toSinaisNomes(p: {
+  sinais?: number[] | null;
+  entrada: number | null;
+  sinaisNomes?: string[] | null;
+}): string[] {
+  const lista = sinaisSalvos(p);
+  if (!lista.length) return [""];
+  return lista.map((_, index) => p.sinaisNomes?.[index] ?? "");
+}
+
+function sinaisPreenchidos(form: FormState) {
+  const valores: number[] = [];
+  const datas: string[] = [];
+  const nomes: string[] = [];
+  form.sinais.forEach((raw, index) => {
+    const valor = parseMoney(raw);
+    if (valor == null || valor <= 0) return;
+    valores.push(valor);
+    datas.push(dataIso(form.sinaisDatas[index]));
+    nomes.push((form.sinaisNomes[index] ?? "").trim().slice(0, 80));
+  });
+  return { valores, datas, nomes };
 }
 
 function expandDatas(p: ParcelasForm): string[] {
@@ -804,6 +840,7 @@ function patchFormFromLead(
         ? [formatMoneyInput(doc.valorEntrada)]
         : current.sinais,
     sinaisDatas: doc?.valorEntrada != null ? [""] : current.sinaisDatas,
+    sinaisNomes: doc?.valorEntrada != null ? [""] : current.sinaisNomes,
     fgts:
       doc?.valorFgts != null ? formatMoneyInput(doc.valorFgts) : current.fgts,
   };
@@ -1677,11 +1714,9 @@ export function PropostasPage() {
         const total = sinais.reduce((sum, n) => sum + n, 0);
         return total > 0 ? total : null;
       })(),
-      sinais: sinaisNumeros(form.sinais),
-      sinaisDatas: form.sinais.flatMap((raw, index) => {
-        const valor = parseMoney(raw);
-        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
-      }),
+      sinais: sinaisPreenchidos(form).valores,
+      sinaisDatas: sinaisPreenchidos(form).datas,
+      sinaisNomes: sinaisPreenchidos(form).nomes,
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
@@ -1968,6 +2003,7 @@ export function PropostasPage() {
       valor: formatMoneyInput(p.valor),
       sinais: toSinaisForm(p),
       sinaisDatas: toSinaisDatas(p),
+      sinaisNomes: toSinaisNomes(p),
       apartado: p.apartado != null ? formatMoneyInput(p.apartado) : "",
       preChaves: toParcelasForm(p.preChaves),
       posChaves: toParcelasForm(p.posChaves),
@@ -2138,11 +2174,9 @@ export function PropostasPage() {
         const total = sinais.reduce((sum, n) => sum + n, 0);
         return total > 0 ? total : null;
       })(),
-      sinais: sinaisNumeros(form.sinais),
-      sinaisDatas: form.sinais.flatMap((raw, index) => {
-        const valor = parseMoney(raw);
-        return valor != null && valor > 0 ? [dataIso(form.sinaisDatas[index])] : [];
-      }),
+      sinais: sinaisPreenchidos(form).valores,
+      sinaisDatas: sinaisPreenchidos(form).datas,
+      sinaisNomes: sinaisPreenchidos(form).nomes,
       apartado: parseMoney(form.apartado),
       preChaves: expandParcelas(form.preChaves),
       posChaves: expandParcelas(form.posChaves),
@@ -2508,8 +2542,21 @@ export function PropostasPage() {
               pager.pageItems.map((linha) => {
                 if (linha.kind === "usado") {
                   const p = linha.proposta;
-                  const titulo =
-                    p.vendaUsado?.imovel.titulo || "Imóvel usado";
+                  const imovel = p.vendaUsado?.imovel;
+                  const titulo = imovel?.titulo || "—";
+                  const endereco = [
+                    imovel?.logradouro,
+                    imovel?.numero,
+                  ]
+                    .filter(Boolean)
+                    .join(", ");
+                  const complemento = [imovel?.bairro, imovel?.cidade]
+                    .filter(Boolean)
+                    .join(" · ");
+                  const codigo = `PROP-${new Date(p.createdAt).getFullYear()}-${p.id
+                    .replace(/-/g, "")
+                    .slice(0, 4)
+                    .toUpperCase()}`;
                   return (
                     <TableRow
                       key={linha.id}
@@ -2517,30 +2564,65 @@ export function PropostasPage() {
                       onClick={() => void abrirPropostaUsado(p)}
                     >
                       <TableCell className="font-mono text-xs font-medium">
-                        USADO
+                        {codigo}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-medium">
-                          {p.interessado.nome}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Comprador de usado
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback
+                              className={cn(
+                                "text-xs text-white",
+                                lostLeadAvatarClass(p.interessado.nome),
+                              )}
+                            >
+                              {initialsNome(p.interessado.nome)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="text-sm font-medium">
+                              {p.interessado.nome}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {p.interessado.telefone
+                                ? formatPhone(p.interessado.telefone)
+                                : "—"}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm font-medium">{titulo}</div>
                         <div className="text-xs text-muted-foreground">
-                          {p.vendaUsado?.imovel.cidade || "Usado"}
+                          {endereco || "Sem unidade"}
+                          {complemento ? ` · ${complemento}` : ""}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Usado</Badge>
+                      <TableCell className="max-w-[140px] align-top">
+                        {endereco || complemento ? (
+                          <div className="space-y-0.5">
+                            {endereco ? (
+                              <div className="truncate text-xs text-foreground" title={endereco}>
+                                {endereco}
+                              </div>
+                            ) : null}
+                            {complemento ? (
+                              <div className="truncate text-xs text-foreground" title={complemento}>
+                                {complemento}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
+                        <div>{p.responsavel.name}</div>
+                        <div className="text-xs normal-case tracking-normal">
+                          {p.responsavel.equipe?.name ?? "Sem equipe"}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         {p.responsavel.name}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        —
                       </TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">
                         {brl(p.valorAtual ?? p.valor)}
@@ -2573,7 +2655,7 @@ export function PropostasPage() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                         —
                       </TableCell>
                       <TableCell
@@ -4107,8 +4189,14 @@ export function PropostasPage() {
                       title="Sinal (R$)"
                       valores={form.sinais}
                       datas={form.sinaisDatas}
-                      onChange={(sinais, sinaisDatas) =>
-                        setForm((f) => ({ ...f, sinais, sinaisDatas }))
+                      nomes={form.sinaisNomes}
+                      onChange={(sinais, sinaisDatas, sinaisNomes) =>
+                        setForm((f) => ({
+                          ...f,
+                          sinais,
+                          sinaisDatas,
+                          sinaisNomes,
+                        }))
                       }
                     />
                     {PROPOSTA_SIMPLES_KEYS.filter((key) => key !== "entrada").map(
@@ -4930,17 +5018,20 @@ function ValoresVariaveisEditor({
   title,
   valores,
   datas,
+  nomes = [],
   onChange,
 }: {
   id: string;
   title: string;
   valores: string[];
   datas: string[];
-  onChange: (valores: string[], datas: string[]) => void;
+  nomes?: string[];
+  onChange: (valores: string[], datas: string[], nomes: string[]) => void;
 }) {
   const total = sinaisNumeros(valores).reduce((sum, n) => sum + n, 0);
   const linhas = valores.length ? valores : [""];
   const datasLinha = linhas.map((_, index) => datas[index] ?? "");
+  const nomesLinha = linhas.map((_, index) => nomes[index] ?? "");
 
   return (
     <div className="space-y-1.5 sm:col-span-2">
@@ -4952,35 +5043,50 @@ function ValoresVariaveisEditor({
           variant="outline"
           className="h-8 w-8"
           aria-label="Adicionar sinal"
-          onClick={() => onChange([...linhas, ""], [...datasLinha, ""])}
+          onClick={() =>
+            onChange([...linhas, ""], [...datasLinha, ""], [...nomesLinha, ""])
+          }
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2">
         {linhas.map((valor, index) => (
-          <div key={`${id}-${index}`} className="flex items-end gap-2">
-            <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+          <div key={`${id}-${index}`} className="flex items-center gap-2">
+            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1.3fr)_minmax(7rem,0.8fr)_11.5rem] gap-2">
+              <Input
+                value={nomesLinha[index]}
+                placeholder="Nome do sinal"
+                aria-label="Nome do sinal"
+                className="min-w-0"
+                onChange={(e) => {
+                  const next = nomesLinha.slice();
+                  next[index] = e.target.value.slice(0, 80);
+                  onChange(linhas, datasLinha, next);
+                }}
+              />
               <Input
                 id={index === 0 ? `${id}-0` : undefined}
                 inputMode="numeric"
                 placeholder="0,00"
                 value={valor}
                 aria-label="Valor do sinal"
+                className="min-w-0"
                 onChange={(e) => {
                   const next = linhas.slice();
                   next[index] = maskMoneyInput(e.target.value);
-                  onChange(next, datasLinha);
+                  onChange(next, datasLinha, nomesLinha);
                 }}
               />
               <Input
                 type="date"
                 value={datasLinha[index]}
                 aria-label="Data do sinal, opcional"
+                className="w-full min-w-0 shrink-0 px-3 [&::-webkit-calendar-picker-indicator]:ml-1"
                 onChange={(e) => {
                   const nextDatas = datasLinha.slice();
                   nextDatas[index] = e.target.value;
-                  onChange(linhas, nextDatas);
+                  onChange(linhas, nextDatas, nomesLinha);
                 }}
               />
             </div>
@@ -4995,6 +5101,7 @@ function ValoresVariaveisEditor({
                   onChange(
                     linhas.filter((_, i) => i !== index),
                     datasLinha.filter((_, i) => i !== index),
+                    nomesLinha.filter((_, i) => i !== index),
                   )
                 }
               >

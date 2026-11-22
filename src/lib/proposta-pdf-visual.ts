@@ -204,9 +204,12 @@ function paymentRows(p: Proposta): PayRow[] {
       p.sinais.forEach((value, index) => {
         if (value <= 0) return;
         const data = dataBr(p.sinaisDatas?.[index]);
+        const nome = p.sinaisNomes?.[index]?.trim();
         rows.push({
           qtd: "1",
-          descricao: PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
+          descricao: nome
+            ? nome.toUpperCase()
+            : PROPOSTA_COMPOSICAO_LABEL.entrada.toUpperCase(),
           valor: brl(value),
           subtotal: brl(value),
           ...(data ? { data } : {}),

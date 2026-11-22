@@ -79,6 +79,7 @@ export type Proposta = {
   /** Sinais individuais. A soma continua em `entrada`. */
   sinais?: number[];
   sinaisDatas?: string[];
+  sinaisNomes?: string[];
   intercaladasDatas?: string[];
   apartado: number | null;
   preChaves: number[];
@@ -313,6 +314,7 @@ export type CreatePropostaInput = {
   entrada?: number | null;
   sinais?: number[];
   sinaisDatas?: string[];
+  sinaisNomes?: string[];
   intercaladasDatas?: string[];
   apartado?: number | null;
   preChaves?: number[];
