@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
+import { useMostrarDatasPrevisao } from "@/lib/previsao-visibilidade";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { PagePanel } from "@/components/page-panel";
@@ -139,6 +140,7 @@ function Page() {
     preferCalendar ? "calendario" : "tabela",
   );
   const [hideValues] = useHideFinanceiroValues();
+  const mostrarPrevisao = useMostrarDatasPrevisao();
   const canCreateFin = isFinanceTeam && canFinanceiroAction(session, "create");
   const canEditFin = isFinanceTeam && canFinanceiroAction(session, "edit");
   const canDeleteFin = isFinanceTeam && canFinanceiroAction(session, "delete");
@@ -560,7 +562,7 @@ function Page() {
         }}
       />
 
-      {vista === "calendario" && lista === "lancadas" ? (
+      {vista === "calendario" && lista === "lancadas" && mostrarPrevisao ? (
         loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -584,7 +586,9 @@ function Page() {
                 <TableHead className="h-9">Empreendimento</TableHead>
                 <TableHead className="h-9">Cliente</TableHead>
                 <TableHead className="h-9">Venda</TableHead>
-                <TableHead className="h-9">Prev. receb.</TableHead>
+                {mostrarPrevisao ? (
+                  <TableHead className="h-9">Prev. receb.</TableHead>
+                ) : null}
                 <TableHead className="h-9 text-right">VGV</TableHead>
                 <TableHead className="h-9 text-right">
                   {commissionColumnLabel}
@@ -653,11 +657,13 @@ function Page() {
                     <TableCell className="py-2 whitespace-nowrap tabular-nums">
                       {formatDate(item.dataVenda)}
                     </TableCell>
+                    {mostrarPrevisao ? (
                     <TableCell className="py-2 whitespace-nowrap tabular-nums">
                       {item.dataPrevistaRecebimento
                         ? formatDate(item.dataPrevistaRecebimento)
                         : "—"}
                     </TableCell>
+                    ) : null}
                     <TableCell className="py-2 text-right tabular-nums">
                       {brl(numberValue(item.vgv))}
                     </TableCell>
@@ -757,8 +763,9 @@ function Page() {
       </p>
       ) : (
         <p className="mt-3 mb-4 text-xs text-muted-foreground">
-          {calendarRows.filter((item) => item.dataPrevistaRecebimento).length}{" "}
-          comissão(ões) com data prevista · clique no dia para ver o detalhe.
+          {mostrarPrevisao
+            ? `${calendarRows.filter((item) => item.dataPrevistaRecebimento).length} comissão(ões) com data prevista · clique no dia para ver o detalhe.`
+            : "As datas de previsão estão ocultas para o seu perfil."}
         </p>
       )}
 
@@ -851,6 +858,7 @@ function Page() {
                   label="Data da venda"
                   value={formatDate(detail.dataVenda)}
                 />
+                {mostrarPrevisao ? (
                 <DetailField
                   label="Previsto recebimento"
                   value={
@@ -859,6 +867,7 @@ function Page() {
                       : "—"
                   }
                 />
+                ) : null}
                 <DetailField
                   label="VGV"
                   value={brl(numberValue(detail.vgv))}

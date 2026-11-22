@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { mostrarDatasPrevisao, useMostrarDatasPrevisao } from "@/lib/previsao-visibilidade";
 import {
   Bell,
   Building2,
@@ -147,7 +148,7 @@ function fatosDoMovimento(item: MuralChaveHistoricoItem) {
     fatos.push({ rotulo: "Quem registrou a retirada", valor: item.quemRegistrouRetiradaNome });
   }
   if (item.retiradaEm) fatos.push({ rotulo: "Retirada", valor: formatChaveQuando(item.retiradaEm) });
-  if (item.previsaoDevolucao) {
+  if (item.previsaoDevolucao && mostrarDatasPrevisao()) {
     fatos.push({ rotulo: "Previsão de devolução", valor: formatChaveQuando(item.previsaoDevolucao) });
   }
   if (item.quemDevolveuNome) fatos.push({ rotulo: "Quem devolveu", valor: item.quemDevolveuNome });
@@ -294,6 +295,7 @@ function PainelChave({
   onHistorico: () => void;
 }) {
   const faixa = faixaDaChave(chave);
+  const mostrarPrevisao = useMostrarDatasPrevisao();
   const visual = FAIXA_VISUAL[faixa];
   const retirada = historico?.itens.find((item) => item.tipo === "retirada");
   const devolucao = historico?.itens.find((item) => item.tipo === "devolucao");
@@ -387,6 +389,7 @@ function PainelChave({
             <dd className="font-medium">{formatChaveQuando(chave.retiradaEm)}</dd>
           </div>
         </div>
+        {mostrarPrevisao ? (
         <div className="flex gap-2.5">
           <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
@@ -394,6 +397,7 @@ function PainelChave({
             <dd className="font-medium">{formatChaveQuando(chave.previsaoDevolucao)}</dd>
           </div>
         </div>
+        ) : null}
         <div className="flex gap-2.5">
           <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
@@ -1458,6 +1462,7 @@ export function MuralChavesPage() {
                 />
               </div>
             ) : null}
+            {mostrarDatasPrevisao() ? (
             <div className="space-y-1.5">
               <Label htmlFor="chave-previsao">Previsão de devolução</Label>
               <Input
@@ -1467,6 +1472,7 @@ export function MuralChavesPage() {
                 onChange={(event) => setPrevisao(event.target.value)}
               />
             </div>
+            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="chave-obs-ret">Observação</Label>
               <Input
@@ -1597,6 +1603,7 @@ export function MuralChavesPage() {
                       {formatChaveQuando(acao.chave.retiradaEm)}
                     </p>
                   </div>
+                  {mostrarDatasPrevisao() ? (
                   <div className="rounded-xl border bg-background px-3 py-2">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       Previsão
@@ -1605,6 +1612,7 @@ export function MuralChavesPage() {
                       {formatChaveQuando(acao.chave.previsaoDevolucao)}
                     </p>
                   </div>
+                  ) : null}
                 </div>
                 {historico?.identificadoresAnteriores.length ? (
                   <p className="text-sm text-muted-foreground">

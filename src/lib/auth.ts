@@ -42,6 +42,7 @@ export type TenantBranding = {
   usuariosExtras?: number;
   iaBotEnabled?: boolean;
   emailOperacional?: boolean;
+  exibirPrevisaoSubordinados?: boolean;
   leadsAtrasadosLimite?: number;
   tarefasEnabled?: boolean;
   hasOzapConnection?: boolean;
@@ -269,6 +270,18 @@ export function clearMfaDecisionPending() {
   const current = getSession();
   if (!current) return;
   sessionCache.setUser({ ...current, mfaDecisionPending: false });
+  notifySessionUpdated();
+}
+
+export function patchSessionTenant(
+  partial: Partial<NonNullable<AuthUser["tenant"]>>,
+) {
+  const current = getSession();
+  if (!current?.tenant) return;
+  sessionCache.setUser({
+    ...current,
+    tenant: { ...current.tenant, ...partial },
+  });
   notifySessionUpdated();
 }
 

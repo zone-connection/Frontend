@@ -20,6 +20,7 @@ import { FluxoCaixaBoard } from "@/components/fluxo-caixa-board";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
 import { useHideFinanceiroValues } from "@/lib/financeiro-prefs";
+import { useMostrarDatasPrevisao } from "@/lib/previsao-visibilidade";
 import { TablePager } from "@/components/table-pager";
 import { useTablePager } from "@/lib/use-table-pager";
 import { PagePanel } from "@/components/page-panel";
@@ -145,6 +146,14 @@ function Page() {
   );
   const [buckets, setBuckets] = useState<FluxoBucket[]>([]);
   const [items, setItems] = useState<FluxoItem[]>([]);
+  const mostrarPrevisao = useMostrarDatasPrevisao();
+  const itensVisiveis = useMemo(
+    () =>
+      mostrarPrevisao
+        ? items
+        : items.filter((item) => item.natureza !== "previsto"),
+    [items, mostrarPrevisao],
+  );
   const [loading, setLoading] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLabel, setDetailLabel] = useState("");
@@ -363,8 +372,8 @@ function Page() {
 
   const tableDayItems = useMemo(() => {
     const key = toDateInput(selectedDay);
-    return items.filter((i) => i.data === key);
-  }, [items, selectedDay]);
+    return itensVisiveis.filter((i) => i.data === key);
+  }, [itensVisiveis, selectedDay]);
   const dayPager = useTablePager(tableDayItems, toDateInput(selectedDay));
   const bucketPager = useTablePager(buckets, view);
 
@@ -666,7 +675,7 @@ function Page() {
         <FluxoCaixaBoard
           view={view}
           anchor={selectedDay}
-          items={items}
+          items={itensVisiveis}
           loading={loading}
           onSelectDay={(day) => {
             setSelectedDay(startOfDay(day));

@@ -119,6 +119,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { nextCatalogColor, STATUS_CHIP_CLASS } from "@/lib/catalog-colors";
 import { FinanceKpiCard } from "@/components/finance-kpi-card";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
+import { useMostrarDatasPrevisao } from "@/lib/previsao-visibilidade";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { CatalogItem } from "@/lib/catalog-api";
 import { cn, formatCep } from "@/lib/utils";
@@ -643,6 +644,8 @@ export function ImoveisPage({
   onDialogoFechado?: () => void;
 } = {}) {
   const user = getSession();
+  const mostrarPrevisao = useMostrarDatasPrevisao();
+  const esconderPrazo = ocultarPrazoEntrega || !mostrarPrevisao;
   const isAdmin = user?.role === "admin";
   const isAnalista = user?.role === "analista";
   const isTreinee = user?.role === "treinee";
@@ -2836,12 +2839,12 @@ export function ImoveisPage({
         title={
           editingId
             ? "Editar empreendimento"
-            : ocultarPrazoEntrega
+            : esconderPrazo
               ? "Novo imóvel"
               : "Novo empreendimento"
         }
         description={
-          ocultarPrazoEntrega
+          esconderPrazo
             ? "Cadastro do imóvel para a captação. O mesmo formulário do catálogo, sem prazo de entrega."
             : "Cada dado uma vez: local, unidade, itens e textos da vitrine."
         }
@@ -3819,15 +3822,15 @@ export function ImoveisPage({
             <TabsContent value="prazos" className="mt-4">
           <FormSection
             icon={<CalendarClock className="h-4 w-4" />}
-            title={ocultarPrazoEntrega ? "Valores" : "Prazos e valores"}
+            title={esconderPrazo ? "Valores" : "Prazos e valores"}
             description={
-              ocultarPrazoEntrega
+              esconderPrazo
                 ? "Lançamento, preço e renda sugerida."
                 : "Entrega, lançamento, preço e renda sugerida."
             }
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              {ocultarPrazoEntrega ? null : (
+              {esconderPrazo ? null : (
               <div className="space-y-1.5">
                 <Label htmlFor="imovel-previsao">Previsão de entrega</Label>
                 <Input

@@ -22,6 +22,7 @@ export type TenantCompanyProfile = Pick<
   | "intermediacaoTemplateUrl"
   | "logoUrl"
   | "emailOperacional"
+  | "exibirPrevisaoSubordinados"
   | "leadsAtrasadosLimite"
 >;
 
@@ -39,6 +40,7 @@ export type UpdateTenantCompanyInput = {
   pix?: string;
   representanteLegal?: string;
   emailOperacional?: boolean;
+  exibirPrevisaoSubordinados?: boolean;
   leadsAtrasadosLimite?: number;
 };
 

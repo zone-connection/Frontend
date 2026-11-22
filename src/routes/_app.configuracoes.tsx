@@ -36,6 +36,7 @@ import {
   setVistaParcelas,
   type VistaParcelas,
 } from "@/lib/financeiro-prefs";
+import { ConfigPrevisaoSubordinadosCard } from "@/components/config-previsao-subordinados-card";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
@@ -663,6 +664,7 @@ function Config() {
 
         {selection.item === "financeiro" && showFinanceiro ? (
           <div className="space-y-4">
+              <ConfigPrevisaoSubordinadosCard />
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">

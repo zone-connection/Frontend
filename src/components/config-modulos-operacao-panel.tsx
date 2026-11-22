@@ -14,6 +14,7 @@ import {
   type TenantOperationModules,
 } from "@/lib/tenant-company-api";
 import { ConfigHideClientesMenuCard } from "@/components/config-hide-clientes-menu-card";
+import { ConfigPrevisaoSubordinadosCard } from "@/components/config-previsao-subordinados-card";
 import { toast } from "sonner";
 
 const CARDS: Array<{
@@ -349,6 +350,7 @@ export function ConfigModulosOperacaoPanel() {
 
   return (
     <div className="space-y-8">
+      <ConfigPrevisaoSubordinadosCard />
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-semibold">Operações</h2>
