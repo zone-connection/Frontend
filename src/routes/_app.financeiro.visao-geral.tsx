@@ -37,6 +37,7 @@ import { SOFT_BTN, SOFT_BTN_ACTIVE } from "@/lib/soft-btn";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
+  AlertTriangle,
   ArrowDownRight,
   Banknote,
   ChevronLeft,
@@ -100,6 +101,9 @@ const EMPTY_KPIS = {
   comissoesAReceberMes: 0,
   aReceber: 0,
   aPagar: 0,
+  inadimplente: 0,
+  inadimplenteReceber: 0,
+  inadimplentePagar: 0,
   resultadoMes: 0,
   evolucaoReceitas: null as number | null,
   evolucaoDespesas: null as number | null,
@@ -506,7 +510,7 @@ function Page() {
 
       {showSkeleton ? (
         <div className="space-y-4">
-          <SkeletonKpiGrid count={4} />
+          <SkeletonKpiGrid count={5} />
           <div className="grid min-w-0 gap-4 lg:grid-cols-5">
             <SkeletonChart className="lg:col-span-3" />
             <SkeletonList rows={5} />
@@ -521,7 +525,7 @@ function Page() {
         description={`Resultado e pendências de ${periodoAnoMes}.`}
         action={<PanelLink to="/financeiro/comissao">Ver comissões</PanelLink>}
       >
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <FinanceKpiCard
           variant="dash"
           label="Resultado"
@@ -562,6 +566,16 @@ function Page() {
           icon={ArrowDownRight}
           tone="orange"
           href="/financeiro/contas-a-pagar"
+          blurValue={hideValues}
+        />
+        <FinanceKpiCard
+          variant="dash"
+          label="Inadimplente"
+          value={Math.round(k.inadimplente ?? 0)}
+          icon={AlertTriangle}
+          tone="rose"
+          href="/financeiro/contas-a-receber"
+          detail={`A receber ${brl(Math.round(k.inadimplenteReceber ?? 0))} · A pagar ${brl(Math.round(k.inadimplentePagar ?? 0))}`}
           blurValue={hideValues}
         />
       </section>

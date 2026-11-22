@@ -268,15 +268,6 @@ export type RecebimentoTipo = DespesaTipo & { qtdRecebimentos?: number };
 export type RecebimentoLancamento = DespesaLancamento;
 
 /** Coleções vazias até a API do financeiro existir. */
-export const MOCK_PARCEIROS: ParceiroFinanceiro[] = [];
-export const MOCK_MOVIMENTOS: MovimentoFinanceiro[] = [];
-export const MOCK_A_RECEBER: TituloFinanceiro[] = [];
-export const MOCK_A_PAGAR: TituloFinanceiro[] = [];
-export const MOCK_COMISSOES: ComissaoItem[] = [];
-export const MOCK_FLUXO_CAIXA: FluxoDia[] = [];
-export const MOCK_MESES_RESUMO: MesResumo[] = [];
-export const MOCK_CENTROS: CentroDespesaResumo[] = [];
-
 export const VISAO_GERAL_KPIS = {
   saldoAtual: 0,
   receitasMes: 0,
@@ -444,4 +435,16 @@ export function tituloNoIntervalo(
     if (end && d > end) return false;
   }
   return true;
+}
+
+/** Vencimento já passou e o título não foi baixado como pago. */
+export function tituloInadimplente(
+  titulo: { status: StatusTitulo; vencimento: string },
+  hoje = new Date(),
+): boolean {
+  if (titulo.status === "pago" || titulo.status === "cancelado") return false;
+  const venc = parseFinanceiroDay(titulo.vencimento);
+  if (!venc) return false;
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return venc < inicioHoje;
 }

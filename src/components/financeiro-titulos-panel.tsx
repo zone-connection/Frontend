@@ -128,6 +128,7 @@ import {
   formatDate,
   statusBadgeClass,
   statusLabel,
+  tituloInadimplente,
   tituloNoIntervalo,
   tituloVisivelNoPeriodo,
   type DespesaTipo,
@@ -183,6 +184,7 @@ function tituloStatusChipClass(status: string) {
     case "paga":
       return "bg-emerald-500 text-white";
     case "atrasado":
+    case "inadimplente":
       return "bg-rose-500 text-white";
     case "aberto":
     case "pendente":
@@ -878,12 +880,26 @@ export function FinanceiroTitulosPanel({
     }
   }
 
+  function ehInadimplente(t: TituloFinanceiro) {
+    return tituloInadimplente(t);
+  }
+
+  function rotuloStatus(t: TituloFinanceiro) {
+    if (ehInadimplente(t)) return { status: "inadimplente", label: "Inadimplente" };
+    return { status: t.status, label: statusLabel(t.status) };
+  }
+
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const now = new Date();
     return items.filter((t) => {
       if (ocultarComissao && t.comissaoId) return false;
-      if (status !== "todos" && t.status !== status) return false;
+      const inadimplente = ehInadimplente(t);
+      if (status !== "todos") {
+        if (inadimplente) {
+          if (status !== "atrasado") return false;
+        } else if (t.status !== status) return false;
+      }
       if (categoriaFiltro !== "todos") {
         const label =
           tipo === "pagar" ? t.centro || t.categoria : t.categoria || t.centro;
@@ -891,13 +907,13 @@ export function FinanceiroTitulosPanel({
       }
       const intervaloAtivo = Boolean(dataDe || dataAte);
       if (intervaloAtivo) {
-        if (!tituloNoIntervalo(t, dataDe, dataAte)) return false;
+        if (!tituloNoIntervalo(t, dataDe, dataAte) && !inadimplente) return false;
       } else if (typeof mes === "number") {
         const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
         const ultimo = new Date(ano, mes, 0);
         const fim = `${ultimo.getFullYear()}-${String(ultimo.getMonth() + 1).padStart(2, "0")}-${String(ultimo.getDate()).padStart(2, "0")}`;
-        if (!tituloNoIntervalo(t, inicio, fim)) return false;
-      } else if (!tituloVisivelNoPeriodo(t, periodo, now)) return false;
+        if (!tituloNoIntervalo(t, inicio, fim) && !inadimplente) return false;
+      } else if (!tituloVisivelNoPeriodo(t, periodo, now) && !inadimplente) return false;
       if (!q) return true;
       return (
         t.descricao.toLowerCase().includes(q) ||
@@ -927,16 +943,20 @@ export function FinanceiroTitulosPanel({
         : principal(r);
     const baseAberto =
       tipo === "receber" && !aReceberSegueFiltro ? items : rows;
+    const noPeriodo = (r: TituloFinanceiro) => !ehInadimplente(r);
     const aberto = baseAberto
-      .filter((r) => r.status === "aberto")
+      .filter((r) => r.status === "aberto" && noPeriodo(r))
       .reduce((s, r) => s + principal(r), 0);
     const atrasado = baseAberto
-      .filter((r) => r.status === "atrasado")
+      .filter((r) => r.status === "atrasado" && noPeriodo(r))
+      .reduce((s, r) => s + devido(r), 0);
+    const inadimplente = baseAberto
+      .filter((r) => ehInadimplente(r))
       .reduce((s, r) => s + devido(r), 0);
     const pago = rows
       .filter((r) => r.status === "pago")
       .reduce((s, r) => s + principal(r), 0);
-    return { aberto, atrasado, pago, aReceber: aberto + atrasado };
+    return { aberto, atrasado, pago, inadimplente, aReceber: aberto + atrasado };
   }, [rows, items, tipo, aReceberSegueFiltro]);
 
   const displayRows = useMemo(
@@ -1765,12 +1785,12 @@ export function FinanceiroTitulosPanel({
         description={
           tipo === "receber"
             ? aReceberSegueFiltro
-              ? "A receber e atrasado seguem o mês atual ou o período do filtro. Recebido segue o mesmo recorte."
+              ? "A receber e atrasado seguem o período do filtro. Inadimplente soma o que já venceu e ainda não foi pago, em qualquer mês. Recebido segue o mesmo recorte."
               : "A receber soma tudo em aberto e atrasado, de qualquer mês, inclusive comissão. Recebido segue o período filtrado."
             : "Abertos pelo principal. Atrasados com multa de 2% e juros de 1% a.m. (pro rata)."
         }
       >
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <FinanceKpiCard
           variant="dash"
           label={
@@ -1793,6 +1813,14 @@ export function FinanceiroTitulosPanel({
               : `Atrasado ${periodoKpi}`
           }
           value={kpis.atrasado}
+          icon={AlertTriangle}
+          tone="rose"
+          blurValue={hideValues}
+        />
+        <FinanceKpiCard
+          variant="dash"
+          label="Inadimplente"
+          value={kpis.inadimplente}
           icon={AlertTriangle}
           tone="rose"
           blurValue={hideValues}
@@ -1987,8 +2015,8 @@ export function FinanceiroTitulosPanel({
                           {t.descricao}
                         </p>
                         <StatusPill
-                          status={t.status}
-                          label={statusLabel(t.status)}
+                          status={rotuloStatus(t).status}
+                          label={rotuloStatus(t).label}
                         />
                       </div>
                       <div className="flex flex-wrap gap-1">
@@ -2139,8 +2167,8 @@ export function FinanceiroTitulosPanel({
                             <div className="flex items-center justify-between gap-2 text-xs">
                               <span>Parcela {t.parcela || "—"}</span>
                               <StatusPill
-                                status={t.status}
-                                label={statusLabel(t.status)}
+                                status={rotuloStatus(t).status}
+                                label={rotuloStatus(t).label}
                               />
                             </div>
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -2244,8 +2272,8 @@ export function FinanceiroTitulosPanel({
                       </TableCell>
                       <TableCell>
                         <StatusPill
-                          status={t.status}
-                          label={statusLabel(t.status)}
+                          status={rotuloStatus(t).status}
+                          label={rotuloStatus(t).label}
                         />
                       </TableCell>
                       <TableCell>{renderTituloActions(t)}</TableCell>
@@ -2399,8 +2427,8 @@ export function FinanceiroTitulosPanel({
                             </TableCell>
                             <TableCell>
                               <StatusPill
-                                status={t.status}
-                                label={statusLabel(t.status)}
+                                status={rotuloStatus(t).status}
+                                label={rotuloStatus(t).label}
                               />
                             </TableCell>
                             <TableCell>
@@ -3935,7 +3963,7 @@ export function FinanceiroTitulosPanel({
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Venc. {formatDate(t.vencimento)} ·{" "}
-                              {statusLabel(t.status)}
+                              {rotuloStatus(t).label}
                             </p>
                           </div>
                           {canEditFin ? (

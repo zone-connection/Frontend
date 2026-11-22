@@ -98,14 +98,14 @@ export const Route = createFileRoute("/_app/financeiro/fluxo-caixa")({
 const fluxoConfig = {
   entradasRealizadas: {
     label: "Entradas realizadas",
-    color: "hsl(160 84% 39%)",
+    color: "hsl(160 84% 32%)",
   },
   entradasPrevistas: {
     label: "Entradas previstas",
-    color: "hsl(160 60% 55%)",
+    color: "hsl(199 89% 48%)",
   },
-  saidasRealizadas: { label: "Saídas realizadas", color: "hsl(0 72% 51%)" },
-  saidasPrevistas: { label: "Saídas previstas", color: "hsl(0 55% 65%)" },
+  saidasRealizadas: { label: "Saídas realizadas", color: "hsl(347 77% 50%)" },
+  saidasPrevistas: { label: "Saídas previstas", color: "hsl(38 92% 50%)" },
   saldoProjetado: { label: "Saldo projetado", color: "hsl(199 89% 48%)" },
   saldoRealizado: { label: "Saldo realizado", color: "hsl(215 70% 50%)" },
 } satisfies ChartConfig;
@@ -493,23 +493,23 @@ function Page() {
           value={totais.saidasRealizadas}
           icon={ArrowDownRight}
           variant="dash"
-          tone="teal"
+          tone="rose"
           blurValue={hideValues}
         />
         <FinanceKpiCard
-          label="A receber neste mês"
+          label="Entradas previstas"
           value={totais.entradasPrevistas}
           icon={ArrowUpRight}
           variant="dash"
-          tone="orange"
+          tone="blue"
           blurValue={hideValues}
         />
         <FinanceKpiCard
-          label="A pagar neste mês"
+          label="Saídas previstas"
           value={totais.saidasPrevistas}
           icon={ArrowDownRight}
           variant="dash"
-          tone="violet"
+          tone="orange"
           blurValue={hideValues}
         />
       </section>
@@ -565,23 +565,25 @@ function Page() {
                     <Legend />
                     <Bar
                       dataKey="entradasRealizadas"
-                      stackId="e"
+                      name="Entradas realizadas"
                       fill="var(--color-entradasRealizadas)"
+                      radius={[3, 3, 0, 0]}
                     />
                     <Bar
                       dataKey="entradasPrevistas"
-                      stackId="e"
+                      name="Entradas previstas"
                       fill="var(--color-entradasPrevistas)"
                       radius={[3, 3, 0, 0]}
                     />
                     <Bar
                       dataKey="saidasRealizadas"
-                      stackId="s"
+                      name="Saídas realizadas"
                       fill="var(--color-saidasRealizadas)"
+                      radius={[3, 3, 0, 0]}
                     />
                     <Bar
                       dataKey="saidasPrevistas"
-                      stackId="s"
+                      name="Saídas previstas"
                       fill="var(--color-saidasPrevistas)"
                       radius={[3, 3, 0, 0]}
                     />

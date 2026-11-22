@@ -215,6 +215,9 @@ export type VisaoGeralResponse = {
     comissoesAReceberMes?: number;
     aReceber: number;
     aPagar: number;
+    inadimplente: number;
+    inadimplenteReceber: number;
+    inadimplentePagar: number;
     resultadoMes: number;
     evolucaoReceitas: number | null;
     evolucaoDespesas: number | null;

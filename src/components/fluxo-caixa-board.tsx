@@ -29,14 +29,15 @@ function formatHour(h: number) {
 }
 
 function itemBlockClass(item: FluxoItem) {
+  const previsto = item.natureza === "previsto";
   if (item.tipo === "entrada") {
-    return item.natureza === "previsto"
-      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-dashed"
-      : "border-emerald-600/50 bg-emerald-600/25 text-emerald-800 dark:text-emerald-200";
+    return previsto
+      ? "border-sky-500/70 bg-sky-500/15 text-sky-800 dark:text-sky-200 border-dashed"
+      : "border-emerald-700/60 bg-emerald-600 text-white";
   }
-  return item.natureza === "previsto"
-    ? "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300 border-dashed"
-    : "border-red-600/50 bg-red-600/25 text-red-800 dark:text-red-200";
+  return previsto
+    ? "border-amber-500/80 bg-amber-400/25 text-amber-900 dark:text-amber-100 border-dashed"
+    : "border-rose-700/60 bg-rose-600 text-white";
 }
 
 type BoardProps = {
@@ -304,16 +305,20 @@ function MonthBoard({
       <div className="flex flex-wrap items-center gap-3 border-b px-3 py-2 text-[11px] text-muted-foreground">
         <span className="font-medium text-foreground">Cores</span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-emerald-600/70" />
-          Entrada
+          <span className="size-2.5 rounded-sm bg-emerald-600" />
+          Entrada concretizada
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-red-600/70" />
-          Saída
+          <span className="size-2.5 rounded-sm border border-dashed border-sky-500 bg-sky-500/30" />
+          Entrada prevista
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm border border-dashed border-muted-foreground/50" />
-          Previsto
+          <span className="size-2.5 rounded-sm bg-rose-600" />
+          Saída concretizada
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2.5 rounded-sm border border-dashed border-amber-500 bg-amber-400/40" />
+          Saída prevista
         </span>
       </div>
 
@@ -370,9 +375,9 @@ function MonthBoard({
                         "truncate rounded px-1 py-0.5 text-left text-[10px] font-medium leading-tight border",
                         itemBlockClass(item),
                       )}
-                      title={`${item.descricao} · ${sign}${brl(item.valor)}${
-                        item.contrato ? " · Contrato" : ""
-                      }`}
+                      title={`${item.descricao} · ${sign}${brl(item.valor)} · ${
+                        item.natureza === "previsto" ? "Previsto" : "Concretizado"
+                      }${item.contrato ? " · Contrato" : ""}`}
                     >
                       {sign}
                       {brl(item.valor)} {item.descricao}
