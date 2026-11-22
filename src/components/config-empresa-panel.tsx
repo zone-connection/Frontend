@@ -34,6 +34,8 @@ type FormState = {
   contaBancaria: string;
   pix: string;
   representanteLegal: string;
+  emailOperacional: boolean;
+  leadsAtrasadosLimite: string;
 };
 
 function formFromCompany(company: {
@@ -49,6 +51,8 @@ function formFromCompany(company: {
   contaBancaria?: string | null;
   pix?: string | null;
   representanteLegal?: string | null;
+  emailOperacional?: boolean | null;
+  leadsAtrasadosLimite?: number | null;
 }): FormState {
   return {
     name: company.name ?? "",
@@ -63,6 +67,8 @@ function formFromCompany(company: {
     contaBancaria: company.contaBancaria ?? "",
     pix: company.pix ?? "",
     representanteLegal: company.representanteLegal ?? "",
+    emailOperacional: company.emailOperacional !== false,
+    leadsAtrasadosLimite: String(company.leadsAtrasadosLimite ?? 0),
   };
 }
 
@@ -214,6 +220,11 @@ export function ConfigEmpresaPanel() {
         contaBancaria: form.contaBancaria.trim(),
         pix: form.pix.trim(),
         representanteLegal: form.representanteLegal.trim(),
+        emailOperacional: form.emailOperacional,
+        leadsAtrasadosLimite: Math.max(
+          0,
+          Number(form.leadsAtrasadosLimite) || 0,
+        ),
       });
       const next = formFromCompany(updated);
       setForm(next);
@@ -427,6 +438,42 @@ export function ConfigEmpresaPanel() {
                 placeholder="Nome de quem assina pela imobiliária"
                 onChange={(e) => setField("representanteLegal", e.target.value)}
               />
+            </div>
+            <div className="space-y-2 md:col-span-2 rounded-md border p-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.emailOperacional}
+                  disabled={locked}
+                  onChange={(e) =>
+                    setField("emailOperacional", e.target.checked)
+                  }
+                />
+                Receber e-mail de contas a vencer e de leads atrasados
+              </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="empresa-leads-atrasados">
+                  Avisar por e-mail a partir de quantos leads atrasados
+                </Label>
+                <Input
+                  id="empresa-leads-atrasados"
+                  inputMode="numeric"
+                  value={form.leadsAtrasadosLimite}
+                  disabled={locked || !form.emailOperacional}
+                  placeholder="0 desliga"
+                  onChange={(e) =>
+                    setField(
+                      "leadsAtrasadosLimite",
+                      e.target.value.replace(/\D/g, ""),
+                    )
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  0 desliga. O e-mail sai uma vez por dia, para o admin, quando
+                  a quantidade de leads com prazo da fila vencido chegar nesse
+                  número.
+                </p>
+              </div>
             </div>
             {isAdmin ? (
               <div className="flex justify-end gap-2 md:col-span-2">

@@ -135,6 +135,8 @@ type TenantForm = {
   usuariosExtras: number;
   iaBotEnabled: boolean;
   isTest: boolean;
+  mensalidadeVencimento: string;
+  mensalidadeResponsavelEmail: string;
   modules: Record<TenantModuleKey, boolean>;
 };
 
@@ -150,6 +152,8 @@ const emptyTenantForm = (): TenantForm => ({
   usuariosExtras: 0,
   iaBotEnabled: false,
   isTest: false,
+  mensalidadeVencimento: "",
+  mensalidadeResponsavelEmail: "",
   modules: modulesPresetForPlano("bronze"),
 });
 
@@ -370,6 +374,8 @@ function TenantsPage() {
       usuariosExtras: item.usuariosExtras ?? 0,
       iaBotEnabled: Boolean(item.iaBotEnabled),
       isTest: Boolean(item.isTest),
+      mensalidadeVencimento: (item.mensalidadeVencimento ?? "").slice(0, 10),
+      mensalidadeResponsavelEmail: item.mensalidadeResponsavelEmail ?? "",
       modules: modulesFromTenantJson(item.modules),
     });
     setSlugTouched(true);
@@ -391,6 +397,8 @@ function TenantsPage() {
         usuariosExtras: detail.usuariosExtras ?? 0,
         iaBotEnabled: Boolean(detail.iaBotEnabled),
         isTest: Boolean(detail.isTest),
+        mensalidadeVencimento: (detail.mensalidadeVencimento ?? "").slice(0, 10),
+        mensalidadeResponsavelEmail: detail.mensalidadeResponsavelEmail ?? "",
         modules: modulesFromTenantJson(detail.modules),
       });
     } catch (err) {
@@ -618,6 +626,8 @@ function TenantsPage() {
         usuariosExtras: form.usuariosExtras,
         iaBotEnabled: form.iaBotEnabled,
         isTest: form.isTest,
+        mensalidadeVencimento: form.mensalidadeVencimento || null,
+        mensalidadeResponsavelEmail: form.mensalidadeResponsavelEmail.trim(),
         modules,
       });
       if (
@@ -1498,6 +1508,43 @@ function TenantsPage() {
                         />
                         Conexão com bot de IA liberada
                       </label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tenant-mensalidade">
+                        Vencimento da mensalidade
+                      </Label>
+                      <Input
+                        id="tenant-mensalidade"
+                        type="date"
+                        value={form.mensalidadeVencimento}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            mensalidadeVencimento: e.target.value,
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Um e-mail sai quando faltarem 3 dias. Atualize a data
+                        depois de cada pagamento.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tenant-mensalidade-email">
+                        E-mail do responsável
+                      </Label>
+                      <Input
+                        id="tenant-mensalidade-email"
+                        type="email"
+                        value={form.mensalidadeResponsavelEmail}
+                        placeholder="financeiro@imobiliaria.com"
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            mensalidadeResponsavelEmail: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                   </div>
                 </FormSection>

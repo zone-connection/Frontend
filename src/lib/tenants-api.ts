@@ -27,6 +27,8 @@ export type Tenant = {
   usuariosExtras: number;
   iaBotEnabled: boolean;
   isTest: boolean;
+  mensalidadeVencimento?: string | null;
+  mensalidadeResponsavelEmail?: string;
   hasMetaConnection?: boolean;
   hasOzapConnection?: boolean;
   hasOruloConnection?: boolean;
@@ -120,6 +122,8 @@ export type UpdateTenantInput = {
   usuariosExtras?: number;
   iaBotEnabled?: boolean;
   isTest?: boolean;
+  mensalidadeVencimento?: string | null;
+  mensalidadeResponsavelEmail?: string;
 };
 
 export type CreateMetaConnectionInput = {

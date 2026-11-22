@@ -21,6 +21,8 @@ export type TenantCompanyProfile = Pick<
   | "intermediacaoModeloNome"
   | "intermediacaoTemplateUrl"
   | "logoUrl"
+  | "emailOperacional"
+  | "leadsAtrasadosLimite"
 >;
 
 export type UpdateTenantCompanyInput = {
@@ -36,6 +38,8 @@ export type UpdateTenantCompanyInput = {
   contaBancaria?: string;
   pix?: string;
   representanteLegal?: string;
+  emailOperacional?: boolean;
+  leadsAtrasadosLimite?: number;
 };
 
 export async function fetchTenantCompany(): Promise<TenantCompanyProfile> {

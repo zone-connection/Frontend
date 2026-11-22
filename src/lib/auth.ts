@@ -41,6 +41,8 @@ export type TenantBranding = {
   maxUsuarios?: number;
   usuariosExtras?: number;
   iaBotEnabled?: boolean;
+  emailOperacional?: boolean;
+  leadsAtrasadosLimite?: number;
   tarefasEnabled?: boolean;
   hasOzapConnection?: boolean;
 };
