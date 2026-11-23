@@ -899,6 +899,24 @@ function LeadsPage() {
   const [paradosFilter, setParadosFilter] = useState(() =>
     Boolean(routeSearch.parados),
   );
+  const [checklistAtivo, setChecklistAtivo] = useState(false);
+  const [checklistCompletos, setChecklistCompletos] = useState<Set<string>>(new Set());
+  const [soChecklistCompleto, setSoChecklistCompleto] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    void import("@/lib/atendimento-api")
+      .then(({ fetchChecklistCompletos }) => fetchChecklistCompletos())
+      .then((resposta) => {
+        if (!ativo) return;
+        setChecklistAtivo(resposta.ativo);
+        setChecklistCompletos(new Set(resposta.leadIds));
+      })
+      .catch(() => undefined);
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (routeSearch.distribuicao) {
@@ -1041,7 +1059,9 @@ function LeadsPage() {
           ),
         ]
       : scoped;
-    if (!filtersActive) return pool;
+    const noChecklist = (lead: Lead) =>
+      !soChecklistCompleto || checklistCompletos.has(lead.id);
+    if (!filtersActive) return pool.filter(noChecklist);
     const q = debouncedSearch.toLowerCase();
     const qDigits = phoneDigits(debouncedSearch);
     const equipeMembros =
@@ -1057,6 +1077,7 @@ function LeadsPage() {
         ? new Set(equipes.flatMap((e) => e.membros.map((m) => m.id)))
         : null;
     return pool.filter((l) => {
+      if (!noChecklist(l)) return false;
       if (q) {
         const hay = `${l.nome} ${l.email} ${l.telefone}`.toLowerCase();
         const phoneOk =
@@ -1134,6 +1155,8 @@ function LeadsPage() {
     origemFilter,
     distribuicaoFilter,
     paradosFilter,
+    soChecklistCompleto,
+    checklistCompletos,
     isCorretor,
     isGerente,
     canFilterEquipe,
@@ -4252,6 +4275,18 @@ function LeadsPage() {
         </div>
       ) : null}
 
+      {checklistAtivo ? (
+        <div className="mb-3">
+          <Button
+            type="button"
+            variant={soChecklistCompleto ? "default" : "outline"}
+            onClick={() => setSoChecklistCompleto((atual) => !atual)}
+          >
+            Checklist concluído
+          </Button>
+        </div>
+      ) : null}
+
       <Card className={cn("min-w-0", TABLE_SHELL)}>
         <Table
           containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
@@ -4384,6 +4419,11 @@ function LeadsPage() {
                               </Badge>
                             ) : null}
                             {l.roletaRedistribuido ? <LeadRoletaBadge /> : null}
+                            {checklistAtivo && checklistCompletos.has(l.id) ? (
+                              <Badge className="h-5 rounded-full bg-emerald-100 px-1.5 text-[10px] text-emerald-800 hover:bg-emerald-100">
+                                Atendimento completo
+                              </Badge>
+                            ) : null}
                           </div>
                           <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
                             <LeadCadastroOrigemBadge origem={l.cadastroOrigem} compact />

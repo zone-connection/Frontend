@@ -62,6 +62,7 @@ import { cn } from "@/lib/utils";
 import { ConfigFunisPanel } from "@/components/config-funis-panel";
 import { ConfigAutomacoesPanel } from "@/components/config-automacoes-panel";
 import { ConfigModulosOperacaoPanel } from "@/components/config-modulos-operacao-panel";
+import { ConfigAtendimentoPanel } from "@/components/config-atendimento-panel";
 import { ConfigEmpresaPanel } from "@/components/config-empresa-panel";
 import { ConfigConexoesPanel } from "@/components/config-conexoes-panel";
 import { ConfigHideClientesMenuCard } from "@/components/config-hide-clientes-menu-card";
@@ -657,6 +658,7 @@ function Config() {
         {selection.item === "automacoes" ? <ConfigAutomacoesPanel /> : null}
 
         {selection.item === "modulos" ? <ConfigModulosOperacaoPanel /> : null}
+        {selection.item === "atendimento" ? <ConfigAtendimentoPanel /> : null}
 
         {selection.item === "usuario-extra" ? (
           <ConfigUsuarioExtraPanel />

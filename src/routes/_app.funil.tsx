@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app-shell";
+import { SlaAtendimentoFaixa } from "@/components/lead-atendimento-panel";
 import { ConverterLeadButton } from "@/components/converter-lead-button";
 import { TornarClienteButton } from "@/components/tornar-cliente-button";
 import { FiltrosPainel, FILTRO_CAMPO } from "@/components/filtros-painel";
@@ -2398,6 +2399,7 @@ export function ComercialFunilBoard({
         </div>
       )}
 
+      <SlaAtendimentoFaixa />
       <div
         ref={boardRef}
         data-guia="funil-board"

@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DocumentacoesLeadPanel } from "@/components/documentacoes-lead-panel";
+import { LeadAtendimentoPanel } from "@/components/lead-atendimento-panel";
 import { DocumentacaoPropostaPainel } from "@/components/documentacao-proposta-painel";
 import { fetchPropostas } from "@/lib/propostas-api";
 import { LeadWhatsappChat } from "@/components/lead-whatsapp-chat";
@@ -75,7 +76,7 @@ type FichaAction = {
   disabled?: boolean;
 };
 
-const TABS = ["Dados", "Atividade", "Triagem", "WhatsApp", "Proposta", "Documentações", "Distribuição"] as const;
+const TABS = ["Dados", "Atendimento", "Atividade", "Triagem", "WhatsApp", "Proposta", "Documentações", "Distribuição"] as const;
 
 const FILTERS = [
   { id: "todos", label: "Todos" },
@@ -633,6 +634,8 @@ export function LeadFichaView({
               </div>
             </div>
           ) : null}
+
+          {tab === "Atendimento" ? <LeadAtendimentoPanel leadId={lead.id} /> : null}
 
           {tab === "Dados" ? (
             <div className="grid gap-3 sm:grid-cols-2">

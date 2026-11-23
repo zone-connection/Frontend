@@ -11,6 +11,7 @@ export const CONFIG_ITEMS = [
   "menu",
   "usuario-extra",
   "modulos",
+  "atendimento",
   "funil",
   "automacoes",
   "metas",
@@ -138,6 +139,7 @@ export function buildConfigModules(flags: ConfigNavFlags): ConfigNavModule[] {
   if (flags.showOps) {
     operacaoItems.push(
       { id: "modulos", label: "Módulos" },
+      { id: "atendimento", label: "Atendimento" },
       { id: "funil", label: "Funis" },
     );
     if (flags.showAutomacoes) {
