@@ -167,7 +167,10 @@ import {
 import { LeadReatribuirDialog } from "@/components/lead-reatribuir-dialog";
 import { LeadsDistribuirDialog } from "@/components/leads-distribuir-dialog";
 import {
+  whatsAppDigits,
+  formatLeadPhone,
   formatPhone,
+  isAcceptedLeadPhone,
   isValidPhone,
   phoneDigits,
   PHONE_INVALID_MESSAGE,
@@ -603,7 +606,7 @@ function leadToForm(lead: Lead): FormState {
     "Morno";
   return {
     nome: lead.nome,
-    telefone: formatPhone(lead.telefone),
+    telefone: formatLeadPhone(lead.telefone),
     email: isPlaceholderEmail(lead.email) ? "" : lead.email,
     origem: lead.origem,
     interesse: lead.interesse,
@@ -1447,12 +1450,11 @@ function LeadsPage() {
   }
 
   function openLeadWhatsApp(telefone: string) {
-    const digits = phoneDigits(telefone);
-    if (digits.length < 10) {
+    const e164 = whatsAppDigits(telefone);
+    if (!e164) {
       toast.error("Este lead não tem telefone.");
       return;
     }
-    const e164 = digits.startsWith("55") ? digits : `55${digits}`;
     window.open(`https://wa.me/${e164}`, "_blank", "noopener,noreferrer");
   }
 
@@ -1484,8 +1486,10 @@ function LeadsPage() {
       toast.error("Informe um e-mail válido ou deixe em branco.");
       return;
     }
-    if (!isValidPhone(telefone)) {
-      toast.error(PHONE_INVALID_MESSAGE);
+    if (!isAcceptedLeadPhone(telefone)) {
+      toast.error(
+        "Informe um telefone com DDD, ex.: (81) 99999-9999, ou internacional com +, ex.: +351912345678.",
+      );
       return;
     }
     if (form.origem && !origemOptions.includes(form.origem)) {
@@ -2297,7 +2301,7 @@ function LeadsPage() {
                         autoComplete="tel"
                         value={form.telefone}
                         onChange={(e) =>
-                          setField("telefone", formatPhone(e.target.value))
+                          setField("telefone", formatLeadPhone(e.target.value))
                         }
                         placeholder={PHONE_PLACEHOLDER}
                         className="h-10 bg-background"
@@ -2825,7 +2829,7 @@ function LeadsPage() {
                     autoComplete="tel"
                     value={form.telefone}
                     onChange={(e) =>
-                      setField("telefone", formatPhone(e.target.value))
+                      setField("telefone", formatLeadPhone(e.target.value))
                     }
                     placeholder={PHONE_PLACEHOLDER}
                     className="h-11 rounded-xl bg-background pl-10 pr-10"

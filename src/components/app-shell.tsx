@@ -358,6 +358,11 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
   }),
+  leafSection("rh", {
+    to: "/rh",
+    label: "RH",
+    icon: Briefcase,
+  }),
   {
     id: "atendimento",
     grupo: "atendimento",
@@ -443,6 +448,7 @@ const ROLE_LABEL: Record<string, string> = {
   analista: "Analista",
   treinee: "Treinee",
   financeiro: "Financeiro",
+  rh: "RH",
   assistente: "Assistente",
 };
 
@@ -963,6 +969,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navSections = useMemo(() => {
     if (!user) return [];
+    if (user.role === "rh") {
+      return NAV_SECTIONS.filter((section) => {
+        const to = section.items[0] && !isNavGroup(section.items[0]) ? section.items[0].to : "";
+        return to === "/rh" || to === "/perfil" || to === "/novidades";
+      });
+    }
     if (user.role === "super_admin") {
       return NAV_SECTIONS.filter(
         (section) =>
@@ -985,6 +997,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .filter((section) => section.items.length > 0);
     }
     return NAV_SECTIONS.filter((section) => {
+      if (section.grupo === "rh") return user.role === "admin";
       if (section.platformOnly) return user.role === "super_admin";
       if (section.adminOnly) return user.role === "admin";
       if (section.adminOrPlatform) {

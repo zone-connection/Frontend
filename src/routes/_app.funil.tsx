@@ -182,7 +182,7 @@ import { toast } from "sonner";
 import { FaWhatsapp } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { getWhatsAppUrl } from "@/lib/env";
-import { phoneDigits } from "@/lib/phone";
+import { phoneDigits, whatsAppDigits } from "@/lib/phone";
 import { celebrateAfterDocumentacao } from "@/lib/celebrations";
 import {
   isStatusAprovadoDoc,
@@ -1998,12 +1998,11 @@ export function ComercialFunilBoard({
   }
 
   function openLeadWhatsApp(telefone: string) {
-    const digits = phoneDigits(telefone);
-    if (digits.length < 10) {
+    const e164 = whatsAppDigits(telefone);
+    if (!e164) {
       toast.error("Este lead não tem telefone.");
       return;
     }
-    const e164 = digits.startsWith("55") ? digits : `55${digits}`;
     window.open(getWhatsAppUrl(undefined, e164), "_blank", "noopener,noreferrer");
   }
 

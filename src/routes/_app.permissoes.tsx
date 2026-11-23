@@ -38,6 +38,7 @@ const ROLE_LABEL: Record<Role, string> = {
   analista: "Analista",
   treinee: "Treinee",
   financeiro: "Financeiro",
+  rh: "RH",
   assistente: "Assistente",
 };
 

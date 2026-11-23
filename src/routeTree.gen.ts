@@ -58,6 +58,7 @@ import { Route as AppProcessosRouteImport } from './routes/_app.processos'
 import { Route as AppPropostasRouteImport } from './routes/_app.propostas'
 import { Route as AppProspeccaoRouteImport } from './routes/_app.prospeccao'
 import { Route as AppResultadoRouteImport } from './routes/_app.resultado'
+import { Route as AppRhRouteImport } from './routes/_app.rh'
 import { Route as AppSuporteRouteImport } from './routes/_app.suporte'
 import { Route as AppTarefasRouteImport } from './routes/_app.tarefas'
 import { Route as AppTaxaConversaoRouteImport } from './routes/_app.taxa-conversao'
@@ -118,6 +119,10 @@ import { Route as AppLeadsFilaRouteImport } from './routes/_app.leads_.fila'
 import { Route as AppParceriasIdRouteImport } from './routes/_app.parcerias.$id'
 import { Route as AppParceriasImoveisRouteImport } from './routes/_app.parcerias.imoveis'
 import { Route as AppParceriasVisaoGeralRouteImport } from './routes/_app.parcerias.visao-geral'
+import { Route as AppRhIndexRouteImport } from './routes/_app.rh.index'
+import { Route as AppRhAgendaRouteImport } from './routes/_app.rh.agenda'
+import { Route as AppRhEquipeRouteImport } from './routes/_app.rh.equipe'
+import { Route as AppRhRecrutamentoRouteImport } from './routes/_app.rh.recrutamento'
 import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.index'
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
 import { Route as PublicoEmpreendimentoIdRouteImport } from './routes/publico.empreendimento.$id'
@@ -131,6 +136,7 @@ import { Route as AppCaptacaoProprietariosIndexRouteImport } from './routes/_app
 import { Route as AppCaptacaoProprietariosIdRouteImport } from './routes/_app.captacao.proprietarios.$id'
 import { Route as AppImoveisUsadosVendasIndexRouteImport } from './routes/_app.imoveis-usados.vendas.index'
 import { Route as AppImoveisUsadosVendasIdRouteImport } from './routes/_app.imoveis-usados.vendas.$id'
+import { Route as AppRhEquipeIdRouteImport } from './routes/_app.rh.equipe.$id'
 import { Route as PublicoEmpreendimentoTenantSlugRouteImport } from './routes/publico.empreendimento.$tenant.$slug'
 import { Route as PublicoPropostaReciboCompradorTokenRouteImport } from './routes/publico.proposta.recibo.$compradorToken'
 
@@ -376,6 +382,11 @@ const AppProspeccaoRoute = AppProspeccaoRouteImport.update({
 const AppResultadoRoute = AppResultadoRouteImport.update({
   id: '/resultado',
   path: '/resultado',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRhRoute = AppRhRouteImport.update({
+  id: '/rh',
+  path: '/rh',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSuporteRoute = AppSuporteRouteImport.update({
@@ -692,6 +703,26 @@ const AppParceriasVisaoGeralRoute = AppParceriasVisaoGeralRouteImport.update({
   path: '/visao-geral',
   getParentRoute: () => AppParceriasRoute,
 } as any)
+const AppRhIndexRoute = AppRhIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRhRoute,
+} as any)
+const AppRhAgendaRoute = AppRhAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AppRhRoute,
+} as any)
+const AppRhEquipeRoute = AppRhEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AppRhRoute,
+} as any)
+const AppRhRecrutamentoRoute = AppRhRecrutamentoRouteImport.update({
+  id: '/recrutamento',
+  path: '/recrutamento',
+  getParentRoute: () => AppRhRoute,
+} as any)
 const PortalImoveisIndexRoute = PortalImoveisIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -762,6 +793,11 @@ const AppImoveisUsadosVendasIdRoute =
     path: '/$id',
     getParentRoute: () => AppImoveisUsadosVendasRoute,
   } as any)
+const AppRhEquipeIdRoute = AppRhEquipeIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppRhEquipeRoute,
+} as any)
 const PublicoEmpreendimentoTenantSlugRoute =
   PublicoEmpreendimentoTenantSlugRouteImport.update({
     id: '/publico/empreendimento/$tenant/$slug',
@@ -824,6 +860,7 @@ export interface FileRoutesByFullPath {
   '/propostas': typeof AppPropostasRoute
   '/prospeccao': typeof AppProspeccaoRoute
   '/resultado': typeof AppResultadoRoute
+  '/rh': typeof AppRhRouteWithChildren
   '/suporte': typeof AppSuporteRoute
   '/tarefas': typeof AppTarefasRoute
   '/taxa-conversao': typeof AppTaxaConversaoRoute
@@ -884,15 +921,20 @@ export interface FileRoutesByFullPath {
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/rh/agenda': typeof AppRhAgendaRoute
+  '/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/rh/': typeof AppRhIndexRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/rh/equipe/$id': typeof AppRhEquipeIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
@@ -1002,15 +1044,20 @@ export interface FileRoutesByTo {
   '/parcerias/$id': typeof AppParceriasIdRoute
   '/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/rh/agenda': typeof AppRhAgendaRoute
+  '/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/rh': typeof AppRhIndexRoute
   '/portal/imoveis': typeof PortalImoveisIndexRoute
   '/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/captacao/fila/$id': typeof AppCaptacaoFilaIdRoute
   '/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/rh/equipe/$id': typeof AppRhEquipeIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/captacao/captacoes': typeof AppCaptacaoCaptacoesIndexRoute
@@ -1069,6 +1116,7 @@ export interface FileRoutesById {
   '/_app/propostas': typeof AppPropostasRoute
   '/_app/prospeccao': typeof AppProspeccaoRoute
   '/_app/resultado': typeof AppResultadoRoute
+  '/_app/rh': typeof AppRhRouteWithChildren
   '/_app/suporte': typeof AppSuporteRoute
   '/_app/tarefas': typeof AppTarefasRoute
   '/_app/taxa-conversao': typeof AppTaxaConversaoRoute
@@ -1129,15 +1177,20 @@ export interface FileRoutesById {
   '/_app/parcerias/$id': typeof AppParceriasIdRoute
   '/_app/parcerias/imoveis': typeof AppParceriasImoveisRoute
   '/_app/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
+  '/_app/rh/agenda': typeof AppRhAgendaRoute
+  '/_app/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/_app/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
   '/publico/proposta/$token': typeof PublicoPropostaTokenRoute
+  '/_app/rh/': typeof AppRhIndexRoute
   '/portal/imoveis/': typeof PortalImoveisIndexRoute
   '/_app/captacao/captacoes/$id': typeof AppCaptacaoCaptacoesIdRoute
   '/_app/captacao/fila_/$id': typeof AppCaptacaoFilaIdRoute
   '/_app/captacao/imoveis/$id': typeof AppCaptacaoImoveisIdRoute
   '/_app/captacao/proprietarios/$id': typeof AppCaptacaoProprietariosIdRoute
   '/_app/imoveis-usados/vendas/$id': typeof AppImoveisUsadosVendasIdRoute
+  '/_app/rh/equipe/$id': typeof AppRhEquipeIdRoute
   '/publico/empreendimento/$tenant/$slug': typeof PublicoEmpreendimentoTenantSlugRoute
   '/publico/proposta/recibo/$compradorToken': typeof PublicoPropostaReciboCompradorTokenRoute
   '/_app/captacao/captacoes/': typeof AppCaptacaoCaptacoesIndexRoute
@@ -1196,6 +1249,7 @@ export interface FileRouteTypes {
     | '/propostas'
     | '/prospeccao'
     | '/resultado'
+    | '/rh'
     | '/suporte'
     | '/tarefas'
     | '/taxa-conversao'
@@ -1256,15 +1310,20 @@ export interface FileRouteTypes {
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
+    | '/rh/agenda'
+    | '/rh/equipe'
+    | '/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
+    | '/rh/'
     | '/portal/imoveis/'
     | '/captacao/captacoes/$id'
     | '/captacao/fila/$id'
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
+    | '/rh/equipe/$id'
     | '/publico/empreendimento/$tenant/$slug'
     | '/publico/proposta/recibo/$compradorToken'
     | '/captacao/captacoes/'
@@ -1374,15 +1433,20 @@ export interface FileRouteTypes {
     | '/parcerias/$id'
     | '/parcerias/imoveis'
     | '/parcerias/visao-geral'
+    | '/rh/agenda'
+    | '/rh/equipe'
+    | '/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
+    | '/rh'
     | '/portal/imoveis'
     | '/captacao/captacoes/$id'
     | '/captacao/fila/$id'
     | '/captacao/imoveis/$id'
     | '/captacao/proprietarios/$id'
     | '/imoveis-usados/vendas/$id'
+    | '/rh/equipe/$id'
     | '/publico/empreendimento/$tenant/$slug'
     | '/publico/proposta/recibo/$compradorToken'
     | '/captacao/captacoes'
@@ -1440,6 +1504,7 @@ export interface FileRouteTypes {
     | '/_app/propostas'
     | '/_app/prospeccao'
     | '/_app/resultado'
+    | '/_app/rh'
     | '/_app/suporte'
     | '/_app/tarefas'
     | '/_app/taxa-conversao'
@@ -1500,15 +1565,20 @@ export interface FileRouteTypes {
     | '/_app/parcerias/$id'
     | '/_app/parcerias/imoveis'
     | '/_app/parcerias/visao-geral'
+    | '/_app/rh/agenda'
+    | '/_app/rh/equipe'
+    | '/_app/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
     | '/publico/proposta/$token'
+    | '/_app/rh/'
     | '/portal/imoveis/'
     | '/_app/captacao/captacoes/$id'
     | '/_app/captacao/fila_/$id'
     | '/_app/captacao/imoveis/$id'
     | '/_app/captacao/proprietarios/$id'
     | '/_app/imoveis-usados/vendas/$id'
+    | '/_app/rh/equipe/$id'
     | '/publico/empreendimento/$tenant/$slug'
     | '/publico/proposta/recibo/$compradorToken'
     | '/_app/captacao/captacoes/'
@@ -1880,6 +1950,13 @@ declare module '@tanstack/react-router' {
       path: '/resultado'
       fullPath: '/resultado'
       preLoaderRoute: typeof AppResultadoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rh': {
+      id: '/_app/rh'
+      path: '/rh'
+      fullPath: '/rh'
+      preLoaderRoute: typeof AppRhRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/suporte': {
@@ -2302,6 +2379,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppParceriasVisaoGeralRouteImport
       parentRoute: typeof AppParceriasRoute
     }
+    '/_app/rh/': {
+      id: '/_app/rh/'
+      path: '/'
+      fullPath: '/rh/'
+      preLoaderRoute: typeof AppRhIndexRouteImport
+      parentRoute: typeof AppRhRoute
+    }
+    '/_app/rh/agenda': {
+      id: '/_app/rh/agenda'
+      path: '/agenda'
+      fullPath: '/rh/agenda'
+      preLoaderRoute: typeof AppRhAgendaRouteImport
+      parentRoute: typeof AppRhRoute
+    }
+    '/_app/rh/equipe': {
+      id: '/_app/rh/equipe'
+      path: '/equipe'
+      fullPath: '/rh/equipe'
+      preLoaderRoute: typeof AppRhEquipeRouteImport
+      parentRoute: typeof AppRhRoute
+    }
+    '/_app/rh/recrutamento': {
+      id: '/_app/rh/recrutamento'
+      path: '/recrutamento'
+      fullPath: '/rh/recrutamento'
+      preLoaderRoute: typeof AppRhRecrutamentoRouteImport
+      parentRoute: typeof AppRhRoute
+    }
     '/portal/imoveis/': {
       id: '/portal/imoveis/'
       path: '/'
@@ -2392,6 +2497,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/imoveis-usados/vendas/$id'
       preLoaderRoute: typeof AppImoveisUsadosVendasIdRouteImport
       parentRoute: typeof AppImoveisUsadosVendasRoute
+    }
+    '/_app/rh/equipe/$id': {
+      id: '/_app/rh/equipe/$id'
+      path: '/$id'
+      fullPath: '/rh/equipe/$id'
+      preLoaderRoute: typeof AppRhEquipeIdRouteImport
+      parentRoute: typeof AppRhEquipeRoute
     }
     '/publico/empreendimento/$tenant/$slug': {
       id: '/publico/empreendimento/$tenant/$slug'
@@ -2572,6 +2684,34 @@ const AppParceriasRouteWithChildren = AppParceriasRoute._addFileChildren(
   AppParceriasRouteChildren,
 )
 
+interface AppRhEquipeRouteChildren {
+  AppRhEquipeIdRoute: typeof AppRhEquipeIdRoute
+}
+
+const AppRhEquipeRouteChildren: AppRhEquipeRouteChildren = {
+  AppRhEquipeIdRoute: AppRhEquipeIdRoute,
+}
+
+const AppRhEquipeRouteWithChildren = AppRhEquipeRoute._addFileChildren(
+  AppRhEquipeRouteChildren,
+)
+
+interface AppRhRouteChildren {
+  AppRhAgendaRoute: typeof AppRhAgendaRoute
+  AppRhEquipeRoute: typeof AppRhEquipeRouteWithChildren
+  AppRhRecrutamentoRoute: typeof AppRhRecrutamentoRoute
+  AppRhIndexRoute: typeof AppRhIndexRoute
+}
+
+const AppRhRouteChildren: AppRhRouteChildren = {
+  AppRhAgendaRoute: AppRhAgendaRoute,
+  AppRhEquipeRoute: AppRhEquipeRouteWithChildren,
+  AppRhRecrutamentoRoute: AppRhRecrutamentoRoute,
+  AppRhIndexRoute: AppRhIndexRoute,
+}
+
+const AppRhRouteWithChildren = AppRhRoute._addFileChildren(AppRhRouteChildren)
+
 interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
   AppAtrasosRoute: typeof AppAtrasosRoute
@@ -2613,6 +2753,7 @@ interface AppRouteChildren {
   AppPropostasRoute: typeof AppPropostasRoute
   AppProspeccaoRoute: typeof AppProspeccaoRoute
   AppResultadoRoute: typeof AppResultadoRoute
+  AppRhRoute: typeof AppRhRouteWithChildren
   AppSuporteRoute: typeof AppSuporteRoute
   AppTarefasRoute: typeof AppTarefasRoute
   AppTaxaConversaoRoute: typeof AppTaxaConversaoRoute
@@ -2667,6 +2808,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPropostasRoute: AppPropostasRoute,
   AppProspeccaoRoute: AppProspeccaoRoute,
   AppResultadoRoute: AppResultadoRoute,
+  AppRhRoute: AppRhRouteWithChildren,
   AppSuporteRoute: AppSuporteRoute,
   AppTarefasRoute: AppTarefasRoute,
   AppTaxaConversaoRoute: AppTaxaConversaoRoute,

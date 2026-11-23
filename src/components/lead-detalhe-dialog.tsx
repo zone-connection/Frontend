@@ -85,7 +85,7 @@ import {
   maskMoneyInput,
   parseOptionalMoneyInput,
 } from "@/lib/money-input";
-import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
+import { formatLeadPhone, formatPhone, isAcceptedLeadPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { getSession } from "@/lib/auth";
 import { fetchFunis, type Funil } from "@/lib/funis-api";
 import { canWriteTriagem } from "@/lib/permissions";
@@ -256,7 +256,7 @@ function EditableValue({
         onChange={(e) =>
           setDraft(
             kind === "phone"
-              ? formatPhone(e.target.value)
+              ? formatLeadPhone(e.target.value)
               : kind === "money"
                 ? maskMoneyInput(e.target.value)
                 : e.target.value,
@@ -652,7 +652,11 @@ export function LeadDetalheDialog({
     if (!lead) return;
     if (opts?.phone) {
       if (!raw) throw new Error("Informe o telefone.");
-      if (!isValidPhone(raw)) throw new Error("Telefone inválido.");
+      if (!isAcceptedLeadPhone(raw)) {
+        throw new Error(
+          "Telefone inválido. Use (81) 99999-9999 ou + e o código do país.",
+        );
+      }
       await patch({ telefone: formatPhone(raw) });
       return;
     }

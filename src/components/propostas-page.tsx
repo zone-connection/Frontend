@@ -1196,7 +1196,8 @@ export function PropostasPage() {
   >([]);
   const [usadoForm, setUsadoForm] = useState({
     vendaId: "",
-    interessadoId: "",
+    leadId: "",
+    nomeLivre: "",
     responsavelId: "",
     valor: "",
     entrada: "",
@@ -1787,7 +1788,8 @@ export function PropostasPage() {
   async function openUsadoCreate() {
     setUsadoForm({
       vendaId: "",
-      interessadoId: "",
+      leadId: "",
+      nomeLivre: "",
       responsavelId: user?.id ?? "",
       valor: "",
       entrada: "",
@@ -1795,16 +1797,13 @@ export function PropostasPage() {
       observacoes: "",
     });
     setUsadoCreateOpen(true);
-    const [leads, clientes, responsaveis] = await Promise.all([
+    const [leads, responsaveis] = await Promise.all([
       fetchLeads({ tipo: "lead", page: 1, limit: 200, sort: "created_desc" }).catch(
-        () => ({ data: [] as ApiLead[] }),
-      ),
-      fetchLeads({ tipo: "cliente", page: 1, limit: 200, sort: "created_desc" }).catch(
         () => ({ data: [] as ApiLead[] }),
       ),
       fetchUsadosResponsaveis().catch(() => [] as Array<{ id: string; name: string }>),
     ]);
-    const contatos = [...leads.data, ...clientes.data].sort((a, b) =>
+    const contatos = [...leads.data].sort((a, b) =>
       a.nome.localeCompare(b.nome, "pt-BR"),
     );
     setContatosProposta(contatos);
@@ -1839,25 +1838,33 @@ export function PropostasPage() {
   async function salvarPropostaUsado(e: FormEvent) {
     e.preventDefault();
     const valor = parseOptionalMoneyInput(usadoForm.valor);
-    if (!usadoForm.vendaId || !usadoForm.interessadoId || !usadoForm.responsavelId) {
-      toast.error("Selecione o imóvel, o interessado e o responsável.");
+    if (!usadoForm.responsavelId) {
+      toast.error("Selecione o responsável.");
+      return;
+    }
+    const nomeLivre = usadoForm.nomeLivre.trim();
+    const pessoa =
+      usadoForm.leadId && usadoForm.leadId !== "nome"
+        ? contatosProposta.find((item) => item.id === usadoForm.leadId)
+        : undefined;
+    if (!pessoa && nomeLivre.length < 2) {
+      toast.error("Selecione um lead ou informe o nome.");
       return;
     }
     if (valor == null || valor <= 0) {
       toast.error("Informe o valor da proposta.");
       return;
     }
-    const pessoa = contatosProposta.find(
-      (item) => item.id === usadoForm.interessadoId,
-    );
-    if (!pessoa) {
-      toast.error("Selecione o lead ou o cliente.");
-      return;
-    }
     setUsadoSaving(true);
     try {
-      const interessadoId = await interessadoDaPessoa(pessoa);
-      await createPropostaUsado(usadoForm.vendaId, {
+      const interessadoId = pessoa
+        ? await interessadoDaPessoa(pessoa)
+        : (
+            await createInteressadoUsado({
+              nome: nomeLivre,
+            })
+          ).id;
+      await createPropostaUsado(usadoForm.vendaId || null, {
         interessadoId,
         responsavelId: usadoForm.responsavelId,
         valor,
@@ -2543,7 +2550,7 @@ export function PropostasPage() {
                 if (linha.kind === "usado") {
                   const p = linha.proposta;
                   const imovel = p.vendaUsado?.imovel;
-                  const titulo = imovel?.titulo || "—";
+                  const titulo = imovel?.titulo || "Sem imóvel";
                   const endereco = [
                     imovel?.logradouro,
                     imovel?.numero,
@@ -4510,7 +4517,7 @@ export function PropostasPage() {
         onOpenChange={setUsadoCreateOpen}
         icon={<Home className="size-5" />}
         title="Nova proposta de usado"
-        description="A proposta fica ligada ao imóvel em venda e ao interessado."
+        description="O imóvel é opcional. O interessado é um lead da base ou só o nome."
       >
           <form onSubmit={(e) => void salvarPropostaUsado(e)}>
             <FormDialogBody>
@@ -4518,15 +4525,19 @@ export function PropostasPage() {
             <div className="space-y-1.5">
               <Label>Imóvel</Label>
               <Select
-                value={usadoForm.vendaId}
+                value={usadoForm.vendaId || "nenhum"}
                 onValueChange={(vendaId) =>
-                  setUsadoForm((f) => ({ ...f, vendaId }))
+                  setUsadoForm((f) => ({
+                    ...f,
+                    vendaId: vendaId === "nenhum" ? "" : vendaId,
+                  }))
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a venda" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="nenhum">Sem imóvel</SelectItem>
                   {usadosCatalogo.map((venda) => (
                     <SelectItem key={venda.id} value={venda.id}>
                       {rotuloImovelForm(venda.imovel)}
@@ -4538,22 +4549,37 @@ export function PropostasPage() {
             <div className="space-y-1.5">
               <Label>Interessado</Label>
               <Select
-                value={usadoForm.interessadoId}
-                onValueChange={(interessadoId) =>
-                  setUsadoForm((f) => ({ ...f, interessadoId }))
+                value={usadoForm.leadId || undefined}
+                onValueChange={(leadId) =>
+                  setUsadoForm((f) => ({
+                    ...f,
+                    leadId,
+                    nomeLivre: leadId === "nome" ? f.nomeLivre : "",
+                  }))
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Lead ou cliente" />
+                  <SelectValue placeholder="Selecione um lead" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="nome">Informar só o nome</SelectItem>
                   {contatosProposta.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.nome} · {item.tipo === "cliente" ? "Cliente" : "Lead"}
+                      {item.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {usadoForm.leadId === "nome" ? (
+                <Input
+                  value={usadoForm.nomeLivre}
+                  onChange={(e) =>
+                    setUsadoForm((f) => ({ ...f, nomeLivre: e.target.value }))
+                  }
+                  placeholder="Nome do lead"
+                  className="mt-2"
+                />
+              ) : null}
             </div>
             <div className="space-y-1.5">
               <Label>Responsável</Label>

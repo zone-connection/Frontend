@@ -376,10 +376,13 @@ export function fetchTodasPropostasUsado() {
 }
 
 export function createPropostaUsado(
-  vendaId: string,
+  vendaId: string | null,
   body: Record<string, unknown>,
 ) {
-  return apiFetch<PropostaUsado>(`/imoveis-usados/${vendaId}/propostas`, {
+  const path = vendaId
+    ? `/imoveis-usados/${vendaId}/propostas`
+    : "/imoveis-usados/propostas";
+  return apiFetch<PropostaUsado>(path, {
     method: "POST",
     body,
   });

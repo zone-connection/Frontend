@@ -269,6 +269,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/contratos",
     "/parcerias",
     "/financeiro",
+    "/rh",
     "/configuracoes",
     "/perfil",
   ],
@@ -362,6 +363,7 @@ const ROLE_DEFAULT_ROUTES: Record<Role, readonly string[]> = {
     "/mural-chaves",
     "/perfil",
   ],
+  rh: ["/rh", "/perfil"],
   treinee: [
     "/dashboard",
     "/leads",

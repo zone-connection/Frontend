@@ -35,6 +35,43 @@ export function isValidPhone(value: string): boolean {
   return true;
 }
 
+/** Número com + que não é o DDI 55 do Brasil. E.164: 8 a 15 dígitos. */
+export function isInternationalPhone(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("+")) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  if (!/^[1-9]\d{7,14}$/.test(digits)) return false;
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return false;
+  }
+  return true;
+}
+
+export function isAcceptedLeadPhone(value: string): boolean {
+  return isValidPhone(value) || isInternationalPhone(value);
+}
+
+/** Mantém a máscara brasileira. Com +, grava o E.164. +55 volta ao formato nacional. */
+export function formatLeadPhone(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("+") && !value.startsWith("+")) return formatPhone(value);
+  const digits = value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 15);
+  if (!digits) return "+";
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return formatPhone(digits.slice(2));
+  }
+  return `+${digits}`;
+}
+
+/** Dígitos para wa.me. Número com + não recebe o DDI 55. */
+export function whatsAppDigits(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("+")) return trimmed.replace(/\D/g, "").slice(0, 15);
+  const digits = phoneDigits(value);
+  if (digits.length < 10) return "";
+  return digits.startsWith("55") ? digits : `55${digits}`;
+}
+
 export const PHONE_PLACEHOLDER = "(81) 99999-9999";
 
 export const PHONE_INVALID_MESSAGE =

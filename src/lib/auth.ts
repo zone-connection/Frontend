@@ -10,6 +10,7 @@ export type Role =
   | "analista"
   | "treinee"
   | "financeiro"
+  | "rh"
   | "assistente";
 export type UserStatus = "ativo" | "inativo";
 

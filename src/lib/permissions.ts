@@ -77,6 +77,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/propostas",
     "/contratos",
     "/financeiro",
+    "/rh",
     "/parcerias",
     "/configuracoes",
     "/perfil",
@@ -178,6 +179,7 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/mural-chaves",
     "/perfil",
   ],
+  rh: ["/rh", "/perfil"],
   treinee: [
     "/dashboard",
     "/leads",
@@ -250,6 +252,9 @@ export function canAccessRoute(
   options?: { hasOzapConnection?: boolean | null },
 ): boolean {
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/";
+  if (role === "rh") {
+    return path === "/perfil" || path.startsWith("/perfil/") || path === "/rh" || path.startsWith("/rh/") || path === "/novidades";
+  }
   if (role === "super_admin") {
     if (path === "/perfil" || path.startsWith("/perfil/")) return true;
     if (path === "/tenants" || path.startsWith("/tenants/")) return true;
@@ -391,6 +396,7 @@ export function defaultRouteForRole(
 ): string {
   if (role === "super_admin") return "/tenants";
   if (role === "analista") return "/documentacao";
+  if (role === "rh") return "/rh";
   if (role === "financeiro") {
     return user?.tenant?.plano === "solo"
       ? "/financeiro/fluxo-caixa"

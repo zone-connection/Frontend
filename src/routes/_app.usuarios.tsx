@@ -199,6 +199,7 @@ const ROLE_LABEL: Record<Role, string> = {
   analista: "Analista",
   treinee: "Treinee",
   financeiro: "Financeiro",
+  rh: "RH",
   assistente: "Assistente",
 };
 
@@ -967,6 +968,7 @@ function Usuarios() {
     if (canUseGerente) roles.push("gerente");
     if (canUseAnalista) roles.push("analista");
     if (canUseFinanceiro) roles.push("financeiro");
+    roles.push("rh");
     return roles;
   }, [
     isPlatformAdmin,
@@ -1205,6 +1207,7 @@ function Usuarios() {
               {canUseFinanceiro && (
                 <SelectItem value="financeiro">Financeiro</SelectItem>
               )}
+              {!isSolo && <SelectItem value="rh">RH</SelectItem>}
               <SelectItem value="corretor">Corretor</SelectItem>
               {isSolo && (
                 <SelectItem value="assistente">Assistente</SelectItem>

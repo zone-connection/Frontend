@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import mammoth from "mammoth";
 import type { Lead } from "@/lib/crm-types";
-import { formatPhone, isValidPhone } from "@/lib/phone";
+import { formatLeadPhone, formatPhone, isAcceptedLeadPhone, isValidPhone } from "@/lib/phone";
 import { isPlaceholderEmail } from "@/lib/email";
 import type { LeadProspeccao } from "@/lib/lead-prospeccao";
 import { EMPTY_PROSPECCAO } from "@/lib/lead-prospeccao";
@@ -170,8 +170,13 @@ function nationalPhoneDigits(value: unknown): string {
 }
 
 function extractFirstPhone(value: unknown): string {
-  const text = String(value ?? "");
-  const matches = text.match(/(?:\+?55\s*)?\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/g);
+  const text = String(value ?? "").trim();
+  if (text.startsWith("+")) {
+    const internacional = formatLeadPhone(text);
+    if (isAcceptedLeadPhone(internacional)) return internacional;
+  }
+  const textRaw = String(value ?? "");
+  const matches = textRaw.match(/(?:\+?55\s*)?\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/g);
   const raw = matches?.[0] ?? text;
   return formatPhone(nationalPhoneDigits(raw));
 }
@@ -370,7 +375,7 @@ export function validateParsedImportLead(
   row: ParsedImportLead,
 ): ParsedImportLead {
   const nome = row.nome.trim();
-  const telefone = formatPhone(row.telefone);
+  const telefone = formatLeadPhone(row.telefone);
   const email = row.email.trim();
   const next: ParsedImportLead = {
     ...row,
@@ -382,7 +387,7 @@ export function validateParsedImportLead(
   if (nome.length < 2 || isNumericLabel(nome) || !looksLikePersonName(nome)) {
     next.error = "Nome inválido";
   }
-  else if (!isValidPhone(telefone)) next.error = "Telefone inválido";
+  else if (!isAcceptedLeadPhone(telefone)) next.error = "Telefone inválido";
   else   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     next.error = "E-mail inválido";
   }
