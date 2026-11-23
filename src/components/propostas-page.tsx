@@ -1134,6 +1134,118 @@ export function PropostaCadastroDialog({
   );
 }
 
+function CampoUsado({
+  label,
+  value,
+  onChange,
+  type = "text",
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <Label>{label}</Label>
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+type UsadoSecao = "proponente" | "conjuge" | "imovel" | "valores";
+
+const USADO_SECOES: { id: UsadoSecao; label: string }[] = [
+  { id: "proponente", label: "Proponente" },
+  { id: "conjuge", label: "Cônjuge" },
+  { id: "imovel", label: "Imóvel" },
+  { id: "valores", label: "Valores" },
+];
+
+function formularioDoUsado(u: ReturnType<typeof usadoFormVazio>): FormState {
+  const observacao = [
+    u.observacoes,
+    u.conjugeNome ? `Cônjuge: ${u.conjugeNome}` : "",
+    u.corretorCreci ? `Corretor e CRECI: ${u.corretorCreci}` : "",
+    u.localData ? `Local e data: ${u.localData}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return {
+    ...emptyForm(),
+    leadId: u.leadId,
+    clienteNome: u.nome,
+    clienteTelefone: u.telefone,
+    clienteEmail: u.email,
+    clienteCpf: u.cpf,
+    clienteRg: u.identidade,
+    clienteRgOrgaoEmissor: [u.identidadeUf, u.identidadeEmissao].filter(Boolean).join(" · "),
+    clienteDataNascimento: u.nascimento,
+    clienteNacionalidade: u.nacionalidade,
+    clienteEstadoCivil: u.estadoCivil,
+    clienteProfissao: u.profissao,
+    clienteRenda: u.renda,
+    clienteEnderecoResidencial: u.endereco,
+    clienteBairroResidencial: u.bairro,
+    clienteCidadeResidencial: u.cidade,
+    clienteCepResidencial: u.cep,
+    valor: u.valor,
+    sinais: [u.sinal || ""],
+    sinaisNomes: [u.sinalDescricao || "Sinal"],
+    sinaisDatas: [u.parcelaData || ""],
+    financiamento: u.parcelaValor,
+    observacao,
+  };
+}
+
+function usadoFormVazio(responsavelId = "") {
+  return {
+    vendaId: "",
+    leadId: "",
+    responsavelId,
+    nome: "",
+    identidade: "",
+    identidadeUf: "",
+    endereco: "",
+    bairro: "",
+    cidade: "",
+    cep: "",
+    email: "",
+    telefone: "",
+    identidadeEmissao: "",
+    cpf: "",
+    nascimento: "",
+    renda: "",
+    nacionalidade: "",
+    estadoCivil: "",
+    profissao: "",
+    conjugeNome: "",
+    conjugeEndereco: "",
+    conjugeBairro: "",
+    conjugeCidade: "",
+    conjugeCep: "",
+    conjugeEmail: "",
+    conjugeTelefone: "",
+    conjugeOrgao: "",
+    conjugeCpf: "",
+    conjugeNascimento: "",
+    conjugeRenda: "",
+    conjugeNacionalidade: "",
+    conjugeEstadoCivil: "",
+    conjugeProfissao: "",
+    sinal: "",
+    sinalDescricao: "",
+    parcelaData: "",
+    parcelaValor: "",
+    valor: "",
+    observacoes: "",
+    corretorCreci: "",
+    localData: "",
+  };
+}
+
 export function PropostasPage() {
   const navigate = useNavigate();
   const embed = useContext(PropostaEmbedContext);
@@ -1194,16 +1306,8 @@ export function PropostasPage() {
   const [responsaveisUsado, setResponsaveisUsado] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [usadoForm, setUsadoForm] = useState({
-    vendaId: "",
-    leadId: "",
-    nomeLivre: "",
-    responsavelId: "",
-    valor: "",
-    entrada: "",
-    financiamento: "",
-    observacoes: "",
-  });
+  const [usadoSecao, setUsadoSecao] = useState<UsadoSecao>("proponente");
+  const [usadoForm, setUsadoForm] = useState(usadoFormVazio);
   const [contraForm, setContraForm] = useState({
     valor: "",
     origem: "corretor" as NegociacaoOrigem,
@@ -1786,16 +1890,8 @@ export function PropostasPage() {
   }
 
   async function openUsadoCreate() {
-    setUsadoForm({
-      vendaId: "",
-      leadId: "",
-      nomeLivre: "",
-      responsavelId: user?.id ?? "",
-      valor: "",
-      entrada: "",
-      financiamento: "",
-      observacoes: "",
-    });
+    setUsadoSecao("proponente");
+    setUsadoForm(usadoFormVazio(user?.id ?? ""));
     setUsadoCreateOpen(true);
     const [leads, responsaveis] = await Promise.all([
       fetchLeads({ tipo: "lead", page: 1, limit: 200, sort: "created_desc" }).catch(
@@ -1835,6 +1931,94 @@ export function PropostasPage() {
     return criado.id;
   }
 
+  function propostaDoUsado(): Proposta {
+    const base = formularioDoUsado(usadoForm);
+    const venda = usadosCatalogo.find((item) => item.id === usadoForm.vendaId);
+    const responsavel = responsaveisUsado.find(
+      (item) => item.id === usadoForm.responsavelId,
+    );
+    const agora = new Date().toISOString();
+    const texto = (value: string) => value.trim() || null;
+    return {
+      id: "preview",
+      codigo: "PRÉVIA",
+      leadId: base.leadId || null,
+      clienteNome: base.clienteNome.trim() || "----",
+      clienteTelefone: texto(base.clienteTelefone),
+      clienteCpf: texto(base.clienteCpf),
+      clienteRg: texto(base.clienteRg),
+      clienteRgOrgaoEmissor: texto(base.clienteRgOrgaoEmissor),
+      clienteDataNascimento: texto(base.clienteDataNascimento),
+      clienteNacionalidade: texto(base.clienteNacionalidade),
+      clienteEstadoCivil: texto(base.clienteEstadoCivil),
+      clienteRegimeBens: null,
+      clienteDataCasamento: null,
+      clienteNomePai: null,
+      clienteNomeMae: usadoForm.conjugeNome.trim() || null,
+      clienteRenda: parseMoney(base.clienteRenda),
+      clienteTelefoneFixo: null,
+      clienteEmail: texto(base.clienteEmail),
+      clienteEnderecoResidencial: texto(base.clienteEnderecoResidencial),
+      clienteBairroResidencial: texto(base.clienteBairroResidencial),
+      clienteCidadeResidencial: texto(base.clienteCidadeResidencial),
+      clienteUfResidencial: null,
+      clienteCepResidencial: texto(base.clienteCepResidencial),
+      clienteCobrancaResidencial: null,
+      clienteEmpregador: null,
+      clienteProfissao: texto(base.clienteProfissao),
+      clienteEnderecoComercial: null,
+      clienteBairroComercial: null,
+      clienteCidadeComercial: null,
+      clienteUfComercial: null,
+      clienteCepComercial: null,
+      clienteCobrancaComercial: null,
+      clienteSite: null,
+      clienteTelefoneComercial1: null,
+      clienteTelefoneComercial2: null,
+      construtoraId: null,
+      empreendimentoId: venda?.id ?? null,
+      unidade: null,
+      corretorId: usadoForm.responsavelId || null,
+      autorId: user?.id ?? "preview",
+      valor: moneyOrZero(base.valor),
+      entrada: parseMoney(usadoForm.sinal),
+      sinais: parseMoney(usadoForm.sinal) ? [moneyOrZero(usadoForm.sinal)] : [],
+      sinaisDatas: usadoForm.parcelaData ? [usadoForm.parcelaData] : [],
+      sinaisNomes: usadoForm.sinalDescricao.trim()
+        ? [usadoForm.sinalDescricao.trim()]
+        : [],
+      apartado: null,
+      preChaves: [],
+      posChaves: [],
+      intercaladas: [],
+      fgts: null,
+      moraBem: null,
+      mcmv: null,
+      parcelaCaixa: null,
+      financiamento: parseMoney(usadoForm.parcelaValor),
+      desconto: null,
+      status: "rascunho",
+      validade: null,
+      enviadaEm: null,
+      observacao: base.observacao.trim() || null,
+      createdAt: agora,
+      updatedAt: agora,
+      autor: { id: user?.id ?? "preview", name: user?.name ?? "----" },
+      corretor: responsavel
+        ? { id: responsavel.id, name: responsavel.name }
+        : null,
+      construtora: null,
+      empreendimento: venda
+        ? {
+            id: venda.id,
+            nome: rotuloImovelForm(venda.imovel),
+            cidade: venda.imovel.cidade || null,
+          }
+        : null,
+      lead: null,
+    };
+  }
+
   async function salvarPropostaUsado(e: FormEvent) {
     e.preventDefault();
     const valor = parseOptionalMoneyInput(usadoForm.valor);
@@ -1842,35 +2026,46 @@ export function PropostasPage() {
       toast.error("Selecione o responsável.");
       return;
     }
-    const nomeLivre = usadoForm.nomeLivre.trim();
-    const pessoa = usadoForm.leadId
-      ? contatosProposta.find((item) => item.id === usadoForm.leadId)
-      : undefined;
-    if (!pessoa && nomeLivre.length < 2) {
-      toast.error("Informe o nome do interessado.");
+    const pessoa = contatosProposta.find((item) => item.id === usadoForm.leadId);
+    if (!pessoa) {
+      setUsadoSecao("proponente");
+      toast.error("Selecione o lead.");
+      return;
+    }
+    if (usadoForm.nome.trim().length < 2) {
+      setUsadoSecao("proponente");
+      toast.error("Informe o nome do proponente.");
       return;
     }
     if (valor == null || valor <= 0) {
-      toast.error("Informe o valor da proposta.");
+      setUsadoSecao("valores");
+      toast.error("Informe o valor total do imóvel.");
       return;
     }
     setUsadoSaving(true);
     try {
-      const interessadoId = pessoa
-        ? await interessadoDaPessoa(pessoa)
-        : (
-            await createInteressadoUsado({
-              nome: nomeLivre,
-            })
-          ).id;
+      const interessadoId = await interessadoDaPessoa({
+        ...pessoa,
+        nome: usadoForm.nome.trim(),
+        telefone: usadoForm.telefone || pessoa.telefone,
+        email: usadoForm.email || pessoa.email,
+      });
+      const {
+        vendaId: _venda,
+        leadId: _lead,
+        responsavelId: _resp,
+        valor: _valor,
+        ...ficha
+      } = usadoForm;
       await createPropostaUsado(usadoForm.vendaId || null, {
         interessadoId,
         responsavelId: usadoForm.responsavelId,
         valor,
-        entrada: parseOptionalMoneyInput(usadoForm.entrada) ?? undefined,
+        entrada: parseOptionalMoneyInput(usadoForm.sinal) ?? undefined,
         valorFinanciamento:
-          parseOptionalMoneyInput(usadoForm.financiamento) ?? undefined,
+          parseOptionalMoneyInput(usadoForm.parcelaValor) ?? undefined,
         observacoes: usadoForm.observacoes,
+        ficha,
       });
       toast.success("Proposta de usado criada.");
       setUsadoCreateOpen(false);
@@ -4516,145 +4711,223 @@ export function PropostasPage() {
         onOpenChange={setUsadoCreateOpen}
         icon={<Home className="size-5" />}
         title="Nova proposta de usado"
-        description="Imóvel e lead são opcionais. Basta o nome do interessado."
+        description="Proposta de imóvel pronto. Nome e valor total são obrigatórios."
       >
           <form onSubmit={(e) => void salvarPropostaUsado(e)}>
-            <FormDialogBody>
-            <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Imóvel</Label>
-              <Select
-                value={usadoForm.vendaId || "nenhum"}
-                onValueChange={(vendaId) =>
-                  setUsadoForm((f) => ({
-                    ...f,
-                    vendaId: vendaId === "nenhum" ? "" : vendaId,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a venda" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Sem imóvel</SelectItem>
-                  {usadosCatalogo.map((venda) => (
-                    <SelectItem key={venda.id} value={venda.id}>
-                      {rotuloImovelForm(venda.imovel)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <FormDialogBody className="lg:grid lg:grid-cols-[minmax(28rem,1fr)_minmax(24rem,1fr)] lg:items-start lg:gap-5 lg:space-y-0">
+            <div className="grid grid-cols-2 gap-2 rounded-xl border bg-muted/30 p-2 sm:grid-cols-4">
+              {USADO_SECOES.map((item) => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  size="sm"
+                  variant={usadoSecao === item.id ? "default" : "ghost"}
+                  className="justify-center"
+                  onClick={() => setUsadoSecao(item.id)}
+                >
+                  {item.label}
+                </Button>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label>Interessado</Label>
-              <Input
-                value={usadoForm.nomeLivre}
-                onChange={(e) =>
-                  setUsadoForm((f) => ({
-                    ...f,
-                    nomeLivre: e.target.value,
-                    leadId: "",
-                  }))
+            {usadoSecao === "proponente" ? (
+              <FormSection title="Proponente">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Lead *</Label>
+                    <Select
+                      value={usadoForm.leadId || undefined}
+                      onValueChange={(leadId) => {
+                        const pessoa = contatosProposta.find((item) => item.id === leadId);
+                        setUsadoForm((f) => ({
+                          ...f,
+                          leadId,
+                          nome: pessoa?.nome ?? f.nome,
+                          telefone: pessoa?.telefone ?? f.telefone,
+                          email: pessoa?.email ?? f.email,
+                          cpf: pessoa?.cpf ?? f.cpf,
+                          identidade: pessoa?.rg ?? f.identidade,
+                          endereco: pessoa?.endereco ?? f.endereco,
+                          bairro: pessoa?.bairro ?? f.bairro,
+                          cidade: pessoa?.cidade ?? f.cidade,
+                          cep: pessoa?.cep ?? f.cep,
+                          estadoCivil: pessoa?.estadoCivil ?? f.estadoCivil,
+                          renda:
+                            pessoa?.renda != null
+                              ? maskMoneyInput(String(pessoa.renda))
+                              : f.renda,
+                          corretorCreci: pessoa?.corretor?.creci
+                            ? `${pessoa.corretor.name}${pessoa.corretor.creci ? ` ${pessoa.corretor.creci}` : ""}`
+                            : f.corretorCreci,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o lead" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contatosProposta.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <CampoUsado label="Nome *" value={usadoForm.nome} onChange={(nome) => setUsadoForm((f) => ({ ...f, nome }))} />
+                  <CampoUsado label="Telefone" value={usadoForm.telefone} onChange={(telefone) => setUsadoForm((f) => ({ ...f, telefone }))} />
+                  <CampoUsado label="E-mail" value={usadoForm.email} onChange={(email) => setUsadoForm((f) => ({ ...f, email }))} />
+                  <CampoUsado label="CPF/CNPJ" value={usadoForm.cpf} onChange={(cpf) => setUsadoForm((f) => ({ ...f, cpf }))} />
+                  <CampoUsado label="Identidade" value={usadoForm.identidade} onChange={(identidade) => setUsadoForm((f) => ({ ...f, identidade }))} />
+                  <CampoUsado label="UF da identidade" value={usadoForm.identidadeUf} onChange={(identidadeUf) => setUsadoForm((f) => ({ ...f, identidadeUf }))} />
+                  <CampoUsado label="Emissão da identidade" value={usadoForm.identidadeEmissao} onChange={(identidadeEmissao) => setUsadoForm((f) => ({ ...f, identidadeEmissao }))} />
+                  <CampoUsado label="Nascimento" type="date" value={usadoForm.nascimento} onChange={(nascimento) => setUsadoForm((f) => ({ ...f, nascimento }))} />
+                  <CampoUsado label="Nacionalidade" value={usadoForm.nacionalidade} onChange={(nacionalidade) => setUsadoForm((f) => ({ ...f, nacionalidade }))} />
+                  <CampoUsado label="Estado civil" value={usadoForm.estadoCivil} onChange={(estadoCivil) => setUsadoForm((f) => ({ ...f, estadoCivil }))} />
+                  <CampoUsado label="Profissão" value={usadoForm.profissao} onChange={(profissao) => setUsadoForm((f) => ({ ...f, profissao }))} />
+                  <CampoUsado label="Renda" value={usadoForm.renda} onChange={(renda) => setUsadoForm((f) => ({ ...f, renda: maskMoneyInput(renda) }))} />
+                  <div className="space-y-1.5">
+                    <Label>Responsável *</Label>
+                    <Select
+                      value={usadoForm.responsavelId}
+                      onValueChange={(responsavelId) =>
+                        setUsadoForm((f) => ({ ...f, responsavelId }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {responsaveisUsado.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </FormSection>
+            ) : null}
+            {usadoSecao === "conjuge" ? (
+              <FormSection title="Cônjuge">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CampoUsado label="Nome" value={usadoForm.conjugeNome} onChange={(conjugeNome) => setUsadoForm((f) => ({ ...f, conjugeNome }))} className="sm:col-span-2" />
+                  <CampoUsado label="Endereço" value={usadoForm.conjugeEndereco} onChange={(conjugeEndereco) => setUsadoForm((f) => ({ ...f, conjugeEndereco }))} className="sm:col-span-2" />
+                  <CampoUsado label="Bairro" value={usadoForm.conjugeBairro} onChange={(conjugeBairro) => setUsadoForm((f) => ({ ...f, conjugeBairro }))} />
+                  <CampoUsado label="Cidade" value={usadoForm.conjugeCidade} onChange={(conjugeCidade) => setUsadoForm((f) => ({ ...f, conjugeCidade }))} />
+                  <CampoUsado label="CEP" value={usadoForm.conjugeCep} onChange={(conjugeCep) => setUsadoForm((f) => ({ ...f, conjugeCep }))} />
+                  <CampoUsado label="E-mail" value={usadoForm.conjugeEmail} onChange={(conjugeEmail) => setUsadoForm((f) => ({ ...f, conjugeEmail }))} />
+                  <CampoUsado label="Telefone" value={usadoForm.conjugeTelefone} onChange={(conjugeTelefone) => setUsadoForm((f) => ({ ...f, conjugeTelefone }))} />
+                  <CampoUsado label="Órgão expedidor" value={usadoForm.conjugeOrgao} onChange={(conjugeOrgao) => setUsadoForm((f) => ({ ...f, conjugeOrgao }))} />
+                  <CampoUsado label="CPF/CNPJ" value={usadoForm.conjugeCpf} onChange={(conjugeCpf) => setUsadoForm((f) => ({ ...f, conjugeCpf }))} />
+                  <CampoUsado label="Nascimento" type="date" value={usadoForm.conjugeNascimento} onChange={(conjugeNascimento) => setUsadoForm((f) => ({ ...f, conjugeNascimento }))} />
+                  <CampoUsado label="Renda" value={usadoForm.conjugeRenda} onChange={(conjugeRenda) => setUsadoForm((f) => ({ ...f, conjugeRenda: maskMoneyInput(conjugeRenda) }))} />
+                  <CampoUsado label="Nacionalidade" value={usadoForm.conjugeNacionalidade} onChange={(conjugeNacionalidade) => setUsadoForm((f) => ({ ...f, conjugeNacionalidade }))} />
+                  <CampoUsado label="Estado civil" value={usadoForm.conjugeEstadoCivil} onChange={(conjugeEstadoCivil) => setUsadoForm((f) => ({ ...f, conjugeEstadoCivil }))} />
+                  <CampoUsado label="Profissão" value={usadoForm.conjugeProfissao} onChange={(conjugeProfissao) => setUsadoForm((f) => ({ ...f, conjugeProfissao }))} />
+                </div>
+              </FormSection>
+            ) : null}
+            {usadoSecao === "imovel" ? (
+              <FormSection title="Imóvel">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Imóvel</Label>
+                    <Select
+                      value={usadoForm.vendaId || "nenhum"}
+                      onValueChange={(vendaId) =>
+                        setUsadoForm((f) => ({
+                          ...f,
+                          vendaId: vendaId === "nenhum" ? "" : vendaId,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a venda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Sem imóvel</SelectItem>
+                        {usadosCatalogo.map((venda) => (
+                          <SelectItem key={venda.id} value={venda.id}>
+                            {rotuloImovelForm(venda.imovel)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <CampoUsado label="Endereço residencial" value={usadoForm.endereco} onChange={(endereco) => setUsadoForm((f) => ({ ...f, endereco }))} className="sm:col-span-2" />
+                  <CampoUsado label="Bairro" value={usadoForm.bairro} onChange={(bairro) => setUsadoForm((f) => ({ ...f, bairro }))} />
+                  <CampoUsado label="Cidade" value={usadoForm.cidade} onChange={(cidade) => setUsadoForm((f) => ({ ...f, cidade }))} />
+                  <CampoUsado label="CEP" value={usadoForm.cep} onChange={(cep) => setUsadoForm((f) => ({ ...f, cep }))} />
+                  <CampoUsado label="Corretor e CRECI" value={usadoForm.corretorCreci} onChange={(corretorCreci) => setUsadoForm((f) => ({ ...f, corretorCreci }))} />
+                  <CampoUsado label="Local e data" value={usadoForm.localData} onChange={(localData) => setUsadoForm((f) => ({ ...f, localData }))} />
+                </div>
+              </FormSection>
+            ) : null}
+            {usadoSecao === "valores" ? (
+              <FormSection title="Condições de pagamento">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CampoUsado label="Valor total do imóvel *" value={usadoForm.valor} onChange={(valor) => setUsadoForm((f) => ({ ...f, valor: maskMoneyInput(valor) }))} />
+                  <CampoUsado label="Sinal" value={usadoForm.sinal} onChange={(sinal) => setUsadoForm((f) => ({ ...f, sinal: maskMoneyInput(sinal) }))} />
+                  <CampoUsado label="Descrição do sinal" value={usadoForm.sinalDescricao} onChange={(sinalDescricao) => setUsadoForm((f) => ({ ...f, sinalDescricao }))} />
+                  <CampoUsado label="Data da parcela" type="date" value={usadoForm.parcelaData} onChange={(parcelaData) => setUsadoForm((f) => ({ ...f, parcelaData }))} />
+                  <CampoUsado label="Valor da parcela" value={usadoForm.parcelaValor} onChange={(parcelaValor) => setUsadoForm((f) => ({ ...f, parcelaValor: maskMoneyInput(parcelaValor) }))} />
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Observações</Label>
+                    <Textarea
+                      value={usadoForm.observacoes}
+                      onChange={(e) =>
+                        setUsadoForm((f) => ({ ...f, observacoes: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </FormSection>
+            ) : null}
+            <div className="hidden lg:block lg:self-start">
+              <PropostaFormPreview
+                form={formularioDoUsado(usadoForm)}
+                total={moneyOrZero(usadoForm.valor)}
+                companyName={tenant?.name?.trim() || "Imobiliária"}
+                logoUrl={logoUrl}
+                accent={tenant?.primaryColor}
+                codigo="NOVA PROPOSTA"
+                data={new Date().toLocaleDateString("pt-BR")}
+                subtitulo={
+                  usadosCatalogo.find((item) => item.id === usadoForm.vendaId)
+                    ? rotuloImovelForm(
+                        usadosCatalogo.find((item) => item.id === usadoForm.vendaId)!.imovel,
+                      )
+                    : "IMÓVEL PRONTO"
                 }
-                placeholder="Nome, sem cadastro prévio"
               />
-              <Select
-                value={usadoForm.leadId || "nenhum"}
-                onValueChange={(leadId) => {
-                  const pessoa = contatosProposta.find((item) => item.id === leadId);
-                  setUsadoForm((f) => ({
-                    ...f,
-                    leadId: leadId === "nenhum" ? "" : leadId,
-                    nomeLivre: pessoa?.nome ?? "",
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Lead existente (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Não vincular a um lead</SelectItem>
-                  {contatosProposta.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Responsável</Label>
-              <Select
-                value={usadoForm.responsavelId}
-                onValueChange={(responsavelId) =>
-                  setUsadoForm((f) => ({ ...f, responsavelId }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {responsaveisUsado.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Valor</Label>
-              <Input
-                inputMode="numeric"
-                value={usadoForm.valor}
-                onChange={(e) =>
-                  setUsadoForm((f) => ({
-                    ...f,
-                    valor: maskMoneyInput(e.target.value),
-                  }))
-                }
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label>Entrada</Label>
-                <Input
-                  inputMode="numeric"
-                  value={usadoForm.entrada}
-                  onChange={(e) =>
-                    setUsadoForm((f) => ({
-                      ...f,
-                      entrada: maskMoneyInput(e.target.value),
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Financiamento</Label>
-                <Input
-                  inputMode="numeric"
-                  value={usadoForm.financiamento}
-                  onChange={(e) =>
-                    setUsadoForm((f) => ({
-                      ...f,
-                      financiamento: maskMoneyInput(e.target.value),
-                    }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea
-                value={usadoForm.observacoes}
-                onChange={(e) =>
-                  setUsadoForm((f) => ({ ...f, observacoes: e.target.value }))
-                }
-              />
-            </div>
             </div>
             </FormDialogBody>
             <FormDialogActions>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void downloadPropostaPdfCliente(propostaDoUsado(), pdfBrand).then(() =>
+                    toast.success("Relatório visual baixado"),
+                  )
+                }
+              >
+                <Download className="mr-1 h-4 w-4" />
+                Relatório visual
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void downloadPropostaPdfCorretor(propostaDoUsado(), pdfBrand).then(() =>
+                    toast.success("Ficha para assinatura baixada"),
+                  )
+                }
+              >
+                <Download className="mr-1 h-4 w-4" />
+                Ficha para assinatura
+              </Button>
               <Button type="button" variant="ghost" onClick={() => setUsadoCreateOpen(false)}>
                 Cancelar
               </Button>
