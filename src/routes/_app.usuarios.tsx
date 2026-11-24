@@ -124,6 +124,7 @@ import {
   fetchUsersQuota,
   importUsers,
   normalizeCreciStatus,
+  popularDemonstracaoCorretor,
   resetUserPassword,
   updateUser,
   updateUserStatus,
@@ -1382,6 +1383,35 @@ function Usuarios() {
                             Ver agenda
                           </DropdownMenuItem>
                         )}
+                        {isAdmin && u.role === "corretor" ? (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  `Popular a carteira de ${u.name} com leads, vendas e meta de demonstração? Os outros usuários não recebem esses dados.`,
+                                )
+                              ) {
+                                return;
+                              }
+                              void popularDemonstracaoCorretor(u.id)
+                                .then(() =>
+                                  toast.success(
+                                    `Carteira de demonstração criada para ${u.name}.`,
+                                  ),
+                                )
+                                .catch((error: unknown) =>
+                                  toast.error(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "Não foi possível popular a carteira.",
+                                  ),
+                                );
+                            }}
+                          >
+                            <Sparkles className="w-3.5 h-3.5 mr-2" />
+                            Popular demonstração
+                          </DropdownMenuItem>
+                        ) : null}
                         {canManageUsers && (
                           <DropdownMenuItem onClick={() => openEdit(u)}>
                             <Pencil className="w-3.5 h-3.5 mr-2" />

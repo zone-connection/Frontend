@@ -2104,13 +2104,15 @@ function DashboardCorretorView() {
             Ver metas
           </Link>
         </div>
-        {(summary.metas ?? []).length === 0 ? (
+        {(summary.metas ?? []).filter((meta) => meta.escopo !== "imobiliaria").length === 0 ? (
           <p className="rounded-xl border border-dashed border-[#D5E2EA] bg-white/70 px-4 py-6 text-sm text-[#5C6B76]">
-            Nenhuma meta ativa agora. Quando houver uma meta para você ou para a imobiliária, o progresso aparece aqui.
+            Nenhuma meta ativa agora. Quando houver uma meta para você, o progresso aparece aqui.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {(summary.metas ?? []).map((meta) => (
+            {(summary.metas ?? [])
+              .filter((meta) => meta.escopo !== "imobiliaria")
+              .map((meta) => (
               <MetaProgressoCard key={meta.id} meta={meta} />
             ))}
           </div>

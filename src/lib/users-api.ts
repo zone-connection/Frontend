@@ -285,6 +285,13 @@ export async function updateUserStatus(
   });
 }
 
+export async function popularDemonstracaoCorretor(id: string) {
+  return apiFetch<{ ok: boolean; corretor: string; leads: number; vendas: number }>(
+    `/users/${id}/demonstracao`,
+    { method: "POST" },
+  );
+}
+
 export async function resetUserPassword(
   id: string,
   password?: string,
