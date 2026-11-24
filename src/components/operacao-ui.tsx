@@ -71,7 +71,7 @@ export function OperationSubnav({
   items,
   pathname,
 }: {
-  items: Array<{ to: string; label: string; icon?: LucideIcon; exact?: boolean }>;
+  items: Array<{ to: string; label: string; icon?: LucideIcon; exact?: boolean; guia?: string }>;
   pathname: string;
 }) {
   const depth = pathname.split("/").filter(Boolean).length;
@@ -90,6 +90,7 @@ export function OperationSubnav({
               to={tab.to}
               preload={false}
               data-nav-active={active ? "true" : undefined}
+              data-guia={tab.guia}
               className={navItemClass(active)}
             >
               {active ? <NavActivePill /> : null}

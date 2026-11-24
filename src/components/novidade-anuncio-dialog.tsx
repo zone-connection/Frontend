@@ -13,6 +13,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   financeiroLiberado?: boolean;
+  rhLiberado?: boolean;
   podeAbrirDestino?: boolean;
   /** @deprecated use podeAbrirDestino */
   podeAbrirTarefas?: boolean;
@@ -22,17 +23,30 @@ export function NovidadeAnuncioDialog({
   open,
   onOpenChange,
   financeiroLiberado = false,
+  rhLiberado = true,
   podeAbrirDestino,
   podeAbrirTarefas = true,
 }: Props) {
-  const item = anuncioNovidadeAtual(financeiroLiberado);
+  const item = anuncioNovidadeAtual(financeiroLiberado, rhLiberado);
   if (!item) return null;
   const canOpenTarget = podeAbrirDestino ?? podeAbrirTarefas;
   const destaque = item.agora[0];
 
   const cta = canOpenTarget ? (
     <Button type="button" asChild className="h-10 rounded-full px-5">
-      <Link to={item.href as "/leads"} onClick={() => onOpenChange(false)}>
+      <Link
+        to={item.href as "/rh"}
+        onClick={() => {
+          if (item.guiaId) {
+            try {
+              sessionStorage.setItem("guia-ao-entrar", item.guiaId);
+            } catch {
+              // o guia só não abre se o navegador bloquear o armazenamento
+            }
+          }
+          onOpenChange(false);
+        }}
+      >
         {item.hrefLabel}
         <ArrowRight className="h-4 w-4" />
       </Link>

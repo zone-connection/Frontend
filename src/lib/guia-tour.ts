@@ -30,6 +30,13 @@ const ACTION_SELECTORS: Record<string, (string | undefined)[]> = {
     '[data-guia="funil-board"]',
     '[data-guia="page-actions"]',
   ],
+  rh: [
+    '[data-guia="rh-visao"]',
+    '[data-guia="rh-recrutamento"]',
+    '[data-guia="rh-equipe"]',
+    '[data-guia="rh-agenda"]',
+    '[data-guia="rh-modelos"]',
+  ],
   documentacao: [
     '[data-guia="doc-nova"]',
     undefined,

@@ -22,15 +22,35 @@ export type Novidade = {
   pagePaths: string[];
   /** Subitens de Configurações (ex.: automacoes). */
   configItems?: string[];
+  /** Guia ao vivo aberto ao clicar no botão do aviso. */
+  guiaId?: string;
 };
 
 const ANUNCIO_STORAGE_KEY = "crm-novidade-anuncio-vista";
 
+const ANUNCIO_RH_ID = "rh-modulo";
 const ANUNCIO_INADIMPLENTES_ID = "financeiro-inadimplentes";
 /** Visível em 22, 23 e 24/11/2026. */
 const ANUNCIO_INADIMPLENTES_ATE = "2026-11-25";
 
 export const NOVIDADES: Novidade[] = [
+  {
+    id: ANUNCIO_RH_ID,
+    title: "O CRM agora tem o módulo de RH",
+    kicker: "Novidade",
+    publishedAt: "2026-11-24",
+    summary:
+      "Recrutamento, equipe, agenda e modelos de contrato ficam no mesmo CRM. O guia abre junto com o módulo e explica cada parte.",
+    where: "Menu → RH.",
+    href: "/rh",
+    hrefLabel: "Ir para o RH",
+    status: "Disponível para o administrador e para o papel RH.",
+    dropHint: "Dá para desligar o módulo em Configurações, se a imobiliária não for usar.",
+    agora: ["Ver o módulo com o guia"],
+    navPaths: ["/rh"],
+    pagePaths: ["/rh"],
+    guiaId: "rh",
+  },
   {
     id: ANUNCIO_INADIMPLENTES_ID,
     title: "Mais controle sobre seus títulos em atraso",
@@ -894,7 +914,11 @@ function hojeIsoLocal() {
 
 export function anuncioNovidadeAtual(
   financeiroLiberado = false,
+  rhLiberado = true,
 ): Novidade | null {
+  if (rhLiberado) {
+    return NOVIDADES.find((item) => item.id === ANUNCIO_RH_ID) ?? null;
+  }
   if (!financeiroLiberado) return null;
   if (hojeIsoLocal() >= ANUNCIO_INADIMPLENTES_ATE) return null;
   return (
@@ -902,8 +926,11 @@ export function anuncioNovidadeAtual(
   );
 }
 
-export function novidadeAnuncioPendente(financeiroLiberado = false): boolean {
-  const item = anuncioNovidadeAtual(financeiroLiberado);
+export function novidadeAnuncioPendente(
+  financeiroLiberado = false,
+  rhLiberado = true,
+): boolean {
+  const item = anuncioNovidadeAtual(financeiroLiberado, rhLiberado);
   if (!item || typeof window === "undefined") return false;
   try {
     return sessionStorage.getItem(ANUNCIO_STORAGE_KEY) !== item.id;
@@ -914,7 +941,8 @@ export function novidadeAnuncioPendente(financeiroLiberado = false): boolean {
 
 export function marcarNovidadeAnuncioVista(): void {
   try {
-    sessionStorage.setItem(ANUNCIO_STORAGE_KEY, ANUNCIO_INADIMPLENTES_ID);
+    const item = anuncioNovidadeAtual(true, true);
+    sessionStorage.setItem(ANUNCIO_STORAGE_KEY, item?.id ?? ANUNCIO_RH_ID);
   } catch {
     // armazenamento indisponível: o aviso só não persiste
   }
@@ -930,8 +958,10 @@ export function reiniciarNovidadeAnuncio(): void {
   }
 }
 
-export function isNavPathNovo(_to: string): boolean {
-  return false;
+export function isNavPathNovo(to: string): boolean {
+  const item = NOVIDADES.find((n) => n.id === ANUNCIO_RH_ID);
+  if (!item) return false;
+  return item.navPaths.some((route) => to === route || to.startsWith(`${route}/`));
 }
 
 export function isPageNovo(

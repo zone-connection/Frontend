@@ -1238,6 +1238,55 @@ export const GUIA_GROUPS: GuiaGroup[] = [
     ],
   },
   {
+    id: "rh",
+    label: "RH",
+    kicker: "Pessoas da imobiliária",
+    description: "Recrutamento, equipe, agenda e modelos de contrato.",
+    image: "/guia/hero.png",
+    topics: [
+      {
+        id: "rh",
+        title: "RH",
+        href: "/rh",
+        who: "Administrador da imobiliária e quem tem o papel RH.",
+        summary:
+          "O RH cuida de quem entra na imobiliária e de quem já é corretor. O menu fica abaixo de Equipe e pode ser desligado nas configurações.",
+        actions: [
+          {
+            title: "Visão geral",
+            detail:
+              "Indicadores do período: candidatos, entrevistas, contratações, corretores ativos e vendas da equipe. Os blocos de baixo apontam o que precisa de atenção.",
+          },
+          {
+            title: "Recrutamento",
+            detail:
+              "Funil do candidato, do primeiro contato até ficar ativo. Arraste o cartão de etapa. Na ficha dá para encerrar ou transformar o candidato em usuário corretor.",
+          },
+          {
+            title: "Equipe",
+            detail:
+              "Corretores já cadastrados no CRM. Dá para ver em cards ou em tabela. A ficha guarda documentos, treinamentos, vendas e o desligamento.",
+          },
+          {
+            title: "Agenda",
+            detail:
+              "O mesmo calendário dos lembretes, só com entrevista, retorno, reunião, documentos, assinatura, treinamento e avaliação.",
+          },
+          {
+            title: "Modelos",
+            detail:
+              "Arquivos de contrato separados: um para corretor com CRECI e outro sem CRECI. Envie o PDF ou DOCX e baixe quando for usar.",
+          },
+        ],
+        how: [
+          "Cadastre o candidato no recrutamento.",
+          "Avance as etapas até a contratação.",
+          "Acompanhe a pessoa na equipe e na agenda.",
+        ],
+      },
+    ],
+  },
+  {
     id: "conta",
     label: "Conta",
     kicker: "Você no sistema",
