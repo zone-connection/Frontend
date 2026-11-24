@@ -2005,37 +2005,61 @@ function VendasTodosPanel({
   );
 }
 
+function erroLinhaVenda(linha: {
+  corretor: string;
+  dataVenda: string;
+  construtora: string;
+  empreendimento: string;
+  vgv: number;
+}) {
+  if (!linha.corretor) return "Corretor obrigatório";
+  if (!linha.dataVenda) return "Data de venda inválida";
+  if (!linha.construtora) return "Construtora obrigatória";
+  if (!linha.empreendimento) return "Empreendimento obrigatório";
+  if (linha.vgv <= 0) return "VGV obrigatório";
+  return "";
+}
+
+function dataBr(iso: string) {
+  const [ano, mes, dia] = iso.split("-");
+  if (!ano || !mes || !dia) return iso || "—";
+  return `${dia}/${mes}/${ano}`;
+}
+
 function ImportarVendasButton({ onImported }: { onImported: () => void }) {
   const [aberto, setAberto] = useState(false);
+  const [confirmar, setConfirmar] = useState(false);
+  const [arquivo, setArquivo] = useState("");
+  const [linhas, setLinhas] = useState<Awaited<ReturnType<typeof lerPlanilhaVendas>>>([]);
   const [enviando, setEnviando] = useState(false);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   async function escolher(file: File) {
-    setEnviando(true);
     try {
-      const linhas = await lerPlanilhaVendas(file);
-      if (linhas.length === 0) {
+      const lidas = await lerPlanilhaVendas(file);
+      if (lidas.length === 0) {
         toast.error("A planilha não tem linhas de venda.");
         return;
       }
-      const invalidas = linhas.filter(
-        (linha) =>
-          !linha.corretor ||
-          !linha.equipe ||
-          !linha.dataVenda ||
-          !linha.construtora ||
-          !linha.empreendimento ||
-          linha.vgv <= 0,
-      );
-      if (invalidas.length > 0) {
-        toast.error("Preencha corretor, equipe, data, construtora, empreendimento e VGV em todas as linhas.");
-        return;
-      }
-      const resultado = await importarVendasPlanilha(linhas);
+      setArquivo(file.name);
+      setLinhas(lidas);
+      setAberto(false);
+      setConfirmar(true);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível ler a planilha.");
+    }
+  }
+
+  async function confirmarImportacao() {
+    const validas = linhas.filter((linha) => !erroLinhaVenda(linha));
+    if (validas.length === 0) return;
+    setEnviando(true);
+    try {
+      const resultado = await importarVendasPlanilha(validas);
       if (resultado.criadas > 0) onImported();
       if (resultado.erros.length === 0) {
         toast.success(`${resultado.criadas} venda(s) importada(s).`);
-        setAberto(false);
+        setConfirmar(false);
       } else {
         toast.error(
           `${resultado.criadas} importada(s). ${resultado.erros[0].mensagem} (linha ${resultado.erros[0].linha}).`,
@@ -2131,11 +2155,11 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
               <ul className="space-y-3 px-4 py-3 text-muted-foreground">
                 <li className="flex gap-2">
                   <Check className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
-                  <span>Corretor, equipe, data de venda, construtora, empreendimento e VGV são obrigatórios.</span>
+                  <span>Corretor, data de venda, construtora, empreendimento e VGV são obrigatórios. Equipe é opcional.</span>
                 </li>
                 <li className="flex gap-2">
                   <Users className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
-                  <span>O corretor e a equipe precisam já existir no CRM, com o mesmo nome.</span>
+                  <span>O corretor precisa já existir no CRM. Se a equipe vier preenchida, o nome também precisa existir.</span>
                 </li>
                 <li className="flex gap-2">
                   <Building2 className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
@@ -2166,6 +2190,69 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
             >
               {enviando ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
               Escolher arquivo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmar} onOpenChange={setConfirmar}>
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
+          <DialogHeader>
+            <DialogTitle>Confirmar importação</DialogTitle>
+            <DialogDescription>
+              {arquivo ? `Arquivo: ${arquivo}. ` : ""}
+              Formato: Corretor, Equipe, Data de venda, Construtora, Empreendimento e VGV.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            {linhas.filter((linha) => !erroLinhaVenda(linha)).length} venda(s) pronta(s) para importar.
+          </p>
+          <div className="min-h-0 flex-1 overflow-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="p-2 font-medium">#</th>
+                  <th className="p-2 font-medium">Corretor</th>
+                  <th className="p-2 font-medium">Equipe</th>
+                  <th className="p-2 font-medium">Data</th>
+                  <th className="p-2 font-medium">Construtora</th>
+                  <th className="p-2 font-medium">Empreendimento</th>
+                  <th className="p-2 font-medium">VGV</th>
+                  <th className="p-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhas.map((linha, index) => {
+                  const erro = erroLinhaVenda(linha);
+                  return (
+                    <tr key={`${linha.corretor}-${index}`} className={cn("border-b last:border-0", erro && "bg-destructive/5")}>
+                      <td className="p-2 tabular-nums text-muted-foreground">{index + 1}</td>
+                      <td className="p-2">{linha.corretor || "—"}</td>
+                      <td className="p-2">{linha.equipe || "—"}</td>
+                      <td className="p-2 tabular-nums">{dataBr(linha.dataVenda)}</td>
+                      <td className="p-2">{linha.construtora || "—"}</td>
+                      <td className="p-2">{linha.empreendimento || "—"}</td>
+                      <td className="p-2 tabular-nums">{linha.vgv > 0 ? linha.vgv.toLocaleString("pt-BR") : "—"}</td>
+                      <td className={cn("p-2 font-medium", erro ? "text-destructive" : "text-emerald-600")}>
+                        {erro || "OK"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button type="button" variant="outline" className="rounded-full" onClick={() => setConfirmar(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="rounded-full bg-[#079ed4] hover:bg-[#075a82]"
+              disabled={enviando || linhas.every((linha) => erroLinhaVenda(linha))}
+              onClick={() => void confirmarImportacao()}
+            >
+              {enviando ? <Loader2 className="size-4 animate-spin" /> : null}
+              Importar {linhas.filter((linha) => !erroLinhaVenda(linha)).length}
             </Button>
           </DialogFooter>
         </DialogContent>

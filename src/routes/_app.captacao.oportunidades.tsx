@@ -67,7 +67,6 @@ import {
   type Imovel,
   type OportunidadeCaptacao,
 } from "@/lib/captacao-api";
-import { OPORTUNIDADES_MOCK } from "@/lib/modulos-mock";
 import { formatPhone } from "@/lib/phone";
 import {
   FILTER_CONTROL,
@@ -242,9 +241,8 @@ function OportunidadesPage() {
     ])
       .then(([next, pessoas, totais, captacoes]) => {
         const abertas = next.filter((row) => row.status !== "convertida");
-        const usarExemplo = abertas.length === 0;
-        setExemplo(usarExemplo);
-        setRows(usarExemplo ? OPORTUNIDADES_MOCK : abertas);
+        setExemplo(false);
+        setRows(abertas);
         setResponsaveis(pessoas);
         setResumo(totais);
         setEmAvaliacao(

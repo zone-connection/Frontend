@@ -26,7 +26,6 @@ import {
   type MelhoriaItem,
 } from "@/lib/melhorias-api";
 import { fetchTenants, type Tenant } from "@/lib/tenants-api";
-import { isMockId, melhoriasMock, MOCK_MELHORIAS } from "@/lib/centrais-mock";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/melhorias")({
@@ -86,7 +85,6 @@ function MelhoriasPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [criando, setCriando] = useState(false);
-  const [exemplo, setExemplo] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -104,18 +102,11 @@ function MelhoriasPage() {
         tenantId: tenantId === "todas" ? undefined : tenantId,
         responsavelId: soMeus ? eu?.id : undefined,
       });
-      setExemplo(rows.length === 0);
-      setItems(rows.length ? rows : melhoriasMock(filtro));
+      setItems(rows);
       setErro("");
     } catch {
-      setExemplo(true);
-      setErro("");
-      setItems(melhoriasMock({
-        q: q.trim() || undefined,
-        status: status === "todos" ? undefined : status,
-        prioridade: prioridade === "todas" ? undefined : prioridade,
-        categoria: categoria === "todas" ? undefined : categoria,
-      }));
+      setErro("Não foi possível carregar as solicitações.");
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -128,12 +119,6 @@ function MelhoriasPage() {
   }, []);
 
   async function abrir(id: string) {
-    if (isMockId(id)) {
-      const detalhe = MOCK_MELHORIAS.find((item) => item.id === id) ?? null;
-      setAberto(detalhe);
-      setJustificativa(detalhe?.justificativaDecisao ?? "");
-      return;
-    }
     try {
       const detalhe = await fetchMelhoria(id);
       setAberto(detalhe);
@@ -144,10 +129,6 @@ function MelhoriasPage() {
   }
 
   async function mudarStatus(id: string, value: string) {
-    if (isMockId(id)) {
-      toast.message("Exemplo visual. A solicitação não é gravada.");
-      return;
-    }
     if ((value === "recusada" || value === "arquivada") && !window.confirm("Confirmar essa decisão? O registro permanece consultável.")) {
       return;
     }
@@ -177,7 +158,7 @@ function MelhoriasPage() {
         <div className="flex flex-col gap-3 border-b border-[#EEF0F3] px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
           <h2 className="text-[15px] font-semibold text-[#1A1D23] dark:text-[#f8fafc]">
             Solicitações
-            <span className="ml-1.5 font-medium text-[#8B919A]">({loading ? "…" : items.length}{exemplo && !loading ? " exemplos" : ""})</span>
+            <span className="ml-1.5 font-medium text-[#8B919A]">({loading ? "…" : items.length})</span>
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
@@ -381,10 +362,6 @@ function MelhoriasPage() {
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <Textarea className={CENTRAL_AREA} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Comentário ou nota interna" />
             <Button type="button" className={CENTRAL_BTN} disabled={!texto.trim()} onClick={() => {
-              if (isMockId(aberto.id)) {
-                toast.message("Exemplo visual. O comentário não é gravado.");
-                return;
-              }
               void addMelhoriaComentario(aberto.id, { texto, interna }).then((detalhe) => {
                 setAberto(detalhe);
                 setTexto("");

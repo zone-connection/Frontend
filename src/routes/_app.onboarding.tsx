@@ -38,7 +38,6 @@ import {
 } from "@/lib/onboarding-api";
 import { fetchTenants, updateTenant, type Tenant } from "@/lib/tenants-api";
 import { PLANO_LABELS, type TenantPlano } from "@/lib/tenant-modules";
-import { isMockId, MOCK_ONBOARDINGS, onboardingsMock } from "@/lib/centrais-mock";
 import { nextCatalogColor } from "@/lib/catalog-colors";
 import { cn } from "@/lib/utils";
 
@@ -95,17 +94,14 @@ function OnboardingPage() {
   const [justificativa, setJustificativa] = useState("");
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
-  const [exemplo, setExemplo] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
       const rows = await fetchOnboardings("todas");
-      setExemplo(rows.length === 0);
-      setItems(rows.length ? rows : onboardingsMock("todas"));
+      setItems(rows);
     } catch {
-      setExemplo(true);
-      setItems(onboardingsMock("todas"));
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -121,27 +117,6 @@ function OnboardingPage() {
     if (!item || colunaId(item) === destino) return;
     const indice = COLUNAS.findIndex((coluna) => coluna.id === destino);
     const feitasAte = indice <= 0 ? 0 : COLUNAS[indice - 1].ate;
-    if (isMockId(id)) {
-      setItems((prev) => prev.map((row) => {
-        if (row.id !== id) return row;
-        const etapas = row.etapas.map((etapa) => ({
-          ...etapa,
-          status: (etapa.ordem <= feitasAte ? "concluida" : "pendente") as "concluida" | "pendente",
-        }));
-        const obrigatorias = etapas.filter((etapa) => etapa.obrigatoria);
-        const feitas = obrigatorias.filter((etapa) => etapa.status === "concluida").length;
-        const progresso = destino === "implantada" || obrigatorias.length === 0
-          ? 100
-          : Math.round((feitas / obrigatorias.length) * 100);
-        return {
-          ...row,
-          etapas,
-          progresso,
-          status: destino === "implantada" ? "concluido" : feitasAte === 0 ? "nao_iniciado" : "em_andamento",
-        };
-      }));
-      return;
-    }
     try {
       if (destino !== "implantada" && item.status === "concluido") {
         await updateOnboarding(id, { status: "em_andamento" });
@@ -162,10 +137,6 @@ function OnboardingPage() {
   }
 
   async function abrir(id: string) {
-    if (isMockId(id)) {
-      setAberto(MOCK_ONBOARDINGS.find((item) => item.id === id) ?? null);
-      return;
-    }
     try {
       setAberto(await fetchOnboarding(id));
     } catch (error) {
@@ -198,10 +169,6 @@ function OnboardingPage() {
 
   async function mudarStatus(status: string) {
     if (!aberto) return;
-    if (isMockId(aberto.id)) {
-      toast.message("Exemplo visual. A implantação não é gravada.");
-      return;
-    }
     try {
       await updateOnboarding(aberto.id, { status });
       await abrir(aberto.id);
@@ -213,10 +180,6 @@ function OnboardingPage() {
 
   async function concluirEtapa(etapaId: string, feita: boolean) {
     if (!aberto) return;
-    if (isMockId(aberto.id)) {
-      toast.message("Exemplo visual. A implantação não é gravada.");
-      return;
-    }
     try {
       setAberto(
         await updateOnboardingEtapa(aberto.id, etapaId, {
@@ -317,7 +280,7 @@ function OnboardingPage() {
         {!loading && items.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma implantação neste recorte.</p>
         ) : null}
-        <p className="text-[12px] text-muted-foreground">{loading ? "Carregando..." : `${items.length} implantação(ões)${exemplo ? " · exemplos de visualização" : ""}`}</p>
+        <p className="text-[12px] text-muted-foreground">{loading ? "Carregando..." : `${items.length} implantação(ões)`}</p>
       </section>
       {aberto ? (
         <CentralCard
