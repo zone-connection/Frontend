@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Banknote,
   Building2,
@@ -15,10 +15,15 @@ import {
   Headset,
   KeyRound,
   Landmark,
+  Ban,
+  Check,
+  ClipboardList,
+  FileSpreadsheet,
   Loader2,
   PenLine,
   Pencil,
   Search,
+  Upload,
   UserRound,
   Users,
   Wallet,
@@ -38,6 +43,14 @@ import { SemConexao } from "@/components/sem-conexao";
 import { DocumentosPanel } from "@/components/documentos-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1993,7 +2006,9 @@ function VendasTodosPanel({
 }
 
 function ImportarVendasButton({ onImported }: { onImported: () => void }) {
+  const [aberto, setAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const arquivoRef = useRef<HTMLInputElement>(null);
 
   async function escolher(file: File) {
     setEnviando(true);
@@ -2020,6 +2035,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
       if (resultado.criadas > 0) onImported();
       if (resultado.erros.length === 0) {
         toast.success(`${resultado.criadas} venda(s) importada(s).`);
+        setAberto(false);
       } else {
         toast.error(
           `${resultado.criadas} importada(s). ${resultado.erros[0].mensagem} (linha ${resultado.erros[0].linha}).`,
@@ -2033,26 +2049,128 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button type="button" variant="outline" onClick={baixarModeloVendas}>
-        Modelo
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={enviando}
+        onClick={() => setAberto(true)}
+        className="!h-9 !rounded-lg border border-[#E2E8EC] bg-white px-3 text-[13px] font-medium text-[#16324A] shadow-none hover:border-[#B7D7E6] hover:bg-[#F3FAFD] hover:text-[#16324A]"
+      >
+        {enviando ? (
+          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+        ) : (
+          <Upload className="mr-1.5 size-3.5 text-[#079ED4]" />
+        )}
+        Importar
       </Button>
-      <Button type="button" disabled={enviando} asChild>
-        <label>
-          {enviando ? "Importando…" : "Importar planilha"}
-          <input
-            type="file"
-            accept=".xlsx,.xls"
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) void escolher(file);
-            }}
-          />
-        </label>
-      </Button>
-    </div>
+      <input
+        ref={arquivoRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) {
+            setAberto(false);
+            void escolher(file);
+          }
+        }}
+      />
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="flex-row items-start gap-3 space-y-0 border-b px-6 py-5 text-left">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#079ed4] text-white">
+              <Upload className="size-5" />
+            </span>
+            <div>
+              <DialogTitle>Importar vendas</DialogTitle>
+              <DialogDescription className="mt-1">
+                Use o padrão abaixo para o arquivo ser lido corretamente. Preferível Excel (.xlsx).
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 overflow-auto px-6 py-5 text-sm">
+            <div className="overflow-hidden rounded-2xl border">
+              <div className="border-b px-4 py-3">
+                <p className="font-semibold">Colunas, nessa ordem</p>
+                <p className="text-xs text-muted-foreground">A primeira linha do modelo já traz esses títulos.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-[#079ed4]/10 text-left text-[#075a82]">
+                      <th className="px-3 py-2 font-medium">Corretor</th>
+                      <th className="px-3 py-2 font-medium">Equipe</th>
+                      <th className="px-3 py-2 font-medium">Data de venda</th>
+                      <th className="px-3 py-2 font-medium">Construtora</th>
+                      <th className="px-3 py-2 font-medium">Empreendimento</th>
+                      <th className="px-3 py-2 font-medium">VGV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="px-3 py-2.5">Marina Alves</td>
+                      <td className="px-3 py-2.5">Equipe Centro</td>
+                      <td className="px-3 py-2.5 tabular-nums">24/11/2026</td>
+                      <td className="px-3 py-2.5">Construtora Alfa</td>
+                      <td className="px-3 py-2.5">Residencial Vida</td>
+                      <td className="px-3 py-2.5 tabular-nums">250000</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="rounded-2xl border">
+              <div className="flex items-center gap-2 border-b px-4 py-3">
+                <ClipboardList className="size-4 text-[#079ed4]" />
+                <p className="font-semibold">Regras</p>
+              </div>
+              <ul className="space-y-3 px-4 py-3 text-muted-foreground">
+                <li className="flex gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>Corretor, equipe, data de venda, construtora, empreendimento e VGV são obrigatórios.</span>
+                </li>
+                <li className="flex gap-2">
+                  <Users className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>O corretor e a equipe precisam já existir no CRM, com o mesmo nome.</span>
+                </li>
+                <li className="flex gap-2">
+                  <Building2 className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
+                  <span>Construtora e empreendimento são criados se ainda não existirem. Uma linha = uma venda.</span>
+                </li>
+              </ul>
+            </div>
+            <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+              <Ban className="mt-0.5 size-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Não incluir</p>
+                <p className="mt-0.5 text-xs opacity-90">
+                  Cliente, proposta, documentação ou status. A venda entra já marcada como vendida.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 border-t px-6 py-4 sm:gap-2">
+            <Button type="button" variant="outline" className="rounded-full" onClick={baixarModeloVendas}>
+              <FileSpreadsheet className="size-4" />
+              Baixar modelo Excel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-full bg-[#079ed4] hover:bg-[#075a82]"
+              disabled={enviando}
+              onClick={() => arquivoRef.current?.click()}
+            >
+              {enviando ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              Escolher arquivo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
