@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
+import {
+  FunilScrollControls,
+  OperationFunnelBoard,
+} from "@/components/operation-funnel-board";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,15 +25,15 @@ export const Route = createFileRoute("/_app/rh/recrutamento")({
   component: Page,
 });
 
-const COLUNA: Record<RhEtapa, string> = {
-  novo: "border-[#9DCEF5] bg-gradient-to-b from-[#D3ECFE] to-[#F4F9FE]",
-  em_contato: "border-[#8FD9CF] bg-gradient-to-b from-[#C9F4EC] to-[#F3FBFA]",
-  entrevista: "border-[#D0BEF5] bg-gradient-to-b from-[#E6DBFF] to-[#F8F5FF]",
-  aprovado: "border-[#8ED9B0] bg-gradient-to-b from-[#CFF6E0] to-[#F3FBF6]",
-  integracao: "border-[#F5C48A] bg-gradient-to-b from-[#FFE4C4] to-[#FFF8F1]",
-  ativo: "border-[#B7C6F5] bg-gradient-to-b from-[#DCE4FF] to-[#F5F7FD]",
-  desistente: "border-[#F5C48A] bg-gradient-to-b from-[#FFE4C4] to-[#FFF8F1]",
-  reprovado: "border-[#F5B8C4] bg-gradient-to-b from-[#FFD6DE] to-[#FFF6F7]",
+const ETAPA_COR: Record<RhEtapa, string> = {
+  novo: "#2E90FA",
+  em_contato: "#12B5A0",
+  entrevista: "#875BF7",
+  aprovado: "#12B76A",
+  integracao: "#F79009",
+  ativo: "#4E6EF2",
+  desistente: "#F79009",
+  reprovado: "#F04464",
 };
 
 function Page() {
@@ -39,6 +43,8 @@ function Page() {
   const [ficha, setFicha] = useState<Awaited<ReturnType<typeof getCandidato>> | null>(null);
   const [senha, setSenha] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+  const scrollBoard = useRef<((direction: -1 | 1) => void) | null>(null);
 
   async function carregar() {
     try {
@@ -65,10 +71,20 @@ function Page() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Recrutamento" description="Arraste o candidato entre as etapas." />
+      <PageHeader
+        title="Recrutamento"
+        description="Arraste o candidato entre as etapas."
+        actions={
+          <FunilScrollControls
+            canScrollLeft={canScroll.left}
+            canScrollRight={canScroll.right}
+            onScroll={(direction) => scrollBoard.current?.(direction)}
+          />
+        }
+      />
       {erro ? <p className="text-sm text-destructive">{erro}</p> : null}
       <form
-        className="grid gap-2 rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] p-4 md:grid-cols-3"
+        className="grid gap-2 rounded-2xl border bg-card p-4 md:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
@@ -90,36 +106,30 @@ function Page() {
           Cadastrar candidato
         </Button>
       </form>
-      <div className="grid gap-3 xl:grid-cols-6">
-        {ETAPAS.map((coluna) => (
-          <div
-            key={coluna.id}
-            className={`min-h-40 rounded-2xl border p-2 ${COLUNA[coluna.id]}`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              const id = e.dataTransfer.getData("text/plain");
-              if (id) void soltar(coluna.id, id);
-            }}
-          >
-            <p className="mb-2 text-xs font-semibold">{coluna.label}</p>
-            {itens
-              .filter((item) => item.etapa === coluna.id)
-              .map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  draggable
-                  onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}
-                  onClick={() => void abrir(item.id)}
-                  className="mb-2 w-full rounded-xl border border-white/80 bg-white/90 p-2 text-left text-sm shadow-sm"
-                >
-                  <span className="font-medium">{item.nome}</span>
-                  <span className="block text-xs text-muted-foreground">{item.telefone || item.email}</span>
-                </button>
-              ))}
-          </div>
-        ))}
-      </div>
+      <OperationFunnelBoard
+        stages={ETAPAS.map((etapa) => ({
+          id: etapa.id,
+          label: etapa.label,
+          color: ETAPA_COR[etapa.id],
+        }))}
+        cards={itens
+          .filter((item) => item.etapa !== "desistente" && item.etapa !== "reprovado")
+          .map((item) => ({
+            id: item.id,
+            etapaId: item.etapa,
+            title: item.nome,
+            subtitle: item.creci ? `CRECI ${item.creci}` : "Candidato",
+            phone: item.telefone,
+            meta: item.email,
+            href: "/rh/recrutamento",
+            updatedAt: new Date(item.entradaEm).toLocaleDateString("pt-BR"),
+            actionLabel: "Ficha",
+          }))}
+        onMove={(id, etapaId) => void soltar(etapaId as RhEtapa, id)}
+        onCardClick={(id) => void abrir(id)}
+        onScrollChange={setCanScroll}
+        scrollApiRef={scrollBoard}
+      />
       {ficha && aberto ? (
         <section className="rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#F4F9FE] to-white p-4">
           <div className="mb-2 flex items-center justify-between">

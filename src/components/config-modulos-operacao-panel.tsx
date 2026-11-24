@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { Building2, ClipboardList, Eye, Home, Key, KeyRound, Landmark, MessageCircle, Users } from "lucide-react";
+import { Briefcase, Building2, ClipboardList, Eye, Home, Key, KeyRound, Landmark, MessageCircle, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,12 @@ const CARDS: Array<{
     description: "Estoque e repasse com corretores de outras imobiliárias.",
     icon: Users,
   },
+  {
+    key: "rh",
+    title: "RH",
+    description: "Recrutamento, equipe, agenda e modelos de contrato.",
+    icon: Briefcase,
+  },
 ];
 
 export function ConfigModulosOperacaoPanel() {
@@ -104,7 +110,7 @@ export function ConfigModulosOperacaoPanel() {
     void load();
   }, [load]);
 
-  async function toggle(key: "captacao" | "imoveisUsados" | "locacao") {
+  async function toggle(key: "captacao" | "imoveisUsados" | "locacao" | "parcerias" | "rh") {
     if (!ops || !isAdmin) return;
     const next = !ops[key];
     setSavingKey(key);
@@ -365,7 +371,7 @@ export function ConfigModulosOperacaoPanel() {
       <div className="grid gap-3 md:grid-cols-2">
         {CARDS.map((card) => {
           const Icon = card.icon;
-          const on = ops ? ops[card.key] : card.key === "comercial";
+          const on = ops ? ops[card.key] : card.key === "comercial" || card.key === "rh";
           return (
             <Card key={card.key}>
               <CardHeader className="flex-row items-start gap-3 space-y-0">
@@ -394,7 +400,7 @@ export function ConfigModulosOperacaoPanel() {
                       disabled={!ops || !isAdmin || savingKey === card.key}
                       onCheckedChange={() =>
                         void toggle(
-                          card.key as "captacao" | "imoveisUsados" | "locacao",
+                          card.key as "captacao" | "imoveisUsados" | "locacao" | "parcerias" | "rh",
                         )
                       }
                     />
@@ -405,7 +411,7 @@ export function ConfigModulosOperacaoPanel() {
                       disabled={!ops || !isAdmin || savingKey === card.key}
                       onClick={() =>
                         void toggle(
-                          card.key as "captacao" | "imoveisUsados" | "locacao",
+                          card.key as "captacao" | "imoveisUsados" | "locacao" | "parcerias" | "rh",
                         )
                       }
                     >

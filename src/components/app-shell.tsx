@@ -966,6 +966,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (to.startsWith("/imoveis-usados")) return isModuleEnabled("imoveisUsados");
     if (to.startsWith("/locacao")) return isModuleEnabled("locacao");
     if (to.startsWith("/parcerias")) return isModuleEnabled("parcerias");
+    if (to === "/rh" || to.startsWith("/rh/")) return isModuleEnabled("rh");
     return true;
   }
 
@@ -976,6 +977,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     if (id === "parcerias") return isModuleEnabled("parcerias");
     if (id === "locacao") return isModuleEnabled("locacao");
+    if (id === "rh") return isModuleEnabled("rh");
     return true;
   }
 

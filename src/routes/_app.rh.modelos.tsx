@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
+import { FILTER_BAR_SURFACE, FILTER_CONTROL, FILTER_NATIVE, TABLE_LUX, TABLE_SHELL } from "@/lib/filter-bar";
 import { baixar, enviarArquivo, modelos } from "@/lib/rh-api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/rh/modelos")({
   component: Page,
@@ -35,7 +38,7 @@ function Page() {
       />
       {erro ? <p className="text-sm text-destructive">{erro}</p> : null}
       <form
-        className="flex flex-wrap items-end gap-2 rounded-2xl border border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] p-4"
+        className={cn(FILTER_BAR_SURFACE, "flex flex-wrap items-end gap-2")}
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
@@ -47,47 +50,57 @@ function Page() {
           form.reset();
         }}
       >
-        <Input name="nome" placeholder="Nome do modelo" required className="max-w-xs" />
-        <select name="tipo" className="h-10 rounded-lg border bg-background px-2 text-sm">
+        <Input name="nome" placeholder="Nome do modelo" required className={cn(FILTER_CONTROL, "max-w-xs")} />
+        <select name="tipo" className={cn(FILTER_NATIVE, "w-40")}>
           <option value="com_creci">Com CRECI</option>
           <option value="sem_creci">Sem CRECI</option>
         </select>
-        <Input name="arquivo" type="file" accept=".pdf,.docx" required className="max-w-xs" />
+        <Input name="arquivo" type="file" accept=".pdf,.docx" required className={cn(FILTER_CONTROL, "max-w-xs")} />
         <Button type="submit">Enviar modelo</Button>
       </form>
-      <ul className="space-y-1 text-sm">
-        {lista.map((item) => (
-          <li
-            key={item.id}
-            className={
-              item.tipo === "com_creci"
-                ? "rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] px-4 py-3"
-                : "rounded-2xl border border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA] px-4 py-3"
-            }
-          >
-            <button
-              type="button"
-              className="font-medium text-primary underline"
-              onClick={() =>
-                void baixar(`/rh/modelos/${item.id}`).then(({ blob, filename }) => {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename || item.nome;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                })
-              }
-            >
-              {item.nome}
-            </button>
-            <span className="text-muted-foreground">
-              {" "}
-              · {item.tipo === "com_creci" ? "com CRECI" : "sem CRECI"}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {lista.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-[#E2E8EC] bg-white px-3 py-10 text-center text-sm text-[#5C6B76]">
+          Nenhum modelo enviado.
+        </p>
+      ) : (
+        <div className={TABLE_SHELL}>
+          <Table className={TABLE_LUX}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-right">Arquivo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lista.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.nome}</TableCell>
+                  <TableCell>{item.tipo === "com_creci" ? "Com CRECI" : "Sem CRECI"}</TableCell>
+                  <TableCell className="text-right">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-[#079ED4]"
+                      onClick={() =>
+                        void baixar(`/rh/modelos/${item.id}`).then(({ blob, filename }) => {
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = filename || item.nome;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        })
+                      }
+                    >
+                      Baixar
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
