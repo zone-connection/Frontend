@@ -21,6 +21,17 @@ export const Route = createFileRoute("/_app/rh/recrutamento")({
   component: Page,
 });
 
+const COLUNA: Record<RhEtapa, string> = {
+  novo: "border-[#9DCEF5] bg-gradient-to-b from-[#D3ECFE] to-[#F4F9FE]",
+  em_contato: "border-[#8FD9CF] bg-gradient-to-b from-[#C9F4EC] to-[#F3FBFA]",
+  entrevista: "border-[#D0BEF5] bg-gradient-to-b from-[#E6DBFF] to-[#F8F5FF]",
+  aprovado: "border-[#8ED9B0] bg-gradient-to-b from-[#CFF6E0] to-[#F3FBF6]",
+  integracao: "border-[#F5C48A] bg-gradient-to-b from-[#FFE4C4] to-[#FFF8F1]",
+  ativo: "border-[#B7C6F5] bg-gradient-to-b from-[#DCE4FF] to-[#F5F7FD]",
+  desistente: "border-[#F5C48A] bg-gradient-to-b from-[#FFE4C4] to-[#FFF8F1]",
+  reprovado: "border-[#F5B8C4] bg-gradient-to-b from-[#FFD6DE] to-[#FFF6F7]",
+};
+
 function Page() {
   const [itens, setItens] = useState<Candidato[]>([]);
   const [erro, setErro] = useState("");
@@ -57,7 +68,7 @@ function Page() {
       <PageHeader title="Recrutamento" description="Arraste o candidato entre as etapas." />
       {erro ? <p className="text-sm text-destructive">{erro}</p> : null}
       <form
-        className="grid gap-2 rounded-xl border bg-card p-4 md:grid-cols-3"
+        className="grid gap-2 rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] p-4 md:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
@@ -83,7 +94,7 @@ function Page() {
         {ETAPAS.map((coluna) => (
           <div
             key={coluna.id}
-            className="min-h-40 rounded-xl border bg-muted/40 p-2"
+            className={`min-h-40 rounded-2xl border p-2 ${COLUNA[coluna.id]}`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               const id = e.dataTransfer.getData("text/plain");
@@ -100,7 +111,7 @@ function Page() {
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}
                   onClick={() => void abrir(item.id)}
-                  className="mb-2 w-full rounded-lg border bg-card p-2 text-left text-sm"
+                  className="mb-2 w-full rounded-xl border border-white/80 bg-white/90 p-2 text-left text-sm shadow-sm"
                 >
                   <span className="font-medium">{item.nome}</span>
                   <span className="block text-xs text-muted-foreground">{item.telefone || item.email}</span>
@@ -110,7 +121,7 @@ function Page() {
         ))}
       </div>
       {ficha && aberto ? (
-        <section className="rounded-xl border bg-card p-4">
+        <section className="rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#F4F9FE] to-white p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-semibold">{ficha.nome}</h2>
             <Button type="button" variant="outline" onClick={() => setAberto(null)}>

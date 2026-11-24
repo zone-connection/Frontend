@@ -122,6 +122,7 @@ import { Route as AppParceriasVisaoGeralRouteImport } from './routes/_app.parcer
 import { Route as AppRhIndexRouteImport } from './routes/_app.rh.index'
 import { Route as AppRhAgendaRouteImport } from './routes/_app.rh.agenda'
 import { Route as AppRhEquipeRouteImport } from './routes/_app.rh.equipe'
+import { Route as AppRhModelosRouteImport } from './routes/_app.rh.modelos'
 import { Route as AppRhRecrutamentoRouteImport } from './routes/_app.rh.recrutamento'
 import { Route as PortalImoveisIndexRouteImport } from './routes/portal.imoveis.index'
 import { Route as PortalImoveisIdRouteImport } from './routes/portal.imoveis.$id'
@@ -718,6 +719,11 @@ const AppRhEquipeRoute = AppRhEquipeRouteImport.update({
   path: '/equipe',
   getParentRoute: () => AppRhRoute,
 } as any)
+const AppRhModelosRoute = AppRhModelosRouteImport.update({
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => AppRhRoute,
+} as any)
 const AppRhRecrutamentoRoute = AppRhRecrutamentoRouteImport.update({
   id: '/recrutamento',
   path: '/recrutamento',
@@ -923,6 +929,7 @@ export interface FileRoutesByFullPath {
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/rh/agenda': typeof AppRhAgendaRoute
   '/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/rh/modelos': typeof AppRhModelosRoute
   '/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
@@ -1046,6 +1053,7 @@ export interface FileRoutesByTo {
   '/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/rh/agenda': typeof AppRhAgendaRoute
   '/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/rh/modelos': typeof AppRhModelosRoute
   '/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
@@ -1179,6 +1187,7 @@ export interface FileRoutesById {
   '/_app/parcerias/visao-geral': typeof AppParceriasVisaoGeralRoute
   '/_app/rh/agenda': typeof AppRhAgendaRoute
   '/_app/rh/equipe': typeof AppRhEquipeRouteWithChildren
+  '/_app/rh/modelos': typeof AppRhModelosRoute
   '/_app/rh/recrutamento': typeof AppRhRecrutamentoRoute
   '/portal/imoveis/$id': typeof PortalImoveisIdRoute
   '/publico/empreendimento/$id': typeof PublicoEmpreendimentoIdRoute
@@ -1312,6 +1321,7 @@ export interface FileRouteTypes {
     | '/parcerias/visao-geral'
     | '/rh/agenda'
     | '/rh/equipe'
+    | '/rh/modelos'
     | '/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
@@ -1435,6 +1445,7 @@ export interface FileRouteTypes {
     | '/parcerias/visao-geral'
     | '/rh/agenda'
     | '/rh/equipe'
+    | '/rh/modelos'
     | '/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
@@ -1567,6 +1578,7 @@ export interface FileRouteTypes {
     | '/_app/parcerias/visao-geral'
     | '/_app/rh/agenda'
     | '/_app/rh/equipe'
+    | '/_app/rh/modelos'
     | '/_app/rh/recrutamento'
     | '/portal/imoveis/$id'
     | '/publico/empreendimento/$id'
@@ -2400,6 +2412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRhEquipeRouteImport
       parentRoute: typeof AppRhRoute
     }
+    '/_app/rh/modelos': {
+      id: '/_app/rh/modelos'
+      path: '/modelos'
+      fullPath: '/rh/modelos'
+      preLoaderRoute: typeof AppRhModelosRouteImport
+      parentRoute: typeof AppRhRoute
+    }
     '/_app/rh/recrutamento': {
       id: '/_app/rh/recrutamento'
       path: '/recrutamento'
@@ -2699,6 +2718,7 @@ const AppRhEquipeRouteWithChildren = AppRhEquipeRoute._addFileChildren(
 interface AppRhRouteChildren {
   AppRhAgendaRoute: typeof AppRhAgendaRoute
   AppRhEquipeRoute: typeof AppRhEquipeRouteWithChildren
+  AppRhModelosRoute: typeof AppRhModelosRoute
   AppRhRecrutamentoRoute: typeof AppRhRecrutamentoRoute
   AppRhIndexRoute: typeof AppRhIndexRoute
 }
@@ -2706,6 +2726,7 @@ interface AppRhRouteChildren {
 const AppRhRouteChildren: AppRhRouteChildren = {
   AppRhAgendaRoute: AppRhAgendaRoute,
   AppRhEquipeRoute: AppRhEquipeRouteWithChildren,
+  AppRhModelosRoute: AppRhModelosRoute,
   AppRhRecrutamentoRoute: AppRhRecrutamentoRoute,
   AppRhIndexRoute: AppRhIndexRoute,
 }

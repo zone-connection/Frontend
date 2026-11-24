@@ -37,7 +37,7 @@ function Page() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={c.name} description={c.creci ? `CRECI ${c.creci}` : "Sem CRECI"} />
-      <section className="rounded-xl border bg-card p-4 text-sm">
+      <section className="rounded-2xl border border-[#9DCEF5] bg-gradient-to-br from-[#D3ECFE] to-[#F4F9FE] p-4 text-sm">
         <p>{c.email}</p>
         <p>{c.phone}</p>
         <p>Situação: {c.status}</p>
@@ -61,7 +61,7 @@ function Page() {
           </form>
         )}
       </section>
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border border-[#D0BEF5] bg-gradient-to-br from-[#E6DBFF] to-[#F8F5FF] p-4">
         <h2 className="mb-2 text-sm font-semibold">Documentos</h2>
         <form
           className="mb-2 flex flex-wrap gap-2"
@@ -104,7 +104,7 @@ function Page() {
           ))}
         </ul>
       </section>
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border border-[#8ED9B0] bg-gradient-to-br from-[#CFF6E0] to-[#F3FBF6] p-4">
         <h2 className="mb-2 text-sm font-semibold">Treinamentos</h2>
         <form
           className="mb-2 flex flex-wrap gap-2"
@@ -134,7 +134,7 @@ function Page() {
           ))}
         </ul>
       </section>
-      <section className="rounded-xl border bg-card p-4 text-sm">
+      <section className="rounded-2xl border border-[#F5C48A] bg-gradient-to-br from-[#FFE4C4] to-[#FFF8F1] p-4 text-sm">
         <h2 className="mb-2 font-semibold">Desempenho</h2>
         <p>{ficha.vendas.avulsas.length} venda(s) avulsa(s)</p>
         <ul>
@@ -154,7 +154,7 @@ function Page() {
         </ul>
         <p className="mt-2">{ficha.vendas.fechamentos.length} fechamento(s) de usado</p>
       </section>
-      <section className="rounded-xl border bg-card p-4">
+      <section className="rounded-2xl border border-[#8FD9CF] bg-gradient-to-br from-[#C9F4EC] to-[#F3FBFA] p-4">
         <h2 className="mb-2 text-sm font-semibold">Agenda e histórico</h2>
         <form
           className="mb-2 flex flex-wrap gap-2"

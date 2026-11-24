@@ -50,6 +50,7 @@ import {
   Search,
   BarChart3,
   Sparkles,
+  Calendar,
   type LucideIcon,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
@@ -160,7 +161,12 @@ const SUPPORT_WHATSAPP_URL = getWhatsAppUrl(undefined, "558191702203");
 const SESSION_LEMBRETE_KEY = "agenda-lembretes-card-shown";
 const SESSION_ANALISE_ALERT_KEY = "analise-resultado-alerted-ids";
 
-type NavLeaf = { to: string; label: string; icon: LucideIcon };
+type NavLeaf = { to: string; label: string; icon: LucideIcon; exact?: boolean };
+
+function leafActive(pathname: string, item: NavLeaf) {
+  if (item.exact) return pathname === item.to || pathname === `${item.to}/`;
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
 type NavGroup = {
   id: string;
   label: string;
@@ -175,11 +181,9 @@ function isNavGroup(item: NavItem): item is NavGroup {
 
 function itemMatchesPath(item: NavItem, pathname: string) {
   if (isNavGroup(item)) {
-    return item.children.some(
-      (c) => pathname === c.to || pathname.startsWith(`${c.to}/`),
-    );
+    return item.children.some((c) => leafActive(pathname, c));
   }
-  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+  return leafActive(pathname, item);
 }
 
 function navItemIsNovo(item: NavItem): boolean {
@@ -358,11 +362,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
   }),
-  leafSection("rh", {
-    to: "/rh",
-    label: "RH",
-    icon: Briefcase,
-  }),
   {
     id: "atendimento",
     grupo: "atendimento",
@@ -390,6 +389,19 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Equipe",
     icon: Users,
     items: EQUIPE_LEAVES,
+  },
+  {
+    id: "rh",
+    grupo: "rh",
+    label: "RH",
+    icon: Briefcase,
+    items: [
+      { to: "/rh", label: "Visão geral", icon: LayoutDashboard, exact: true },
+      { to: "/rh/recrutamento", label: "Recrutamento", icon: Users },
+      { to: "/rh/equipe", label: "Equipe", icon: UsersRound },
+      { to: "/rh/agenda", label: "Agenda", icon: Calendar },
+      { to: "/rh/modelos", label: "Modelos", icon: FileText },
+    ],
   },
   {
     id: "relatorios",
@@ -971,8 +983,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!user) return [];
     if (user.role === "rh") {
       return NAV_SECTIONS.filter((section) => {
+        if (section.grupo === "rh") return true;
         const to = section.items[0] && !isNavGroup(section.items[0]) ? section.items[0].to : "";
-        return to === "/rh" || to === "/perfil" || to === "/novidades";
+        return to === "/perfil" || to === "/novidades";
       });
     }
     if (user.role === "super_admin") {
@@ -1413,7 +1426,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     collapsedView: boolean,
     onNavigate?: () => void,
   ) {
-    const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
+    const active = leafActive(pathname, item);
     const Icon = item.icon;
     const isAgenda = item.to === "/agenda";
     return (
@@ -1473,7 +1486,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!collapsedFlyout || collapsedFlyout !== id) return null;
 
     function renderFlyoutLink(leaf: NavLeaf) {
-      const active = pathname === leaf.to || pathname.startsWith(`${leaf.to}/`);
+      const active = leafActive(pathname, leaf);
       const Icon = leaf.icon;
       return (
         <Link
@@ -1552,6 +1565,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "imoveis",
       "captacao",
       "equipe",
+      "rh",
       "relatorios",
       "financeiro",
       "treinamento",
@@ -1638,9 +1652,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               : null;
 
           if (standaloneLeaf) {
-            const active =
-              pathname === standaloneLeaf.to ||
-              pathname.startsWith(`${standaloneLeaf.to}/`);
+            const active = leafActive(pathname, standaloneLeaf);
             const isAgenda = standaloneLeaf.to === "/agenda";
             return (
               <div
@@ -1817,9 +1829,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 )}
                               >
                               {item.children.map((child) => {
-                                const active =
-                                  pathname === child.to ||
-                                  pathname.startsWith(`${child.to}/`);
+                                const active = leafActive(pathname, child);
                                 const ChildIcon = child.icon;
                                 return (
                                   <Link
@@ -1851,9 +1861,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       );
                     }
 
-                    const active =
-                      pathname === item.to ||
-                      pathname.startsWith(`${item.to}/`);
+                    const active = leafActive(pathname, item);
                     const Icon = item.icon;
                     const isAgenda = item.to === "/agenda";
                     return (

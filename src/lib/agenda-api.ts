@@ -403,6 +403,7 @@ export interface Agendamento {
   muralChaveId: string | null;
   muralChave: { id: string; identificador: string; status: string } | null;
   chaveRetiradaEm: string | null;
+  rhTipo?: string | null;
 }
 
 export type CreateAgendamentoInput = {

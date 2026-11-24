@@ -53,7 +53,64 @@ import { fetchEquipes } from "@/lib/equipes-api";
 import { fetchEmpreendimentos } from "@/lib/empreendimentos-api";
 import { canViewTeamData } from "@/lib/permissions";
 import { fetchUsers } from "@/lib/users-api";
+import { agenda as agendaRh, type AgendaItem } from "@/lib/rh-api";
 import { cn } from "@/lib/utils";
+
+const RH_TIPO_VISUAL: Record<string, AgendamentoTipo> = {
+  entrevista: "reuniao",
+  retorno: "ligacao",
+  reuniao: "reuniao",
+  documentos: "tarefa",
+  assinatura: "outro",
+  treinamento: "visita",
+  avaliacao: "tarefa",
+};
+
+function compromissoRh(item: AgendaItem): Agendamento {
+  const pessoa = item.rhCandidato?.nome || item.rhUser?.name || "RH";
+  return {
+    id: item.id,
+    leadId: null,
+    atribuidoParaId: null,
+    titulo: pessoa === "RH" ? item.titulo : `${item.titulo} · ${pessoa}`,
+    tipo: RH_TIPO_VISUAL[item.rhTipo ?? ""] ?? "reuniao",
+    status: (item.status as AgendamentoStatus) || "agendado",
+    escopo: "pessoal",
+    solicitacaoStatus: "nenhuma",
+    alvoTipo: "todos",
+    alvoEquipeId: null,
+    alvoGerenteId: null,
+    seriesId: null,
+    recurrenceFreq: "unica",
+    recurrenceDays: [],
+    recurrenceUntil: null,
+    startsAt: item.startsAt,
+    endsAt: null,
+    local: null,
+    observacoes: item.observacoes ?? null,
+    funilStage: null,
+    motivoRecusa: null,
+    aprovadoAt: null,
+    createdAt: item.startsAt,
+    updatedAt: item.startsAt,
+    autor: { id: "rh", name: pessoa, role: "rh" },
+    atribuidoPara: null,
+    aprovadoPor: null,
+    alvoEquipe: null,
+    alvoGerente: null,
+    lead: null,
+    empreendimentoId: null,
+    empreendimento: null,
+    imovelId: null,
+    toleranciaAtiva: false,
+    bloqueadoAte: null,
+    imovel: null,
+    muralChaveId: null,
+    muralChave: null,
+    chaveRetiradaEm: null,
+    rhTipo: item.rhTipo,
+  };
+}
 
 function kpisDoPeriodo(atual: Agendamento[], anterior: Agendamento[]): AgendaKpis {
   const contar = (lista: Agendamento[]) => {
@@ -92,12 +149,16 @@ export function TarefasAgendaPainel({
   anchorYmd,
   onAnchorYmd,
   onCreateAt,
+  somenteRh = false,
+  reloadKey = 0,
 }: {
   compacto?: boolean;
   visaoInicial?: AgendaViewMode;
   anchorYmd?: string;
   onAnchorYmd?: (ymd: string) => void;
   onCreateAt?: (day: Date, hour?: number) => void;
+  somenteRh?: boolean;
+  reloadKey?: number;
 } = {}) {
   const session = getSession();
   const gestor = canViewTeamData(session?.role);
@@ -129,6 +190,17 @@ export function TarefasAgendaPainel({
     const range = getVisibleRange(visao, anchor);
     setLoading(true);
     try {
+      if (somenteRh) {
+        const data = (await agendaRh()).map(compromissoRh).filter((item) => {
+          const quando = new Date(item.startsAt).getTime();
+          return quando >= range.from.getTime() && quando < range.to.getTime();
+        });
+        setItems(data);
+        setSolicitacoes([]);
+        setKpis(null);
+        setKpisMes(null);
+        return;
+      }
       const tipoApi =
         tipo !== "__all__" && tipo !== "aniversario" && tipo !== "visita"
           ? (tipo as AgendamentoTipo)
@@ -172,7 +244,7 @@ export function TarefasAgendaPainel({
     } finally {
       setLoading(false);
     }
-  }, [visao, anchor, gestor, gerente, session?.role, equipeId, corretorId, empreendimentoId, tipo, status]);
+  }, [visao, anchor, gestor, gerente, session?.role, equipeId, corretorId, empreendimentoId, tipo, status, somenteRh, reloadKey]);
 
   useEffect(() => {
     if (visaoInicial) setVisao(visaoInicial);
@@ -223,7 +295,7 @@ export function TarefasAgendaPainel({
 
   return (
     <AgendaLuxShell>
-      {compacto ? null : (
+      {compacto || somenteRh ? null : (
       <>
       <AgendaLuxHeader
         actions={
@@ -235,7 +307,7 @@ export function TarefasAgendaPainel({
       <AgendaLuxKpis kpis={kpis} />
       </>
       )}
-      {visao === "mes" ? <AgendaLuxKpis kpis={kpisMes} escopo="mes" /> : null}
+      {visao === "mes" && !somenteRh ? <AgendaLuxKpis kpis={kpisMes} escopo="mes" /> : null}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[#E6EDF2] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#141a22] lg:flex-row lg:items-center lg:justify-between">
@@ -325,7 +397,7 @@ export function TarefasAgendaPainel({
               <Filtro label="Empreendimento" value={empreendimentoId} onChange={setEmpreendimentoId} options={[{ id: "__all__", label: "Todos os imóveis" }, ...empreendimentos.map((item) => ({ id: item.id, label: item.nome }))]} />
             </div>
           ) : null}
-          {solicitacoes.length > 0 ? (
+          {!somenteRh && solicitacoes.length > 0 ? (
             <ul className="mb-2 divide-y rounded-xl border bg-card">
               {solicitacoes.map((item) => (
                 <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">

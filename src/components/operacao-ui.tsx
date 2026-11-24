@@ -71,7 +71,7 @@ export function OperationSubnav({
   items,
   pathname,
 }: {
-  items: Array<{ to: string; label: string; icon?: LucideIcon }>;
+  items: Array<{ to: string; label: string; icon?: LucideIcon; exact?: boolean }>;
   pathname: string;
 }) {
   const depth = pathname.split("/").filter(Boolean).length;
@@ -80,8 +80,9 @@ export function OperationSubnav({
   return (
     <SlidingNav activeKey={pathname}>
         {items.map((tab) => {
-          const active =
-            pathname === tab.to || pathname.startsWith(`${tab.to}/`);
+          const active = tab.exact
+            ? pathname === tab.to || pathname === `${tab.to}/`
+            : pathname === tab.to || pathname.startsWith(`${tab.to}/`);
           const Icon = tab.icon;
           return (
             <Link
