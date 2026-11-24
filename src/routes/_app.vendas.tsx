@@ -71,6 +71,7 @@ import {
   displayFonte,
   fetchDocumentacaoCorretores,
   fetchDocumentacoes,
+  importarVendasPlanilha,
   marcarJornadaVenda,
   updateDocumentacao,
   type Documentacao,
@@ -83,6 +84,7 @@ import {
   type Empreendimento,
 } from "@/lib/empreendimentos-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
+import { baixarModeloVendas, lerPlanilhaVendas } from "@/lib/vendas-planilha";
 import {
   formatMoneyInput,
   maskMoneyInput,
@@ -375,6 +377,7 @@ function VendasDocumentacaoPage() {
   const [docs, setDocs] = useState<Documentacao[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [carga, setCarga] = useState(0);
   const [docCorretores, setDocCorretores] = useState<DocumentacaoCorretor[]>(
     [],
   );
@@ -492,7 +495,7 @@ function VendasDocumentacaoPage() {
     return () => {
       active = false;
     };
-  }, [canView, showTeamFilters, ownSalesOnly, user?.id]);
+  }, [canView, showTeamFilters, ownSalesOnly, user?.id, carga]);
 
   const corretorEquipe = useMemo(() => {
     const map = new Map<string, Equipe>();
@@ -901,6 +904,9 @@ function VendasDocumentacaoPage() {
                 className="h-10 bg-transparent text-sm text-[#344054] outline-none"
               />
             </div>
+          ) : null}
+          {user?.role === "admin" || user?.role === "gerente" ? (
+            <ImportarVendasButton onImported={() => setCarga((n) => n + 1)} />
           ) : null}
           <Button asChild className={APPLY_FILTERS_BTN}>
             <Link to="/documentacao">Ver documentação</Link>
@@ -1982,6 +1988,70 @@ function VendasTodosPanel({
           )}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+function ImportarVendasButton({ onImported }: { onImported: () => void }) {
+  const [enviando, setEnviando] = useState(false);
+
+  async function escolher(file: File) {
+    setEnviando(true);
+    try {
+      const linhas = await lerPlanilhaVendas(file);
+      if (linhas.length === 0) {
+        toast.error("A planilha não tem linhas de venda.");
+        return;
+      }
+      const invalidas = linhas.filter(
+        (linha) =>
+          !linha.corretor ||
+          !linha.equipe ||
+          !linha.dataVenda ||
+          !linha.construtora ||
+          !linha.empreendimento ||
+          linha.vgv <= 0,
+      );
+      if (invalidas.length > 0) {
+        toast.error("Preencha corretor, equipe, data, construtora, empreendimento e VGV em todas as linhas.");
+        return;
+      }
+      const resultado = await importarVendasPlanilha(linhas);
+      if (resultado.criadas > 0) onImported();
+      if (resultado.erros.length === 0) {
+        toast.success(`${resultado.criadas} venda(s) importada(s).`);
+      } else {
+        toast.error(
+          `${resultado.criadas} importada(s). ${resultado.erros[0].mensagem} (linha ${resultado.erros[0].linha}).`,
+        );
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível importar a planilha.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button type="button" variant="outline" onClick={baixarModeloVendas}>
+        Modelo
+      </Button>
+      <Button type="button" disabled={enviando} asChild>
+        <label>
+          {enviando ? "Importando…" : "Importar planilha"}
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void escolher(file);
+            }}
+          />
+        </label>
+      </Button>
     </div>
   );
 }

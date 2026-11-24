@@ -184,6 +184,20 @@ export async function abrirFichaGuiada(input: {
   });
 }
 
+export async function importarVendasPlanilha(linhas: {
+  corretor: string;
+  equipe: string;
+  dataVenda: string;
+  construtora: string;
+  empreendimento: string;
+  vgv: number;
+}[]) {
+  return apiFetch<{ criadas: number; erros: { linha: number; mensagem: string }[] }>(
+    "/documentacao/importar-vendas",
+    { method: "POST", body: { linhas } },
+  );
+}
+
 export async function createDocumentacao(
   input: CreateDocumentacaoInput,
 ): Promise<Documentacao> {
