@@ -141,7 +141,6 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/construtoras",
     "/propostas",
     "/financeiro/comissao",
-    "/financeiro/gestao-nf",
     "/perfil",
   ],
   analista: [
@@ -205,7 +204,6 @@ const ROLE_ROUTES: Record<Role, readonly string[]> = {
     "/parcerias",
     "/propostas",
     "/financeiro/comissao",
-    "/financeiro/gestao-nf",
     "/construtoras",
     "/configuracoes",
     "/perfil",
@@ -281,6 +279,12 @@ export function canAccessRoute(
   }
   if (path === "/tarefas") {
     return canAccessRoute(role, "/agenda", modules, plano, userPermissions);
+  }
+  if (
+    (role === "corretor" || role === "treinee") &&
+    (path === "/financeiro/gestao-nf" || path.startsWith("/financeiro/gestao-nf/"))
+  ) {
+    return false;
   }
   if (path === "/novidades") return true;
   if (path === "/lembretes") return true;
