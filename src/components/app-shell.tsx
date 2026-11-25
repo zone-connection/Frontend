@@ -815,7 +815,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.tipo === "agenda_atribuicao" ||
       n.tipo === "agenda_lembrete_1d" ||
       n.tipo === "agenda_lembrete_2h" ||
-      n.tipo === "agenda_lembrete_1h"
+      n.tipo === "agenda_lembrete_1h" ||
+      n.tipo === "agenda_lembrete_15m" ||
+      n.tipo === "agenda_lembrete_agora"
     ) {
       void navigate({ to: "/lembretes", search: { aba: "semana" } });
       return;
