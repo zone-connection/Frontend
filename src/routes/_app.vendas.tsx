@@ -2006,12 +2006,14 @@ function VendasTodosPanel({
 }
 
 function erroLinhaVenda(linha: {
+  lead: string;
   corretor: string;
   dataVenda: string;
   construtora: string;
   empreendimento: string;
   vgv: number;
 }) {
+  if (!linha.lead) return "Lead obrigatório";
   if (!linha.corretor) return "Corretor obrigatório";
   if (!linha.dataVenda) return "Data de venda inválida";
   if (!linha.construtora) return "Construtora obrigatória";
@@ -2126,6 +2128,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-[#079ed4]/10 text-left text-[#075a82]">
+                      <th className="px-3 py-2 font-medium">Lead</th>
                       <th className="px-3 py-2 font-medium">Corretor</th>
                       <th className="px-3 py-2 font-medium">Equipe</th>
                       <th className="px-3 py-2 font-medium">Data de venda</th>
@@ -2136,6 +2139,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
                   </thead>
                   <tbody>
                     <tr className="border-t">
+                      <td className="px-3 py-2.5">Eduardo Cliente</td>
                       <td className="px-3 py-2.5">Marina Alves</td>
                       <td className="px-3 py-2.5">Equipe Centro</td>
                       <td className="px-3 py-2.5 tabular-nums">24/11/2026</td>
@@ -2155,15 +2159,15 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
               <ul className="space-y-3 px-4 py-3 text-muted-foreground">
                 <li className="flex gap-2">
                   <Check className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
-                  <span>Corretor, data de venda, construtora, empreendimento e VGV são obrigatórios. Equipe é opcional.</span>
+                  <span>Lead, corretor, data de venda, construtora, empreendimento e VGV são obrigatórios. Equipe é opcional.</span>
                 </li>
                 <li className="flex gap-2">
                   <Users className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
-                  <span>O corretor precisa já existir no CRM. Se a equipe vier preenchida, o nome também precisa existir.</span>
+                  <span>Lead, corretor, construtora e empreendimento são criados se ainda não existirem. O lead entra no funil como cliente aprovado e vendido.</span>
                 </li>
                 <li className="flex gap-2">
                   <Building2 className="mt-0.5 size-4 shrink-0 text-[#079ed4]" />
-                  <span>Construtora e empreendimento são criados se ainda não existirem. Uma linha = uma venda.</span>
+                  <span>Uma linha = uma venda, já marcada como aprovada e vendida.</span>
                 </li>
               </ul>
             </div>
@@ -2200,7 +2204,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
             <DialogTitle>Confirmar importação</DialogTitle>
             <DialogDescription>
               {arquivo ? `Arquivo: ${arquivo}. ` : ""}
-              Formato: Corretor, Equipe, Data de venda, Construtora, Empreendimento e VGV.
+              Formato: Lead, Corretor, Equipe, Data de venda, Construtora, Empreendimento e VGV.
             </DialogDescription>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
@@ -2211,6 +2215,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
               <thead className="sticky top-0 bg-muted/80 backdrop-blur">
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="p-2 font-medium">#</th>
+                  <th className="p-2 font-medium">Lead</th>
                   <th className="p-2 font-medium">Corretor</th>
                   <th className="p-2 font-medium">Equipe</th>
                   <th className="p-2 font-medium">Data</th>
@@ -2226,6 +2231,7 @@ function ImportarVendasButton({ onImported }: { onImported: () => void }) {
                   return (
                     <tr key={`${linha.corretor}-${index}`} className={cn("border-b last:border-0", erro && "bg-destructive/5")}>
                       <td className="p-2 tabular-nums text-muted-foreground">{index + 1}</td>
+                      <td className="p-2">{linha.lead || "—"}</td>
                       <td className="p-2">{linha.corretor || "—"}</td>
                       <td className="p-2">{linha.equipe || "—"}</td>
                       <td className="p-2 tabular-nums">{dataBr(linha.dataVenda)}</td>

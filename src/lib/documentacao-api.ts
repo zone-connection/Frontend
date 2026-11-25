@@ -185,6 +185,7 @@ export async function abrirFichaGuiada(input: {
 }
 
 export async function importarVendasPlanilha(linhas: {
+  lead: string;
   corretor: string;
   equipe?: string;
   dataVenda: string;

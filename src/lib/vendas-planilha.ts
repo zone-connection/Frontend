@@ -1,8 +1,9 @@
 import * as XLSX from "xlsx";
 
-const COLUNAS = ["Corretor", "Equipe", "Data de venda", "Construtora", "Empreendimento", "VGV"] as const;
+const COLUNAS = ["Lead", "Corretor", "Equipe", "Data de venda", "Construtora", "Empreendimento", "VGV"] as const;
 
 export type LinhaVendaPlanilha = {
+  lead: string;
   corretor: string;
   equipe: string;
   dataVenda: string;
@@ -43,7 +44,7 @@ function vgvInteiro(value: unknown) {
 export function baixarModeloVendas() {
   const sheet = XLSX.utils.aoa_to_sheet([
     [...COLUNAS],
-    ["Marina Alves", "Equipe Centro", "24/11/2026", "Construtora Alfa", "Residencial Vida", 250000],
+    ["Eduardo Cliente", "Marina Alves", "Equipe Centro", "24/11/2026", "Construtora Alfa", "Residencial Vida", 250000],
   ]);
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "Vendas");
@@ -60,6 +61,7 @@ export async function lerPlanilhaVendas(file: File): Promise<LinhaVendaPlanilha[
       const by = new Map<string, unknown>();
       for (const [key, value] of Object.entries(row)) by.set(norm(key), value);
       return {
+        lead: String(by.get("lead") ?? by.get("cliente") ?? "").trim(),
         corretor: String(by.get("corretor") ?? "").trim(),
         equipe: String(by.get("equipe") ?? "").trim(),
         dataVenda: dataIso(by.get("data de venda") ?? by.get("data venda")),
@@ -68,5 +70,5 @@ export async function lerPlanilhaVendas(file: File): Promise<LinhaVendaPlanilha[
         vgv: vgvInteiro(by.get("vgv")),
       };
     })
-    .filter((row) => row.corretor || row.empreendimento || row.vgv);
+    .filter((row) => row.lead || row.corretor || row.empreendimento || row.vgv);
 }
