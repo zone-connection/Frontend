@@ -35,6 +35,8 @@ export function visualNotificacao(tipo: NotificacaoTipo): NotificacaoVisual {
     case "agenda_lembrete_1d":
     case "agenda_lembrete_2h":
     case "agenda_lembrete_1h":
+    case "agenda_lembrete_15m":
+    case "agenda_lembrete_agora":
       return { icon: Calendar, wrap: INFO };
     case "lead_atribuido":
     case "lead_pool":
