@@ -755,6 +755,14 @@ function LeadsPage() {
     colorByLabel,
     refresh: refreshCatalog,
   } = useCatalog();
+  const origensFiltro = useMemo(() => {
+    const vistas = allLeads
+      .map((lead) => lead.origem?.trim())
+      .filter((origem): origem is string => Boolean(origem));
+    return [...new Set([...origemOptions, ...vistas])].sort((a, b) =>
+      a.localeCompare(b, "pt-BR"),
+    );
+  }, [allLeads, origemOptions]);
   // Backend atribui a etapa inicial (Novo lead) quando stage é omitido.
   const defaultStageName =
     funnelStages.find((s) => s.id === "novo")?.name ??
@@ -4173,7 +4181,7 @@ function LeadsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as origens</SelectItem>
-                    {origemOptions.map((o) => (
+                    {origensFiltro.map((o) => (
                       <SelectItem key={o} value={o}>{o}</SelectItem>
                     ))}
                   </SelectContent>
