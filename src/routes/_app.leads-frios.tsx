@@ -160,30 +160,37 @@ function LeadsFriosPage() {
     const valid = lidas.filter((row) => !row.error);
     if (valid.length === 0) return;
     setBusy(true);
+    const lote = 500;
+    let criados = 0;
     try {
-      const result = await importarLeadsFrios(
-        valid.map((row) => ({
-          nome: row.nome,
-          telefone: row.telefone,
-          email: row.email,
-          cidade: row.cidade,
-          bairro: row.bairro,
-          origem: row.origem || "Base fria",
-          ...(row.renda != null ? { renda: row.renda } : {}),
-          tipoRenda: row.tipoRenda,
-          estadoCivil: row.estadoCivil,
-          empreendimento: row.empreendimento,
-        })),
-      );
-      toast.success(
-        result.created === 1
-          ? "1 lead entrou na base fria."
-          : `${result.created} leads entraram na base fria.`,
-      );
+      for (let inicio = 0; inicio < valid.length; inicio += lote) {
+        const parte = valid.slice(inicio, inicio + lote);
+        const result = await importarLeadsFrios(
+          parte.map((row) => ({
+            nome: row.nome,
+            telefone: row.telefone,
+            email: row.email,
+            cidade: row.cidade,
+            bairro: row.bairro,
+            origem: row.origem || "Base fria",
+            ...(row.renda != null ? { renda: row.renda } : {}),
+            tipoRenda: row.tipoRenda,
+            estadoCivil: row.estadoCivil,
+            empreendimento: row.empreendimento,
+          })),
+        );
+        criados += result.created;
+        toast.success(`${criados} de ${valid.length} leads enviados.`);
+      }
       setConfirmar(false);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível importar a planilha.");
+      if (criados > 0) await load();
+      toast.error(
+        err instanceof ApiError
+          ? `${err.message} ${criados} já tinham entrado.`
+          : "Não foi possível importar a planilha.",
+      );
     } finally {
       setBusy(false);
     }
