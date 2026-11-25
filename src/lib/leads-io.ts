@@ -58,6 +58,7 @@ export type ParsedImportLead = {
   renda: number | null;
   tipoRenda: string;
   estadoCivil: string;
+  empreendimento?: string;
   prospeccao?: LeadProspeccao | null;
   /** Linha inválida: motivo. */
   error?: string;
@@ -97,8 +98,8 @@ const HEADER_ALIASES: Record<string, string> = {
   status: "skip",
   "imovel seminovo de interesse": "skip",
   "imóvel seminovo de interesse": "skip",
-  "empreendimento de interesse": "skip",
-  empreendimento: "skip",
+  "empreendimento de interesse": "empreendimento",
+  empreendimento: "empreendimento",
   "mensagem inicial da captura do lead": "skip",
   mensagem: "skip",
   // legado nosso
@@ -366,6 +367,7 @@ function buildLeadFromCells(
     renda,
     tipoRenda,
     estadoCivil,
+    empreendimento: cellText(cells.empreendimento),
     prospeccao: hasProspeccao ? prospeccao : undefined,
   });
 }

@@ -9,6 +9,10 @@ export type LeadFrioRow = {
   cidade?: string;
   bairro?: string;
   origem?: string;
+  renda?: number | null;
+  tipoRenda?: string;
+  estadoCivil?: string;
+  empreendimento?: string;
 };
 
 export async function fetchLeadsFrios(): Promise<Array<Lead & { baseFriaEm?: string | null }>> {
@@ -22,14 +26,14 @@ export async function fetchLeadsFrios(): Promise<Array<Lead & { baseFriaEm?: str
 export function importarLeadsFrios(rows: LeadFrioRow[]) {
   return apiFetch<{ created: number }>("/leads-frios/importar", {
     method: "POST",
-    body: JSON.stringify({ rows }),
+    body: { rows },
   });
 }
 
 export function puxarLeadsFrios(ids: string[]) {
   return apiFetch<{ updated: number }>("/leads-frios/puxar", {
     method: "POST",
-    body: JSON.stringify({ ids }),
+    body: { ids },
   });
 }
 
@@ -40,7 +44,7 @@ export function devolverLeadFrio(id: string) {
 export function apagarLeadsFrios(ids: string[]) {
   return apiFetch<{ deleted: number }>("/leads-frios/apagar", {
     method: "POST",
-    body: JSON.stringify({ ids }),
+    body: { ids },
   });
 }
 
