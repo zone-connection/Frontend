@@ -141,7 +141,7 @@ function drawHeader(
   doc.text(brandName.toUpperCase(), 28, logoBottom + 16);
 }
 
-export async function downloadListaDocumentoPdf(input: ListaDocumentoPdfInput) {
+export async function buildListaDocumentoPdf(input: ListaDocumentoPdfInput) {
   const hex = await resolveContratoBrandHex(input.logoUrl, input.primaryColor);
   const palette = listaDocumentoPalette(hex);
   const logo = await loadContractLogo(input.logoUrl);
@@ -302,12 +302,82 @@ export async function downloadListaDocumentoPdf(input: ListaDocumentoPdfInput) {
     drawFooter(doc, logo, input.brandName, palette);
   }
 
-  const slug = input.nome
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
-  doc.save(`lista-documentos-${slug || "renda"}.pdf`);
+  return doc;
+}
+
+export function listaDocumentoFileSlug(nome: string) {
+  return (
+    nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) || "renda"
+  );
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadListaDocumentoPdf(input: ListaDocumentoPdfInput) {
+  const doc = await buildListaDocumentoPdf(input);
+  doc.save(`lista-documentos-${listaDocumentoFileSlug(input.nome)}.pdf`);
+}
+
+export async function downloadListaDocumentoImagem(
+  input: ListaDocumentoPdfInput,
+  extension: "jpg" | "jpeg",
+) {
+  const doc = await buildListaDocumentoPdf(input);
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+  const bytes = doc.output("arraybuffer");
+  const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+  const scale = 2;
+  const pages: HTMLCanvasElement[] = [];
+  let width = 0;
+  let height = 0;
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Não foi possível gerar a imagem.");
+    await page.render({ canvas, canvasContext: context, viewport }).promise;
+    pages.push(canvas);
+    width = Math.max(width, canvas.width);
+    height += canvas.height;
+  }
+  const sheet = document.createElement("canvas");
+  sheet.width = width;
+  sheet.height = height;
+  const ctx = sheet.getContext("2d");
+  if (!ctx) throw new Error("Não foi possível gerar a imagem.");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  let y = 0;
+  for (const page of pages) {
+    ctx.drawImage(page, 0, y);
+    y += page.height;
+  }
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    sheet.toBlob(
+      (file) => (file ? resolve(file) : reject(new Error("Não foi possível gerar a imagem."))),
+      "image/jpeg",
+      0.92,
+    );
+  });
+  saveBlob(blob, `lista-documentos-${listaDocumentoFileSlug(input.nome)}.${extension}`);
 }

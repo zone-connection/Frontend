@@ -22,7 +22,9 @@ import {
   type ListaDocumento,
   type ListaDocumentoItemDraft,
 } from "@/lib/listas-documentos-api";
+import { downloadListaDocumentoDocx } from "@/lib/lista-documentos-docx";
 import {
+  downloadListaDocumentoImagem,
   downloadListaDocumentoPdf,
   listaDocumentoPaletteCss,
 } from "@/lib/lista-documentos-pdf";
@@ -142,10 +144,10 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
     void resolveContratoBrandHex(logoUrl, tenant?.primaryColor).then(setBrandHex);
   }, [logoUrl, tenant?.primaryColor]);
 
-  async function baixar(lista: ListaDocumento) {
+  async function baixar(lista: ListaDocumento, formato: "pdf" | "docx" | "jpg" | "jpeg") {
     setDownloading(true);
     try {
-      await downloadListaDocumentoPdf({
+      const input = {
         nome: lista.nome,
         chave: lista.chave,
         intro: lista.intro,
@@ -154,10 +156,15 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
         brandName,
         logoUrl,
         primaryColor: brandHex ?? tenant?.primaryColor,
-      });
-      toast.success("PDF baixado.");
+      };
+      if (formato === "pdf") await downloadListaDocumentoPdf(input);
+      else if (formato === "docx") await downloadListaDocumentoDocx(input);
+      else await downloadListaDocumentoImagem(input, formato);
+      const nome =
+        formato === "pdf" ? "PDF" : formato === "docx" ? "DOCX" : formato.toUpperCase();
+      toast.success(`${nome} baixado.`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível gerar o PDF.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível gerar o arquivo.");
     } finally {
       setDownloading(false);
     }
@@ -281,7 +288,7 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
                     {meta.descricao}
                   </p>
                   <span className={cn("mt-4 inline-flex items-center gap-1.5 text-xs font-semibold transition group-hover:gap-2", tone.action)}>
-                    Gerar PDF
+                    Baixar
                     <ArrowRight className="size-3.5" />
                   </span>
                 </button>
@@ -315,10 +322,24 @@ export function ListasDocumentosPanel({ readOnly = false }: { readOnly?: boolean
               </Button>
             ) : null}
             {preview ? (
-              <Button disabled={downloading} onClick={() => void baixar(preview)}>
-                {downloading ? <Loader2 className="mr-1 size-4 animate-spin" /> : <Download className="mr-1 size-4" />}
-                Baixar PDF
-              </Button>
+              <>
+                {(["pdf", "docx", "jpeg", "jpg"] as const).map((formato) => (
+                  <Button
+                    key={formato}
+                    variant={formato === "pdf" ? "default" : "outline"}
+                    className={formato === "pdf" ? undefined : SOFT_BTN}
+                    disabled={downloading}
+                    onClick={() => void baixar(preview, formato)}
+                  >
+                    {downloading ? (
+                      <Loader2 className="mr-1 size-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-1 size-4" />
+                    )}
+                    {formato.toUpperCase()}
+                  </Button>
+                ))}
+              </>
             ) : null}
           </DialogFooter>
         </DialogContent>
