@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Banknote, CalendarDays, CheckCircle2, Clock3, Eye, FileText, LayoutList, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
+import { Banknote, Building2, CalendarDays, CheckCircle2, Clock3, Eye, FileText, LayoutList, Loader2, Pencil, Percent, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { HideFinanceValuesButton } from "@/components/hide-finance-values-button";
@@ -280,11 +280,16 @@ function Page() {
       source
         .filter((item) => !state || item.status === state)
         .reduce((total, item) => total + numberValue(commissionValue(item)), 0);
+    const caixaDe = (item: Comissao) => numberValue(item.valorCaixa);
     return {
       total: sum(),
       pending: sum("pendente"),
       released: sum("liberada"),
       paid: sum("paga"),
+      caixa: source.reduce((total, item) => total + caixaDe(item), 0),
+      caixaPago: source
+        .filter((item) => item.status === "paga")
+        .reduce((total, item) => total + caixaDe(item), 0),
       vgv: source.reduce((total, item) => total + numberValue(item.vgv), 0),
     };
   }, [rows, calendarRows, vista, commissionValue]);
@@ -485,7 +490,7 @@ function Page() {
         title="Pipeline de comissões"
         description="Valores no recorte filtrado."
       >
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className={cn("grid grid-cols-2 gap-3", isFinanceTeam ? "xl:grid-cols-5" : "xl:grid-cols-4")}>
         <FinanceKpiCard
           label={
             recebimento === "nao_recebidas"
@@ -524,6 +529,17 @@ function Page() {
           tone="teal"
           blurValue={hideValues}
         />
+        {isFinanceTeam ? (
+          <FinanceKpiCard
+            label="Caixa da imobiliária"
+            value={kpis.caixa}
+            icon={Building2}
+            variant="dash"
+            tone="orange"
+            blurValue={hideValues}
+            suffix={hideValues ? undefined : `${brl(kpis.caixaPago)} já recebido`}
+          />
+        ) : null}
       </section>
       </PagePanel>
       ) : null}
