@@ -141,6 +141,7 @@ export const PERMISSION_ACTIONS = [
   },
   { key: "leads.changeOwner", label: "Alterar responsável pelo lead", module: "leads" },
   { key: "leads.export", label: "Exportar leads", module: "leads" },
+  { key: "vendas.importar", label: "Importar planilha de vendas", module: "vendas" },
   { key: "financeiro.access", label: "Acessar Financeiro", module: "financeiro" },
   {
     key: "financeiro.pagar.view",
@@ -513,6 +514,8 @@ export function defaultsFromRole(
     "financeiro.receber.delete": finUser && Boolean(modules.financeiro),
     "financeiro.fluxo": finUser && Boolean(modules.financeiro),
     "financeiro.comissao": Boolean(modules.comissao),
+    "vendas.importar":
+      role === "admin" || role === "gerente" || role === "super_admin",
     "financeiro.export": role === "admin",
     "muralChaves.gerenciar":
       role === "admin" || role === "gerente" || role === "super_admin",
@@ -551,6 +554,7 @@ function grantActionsOfExtraModules(
       const financeiro =
         item.key === "financeiro" && action.module === "financeiro";
       if (sameModule || comissao || financeiro) {
+        if (action.key === "vendas.importar") continue;
         if (stored.actions?.[action.key] === false) continue;
         merged.actions[action.key] = true;
       }
