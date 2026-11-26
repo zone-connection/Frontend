@@ -95,7 +95,11 @@ function Page() {
 
   function selectUser(user: ApiUser) {
     setSelectedId(user.id);
-    setDraft(effectivePermissions(user.role, user.permissions, plano));
+    const next = effectivePermissions(user.role, user.permissions, plano);
+    if (user.permissions?.actions?.["vendas.importar"] === undefined) {
+      delete next.actions["vendas.importar"];
+    }
+    setDraft(next);
   }
 
   function setModule(key: string, value: boolean) {
