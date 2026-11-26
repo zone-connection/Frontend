@@ -66,6 +66,7 @@ import {
   Building2,
   Plus,
   UserX,
+  Snowflake,
   UsersRound,
   Wallet,
 } from "lucide-react";
@@ -1226,6 +1227,45 @@ function DashboardAdminView() {
           ) : null}
         </div>
       </PagePanel>
+
+      {modules?.leadsFrios === true && summary.leadsFrios ? (
+        <PagePanel
+          inset="muted"
+          title="Leads frios"
+          description={`Fora da entrada de ${mesLabel}. Quem entrou na base neste mês, o estoque atual e quem já saiu.`}
+          action={<PanelLink to="/leads-frios">Ver base fria</PanelLink>}
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+            <FinanceKpiCard
+              label="Entraram no mês"
+              value={summary.leadsFrios.entraramMes}
+              icon={Snowflake}
+              tone="blue"
+              format="number"
+              variant="dash"
+              onClick={() => void navigate({ to: "/leads-frios" })}
+            />
+            <FinanceKpiCard
+              label="Na base agora"
+              value={summary.leadsFrios.total}
+              icon={Snowflake}
+              tone="violet"
+              format="number"
+              variant="dash"
+              onClick={() => void navigate({ to: "/leads-frios" })}
+            />
+            <FinanceKpiCard
+              label="Saíram da base"
+              value={summary.leadsFrios.sairam}
+              icon={Snowflake}
+              tone="emerald"
+              format="number"
+              variant="dash"
+              onClick={() => void navigate({ to: "/leads", search: { distribuicao: "baseFria" } })}
+            />
+          </div>
+        </PagePanel>
+      ) : null}
 
       <PagePanel
         inset="muted"

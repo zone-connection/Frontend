@@ -81,6 +81,11 @@ export type DashboardAdmin = {
     semana: number;
     mes: DashboardMetric;
   };
+  leadsFrios: {
+    total: number;
+    entraramMes: number;
+    sairam: number;
+  } | null;
   funil: { etapa: string; total: number }[];
   conversao: {
     /** Leads que entraram no mês. */
