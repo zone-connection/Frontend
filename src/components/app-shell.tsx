@@ -62,13 +62,8 @@ import { useHideCacaLeadNav } from "@/lib/atraso-liberacao-nav";
 import { useHideImoveisFromSidebar } from "@/lib/imoveis-nav-prefs";
 import { useHiddenMenuPaths } from "@/lib/menu-visibility";
 import { useHideClientesFromSidebar } from "@/lib/clientes-nav-prefs";
-import { DEFAULT_TENANT_LOGO, useTenantTheme } from "@/lib/tenant-theme";
+import { useTenantTheme } from "@/lib/tenant-theme";
 import marcaZone from "@/assets/marca-zone.png";
-import {
-  applyLogoChrome,
-  LOGO_PALETTE_FALLBACK,
-  sampleLogoPalette,
-} from "@/lib/brand-hue";
 import { GuiaTourHost } from "@/components/guia-tour";
 import { ModulePageTransition, OperationSubnav } from "@/components/operacao-ui";
 import { ModuloAjudaButton } from "@/components/modulo-ajuda";
@@ -530,26 +525,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("crm-session-updated", sync);
     return () => window.removeEventListener("crm-session-updated", sync);
   }, []);
-
-  useEffect(() => {
-    const src = logoUrl.trim() || DEFAULT_TENANT_LOGO;
-    let cancelled = false;
-    void (async () => {
-      let colors = await sampleLogoPalette(src);
-      if (
-        colors.length < 2 &&
-        src !== DEFAULT_TENANT_LOGO
-      ) {
-        colors = await sampleLogoPalette(DEFAULT_TENANT_LOGO);
-      }
-      if (cancelled) return;
-      const palette = colors.length ? colors : [...LOGO_PALETTE_FALLBACK];
-      applyLogoChrome(palette);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [logoUrl]);
 
   const loadNotificacoes = useCallback(async () => {
     try {
