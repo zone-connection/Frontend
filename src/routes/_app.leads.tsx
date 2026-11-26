@@ -2255,7 +2255,7 @@ function LeadsPage() {
               Desvincular
             </Button>
           ) : null}
-          {canDeleteLeads ? (
+          {isAdmin || isGerente || canDeleteLeads ? (
             <Button
               variant="outline"
               size="sm"
@@ -3541,6 +3541,16 @@ function LeadsPage() {
                     const lead = detailLead;
                     setDetailLead(null);
                     openEdit(lead);
+                  },
+                },
+                {
+                  label: "Dar perda",
+                  icon: Trash2,
+                  destructive: true,
+                  onClick: () => {
+                    const lead = detailLead;
+                    setDetailLead(null);
+                    setDeleteLead(lead);
                   },
                 },
               ]
