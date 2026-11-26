@@ -85,6 +85,7 @@ import {
   FileText,
   Loader2,
   Share2,
+  Snowflake,
   Inbox,
   Repeat,
   Briefcase,
@@ -224,7 +225,8 @@ type DistribuicaoFilter =
   | "retrabalho"
   | "distribuidos"
   | "reatribuidos"
-  | "meus";
+  | "meus"
+  | "baseFria";
 
 type LeadsSearch = {
   distribuicao?: DistribuicaoFilter;
@@ -266,7 +268,8 @@ export const Route = createFileRoute("/_app/leads")({
       d === "distribuidos" ||
       d === "reatribuidos" ||
       d === "all" ||
-      d === "meus"
+      d === "meus" ||
+      d === "baseFria"
     ) {
       result.distribuicao = d;
     }
@@ -1045,7 +1048,7 @@ function LeadsPage() {
     origemFilter !== "all" ||
     Boolean(periodoRecebimento) ||
     (isCorretor
-      ? distribuicaoFilter === "chegaram"
+      ? distribuicaoFilter === "chegaram" || distribuicaoFilter === "baseFria"
       : distribuicaoFilter !== "all") ||
     paradosFilter;
 
@@ -1059,6 +1062,7 @@ function LeadsPage() {
     (isGerente ? true : !l.equipeId);
   const isLeadDistribuido = (l: Lead) =>
     isGerente ? Boolean(l.corretorId) : Boolean(l.corretorId || l.equipeId);
+  const isLeadBaseFria = (l: Lead) => l.origemBaseFria === true;
   const isLeadReatribuido = (l: Lead) =>
     resolveLeadOrigemLiberacao(l)?.kind === "reatribuido" ||
     Boolean(l.roletaRedistribuido);
@@ -1161,6 +1165,13 @@ function LeadsPage() {
         !isLeadCarteiraPropria(l, user?.id)
       )
         return false;
+      if (friosAtivos) {
+        if (distribuicaoFilter === "baseFria") {
+          if (!isLeadBaseFria(l)) return false;
+        } else if (isLeadBaseFria(l)) {
+          return false;
+        }
+      }
       if (paradosFilter && !isLeadParado(l)) return false;
       return true;
     });
@@ -1183,6 +1194,7 @@ function LeadsPage() {
     checklistCompletos,
     isCorretor,
     isGerente,
+    friosAtivos,
     canFilterEquipe,
     user?.id,
     user?.role,
@@ -1234,7 +1246,14 @@ function LeadsPage() {
     let distribuidos = 0;
     let reatribuidos = 0;
     let meus = 0;
+    let baseFria = 0;
+    let foraDaBase = 0;
     for (const l of leadsDoFiltroCorretor) {
+      if (friosAtivos && isLeadBaseFria(l)) {
+        baseFria += 1;
+        continue;
+      }
+      foraDaBase += 1;
       if (isLeadRetrabalho(l)) retrabalho += 1;
       else if (isLeadChegou(l)) chegaram += 1;
       else if (isLeadDistribuido(l)) distribuidos += 1;
@@ -1247,9 +1266,10 @@ function LeadsPage() {
       distribuidos,
       reatribuidos,
       meus,
-      todos: leadsDoFiltroCorretor.length,
+      baseFria,
+      todos: foraDaBase,
     };
-  }, [leadsDoFiltroCorretor, user?.id, isGerente]);
+  }, [leadsDoFiltroCorretor, user?.id, isGerente, friosAtivos]);
 
   const corretorEspecifico =
     !isCorretor &&
@@ -1262,6 +1282,7 @@ function LeadsPage() {
     let novos = 0;
     let aprovados = 0;
     for (const l of leadsDoFiltroCorretor) {
+      if (friosAtivos && isLeadBaseFria(l)) continue;
       if (l.prioridade === "Alta") alta += 1;
       const stage = funnelStages.find((s) => s.id === l.stage);
       if (stage?.papel === "inicial" || l.stage === "novo") novos += 1;
@@ -1269,7 +1290,8 @@ function LeadsPage() {
     }
     const perdas = lostLeads.filter(leadDoCorretorFiltro).length;
     return {
-      total: leadsDoFiltroCorretor.length,
+      total: distribuicaoCounts.todos,
+      baseFria: distribuicaoCounts.baseFria,
       alta,
       novos,
       aprovados,
@@ -1280,7 +1302,7 @@ function LeadsPage() {
       reatribuidos: distribuicaoCounts.reatribuidos,
       meus: distribuicaoCounts.meus,
     };
-  }, [leadsDoFiltroCorretor, funnelStages, distribuicaoCounts, lostLeads, corretorFilter, isCorretor]);
+  }, [leadsDoFiltroCorretor, funnelStages, distribuicaoCounts, lostLeads, corretorFilter, isCorretor, friosAtivos]);
 
   /** Contagem de leads ativos por corretor (respeita demais filtros, ignora filtro de corretor). */
   const leadsAtivosPorCorretor = useMemo(() => {
@@ -2077,15 +2099,15 @@ function LeadsPage() {
         description={
           loading
             ? "Carregando leads..."
-            : filteredLeads.length === leads.length && !filtersActive
+            : filteredLeads.length === distribuicaoCounts.todos && !filtersActive
               ? isCorretor
-                ? `${leads.length} leads atribuídos a você`
+                ? `${distribuicaoCounts.todos} leads atribuídos a você`
                 : isGerente
-                  ? `${leads.length} leads (equipe + pool do admin)`
+                  ? `${distribuicaoCounts.todos} leads (equipe + pool do admin)`
                   : isPlatformAdmin
-                    ? `${leads.length} empresas no funil`
-                    : `${leads.length} leads de toda a equipe no funil`
-              : `${filteredLeads.length} de ${leads.length} leads`
+                    ? `${distribuicaoCounts.todos} empresas no funil`
+                    : `${distribuicaoCounts.todos} leads de toda a equipe no funil`
+              : `${filteredLeads.length} de ${distribuicaoCounts.todos + distribuicaoCounts.baseFria} leads`
         }
         actions={
           <div className="flex w-full flex-wrap items-center justify-between gap-2">
@@ -3929,8 +3951,12 @@ function LeadsPage() {
             : isCorretor
               ? "sm:grid-cols-3"
               : isGerente
-                ? "xl:grid-cols-7"
-                : "xl:grid-cols-6",
+                ? friosAtivos
+                  ? "xl:grid-cols-8"
+                  : "xl:grid-cols-7"
+                : friosAtivos
+                  ? "xl:grid-cols-7"
+                  : "xl:grid-cols-6",
         )}
       >
         {corretorEspecifico ? (
@@ -4125,6 +4151,26 @@ function LeadsPage() {
             }}
           />
         )}
+        {friosAtivos ? (
+          <LeadKpi
+            label="Base fria"
+            value={kpiCounts.baseFria}
+            icon={Snowflake}
+            tone="blue"
+            active={distribuicaoFilter === "baseFria"}
+            onClick={() => {
+              setDistribuicaoFilter("baseFria");
+              setPrioridadeFilter("all");
+              setStageFilter("all");
+              setParadosFilter(false);
+              void navigate({
+                to: "/leads",
+                search: { distribuicao: "baseFria" },
+                replace: true,
+              });
+            }}
+          />
+        ) : null}
         <LeadKpi
           label="Prioridade alta"
           value={kpiCounts.alta}
@@ -4403,6 +4449,16 @@ function LeadsPage() {
                   count: distribuicaoCounts.reatribuidos,
                   icon: UserRoundCog,
                 },
+                ...(friosAtivos
+                  ? [
+                      {
+                        id: "baseFria" as const,
+                        label: "Base fria",
+                        count: distribuicaoCounts.baseFria,
+                        icon: Snowflake,
+                      },
+                    ]
+                  : []),
                 ...(isGerente
                   ? [
                       {
