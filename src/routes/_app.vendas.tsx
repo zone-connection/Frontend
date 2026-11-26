@@ -77,7 +77,7 @@ import {
   type VendaUsado,
 } from "@/lib/imoveis-usados-api";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
-import { canUserAction } from "@/lib/user-permissions";
+import { canImportVendasPlanilha } from "@/lib/user-permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
@@ -355,7 +355,12 @@ function VendasPage() {
 type AbaVenda = "todos" | "lancamentos" | "usados" | "locacao";
 
 function VendasDocumentacaoPage() {
-  const user = getSession();
+  const [user, setUser] = useState(getSession);
+  useEffect(() => {
+    const sync = () => setUser(getSession());
+    window.addEventListener("crm-session-updated", sync);
+    return () => window.removeEventListener("crm-session-updated", sync);
+  }, []);
   const navigate = useNavigate();
   const modules = user?.tenant?.modules;
   const verLancamentos = isTenantOperationEnabled(modules, "comercial");
@@ -919,7 +924,7 @@ function VendasDocumentacaoPage() {
               />
             </div>
           ) : null}
-          {user && canUserAction(user.role, user.permissions, "vendas.importar", user.tenant?.plano) ? (
+          {canImportVendasPlanilha(user?.role ?? "corretor", user?.permissions) ? (
             <ImportarVendasButton onImported={() => setCarga((n) => n + 1)} />
           ) : null}
           <Button asChild className={APPLY_FILTERS_BTN}>
