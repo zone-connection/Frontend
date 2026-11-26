@@ -2037,8 +2037,18 @@ export function FinanceiroTitulosPanel({
                       </p>
                       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                         <span>{t.categoria || t.centro || "—"}</span>
-                        <span className="tabular-nums">
-                          {formatDate(t.vencimento)}
+                        <span className="text-right tabular-nums">
+                          {t.status === "pago" && t.dataPagamento ? (
+                            <>
+                              {tipo === "receber"
+                                ? "Data do recebimento"
+                                : "Data do pagamento"}
+                              {": "}
+                              {formatDate(t.dataPagamento)}
+                            </>
+                          ) : (
+                            formatDate(t.vencimento)
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
@@ -2171,9 +2181,19 @@ export function FinanceiroTitulosPanel({
                                 label={rotuloStatus(t).label}
                               />
                             </div>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                               <span className="tabular-nums">
-                                {formatDate(t.vencimento)}
+                                {t.status === "pago" && t.dataPagamento ? (
+                                  <>
+                                    {tipo === "receber"
+                                      ? "Data do recebimento"
+                                      : "Data do pagamento"}
+                                    {": "}
+                                    {formatDate(t.dataPagamento)}
+                                  </>
+                                ) : (
+                                  formatDate(t.vencimento)
+                                )}
                               </span>
                               <TituloValorCell t={t} />
                             </div>
