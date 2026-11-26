@@ -5,9 +5,20 @@ export type LostLead = Lead & {
   motivoPerda: string;
   perdidoAt: string;
   perdidoPor: string;
+  perdidoPorRole: string | null;
 };
 
-const CACHE_KEY = "crm_lost_leads_cache_v1";
+export function corretorNaPerda(lead: LostLead): string {
+  if (
+    (lead.perdidoPorRole === "admin" || lead.perdidoPorRole === "super_admin") &&
+    lead.perdidoPor !== "—"
+  ) {
+    return `${lead.perdidoPor} deu a perda`;
+  }
+  return lead.corretor;
+}
+
+const CACHE_KEY = "crm_lost_leads_cache_v2";
 
 let memoryCache: LostLead[] | null = null;
 
@@ -25,6 +36,7 @@ export function mapLostLead(api: ApiLead): LostLead {
     motivoPerda: api.motivoPerda ?? "—",
     perdidoAt: formatPerdidoAt(api.perdidoAt),
     perdidoPor: api.perdidoPor?.name ?? "—",
+    perdidoPorRole: api.perdidoPor?.role ?? null,
   };
 }
 
