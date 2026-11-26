@@ -77,6 +77,7 @@ import {
   type VendaUsado,
 } from "@/lib/imoveis-usados-api";
 import { canViewModule, isCorretorLike } from "@/lib/permissions";
+import { canUserAction } from "@/lib/user-permissions";
 import { isTenantOperationEnabled } from "@/lib/tenant-modules";
 import { origemBadgeClass } from "@/lib/catalog-colors";
 import { fetchConstrutoras, type Construtora } from "@/lib/construtoras-api";
@@ -918,7 +919,7 @@ function VendasDocumentacaoPage() {
               />
             </div>
           ) : null}
-          {user?.role === "admin" || user?.role === "gerente" ? (
+          {user && canUserAction(user.role, user.permissions, "vendas.importar", user.tenant?.plano) ? (
             <ImportarVendasButton onImported={() => setCarga((n) => n + 1)} />
           ) : null}
           <Button asChild className={APPLY_FILTERS_BTN}>
