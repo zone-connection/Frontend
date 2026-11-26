@@ -482,7 +482,9 @@ function VendasDocumentacaoPage() {
     setLoading(true);
     Promise.all([
       fetchDocumentacoes(),
-      showTeamFilters ? fetchEquipes() : Promise.resolve([] as Equipe[]),
+      showTeamFilters
+        ? fetchEquipes().catch(() => [] as Equipe[])
+        : Promise.resolve([] as Equipe[]),
     ])
       .then(([documentacoes, equipesData]) => {
         if (!active) return;
