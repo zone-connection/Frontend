@@ -184,7 +184,7 @@ const SIDEBAR_BUTTON_TO = "#075a82";
 const SIDEBAR_BUTTON_FROM_DARK = "#38bdf8";
 const SIDEBAR_BUTTON_TO_DARK = "#079ed4";
 
-/** Pinta tabelas e KPIs com a logo. Botões ficam no azul claro do sistema. */
+/** Pinta KPIs com a logo. Título e tabela ficam no azul do sistema. */
 export function applyLogoChrome(colors: string[]) {
   logoChromePalette = colors.length ? colors.slice(0, 6) : [...LOGO_PALETTE_FALLBACK];
   if (typeof document === "undefined") return;
@@ -202,24 +202,26 @@ export function applyLogoChrome(colors: string[]) {
   root.style.setProperty("--ring", buttonFrom);
   root.style.setProperty("--brand-accent", bright);
   root.style.setProperty("--info", bright);
-  root.style.setProperty("--module-title", deep);
   root.style.setProperty("--btn-gradient-from", buttonFrom);
   root.style.setProperty("--btn-gradient-to", buttonTo);
   root.style.setProperty("--btn-gradient-fg", "#ffffff");
   root.style.setProperty("--background-image-brand-cta", cta);
   root.style.setProperty(
     "--background-image-brand-text",
-    `linear-gradient(to right, ${bright}, ${deep})`,
+    "linear-gradient(to right, #02b3ee, #014a7a)",
   );
   root.style.setProperty(
     "--table-head-gradient",
-    `linear-gradient(90deg, ${bright} 0%, ${mid} 58%, ${deep} 100%)`,
+    "linear-gradient(90deg, #02b3ee 0%, #027dc2 100%)",
   );
-  root.style.setProperty("--table-head-end", deep);
+  root.style.setProperty("--table-head-end", "#027dc2");
   root.style.setProperty(
     "--logo-wash",
-    `color-mix(in srgb, ${mid} 12%, transparent)`,
+    "color-mix(in srgb, #027dc2 12%, transparent)",
   );
+  if (!dark) {
+    root.style.setProperty("--module-title", "#014a7a");
+  }
   const kpiBands = [
     "operacao",
     "fechamento",
