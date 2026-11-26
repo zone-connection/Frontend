@@ -831,6 +831,7 @@ function LeadsPage() {
   const [bulkPurgeOpen, setBulkPurgeOpen] = useState(false);
   const [bulkPurging, setBulkPurging] = useState(false);
   const [enviandoFrios, setEnviandoFrios] = useState(false);
+  const [selectScopeOpen, setSelectScopeOpen] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [tornarClienteLead, setTornarClienteLead] = useState<Lead | null>(null);
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
@@ -1685,14 +1686,25 @@ function LeadsPage() {
   const selectedCount = selectedIds.size;
 
   function toggleSelectAll(checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const id of allVisibleIds) {
-        if (checked) next.add(id);
-        else next.delete(id);
-      }
-      return next;
-    });
+    if (!checked) {
+      setSelectedIds(new Set());
+      return;
+    }
+    if (filteredLeads.length > allVisibleIds.length) {
+      setSelectScopeOpen(true);
+      return;
+    }
+    setSelectedIds(new Set(allVisibleIds));
+  }
+
+  function selectOnlyPage() {
+    setSelectedIds(new Set(allVisibleIds));
+    setSelectScopeOpen(false);
+  }
+
+  function selectEveryFiltered() {
+    setSelectedIds(new Set(filteredLeads.map((lead) => lead.id)));
+    setSelectScopeOpen(false);
   }
 
   function toggleSelectOne(id: string, checked: boolean) {
@@ -3571,6 +3583,27 @@ function LeadsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={selectScopeOpen} onOpenChange={setSelectScopeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>O que deseja selecionar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta página tem {allVisibleIds.length} leads. O filtro atual tem{" "}
+              {filteredLeads.length.toLocaleString("pt-BR")}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button type="button" variant="outline" onClick={selectOnlyPage}>
+              Só esta página
+            </Button>
+            <AlertDialogAction type="button" onClick={selectEveryFiltered}>
+              Todos os {filteredLeads.length.toLocaleString("pt-BR")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={!!deleteLead}
