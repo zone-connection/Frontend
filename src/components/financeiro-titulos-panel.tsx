@@ -3442,7 +3442,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {formTab === "dados" ||
-                (formMode === "edit-grupo" && (formTab === "dados" || formTab === "cobranca")) ? (
+                (formMode === "edit-grupo" && formTab === "cobranca") ? (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label>{catalogLabel} *</Label>

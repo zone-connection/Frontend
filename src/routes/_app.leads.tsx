@@ -103,7 +103,6 @@ import {
   Globe,
   CalendarDays,
   Link2,
-  Snowflake,
   Target,
   ExternalLink,
   type LucideIcon,
@@ -2780,7 +2779,7 @@ function LeadsPage() {
                         <SelectTrigger className="h-10 bg-background">
                           <SelectValue placeholder="Selecione a origem" />
                         </SelectTrigger>
-                        <SelectContent className="z-[80] max-h-72">
+                        <SelectContent className="z-80 max-h-72">
                           <SelectItem value="__none__">Sem origem</SelectItem>
                           {origemOptions.map((o) => (
                             <SelectItem key={o} value={o}>
@@ -2987,7 +2986,7 @@ function LeadsPage() {
                     <SelectTrigger className="h-10 bg-background">
                       <SelectValue placeholder="Selecione a origem" />
                     </SelectTrigger>
-                    <SelectContent className="z-[80] max-h-72">
+                    <SelectContent className="z-80 max-h-72">
                       <SelectItem value="__none__">Sem origem</SelectItem>
                       {origemOptions.map((o) => (
                         <SelectItem key={o} value={o}>
@@ -3089,7 +3088,7 @@ function LeadsPage() {
                   className="h-11 rounded-xl bg-background"
                 />
               </div>
-              <div className="flex items-start gap-2 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-primary/5 px-3 py-2.5 text-sm text-sky-950 dark:border-[#2E90FA]/30 dark:from-[#13283a] dark:to-[#141a22] dark:text-[#BAE6FD]">
+              <div className="flex items-start gap-2 rounded-xl border border-sky-100 bg-linear-to-r from-sky-50 to-primary/5 px-3 py-2.5 text-sm text-sky-950 dark:border-[#2E90FA]/30 dark:from-[#13283a] dark:to-[#141a22] dark:text-[#BAE6FD]">
                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
                 <p>
                   Dica: você pode pular esta etapa e continuar depois. Mas quanto mais completo, melhor o atendimento!
@@ -4196,7 +4195,7 @@ function LeadsPage() {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-55 flex-1">
           <Search className={FILTER_SEARCH_ICON} />
           <Input
             placeholder="Buscar por nome, email, telefone..."
@@ -4547,7 +4546,7 @@ function LeadsPage() {
         <Table
           containerClassName="overflow-x-auto overflow-y-hidden overscroll-x-contain"
           className={cn(
-            "w-full min-w-[52rem] table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle",
+            "w-full min-w-208 table-fixed text-[11px] leading-tight [&_th]:h-8 [&_th]:py-1 [&_th]:text-left [&_th]:whitespace-nowrap [&_td]:py-1.5 [&_td]:text-left [&_td]:align-middle",
             TABLE_LUX,
           )}
         >
@@ -4724,7 +4723,7 @@ function LeadsPage() {
                       <Badge
                         className={cn(
                           funnelStageHeaderClass(stage.color),
-                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full border-transparent px-2.5 text-white shadow-none hover:brightness-110",
+                          "h-6! w-auto! max-w-36 justify-center rounded-full border-transparent px-2.5 text-white shadow-none hover:brightness-110",
                         )}
                         style={funnelStageHeaderStyle(stage.color)}
                         title={stage.name}
@@ -4761,7 +4760,7 @@ function LeadsPage() {
                       {l.origem ? (
                         <span
                           className={cn(
-                            "inline-flex max-w-[9rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                            "inline-flex max-w-36 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
                             origemChipClass(l.origem),
                           )}
                         >
@@ -4775,7 +4774,7 @@ function LeadsPage() {
                       <Badge
                         className={cn(
                           prioridadeBadgeClass(l.prioridade),
-                          "!h-6 !w-auto max-w-[9rem] justify-center rounded-full px-2.5",
+                          "h-6! w-auto! max-w-36 justify-center rounded-full px-2.5",
                         )}
                       >
                         {l.prioridade}
