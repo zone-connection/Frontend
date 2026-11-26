@@ -64,6 +64,27 @@ export function puxarLeadsFrios(ids: string[]) {
   });
 }
 
+export type EnvioFrioLinha = {
+  id: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  cidade: string;
+  existente?: string;
+};
+
+export function conferirEnvioLeadsFrios(ids: string[]) {
+  return apiFetch<{
+    prontos: EnvioFrioLinha[];
+    jaNoBolsao: EnvioFrioLinha[];
+    prontosCount: number;
+    repetidosCount: number;
+  }>("/leads-frios/enviar/conferir", {
+    method: "POST",
+    body: { ids },
+  });
+}
+
 export function enviarLeadsFrios(ids: string[]) {
   return apiFetch<{ updated: number; skipped: number }>("/leads-frios/enviar", {
     method: "POST",
