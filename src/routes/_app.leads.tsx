@@ -149,7 +149,12 @@ import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi, fetchIndicadoresPeriodo } from "@/lib/leads-api";
-import { devolverLeadFrio, enviarLeadsFrios } from "@/lib/leads-frios-api";
+import {
+  conferirEnvioLeadsFrios,
+  devolverLeadFrio,
+  enviarLeadsFrios,
+  type EnvioFrioLinha,
+} from "@/lib/leads-frios-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -831,6 +836,10 @@ function LeadsPage() {
   const [bulkPurgeOpen, setBulkPurgeOpen] = useState(false);
   const [bulkPurging, setBulkPurging] = useState(false);
   const [enviandoFrios, setEnviandoFrios] = useState(false);
+  const [frioConferencia, setFrioConferencia] = useState<{
+    prontos: EnvioFrioLinha[];
+    jaNoBolsao: EnvioFrioLinha[];
+  } | null>(null);
   const [selectScopeOpen, setSelectScopeOpen] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [tornarClienteLead, setTornarClienteLead] = useState<Lead | null>(null);
@@ -1716,8 +1725,29 @@ function LeadsPage() {
     });
   }
 
-  async function enviarSelecaoParaFrios(ids: string[]) {
+  async function abrirEnvioFrios(ids: string[]) {
     if (!friosAtivos || ids.length === 0 || enviandoFrios) return;
+    setEnviandoFrios(true);
+    try {
+      const conferencia = await conferirEnvioLeadsFrios(ids);
+      setFrioConferencia({
+        prontos: conferencia.prontos,
+        jaNoBolsao: conferencia.jaNoBolsao,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível conferir o bolsão.",
+      );
+    } finally {
+      setEnviandoFrios(false);
+    }
+  }
+
+  async function confirmarEnvioFrios() {
+    const ids = frioConferencia?.prontos.map((lead) => lead.id) ?? [];
+    if (ids.length === 0 || enviandoFrios) return;
     setEnviandoFrios(true);
     try {
       const result = await enviarLeadsFrios(ids);
@@ -1726,17 +1756,12 @@ function LeadsPage() {
         for (const id of ids) next.delete(id);
         return next;
       });
+      setFrioConferencia(null);
       await refresh({ silent: true });
-      if (result.updated === 0) {
-        toast.error("Nenhum lead foi para a base fria. Perdidos e clientes ficam de fora.");
-        return;
-      }
       toast.success(
-        result.skipped > 0
-          ? `${result.updated} lead(s) enviado(s) para leads frios. ${result.skipped} ficaram de fora.`
-          : result.updated === 1
-            ? "Lead enviado para leads frios."
-            : `${result.updated} leads enviados para leads frios.`,
+        result.updated === 1
+          ? "1 lead enviado para o bolsão."
+          : `${result.updated} leads enviados para o bolsão.`,
       );
     } catch (err) {
       toast.error(
@@ -2181,7 +2206,7 @@ function LeadsPage() {
               variant="outline"
               size="sm"
               disabled={enviandoFrios}
-              onClick={() => void enviarSelecaoParaFrios([...selectedIds])}
+              onClick={() => void abrirEnvioFrios([...selectedIds])}
               className={LEADS_SECONDARY_BTN}
             >
               {enviandoFrios ? (
@@ -3584,6 +3609,74 @@ function LeadsPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={Boolean(frioConferencia)}
+        onOpenChange={(open) => {
+          if (!open && !enviandoFrios) setFrioConferencia(null);
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
+          <DialogHeader>
+            <DialogTitle>Confirmar envio para o bolsão</DialogTitle>
+            <DialogDescription>
+              {frioConferencia
+                ? `${frioConferencia.prontos.length} entram na base fria. ${frioConferencia.jaNoBolsao.length} já estão no bolsão e não serão copiados.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="p-2 font-medium">Nome</th>
+                  <th className="p-2 font-medium">Telefone</th>
+                  <th className="p-2 font-medium">Cidade</th>
+                  <th className="p-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {frioConferencia?.prontos.map((lead) => (
+                  <tr key={lead.id} className="border-b last:border-0">
+                    <td className="p-2">{lead.nome}</td>
+                    <td className="p-2 tabular-nums">{lead.telefone}</td>
+                    <td className="p-2">{lead.cidade || "—"}</td>
+                    <td className="p-2 text-[#05749E]">Entra no bolsão</td>
+                  </tr>
+                ))}
+                {frioConferencia?.jaNoBolsao.map((lead) => (
+                  <tr key={lead.id} className="border-b bg-amber-50/80 last:border-0">
+                    <td className="p-2">{lead.nome}</td>
+                    <td className="p-2 tabular-nums">{lead.telefone}</td>
+                    <td className="p-2">{lead.cidade || "—"}</td>
+                    <td className="p-2 text-amber-800">
+                      Já está no bolsão{lead.existente ? ` (${lead.existente})` : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFrioConferencia(null)}
+              disabled={enviandoFrios}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={enviandoFrios || (frioConferencia?.prontos.length ?? 0) === 0}
+              onClick={() => void confirmarEnvioFrios()}
+            >
+              {enviandoFrios ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
+              Enviar {frioConferencia?.prontos.length ?? 0}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={selectScopeOpen} onOpenChange={setSelectScopeOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -4705,7 +4798,7 @@ function LeadsPage() {
                             {friosAtivos && l.tipo === "lead" && !isPlatformAdmin ? (
                               <DropdownMenuItem
                                 disabled={enviandoFrios}
-                                onClick={() => void enviarSelecaoParaFrios([l.id])}
+                                onClick={() => void abrirEnvioFrios([l.id])}
                               >
                                 <Snowflake className="mr-2 h-4 w-4 text-[#079ED4]" />
                                 Enviar para lead frio
