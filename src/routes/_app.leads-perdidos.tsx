@@ -76,6 +76,7 @@ import {
 } from "@/lib/table-sort";
 import { deleteLeadApi, deleteLeadsBulkApi, fetchLostLeadsKpis, type LostLeadsKpis } from "@/lib/leads-api";
 import {
+  corretorNaPerda,
   getLostLeadsCache,
   loadLostLeads,
   removeLostLeadFromCache,
@@ -568,7 +569,7 @@ function LeadsPerdidos() {
                   </TableCell>
                   {isPlatformAdmin ? null : (
                   <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">
-                    {l.corretor}
+                    {corretorNaPerda(l)}
                   </TableCell>
                   )}
                   <TableCell className="text-sm uppercase tracking-wide text-muted-foreground">{l.perdidoPor}</TableCell>
@@ -654,7 +655,7 @@ function LeadsPerdidos() {
                     }
                   />
                   {isPlatformAdmin ? null : (
-                    <DetailField label="Corretor" value={detail.corretor} />
+                    <DetailField label="Corretor" value={corretorNaPerda(detail)} />
                   )}
                 </div>
               </FormSection>

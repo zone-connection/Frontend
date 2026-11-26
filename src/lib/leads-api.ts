@@ -83,7 +83,7 @@ export interface ApiLead {
   perdidoAt?: string | null;
   motivoPerda?: string | null;
   perdidoPorId?: string | null;
-  perdidoPor?: { id: string; name: string } | null;
+  perdidoPor?: { id: string; name: string; role?: string } | null;
   origemAtrasoLiberacao?: "caca_lead" | "retrabalho" | null;
   atrasoLiberadoAt?: string | null;
   triagemOrigemHerdada?: "caca_lead" | "retrabalho" | null;
