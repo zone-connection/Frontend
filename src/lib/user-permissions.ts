@@ -551,6 +551,7 @@ function grantActionsOfExtraModules(
       const financeiro =
         item.key === "financeiro" && action.module === "financeiro";
       if (sameModule || comissao || financeiro) {
+        if (stored.actions?.[action.key] === false) continue;
         merged.actions[action.key] = true;
       }
     }

@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api";
 import { fetchMe, getSession } from "@/lib/auth";
@@ -106,6 +105,9 @@ function Page() {
         modules: { ...prev.modules, [key]: value },
         actions: { ...prev.actions },
       };
+      for (const verb of ["view", "create", "edit", "delete"]) {
+        next.actions[`${key}.${verb}`] = value;
+      }
       for (const action of PERMISSION_ACTIONS) {
         const sameModule = action.module === key;
         const comissao =
@@ -114,6 +116,47 @@ function Page() {
           key === "financeiro" && action.module === "financeiro";
         if (sameModule || comissao || financeiro) {
           next.actions[action.key] = value;
+        }
+      }
+      return next;
+    });
+  }
+
+  function setVerb(key: string, verb: string, value: boolean) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const actions = { ...prev.actions, [`${key}.${verb}`]: value };
+      const modules = { ...prev.modules, [key]: value || prev.modules[key] === true };
+      if (!value && verb === "view") {
+        modules[key] = false;
+        for (const item of ["view", "create", "edit", "delete"]) {
+          actions[`${key}.${item}`] = false;
+        }
+        for (const action of PERMISSION_ACTIONS) {
+          if (action.module === key) actions[action.key] = false;
+        }
+      }
+      if (value) modules[key] = true;
+      return { modules, actions };
+    });
+  }
+
+  function setAll(value: boolean) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next: UserPermissions = {
+        modules: { ...prev.modules },
+        actions: { ...prev.actions },
+      };
+      for (const group of visibleGroups) {
+        for (const mod of group.modules) {
+          next.modules[mod.key] = value;
+          for (const verb of ["view", "create", "edit", "delete"]) {
+            next.actions[`${mod.key}.${verb}`] = value;
+          }
+          for (const action of PERMISSION_ACTIONS) {
+            if (action.module === mod.key) next.actions[action.key] = value;
+          }
         }
       }
       return next;
@@ -177,14 +220,6 @@ function Page() {
             isPermissionModuleInTenant(m.key, plano, tenantModules),
         ),
       })).filter((g) => g.modules.length > 0),
-    [plano, tenantModules],
-  );
-
-  const visibleActionModules = useMemo(
-    () =>
-      (["leads", "financeiro"] as const).filter((moduleKey) =>
-        isPermissionModuleInTenant(moduleKey, plano, tenantModules),
-      ),
     [plano, tenantModules],
   );
 
@@ -296,69 +331,91 @@ function Page() {
                 )}
               </div>
 
-              {visibleGroups.map((group) => {
-                const modules = group.modules;
-                return (
-                  <div key={group.id} className="space-y-3">
-                    <h3 className="text-sm font-semibold text-primary">
-                      {group.label}
-                    </h3>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {modules.map((mod) => (
-                        <label
-                          key={mod.key}
-                          className="flex items-center justify-between gap-3 rounded-xl border bg-background/70 px-3 py-2"
-                        >
-                          <span className="text-sm">{mod.label}</span>
-                          <Switch
-                            checked={draft.modules[mod.key] === true}
-                            disabled={!canEdit}
-                            onCheckedChange={(v) => setModule(mod.key, v)}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {visibleActionModules.length > 0 ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-primary">
-                  Ações específicas
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Controlam o que o usuário pode fazer dentro do módulo.
-                </p>
-                {visibleActionModules.map((moduleKey) => {
-                  const actions = PERMISSION_ACTIONS.filter(
-                    (a) => a.module === moduleKey,
-                  );
-                  return (
-                    <div key={moduleKey} className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                        {moduleKey === "leads" ? "Leads" : "Financeiro"}
-                      </Label>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {actions.map((action) => (
-                          <label
-                            key={action.key}
-                            className="flex items-center justify-between gap-3 rounded-xl border bg-background/70 px-3 py-2"
-                          >
-                            <span className="text-sm">{action.label}</span>
-                            <Switch
-                              checked={draft.actions[action.key] === true}
-                              disabled={!canEdit}
-                              onCheckedChange={(v) => setAction(action.key, v)}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              {canEdit ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => setAll(true)}>
+                    Ativar todas
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setAll(false)}>
+                    Desativar todas
+                  </Button>
+                </div>
               ) : null}
+
+              {visibleGroups.map((group) => (
+                <div key={group.id} className="space-y-3">
+                  <h3 className="text-sm font-semibold text-primary">
+                    {group.label}
+                  </h3>
+                  <div className="grid gap-3">
+                    {group.modules.map((mod) => {
+                      const verbs = [
+                        ["view", "Visualizar"],
+                        ["create", "Criar"],
+                        ["edit", "Editar"],
+                        ["delete", "Excluir"],
+                      ] as const;
+                      const specific = PERMISSION_ACTIONS.filter(
+                        (action) => action.module === mod.key,
+                      );
+                      const verbOn = (verb: string) =>
+                        draft.actions[`${mod.key}.${verb}`] === true ||
+                        (draft.actions[`${mod.key}.${verb}`] !== false &&
+                          draft.modules[mod.key] === true);
+                      const total =
+                        verbs.every(([verb]) => verbOn(verb)) &&
+                        specific.every((action) => draft.actions[action.key] === true);
+                      return (
+                        <div key={mod.key} className="rounded-xl border bg-background/70 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <span className="text-sm font-medium">{mod.label}</span>
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                              Acesso total
+                              <Switch
+                                checked={total}
+                                disabled={!canEdit}
+                                onCheckedChange={(value) => setModule(mod.key, value)}
+                              />
+                            </label>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                            {verbs.map(([verb, label]) => (
+                              <label
+                                key={verb}
+                                className="flex items-center justify-between gap-2 rounded-lg border px-2 py-1.5"
+                              >
+                                <span className="text-xs">{label}</span>
+                                <Switch
+                                  checked={verbOn(verb)}
+                                  disabled={!canEdit}
+                                  onCheckedChange={(value) => setVerb(mod.key, verb, value)}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                          {specific.length > 0 ? (
+                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                              {specific.map((action) => (
+                                <label
+                                  key={action.key}
+                                  className="flex items-center justify-between gap-3 rounded-lg border px-2 py-1.5"
+                                >
+                                  <span className="text-xs">{action.label}</span>
+                                  <Switch
+                                    checked={draft.actions[action.key] === true}
+                                    disabled={!canEdit}
+                                    onCheckedChange={(value) => setAction(action.key, value)}
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
