@@ -15,12 +15,39 @@ export type LeadFrioRow = {
   empreendimento?: string;
 };
 
-export async function fetchLeadsFrios(): Promise<Array<Lead & { baseFriaEm?: string | null }>> {
-  const rows = await apiFetch<ApiLead[]>("/leads-frios");
-  return rows.map((row) => ({
-    ...mapApiLead(row),
-    baseFriaEm: row.baseFriaEm ?? null,
-  }));
+export type LeadsFriosPage = {
+  items: Array<Lead & { baseFriaEm?: string | null }>;
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function fetchLeadsFrios(params: {
+  page: number;
+  pageSize: 20 | 50;
+  q?: string;
+}): Promise<LeadsFriosPage> {
+  const search = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize),
+  });
+  const q = params.q?.trim();
+  if (q) search.set("q", q);
+  const data = await apiFetch<{
+    items: ApiLead[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>(`/leads-frios?${search.toString()}`);
+  return {
+    items: data.items.map((row) => ({
+      ...mapApiLead(row),
+      baseFriaEm: row.baseFriaEm ?? null,
+    })),
+    total: data.total,
+    page: data.page,
+    pageSize: data.pageSize,
+  };
 }
 
 export function importarLeadsFrios(rows: LeadFrioRow[]) {
@@ -32,6 +59,13 @@ export function importarLeadsFrios(rows: LeadFrioRow[]) {
 
 export function puxarLeadsFrios(ids: string[]) {
   return apiFetch<{ updated: number }>("/leads-frios/puxar", {
+    method: "POST",
+    body: { ids },
+  });
+}
+
+export function enviarLeadsFrios(ids: string[]) {
+  return apiFetch<{ updated: number; skipped: number }>("/leads-frios/enviar", {
     method: "POST",
     body: { ids },
   });

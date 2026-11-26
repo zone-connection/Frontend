@@ -102,6 +102,7 @@ import {
   Globe,
   CalendarDays,
   Link2,
+  Snowflake,
   Target,
   ExternalLink,
   type LucideIcon,
@@ -148,7 +149,7 @@ import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
 import { lostLeadAvatarClass } from "@/components/lost-leads-lux";
 import { importLeads, fetchLeadById, mapApiLead, checkImportDuplicates, desvincularCorretoresApi, fetchIndicadoresPeriodo } from "@/lib/leads-api";
-import { devolverLeadFrio } from "@/lib/leads-frios-api";
+import { devolverLeadFrio, enviarLeadsFrios } from "@/lib/leads-frios-api";
 import { fetchEquipes, type Equipe } from "@/lib/equipes-api";
 import {
   downloadImportTemplate,
@@ -706,7 +707,8 @@ function LeadsPage() {
     : false;
   const isCorretor = !canSeeTeam && !canViewOthers;
   const canWriteTriagem = roleCanWriteTriagem(user?.role);
-  const { isModuleEnabled } = useTenantTheme();
+  const { isModuleEnabled, modules } = useTenantTheme();
+  const friosAtivos = modules.leadsFrios === true;
   const canAgenda = isModuleEnabled("agenda");
   const canDistribuir = user?.role === "admin" || user?.role === "gerente";
   const canReassign = canReassignLead(user?.role);
@@ -828,6 +830,7 @@ function LeadsPage() {
   const [purgeLead, setPurgeLead] = useState<Lead | null>(null);
   const [bulkPurgeOpen, setBulkPurgeOpen] = useState(false);
   const [bulkPurging, setBulkPurging] = useState(false);
+  const [enviandoFrios, setEnviandoFrios] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [tornarClienteLead, setTornarClienteLead] = useState<Lead | null>(null);
   const [reassignLead, setReassignLead] = useState<Lead | null>(null);
@@ -1701,6 +1704,39 @@ function LeadsPage() {
     });
   }
 
+  async function enviarSelecaoParaFrios(ids: string[]) {
+    if (!friosAtivos || ids.length === 0 || enviandoFrios) return;
+    setEnviandoFrios(true);
+    try {
+      const result = await enviarLeadsFrios(ids);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+      await refresh({ silent: true });
+      if (result.updated === 0) {
+        toast.error("Nenhum lead foi para a base fria. Perdidos e clientes ficam de fora.");
+        return;
+      }
+      toast.success(
+        result.skipped > 0
+          ? `${result.updated} lead(s) enviado(s) para leads frios. ${result.skipped} ficaram de fora.`
+          : result.updated === 1
+            ? "Lead enviado para leads frios."
+            : `${result.updated} leads enviados para leads frios.`,
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível enviar para leads frios.",
+      );
+    } finally {
+      setEnviandoFrios(false);
+    }
+  }
+
   async function confirmDesvincular() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
@@ -2126,6 +2162,22 @@ function LeadsPage() {
             >
               <Share2 className="mr-1.5 size-3.5 text-[#079ED4]" />
               Distribuir
+            </Button>
+          ) : null}
+          {friosAtivos ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={enviandoFrios}
+              onClick={() => void enviarSelecaoParaFrios([...selectedIds])}
+              className={LEADS_SECONDARY_BTN}
+            >
+              {enviandoFrios ? (
+                <Loader2 className="mr-1 size-3.5 animate-spin" />
+              ) : (
+                <Snowflake className="mr-1.5 size-3.5 text-[#079ED4]" />
+              )}
+              Lead frio
             </Button>
           ) : null}
           {canDistribuir ? (
@@ -4615,6 +4667,15 @@ function LeadsPage() {
                               >
                                 <UserRoundPlus className="mr-2 h-4 w-4" />
                                 Tornar cliente
+                              </DropdownMenuItem>
+                            ) : null}
+                            {friosAtivos && l.tipo === "lead" && !isPlatformAdmin ? (
+                              <DropdownMenuItem
+                                disabled={enviandoFrios}
+                                onClick={() => void enviarSelecaoParaFrios([l.id])}
+                              >
+                                <Snowflake className="mr-2 h-4 w-4 text-[#079ED4]" />
+                                Enviar para lead frio
                               </DropdownMenuItem>
                             ) : null}
                             <DropdownMenuItem

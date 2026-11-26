@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Ban,
@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import { TablePager } from "@/components/table-pager";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,6 +56,7 @@ import {
 import {
   apagarLeadsFrios,
   fetchLeadsFrios,
+  type LeadsFriosPage,
   importarLeadsFrios,
   puxarLeadsFrios,
   tempoNaBaseFria,
@@ -71,6 +73,11 @@ export const Route = createFileRoute("/_app/leads-frios")({
 });
 
 type FrioLead = Lead & { baseFriaEm?: string | null };
+type PageSize = 20 | 50;
+
+function pageKey(page: number, pageSize: PageSize, q: string) {
+  return `${pageSize}|${q}|${page}`;
+}
 
 function LeadsFriosPage() {
   const session = getSession();
@@ -80,8 +87,14 @@ function LeadsFriosPage() {
   const podeApagar = role === "admin" || role === "super_admin";
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<FrioLead[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(20);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [busca, setBusca] = useState("");
+  const cache = useRef(new Map<string, LeadsFriosPage>());
+  const pedido = useRef(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [ajudaAberta, setAjudaAberta] = useState(false);
@@ -89,34 +102,58 @@ function LeadsFriosPage() {
   const [arquivo, setArquivo] = useState("");
   const [lidas, setLidas] = useState<ParsedImportLead[]>([]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((lead) =>
-      [lead.nome, lead.telefone, lead.cidade, lead.origem]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [rows, search]);
+  const allSelected = rows.length > 0 && rows.every((lead) => selected.has(lead.id));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const allSelected = filtered.length > 0 && filtered.every((lead) => selected.has(lead.id));
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setRows(await fetchLeadsFrios());
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar a base fria.");
-    } finally {
-      setLoading(false);
-    }
+  const applyPage = useCallback((data: LeadsFriosPage) => {
+    setRows(data.items);
+    setTotal(data.total);
+    setPage(data.page);
   }, []);
 
+  const load = useCallback(async (nextPage: number, nextSize: PageSize, q: string) => {
+    const id = ++pedido.current;
+    const key = pageKey(nextPage, nextSize, q);
+    const cached = cache.current.get(key);
+    if (cached) applyPage(cached);
+    else setLoading(true);
+    try {
+      const data = await fetchLeadsFrios({ page: nextPage, pageSize: nextSize, q });
+      cache.current.set(pageKey(data.page, nextSize, q), data);
+      if (id !== pedido.current) return;
+      applyPage(data);
+      const last = Math.max(1, Math.ceil(data.total / nextSize));
+      if (data.page < last && !cache.current.has(pageKey(data.page + 1, nextSize, q))) {
+        void fetchLeadsFrios({ page: data.page + 1, pageSize: nextSize, q })
+          .then((proxima) => {
+            cache.current.set(pageKey(proxima.page, nextSize, q), proxima);
+          })
+          .catch(() => undefined);
+      }
+    } catch (err) {
+      if (id !== pedido.current) return;
+      if (!cached) {
+        toast.error(err instanceof ApiError ? err.message : "Não foi possível carregar a base fria.");
+      }
+    } finally {
+      if (id === pedido.current) setLoading(false);
+    }
+  }, [applyPage]);
+
+  function recarregar() {
+    cache.current.clear();
+    void load(page, pageSize, busca);
+  }
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    const timer = window.setTimeout(() => {
+      const q = search.trim();
+      setBusca(q);
+      setPage(1);
+      void load(1, pageSize, q);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search, pageSize, load]);
 
   function toggle(id: string, on: boolean) {
     setSelected((prev) => {
@@ -130,7 +167,7 @@ function LeadsFriosPage() {
   function toggleAll(on: boolean) {
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const lead of filtered) {
+      for (const lead of rows) {
         if (on) next.add(lead.id);
         else next.delete(lead.id);
       }
@@ -183,9 +220,9 @@ function LeadsFriosPage() {
         toast.success(`${criados} de ${valid.length} leads enviados.`);
       }
       setConfirmar(false);
-      await load();
+      recarregar();
     } catch (err) {
-      if (criados > 0) await load();
+      if (criados > 0) recarregar();
       toast.error(
         err instanceof ApiError
           ? `${err.message} ${criados} já tinham entrado.`
@@ -208,7 +245,7 @@ function LeadsFriosPage() {
           : `${result.updated} leads puxados para a sua carteira.`,
       );
       setSelected(new Set());
-      await load();
+      recarregar();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível puxar os leads.");
     } finally {
@@ -226,7 +263,7 @@ function LeadsFriosPage() {
         result.deleted === 1 ? "1 lead apagado." : `${result.deleted} leads apagados.`,
       );
       setSelected(new Set());
-      await load();
+      recarregar();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível apagar.");
     } finally {
@@ -241,7 +278,7 @@ function LeadsFriosPage() {
         description={
           loading
             ? "Carregando a base..."
-            : `${rows.length} ${rows.length === 1 ? "lead na base compartilhada" : "leads na base compartilhada"}`
+            : `${total.toLocaleString("pt-BR")} ${total === 1 ? "lead na base compartilhada" : "leads na base compartilhada"}`
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -330,7 +367,7 @@ function LeadsFriosPage() {
                   checked={allSelected ? true : selected.size > 0 ? "indeterminate" : false}
                   onCheckedChange={(value) => toggleAll(value === true)}
                   aria-label="Selecionar todos"
-                  disabled={filtered.length === 0 || busy}
+                  disabled={rows.length === 0 || busy}
                 />
               </TableHead>
               <TableHead>Lead</TableHead>
@@ -346,19 +383,19 @@ function LeadsFriosPage() {
                   Carregando a base...
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-28 text-center">
                   <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                     <Snowflake className="size-5 text-[#079ED4]" />
-                    {rows.length === 0
-                      ? "Nenhum lead frio no momento."
-                      : "Nenhum lead encontrado com essa busca."}
+                    {busca
+                      ? "Nenhum lead encontrado com essa busca."
+                      : "Nenhum lead frio no momento."}
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((lead) => (
+              rows.map((lead) => (
                 <TableRow
                   key={lead.id}
                   data-state={selected.has(lead.id) ? "selected" : undefined}
@@ -409,6 +446,36 @@ function LeadsFriosPage() {
             )}
           </TableBody>
         </Table>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-1 px-3 pt-2 text-xs text-muted-foreground">
+            <span>Por página</span>
+            {([20, 50] as const).map((size) => (
+              <button
+                key={size}
+                type="button"
+                className={cn(
+                  "h-7 rounded-full px-2.5 font-medium",
+                  pageSize === size
+                    ? "bg-[#079ED4] text-white"
+                    : "hover:bg-muted",
+                )}
+                onClick={() => setPageSize(size)}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+          <TablePager
+            page={Math.min(page, totalPages)}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={(next) => {
+              setPage(next);
+              void load(next, pageSize, busca);
+            }}
+          />
+        </div>
       </Card>
 
       <Dialog open={ajudaAberta} onOpenChange={setAjudaAberta}>
