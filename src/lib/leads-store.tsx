@@ -168,6 +168,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [wanted, setWanted] = useState(false);
   const lostIdsRef = useRef(new Set<string>());
+  const refreshSeq = useRef(0);
 
   const withoutLost = useCallback(
     (rows: Lead[]) => rows.filter((lead) => !lostIdsRef.current.has(lead.id)),
@@ -175,6 +176,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   );
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const seq = ++refreshSeq.current;
     if (!opts?.silent) setLoading(true);
     setError(null);
     try {
@@ -183,6 +185,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
         fetchLeads({ page: 1, limit: pageSize, sort: "created_desc" }),
         fetchLeadAssignees(),
       ]);
+      if (seq !== refreshSeq.current) return;
       setAssignees(
         [...team].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
       );
@@ -191,10 +194,12 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
 
       const totalPages = Math.max(1, first.meta.totalPages);
       const rest = await fetchRemainingLeadPages(totalPages);
+      if (seq !== refreshSeq.current) return;
       const all = [...first.data];
       for (const page of rest) all.push(...(page?.data ?? []));
       setLeads(withoutLost(all.map(mapApiLead)));
     } catch (err) {
+      if (seq !== refreshSeq.current) return;
       const message =
         err instanceof ApiError
           ? err.message

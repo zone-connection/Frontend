@@ -57,6 +57,16 @@ export function importarLeadsFrios(rows: LeadFrioRow[]) {
   });
 }
 
+export function distribuirLeadsFrios(input: {
+  ids: string[];
+  alocacoes: Array<{ corretorId: string; quantidade: number }>;
+}) {
+  return apiFetch<{ updated: number }>("/leads-frios/distribuir", {
+    method: "POST",
+    body: input,
+  });
+}
+
 export function puxarLeadsFrios(ids: string[]) {
   return apiFetch<{ updated: number }>("/leads-frios/puxar", {
     method: "POST",

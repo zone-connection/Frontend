@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { fetchUsers } from "@/lib/users-api";
 import {
   FILTER_BAR_SHELL,
   FILTER_CONTROL,
@@ -57,6 +58,7 @@ import {
   apagarLeadsFrios,
   fetchLeadsFrios,
   type LeadsFriosPage,
+  distribuirLeadsFrios,
   importarLeadsFrios,
   puxarLeadsFrios,
   tempoNaBaseFria,
@@ -85,6 +87,7 @@ function LeadsFriosPage() {
   const podeImportar =
     role === "admin" || role === "super_admin" || role === "gerente";
   const podeApagar = role === "admin" || role === "super_admin";
+  const podeDistribuir = podeImportar;
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<FrioLead[]>([]);
   const [total, setTotal] = useState(0);
@@ -101,6 +104,9 @@ function LeadsFriosPage() {
   const [confirmar, setConfirmar] = useState(false);
   const [arquivo, setArquivo] = useState("");
   const [lidas, setLidas] = useState<ParsedImportLead[]>([]);
+  const [distribuirAberto, setDistribuirAberto] = useState(false);
+  const [destinos, setDestinos] = useState<Array<{ id: string; name: string; role: string }>>([]);
+  const [destinoId, setDestinoId] = useState("");
 
   const allSelected = rows.length > 0 && rows.every((lead) => selected.has(lead.id));
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -233,6 +239,46 @@ function LeadsFriosPage() {
     }
   }
 
+  async function abrirDistribuir() {
+    setDistribuirAberto(true);
+    try {
+      const page = await fetchUsers({ status: "ativo", limit: 200 });
+      const lista = page.data
+        .filter((user) =>
+          ["corretor", "treinee", "gerente", "admin"].includes(user.role),
+        )
+        .map((user) => ({ id: user.id, name: user.name, role: user.role }));
+      setDestinos(lista);
+      setDestinoId((atual) => atual || lista[0]?.id || "");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível listar os usuários.");
+    }
+  }
+
+  async function confirmarDistribuir() {
+    const ids = [...selected];
+    if (!destinoId || ids.length === 0) return;
+    setBusy(true);
+    try {
+      const result = await distribuirLeadsFrios({
+        ids,
+        alocacoes: [{ corretorId: destinoId, quantidade: ids.length }],
+      });
+      toast.success(
+        result.updated === 1
+          ? "Lead saiu da base fria e foi para a carteira escolhida."
+          : `${result.updated} leads saíram da base fria e foram para a carteira escolhida.`,
+      );
+      setSelected(new Set());
+      setDistribuirAberto(false);
+      recarregar();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível redistribuir.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function puxar() {
     const ids = [...selected];
     if (ids.length === 0) return;
@@ -310,6 +356,20 @@ function LeadsFriosPage() {
                   Importar
                 </Button>
               </>
+            ) : null}
+            {podeDistribuir ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={SECONDARY_BTN}
+                disabled={busy || selected.size === 0}
+                onClick={() => void abrirDistribuir()}
+              >
+                <Users className="mr-1.5 size-3.5 text-[#079ED4]" />
+                Redistribuir
+                {selected.size ? ` (${selected.size})` : ""}
+              </Button>
             ) : null}
             <Button
               type="button"
@@ -627,6 +687,44 @@ function LeadsFriosPage() {
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
               Importar {lidas.filter((row) => !row.error).length}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={distribuirAberto} onOpenChange={setDistribuirAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redistribuir leads frios</DialogTitle>
+            <DialogDescription>
+              {selected.size} lead(s) saem da base fria e entram na carteira de quem você escolher.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="grid gap-1.5 text-sm">
+            Destino
+            <select
+              className="h-9 rounded-md border bg-background px-2"
+              value={destinoId}
+              onChange={(event) => setDestinoId(event.target.value)}
+            >
+              {destinos.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDistribuirAberto(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={busy || !destinoId}
+              onClick={() => void confirmarDistribuir()}
+            >
+              {busy ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+              Enviar
             </Button>
           </DialogFooter>
         </DialogContent>
