@@ -1038,6 +1038,20 @@ function LeadsPage() {
     return () => window.clearTimeout(t);
   }, [search]);
 
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void refresh({ silent: true });
+    };
+    tick();
+    const timer = window.setInterval(tick, 5000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [refresh]);
+
   const filtersActive =
     debouncedSearch !== "" ||
     stageFilter !== "all" ||
