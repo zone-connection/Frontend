@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import {
   Ban,
   Check,
+  ChevronDown,
   ClipboardList,
   FileSpreadsheet,
   Loader2,
@@ -30,6 +31,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { TablePager } from "@/components/table-pager";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -57,6 +64,7 @@ import {
 import {
   apagarLeadsFrios,
   fetchLeadsFrios,
+  fetchLeadsFriosIds,
   type LeadsFriosPage,
   distribuirLeadsFrios,
   importarLeadsFrios,
@@ -170,15 +178,29 @@ function LeadsFriosPage() {
     });
   }
 
-  function toggleAll(on: boolean) {
+  function selecionarPagina() {
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const lead of rows) {
-        if (on) next.add(lead.id);
-        else next.delete(lead.id);
-      }
+      for (const lead of rows) next.add(lead.id);
       return next;
     });
+  }
+
+  async function selecionarTodos() {
+    setBusy(true);
+    try {
+      const ids = await fetchLeadsFriosIds(busca);
+      setSelected(new Set(ids));
+      toast.success(
+        ids.length === 1
+          ? "1 lead selecionado."
+          : `${ids.length.toLocaleString("pt-BR")} leads selecionados.`,
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Não foi possível selecionar todos.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onFile(file: File) {
@@ -242,11 +264,10 @@ function LeadsFriosPage() {
   async function abrirDistribuir() {
     setDistribuirAberto(true);
     try {
-      const page = await fetchUsers({ status: "ativo", limit: 200 });
+      const page = await fetchUsers({ status: "ativo", limit: 500 });
+      const abaixoDeAdmin = new Set(["gerente", "corretor", "treinee"]);
       const lista = page.data
-        .filter((user) =>
-          ["corretor", "treinee", "gerente", "admin"].includes(user.role),
-        )
+        .filter((user) => abaixoDeAdmin.has(user.role))
         .map((user) => ({ id: user.id, name: user.name, role: user.role }));
       setDestinos(lista);
       setDestinoId((atual) => atual || lista[0]?.id || "");
@@ -367,7 +388,7 @@ function LeadsFriosPage() {
                 onClick={() => void abrirDistribuir()}
               >
                 <Users className="mr-1.5 size-3.5 text-[#079ED4]" />
-                Redistribuir
+                Atribuir
                 {selected.size ? ` (${selected.size})` : ""}
               </Button>
             ) : null}
@@ -422,13 +443,38 @@ function LeadsFriosPage() {
         >
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
-                <Checkbox
-                  checked={allSelected ? true : selected.size > 0 ? "indeterminate" : false}
-                  onCheckedChange={(value) => toggleAll(value === true)}
-                  aria-label="Selecionar todos"
-                  disabled={rows.length === 0 || busy}
-                />
+              <TableHead className="w-14">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="inline-flex items-center gap-0.5 rounded-md p-1 hover:bg-muted data-[disabled]:opacity-50"
+                      aria-label="Opções de seleção"
+                    >
+                      <Checkbox
+                        checked={allSelected ? true : selected.size > 0 ? "indeterminate" : false}
+                        className="pointer-events-none"
+                        tabIndex={-1}
+                      />
+                      <ChevronDown className="size-3.5 text-muted-foreground" />
+                    </span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={selecionarPagina}>
+                      Selecionar desta página ({rows.length})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void selecionarTodos()}>
+                      Selecionar todos ({total.toLocaleString("pt-BR")})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={selected.size === 0}
+                      onClick={() => setSelected(new Set())}
+                    >
+                      Limpar seleção
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableHead>
               <TableHead>Lead</TableHead>
               <TableHead>Telefone</TableHead>
@@ -695,9 +741,9 @@ function LeadsFriosPage() {
       <Dialog open={distribuirAberto} onOpenChange={setDistribuirAberto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Redistribuir leads frios</DialogTitle>
+            <DialogTitle>Atribuir leads</DialogTitle>
             <DialogDescription>
-              {selected.size} lead(s) saem da base fria e entram na carteira de quem você escolher.
+              {selected.size} lead(s) saem da base fria e entram na carteira do gerente, corretor ou treinee escolhido.
             </DialogDescription>
           </DialogHeader>
           <label className="grid gap-1.5 text-sm">
@@ -707,9 +753,12 @@ function LeadsFriosPage() {
               value={destinoId}
               onChange={(event) => setDestinoId(event.target.value)}
             >
+              {destinos.length === 0 ? (
+                <option value="">Nenhum usuário abaixo de admin</option>
+              ) : null}
               {destinos.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.name}
+                  {user.name} · {user.role === "treinee" ? "Treinee" : user.role === "gerente" ? "Gerente" : "Corretor"}
                 </option>
               ))}
             </select>

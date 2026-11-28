@@ -50,6 +50,15 @@ export async function fetchLeadsFrios(params: {
   };
 }
 
+export async function fetchLeadsFriosIds(q?: string) {
+  const search = new URLSearchParams();
+  const termo = q?.trim();
+  if (termo) search.set("q", termo);
+  const suffix = search.size ? `?${search.toString()}` : "";
+  const data = await apiFetch<{ ids: string[] }>(`/leads-frios/ids${suffix}`);
+  return data.ids;
+}
+
 export function importarLeadsFrios(rows: LeadFrioRow[]) {
   return apiFetch<{ created: number }>("/leads-frios/importar", {
     method: "POST",
