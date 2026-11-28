@@ -66,7 +66,7 @@ import {
   isCorretorLike,
   isLeadInAtrasoScope,
 } from "@/lib/permissions";
-import { useLeads } from "@/lib/leads-store";
+import { useLiveLeads } from "@/lib/leads-store";
 import { EmpreendimentosInteresseChips } from "@/components/empreendimentos-interesse-panel";
 import { useCatalog } from "@/lib/catalog-store";
 import {
@@ -514,7 +514,7 @@ export function ComercialFunilBoard({
     applyLead,
     loading,
     refresh: refreshLeads,
-  } = useLeads();
+  } = useLiveLeads();
   const {
     funnelStages,
     loading: catalogLoading,

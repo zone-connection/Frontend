@@ -69,6 +69,7 @@ type LeadsContextValue = {
   assignees: LeadAssignee[];
   refresh: (opts?: { silent?: boolean }) => Promise<void>;
   requestLeads: () => void;
+  subscribeLive: () => () => void;
   resolveCorretorId: (nome: string) => string | undefined;
   addLead: (input: CreateLeadInput) => Promise<Lead>;
   updateLead: (
@@ -167,8 +168,10 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wanted, setWanted] = useState(false);
+  const [liveWatchers, setLiveWatchers] = useState(0);
   const lostIdsRef = useRef(new Set<string>());
   const refreshSeq = useRef(0);
+  const inflightRef = useRef(false);
 
   const withoutLost = useCallback(
     (rows: Lead[]) => rows.filter((lead) => !lostIdsRef.current.has(lead.id)),
@@ -176,7 +179,9 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   );
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    if (opts?.silent && inflightRef.current) return;
     const seq = ++refreshSeq.current;
+    inflightRef.current = true;
     if (!opts?.silent) setLoading(true);
     setError(null);
     try {
@@ -206,11 +211,18 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
           : "Não foi possível carregar os leads.";
       setError(message);
       setLoading(false);
+    } finally {
+      if (seq === refreshSeq.current) inflightRef.current = false;
     }
   }, [withoutLost]);
 
   const requestLeads = useCallback(() => {
     setWanted(true);
+  }, []);
+
+  const subscribeLive = useCallback(() => {
+    setLiveWatchers((n) => n + 1);
+    return () => setLiveWatchers((n) => Math.max(0, n - 1));
   }, []);
 
   useEffect(() => {
@@ -221,6 +233,20 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     if (!wanted) return;
     void refresh();
   }, [wanted, refresh]);
+
+  useEffect(() => {
+    if (!wanted || liveWatchers < 1) return;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void refresh({ silent: true });
+    };
+    const timer = window.setInterval(tick, 5000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [wanted, liveWatchers, refresh]);
 
   const resolveCorretorId = useCallback(
     (nome: string) => assignees.find((a) => a.name === nome)?.id,
@@ -467,6 +493,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       assignees,
       refresh,
       requestLeads,
+      subscribeLive,
       resolveCorretorId,
       addLead,
       updateLead,
@@ -484,6 +511,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       assignees,
       refresh,
       requestLeads,
+      subscribeLive,
       resolveCorretorId,
       addLead,
       updateLead,
@@ -517,5 +545,12 @@ export function useLeads() {
   useEffect(() => {
     ctx.requestLeads();
   }, [ctx.requestLeads]);
+  return ctx;
+}
+
+/** Recarrega a lista a cada 5s enquanto a tela estiver visível. */
+export function useLiveLeads() {
+  const ctx = useLeads();
+  useEffect(() => ctx.subscribeLive(), [ctx.subscribeLive]);
   return ctx;
 }

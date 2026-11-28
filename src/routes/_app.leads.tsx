@@ -144,7 +144,7 @@ import {
   sortByTableOrder,
   type TableSort,
 } from "@/lib/table-sort";
-import { useLeads } from "@/lib/leads-store";
+import { useLiveLeads } from "@/lib/leads-store";
 import { loadLostLeads, type LostLead } from "@/lib/lost-leads-cache";
 import { useCatalog } from "@/lib/catalog-store";
 import { LostMotivoFields } from "@/components/lost-motivo-fields";
@@ -757,7 +757,7 @@ function LeadsPage() {
     loading,
     assignees,
     refresh,
-  } = useLeads();
+  } = useLiveLeads();
   const showLeadSkeleton = useDeferredLoading(loading && allLeads.length === 0);
   const {
     funnelStages,
@@ -1037,20 +1037,6 @@ function LeadsPage() {
     const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(t);
   }, [search]);
-
-  useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState !== "visible") return;
-      void refresh({ silent: true });
-    };
-    tick();
-    const timer = window.setInterval(tick, 5000);
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, [refresh]);
 
   const filtersActive =
     debouncedSearch !== "" ||
