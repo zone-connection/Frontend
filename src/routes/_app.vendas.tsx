@@ -1628,7 +1628,13 @@ function VendasDocumentacaoPage() {
                         </span>
                         <p className="mt-2 text-sm font-medium">{etapa.nome}</p>
                         <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
-                          {marcada ? dataMarcada(marcadaEm) : "Toque para marcar"}
+                          {etapa.id === "chaves" && fluxo.empreendimento?.previsaoEntrega
+                            ? marcada
+                              ? `${dataMarcada(marcadaEm)} · prevista ${dateBr(fluxo.empreendimento.previsaoEntrega)}`
+                              : `Prevista ${dateBr(fluxo.empreendimento.previsaoEntrega)}`
+                            : marcada
+                              ? dataMarcada(marcadaEm)
+                              : "Toque para marcar"}
                         </p>
                       </button>
                       {index < ETAPAS_JORNADA.length - 1 ? (

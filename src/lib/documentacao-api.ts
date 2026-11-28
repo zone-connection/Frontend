@@ -96,6 +96,7 @@ export interface Documentacao {
     nome: string;
     cidade: string | null;
     cor: string | null;
+    previsaoEntrega?: string | null;
   } | null;
   corretor: { id: string; name: string; cor: string | null } | null;
   gerente: { id: string; name: string; role?: string } | null;
