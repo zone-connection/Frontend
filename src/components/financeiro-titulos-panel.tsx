@@ -2035,10 +2035,24 @@ export function FinanceiroTitulosPanel({
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t.parceiro || "Sem parceiro"}
                       </p>
-                      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-start justify-between gap-2 text-xs text-muted-foreground">
                         <span>{t.categoria || t.centro || "—"}</span>
-                        <span className="tabular-nums">
-                          {formatDate(t.vencimento)}
+                        <span className="flex flex-col items-end text-right tabular-nums">
+                          <span>
+                            {t.status === "pago" && t.dataPagamento
+                              ? "Data de vencimento: "
+                              : null}
+                            {formatDate(t.vencimento)}
+                          </span>
+                          {t.status === "pago" && t.dataPagamento ? (
+                            <span>
+                              {tipo === "receber"
+                                ? "Data do recebimento"
+                                : "Data do pagamento"}
+                              {": "}
+                              {formatDate(t.dataPagamento)}
+                            </span>
+                          ) : null}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
@@ -2171,9 +2185,23 @@ export function FinanceiroTitulosPanel({
                                 label={rotuloStatus(t).label}
                               />
                             </div>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span className="tabular-nums">
-                                {formatDate(t.vencimento)}
+                            <div className="flex items-start justify-between gap-2 text-xs text-muted-foreground">
+                              <span className="flex flex-col tabular-nums">
+                                <span>
+                                  {t.status === "pago" && t.dataPagamento
+                                    ? "Data de vencimento: "
+                                    : null}
+                                  {formatDate(t.vencimento)}
+                                </span>
+                                {t.status === "pago" && t.dataPagamento ? (
+                                  <span>
+                                    {tipo === "receber"
+                                      ? "Data do recebimento"
+                                      : "Data do pagamento"}
+                                    {": "}
+                                    {formatDate(t.dataPagamento)}
+                                  </span>
+                                ) : null}
                               </span>
                               <TituloValorCell t={t} />
                             </div>
@@ -3422,7 +3450,7 @@ export function FinanceiroTitulosPanel({
                   </div>
                 ) : null}
                 {formTab === "dados" ||
-                (formMode === "edit-grupo" && (formTab === "dados" || formTab === "cobranca")) ? (
+                (formMode === "edit-grupo" && formTab === "cobranca") ? (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label>{catalogLabel} *</Label>
