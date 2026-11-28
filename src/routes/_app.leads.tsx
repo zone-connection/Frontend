@@ -103,7 +103,6 @@ import {
   Globe,
   CalendarDays,
   Link2,
-  Snowflake,
   Target,
   ExternalLink,
   type LucideIcon,
